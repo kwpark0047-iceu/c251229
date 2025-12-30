@@ -113,11 +113,33 @@ export const AVAILABILITY_LABELS: Record<AvailabilityStatus, string> = {
   RESERVED: '예약',
   OCCUPIED: '사용중',
 };
+export const AVAILABILITY_STATUS_LABELS = AVAILABILITY_LABELS;
 
-export const AVAILABILITY_COLORS: Record<AvailabilityStatus, { bg: string; text: string }> = {
-  AVAILABLE: { bg: 'bg-green-100', text: 'text-green-700' },
-  RESERVED: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
-  OCCUPIED: { bg: 'bg-gray-100', text: 'text-gray-700' },
+export const AVAILABILITY_COLORS: Record<AvailabilityStatus, { bg: string; text: string; border: string }> = {
+  AVAILABLE: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
+  RESERVED: { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
+  OCCUPIED: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' },
+};
+export const AVAILABILITY_STATUS_COLORS = AVAILABILITY_COLORS;
+
+// 광고 유형 라벨
+export const AD_TYPE_LABELS: Record<string, string> = {
+  'poster': '포스터',
+  'digital': '디지털 사이니지',
+  'wraparound': '랩핑 광고',
+  'pillar': '기둥 광고',
+  'escalator': '에스컬레이터 핸드레일',
+  'floor': '바닥 광고',
+  'screen_door': '스크린도어',
+  'lightbox': '라이트박스',
+  '포스터': '포스터',
+  '디지털': '디지털 사이니지',
+  '랩핑': '랩핑 광고',
+  '기둥': '기둥 광고',
+  '에스컬레이터': '에스컬레이터',
+  '바닥': '바닥 광고',
+  '스크린도어': '스크린도어',
+  '라이트박스': '라이트박스',
 };
 
 export interface AdInventory {

@@ -6,10 +6,13 @@
  */
 
 import React, { useState } from 'react';
-import { Phone, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Phone, FileText, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_COLORS, STATUS_LABELS, LINE_COLORS } from '../types';
 import { formatDistance, formatPhoneNumber, truncateString } from '../utils';
+import { ProgressDots } from './crm/ProgressChecklist';
+import CallLogModal from './crm/CallLogModal';
+import LeadDetailPanel from './crm/LeadDetailPanel';
 
 interface ListViewProps {
   leads: Lead[];
@@ -22,6 +25,11 @@ type SortOrder = 'asc' | 'desc';
 export default function ListView({ leads, onStatusChange }: ListViewProps) {
   const [sortField, setSortField] = useState<SortField>('licenseDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [callModalLeadId, setCallModalLeadId] = useState<string | null>(null);
+
+  const selectedLead = leads.find(l => l.id === selectedLeadId);
+  const callModalLead = leads.find(l => l.id === callModalLeadId);
 
   // 정렬 처리
   const sortedLeads = [...leads].sort((a, b) => {
@@ -83,88 +91,127 @@ export default function ListView({ leads, onStatusChange }: ListViewProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
-              <th
-                className="px-4 py-3 text-left text-sm font-semibold text-slate-600 cursor-pointer hover:bg-slate-100"
-                onClick={() => handleSort('bizName')}
-              >
-                <div className="flex items-center gap-1">
-                  병원명
-                  <SortIcon field="bizName" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">
-                주소
-              </th>
-              <th
-                className="px-4 py-3 text-left text-sm font-semibold text-slate-600 cursor-pointer hover:bg-slate-100"
-                onClick={() => handleSort('nearestStation')}
-              >
-                <div className="flex items-center gap-1">
-                  인근역
-                  <SortIcon field="nearestStation" />
-                </div>
-              </th>
-              <th
-                className="px-4 py-3 text-left text-sm font-semibold text-slate-600 cursor-pointer hover:bg-slate-100 whitespace-nowrap"
-                onClick={() => handleSort('stationDistance')}
-              >
-                <div className="flex items-center gap-1">
-                  거리
-                  <SortIcon field="stationDistance" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">
-                전화번호
-              </th>
-              <th
-                className="px-4 py-3 text-left text-sm font-semibold text-slate-600 cursor-pointer hover:bg-slate-100"
-                onClick={() => handleSort('licenseDate')}
-              >
-                <div className="flex items-center gap-1">
-                  인허가일
-                  <SortIcon field="licenseDate" />
-                </div>
-              </th>
-              <th
-                className="px-4 py-3 text-left text-sm font-semibold text-slate-600 cursor-pointer hover:bg-slate-100"
-                onClick={() => handleSort('status')}
-              >
-                <div className="flex items-center gap-1">
-                  상태
-                  <SortIcon field="status" />
-                </div>
-              </th>
-              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-600">
-                액션
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {sortedLeads.map(lead => (
-              <LeadRow key={lead.id} lead={lead} onStatusChange={onStatusChange} />
-            ))}
-          </tbody>
-        </table>
+    <>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th
+                  className="px-4 py-3 text-left text-sm font-semibold text-slate-600 cursor-pointer hover:bg-slate-100"
+                  onClick={() => handleSort('bizName')}
+                >
+                  <div className="flex items-center gap-1">
+                    병원명
+                    <SortIcon field="bizName" />
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">
+                  주소
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-sm font-semibold text-slate-600 cursor-pointer hover:bg-slate-100"
+                  onClick={() => handleSort('nearestStation')}
+                >
+                  <div className="flex items-center gap-1">
+                    인근역
+                    <SortIcon field="nearestStation" />
+                  </div>
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-sm font-semibold text-slate-600 cursor-pointer hover:bg-slate-100 whitespace-nowrap"
+                  onClick={() => handleSort('stationDistance')}
+                >
+                  <div className="flex items-center gap-1">
+                    거리
+                    <SortIcon field="stationDistance" />
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">
+                  전화번호
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-sm font-semibold text-slate-600 cursor-pointer hover:bg-slate-100"
+                  onClick={() => handleSort('licenseDate')}
+                >
+                  <div className="flex items-center gap-1">
+                    인허가일
+                    <SortIcon field="licenseDate" />
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600">
+                  진행
+                </th>
+                <th
+                  className="px-4 py-3 text-left text-sm font-semibold text-slate-600 cursor-pointer hover:bg-slate-100"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center gap-1">
+                    상태
+                    <SortIcon field="status" />
+                  </div>
+                </th>
+                <th className="px-4 py-3 text-center text-sm font-semibold text-slate-600">
+                  액션
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {sortedLeads.map(lead => (
+                <LeadRow
+                  key={lead.id}
+                  lead={lead}
+                  onStatusChange={onStatusChange}
+                  onSelect={() => setSelectedLeadId(lead.id)}
+                  onCallLog={() => setCallModalLeadId(lead.id)}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+
+      {/* 리드 상세 패널 */}
+      {selectedLeadId && (
+        <LeadDetailPanel
+          leadId={selectedLeadId}
+          onClose={() => setSelectedLeadId(null)}
+          onStatusChange={() => onStatusChange(selectedLeadId, selectedLead?.status || 'NEW')}
+        />
+      )}
+
+      {/* 통화 기록 모달 */}
+      {callModalLeadId && callModalLead && (
+        <CallLogModal
+          leadId={callModalLeadId}
+          leadName={callModalLead.bizName}
+          phone={callModalLead.phone}
+          onClose={() => setCallModalLeadId(null)}
+          onSuccess={() => {}}
+        />
+      )}
+    </>
   );
 }
 
 interface LeadRowProps {
   lead: Lead;
   onStatusChange: (leadId: string, status: LeadStatus) => void;
+  onSelect: () => void;
+  onCallLog: () => void;
 }
 
-function LeadRow({ lead, onStatusChange }: LeadRowProps) {
+function LeadRow({ lead, onStatusChange, onSelect, onCallLog }: LeadRowProps) {
   const statusColor = STATUS_COLORS[lead.status];
 
   return (
-    <tr className="hover:bg-slate-50 transition-colors">
+    <tr
+      className="hover:bg-slate-50 transition-colors cursor-pointer"
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest('button, a, select')) return;
+        onSelect();
+      }}
+    >
       {/* 병원명 */}
       <td className="px-4 py-3">
         <div>
@@ -223,6 +270,7 @@ function LeadRow({ lead, onStatusChange }: LeadRowProps) {
           <a
             href={`tel:${lead.phone}`}
             className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+            onClick={(e) => e.stopPropagation()}
           >
             {formatPhoneNumber(lead.phone)}
           </a>
@@ -236,11 +284,20 @@ function LeadRow({ lead, onStatusChange }: LeadRowProps) {
         <span className="text-sm text-slate-600">{lead.licenseDate || '-'}</span>
       </td>
 
+      {/* 진행 상태 */}
+      <td className="px-4 py-3">
+        <ProgressDots leadId={lead.id} />
+      </td>
+
       {/* 상태 */}
       <td className="px-4 py-3">
         <select
           value={lead.status}
-          onChange={(e) => onStatusChange(lead.id, e.target.value as LeadStatus)}
+          onChange={(e) => {
+            e.stopPropagation();
+            onStatusChange(lead.id, e.target.value as LeadStatus);
+          }}
+          onClick={(e) => e.stopPropagation()}
           className={`text-sm px-2 py-1 rounded-md border ${statusColor.bg} ${statusColor.text} ${statusColor.border} cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500`}
         >
           {(['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as LeadStatus[]).map(status => (
@@ -255,15 +312,22 @@ function LeadRow({ lead, onStatusChange }: LeadRowProps) {
       <td className="px-4 py-3">
         <div className="flex items-center justify-center gap-1">
           {lead.phone && (
-            <a
-              href={`tel:${lead.phone}`}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCallLog();
+              }}
               className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
-              title="전화하기"
+              title="통화 기록"
             >
-              <Phone className="w-4 h-4" />
-            </a>
+              <MessageSquare className="w-4 h-4" />
+            </button>
           )}
           <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect();
+            }}
             className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors"
             title="제안서 보내기"
           >

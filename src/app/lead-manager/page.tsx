@@ -18,6 +18,9 @@ import {
   WifiOff,
   Download,
   Filter,
+  Package,
+  Users,
+  Upload,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS } from './types';
@@ -31,6 +34,10 @@ import ListView from './components/ListView';
 import MapView from './components/MapView';
 import SettingsModal from './components/SettingsModal';
 import StatsBar from './components/StatsBar';
+import InventoryTable from './components/inventory/InventoryTable';
+import InventoryUploadModal from './components/inventory/InventoryUploadModal';
+
+type MainTab = 'leads' | 'inventory';
 
 export default function LeadManagerPage() {
   // 상태 관리
@@ -44,6 +51,9 @@ export default function LeadManagerPage() {
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [mainTab, setMainTab] = useState<MainTab>('leads');
+  const [showInventoryUpload, setShowInventoryUpload] = useState(false);
+  const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
 
   // 날짜 범위 (기본: 전월 24일 ~ 오늘, LocalData API 제한)
   const [dateRange, setDateRange] = useState({
@@ -203,13 +213,41 @@ export default function LeadManagerPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* 로고 & 제목 */}
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">LM</span>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">LM</span>
+                </div>
+                <div>
+                  <h1 className="text-lg font-semibold text-slate-800">지하철 광고 영업</h1>
+                  <p className="text-xs text-slate-500">Lead Manager</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-lg font-semibold text-slate-800">지하철 광고 영업</h1>
-                <p className="text-xs text-slate-500">Lead Manager</p>
+
+              {/* 메인 탭 */}
+              <div className="flex bg-slate-100 rounded-lg p-1">
+                <button
+                  onClick={() => setMainTab('leads')}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-md transition-colors text-sm font-medium ${
+                    mainTab === 'leads'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  리드
+                </button>
+                <button
+                  onClick={() => setMainTab('inventory')}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-md transition-colors text-sm font-medium ${
+                    mainTab === 'inventory'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Package className="w-4 h-4" />
+                  인벤토리
+                </button>
               </div>
             </div>
 
@@ -320,83 +358,126 @@ export default function LeadManagerPage() {
         </div>
       )}
 
-      {/* 통계 바 */}
-      <StatsBar leads={leads} />
+      {/* 리드 탭일 때만 통계 바 및 필터 바 표시 */}
+      {mainTab === 'leads' && (
+        <>
+          {/* 통계 바 */}
+          <StatsBar leads={leads} />
 
-      {/* 필터 바 */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center gap-4">
-            <Filter className="w-4 h-4 text-slate-500" />
-            <div className="flex gap-2">
-              {(['ALL', 'NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as const).map(status => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                    statusFilter === status
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {status === 'ALL' ? '전체' : STATUS_LABELS[status]}
-                  {status !== 'ALL' && (
-                    <span className="ml-1">
-                      ({leads.filter(l => l.status === status).length})
-                    </span>
-                  )}
-                </button>
-              ))}
+          {/* 필터 바 */}
+          <div className="bg-white border-b border-slate-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+              <div className="flex items-center gap-4">
+                <Filter className="w-4 h-4 text-slate-500" />
+                <div className="flex gap-2">
+                  {(['ALL', 'NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as const).map(status => (
+                    <button
+                      key={status}
+                      onClick={() => setStatusFilter(status)}
+                      className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                        statusFilter === status
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {status === 'ALL' ? '전체' : STATUS_LABELS[status]}
+                      {status !== 'ALL' && (
+                        <span className="ml-1">
+                          ({leads.filter(l => l.status === status).length})
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <span className="ml-auto text-sm text-slate-500">
+                  총 {filteredLeads.length}건
+                </span>
+              </div>
             </div>
-            <span className="ml-auto text-sm text-slate-500">
-              총 {filteredLeads.length}건
-            </span>
+          </div>
+        </>
+      )}
+
+      {/* 인벤토리 탭일 때 업로드 버튼 바 */}
+      {mainTab === 'inventory' && (
+        <div className="bg-white border-b border-slate-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-800">광고매체 인벤토리</h2>
+              <button
+                onClick={() => setShowInventoryUpload(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                엑셀 업로드
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 메인 컨텐츠 */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {isLoading && leads.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-4" />
-            <p className="text-slate-600">데이터를 불러오는 중...</p>
-            {loadingProgress.total > 0 && (
-              <p className="text-sm text-slate-500 mt-2">
-                {loadingProgress.current} / {loadingProgress.total}
-              </p>
-            )}
-          </div>
-        ) : filteredLeads.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-              <List className="w-8 h-8 text-slate-400" />
+        {mainTab === 'leads' ? (
+          // 리드 뷰
+          isLoading && leads.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+              <p className="text-slate-600">데이터를 불러오는 중...</p>
+              {loadingProgress.total > 0 && (
+                <p className="text-sm text-slate-500 mt-2">
+                  {loadingProgress.current} / {loadingProgress.total}
+                </p>
+              )}
             </div>
-            <h3 className="text-lg font-medium text-slate-700 mb-2">데이터가 없습니다</h3>
-            <p className="text-slate-500 mb-4">
-              위의 새로고침 버튼을 눌러 데이터를 가져오세요.
-            </p>
-            <button
-              onClick={refreshData}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              데이터 가져오기
-            </button>
-          </div>
+          ) : filteredLeads.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <List className="w-8 h-8 text-slate-400" />
+              </div>
+              <h3 className="text-lg font-medium text-slate-700 mb-2">데이터가 없습니다</h3>
+              <p className="text-slate-500 mb-4">
+                위의 새로고침 버튼을 눌러 데이터를 가져오세요.
+              </p>
+              <button
+                onClick={refreshData}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                데이터 가져오기
+              </button>
+            </div>
+          ) : (
+            <>
+              {viewMode === 'grid' && (
+                <GridView leads={filteredLeads} onStatusChange={handleStatusChange} />
+              )}
+              {viewMode === 'list' && (
+                <ListView leads={filteredLeads} onStatusChange={handleStatusChange} />
+              )}
+              {viewMode === 'map' && (
+                <MapView leads={filteredLeads} onStatusChange={handleStatusChange} />
+              )}
+            </>
+          )
         ) : (
-          <>
-            {viewMode === 'grid' && (
-              <GridView leads={filteredLeads} onStatusChange={handleStatusChange} />
-            )}
-            {viewMode === 'list' && (
-              <ListView leads={filteredLeads} onStatusChange={handleStatusChange} />
-            )}
-            {viewMode === 'map' && (
-              <MapView leads={filteredLeads} onStatusChange={handleStatusChange} />
-            )}
-          </>
+          // 인벤토리 뷰
+          <InventoryTable
+            key={inventoryRefreshKey}
+            onRefresh={() => setInventoryRefreshKey(k => k + 1)}
+          />
         )}
       </main>
+
+      {/* 인벤토리 업로드 모달 */}
+      {showInventoryUpload && (
+        <InventoryUploadModal
+          onClose={() => setShowInventoryUpload(false)}
+          onSuccess={() => {
+            setInventoryRefreshKey(k => k + 1);
+            showMessage('success', '인벤토리가 업로드되었습니다.');
+          }}
+        />
+      )}
 
       {/* 설정 모달 */}
       {isSettingsOpen && (

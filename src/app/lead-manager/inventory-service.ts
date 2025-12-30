@@ -297,6 +297,31 @@ export async function updateInventory(
 }
 
 /**
+ * 인벤토리 상태 업데이트
+ */
+export async function updateInventoryStatus(
+  id: string,
+  status: AvailabilityStatus
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const supabase = getSupabase();
+
+    const { error } = await supabase
+      .from('ad_inventory')
+      .update({ availability_status: status })
+      .eq('id', id);
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
+    return { success: true, message: '상태가 변경되었습니다.' };
+  } catch (error) {
+    return { success: false, message: (error as Error).message };
+  }
+}
+
+/**
  * 인벤토리 삭제
  */
 export async function deleteInventory(id: string): Promise<{ success: boolean; message: string }> {
