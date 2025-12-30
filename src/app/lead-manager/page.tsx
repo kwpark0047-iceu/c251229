@@ -61,10 +61,18 @@ export default function LeadManagerPage() {
     end: new Date(),
   });
 
-  // 설정 로드
+  // 초기 로딩 상태
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // 설정 및 데이터 로드
   useEffect(() => {
-    loadSettings();
-    loadLeadsFromDB();
+    const init = async () => {
+      setInitialLoading(true);
+      await loadSettings();
+      await loadLeadsFromDB();
+      setInitialLoading(false);
+    };
+    init();
   }, []);
 
   // 필터 적용
@@ -420,10 +428,15 @@ export default function LeadManagerPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {mainTab === 'leads' ? (
           // 리드 뷰
-          isLoading && leads.length === 0 ? (
+          initialLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-4" />
-              <p className="text-slate-600">데이터를 불러오는 중...</p>
+              <p className="text-slate-600">Supabase에서 데이터를 불러오는 중...</p>
+            </div>
+          ) : isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-4" />
+              <p className="text-slate-600">LocalData API에서 데이터를 가져오는 중...</p>
               {loadingProgress.total > 0 && (
                 <p className="text-sm text-slate-500 mt-2">
                   {loadingProgress.current} / {loadingProgress.total}
@@ -435,15 +448,15 @@ export default function LeadManagerPage() {
               <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <List className="w-8 h-8 text-slate-400" />
               </div>
-              <h3 className="text-lg font-medium text-slate-700 mb-2">데이터가 없습니다</h3>
+              <h3 className="text-lg font-medium text-slate-700 mb-2">저장된 데이터가 없습니다</h3>
               <p className="text-slate-500 mb-4">
-                위의 새로고침 버튼을 눌러 데이터를 가져오세요.
+                새로고침 버튼을 눌러 LocalData API에서 데이터를 가져오세요.
               </p>
               <button
                 onClick={refreshData}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                데이터 가져오기
+                API에서 데이터 가져오기
               </button>
             </div>
           ) : (
