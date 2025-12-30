@@ -53,30 +53,50 @@ export async function fetchLocalDataAPI(
     ? `bgnYmd=${formatDateToAPI(startDate)}&endYmd=${formatDateToAPI(endDate)}`
     : `lastModTsBgn=${formatDateToAPI(startDate)}&lastModTsEnd=${formatDateToAPI(endDate)}`;
 
-  // 최대 3회 재시도
+  // 최대 재시도
   let lastError: Error | null = null;
 
-  for (const proxy of proxies.slice(0, 2)) {
-    for (const key of keyVariants) {
+  for (const key of keyVariants) {
+    for (const proxy of proxies.slice(0, 2)) {
       try {
-        const targetUrl = `${API_ENDPOINT}?authKey=${key}&opnSvcId=01_01_02_P&localCode=${regionCode}&${dateParams}&pageIndex=${pageIndex}&pageSize=${pageSize}&resultType=xml`;
+        const targetUrl = `${API_ENDPOINT}?authKey=${encodeURIComponent(key)}&opnSvcId=01_01_02_P&localCode=${regionCode}&${dateParams}&pageIndex=${pageIndex}&pageSize=${pageSize}&resultType=xml`;
 
-        const proxyUrl = `${proxy}${encodeURIComponent(targetUrl)}`;
+        // 프록시별 URL 구성
+        let proxyUrl: string;
+        if (proxy.includes('corsproxy.io')) {
+          proxyUrl = `${proxy}${encodeURIComponent(targetUrl)}`;
+        } else if (proxy.includes('allorigins.win')) {
+          proxyUrl = `${proxy}${encodeURIComponent(targetUrl)}`;
+        } else {
+          proxyUrl = `${proxy}${encodeURIComponent(targetUrl)}`;
+        }
 
         console.log(`API 호출 시도: ${proxy.substring(0, 30)}...`);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         const response = await fetch(proxyUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/xml, text/xml, */*',
           },
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
         const xmlText = await response.text();
+
+        // HTML 에러 페이지 체크
+        if (xmlText.includes('<!DOCTYPE') || xmlText.includes('<html')) {
+          throw new Error('프록시 서버 오류');
+        }
+
         const result = parseAPIResponse(xmlText);
 
         if (result.success) {
@@ -88,7 +108,6 @@ export async function fetchLocalDataAPI(
       } catch (error) {
         console.error(`API 호출 실패:`, error);
         lastError = error as Error;
-        // 다음 조합으로 재시도
         continue;
       }
     }
@@ -98,7 +117,7 @@ export async function fetchLocalDataAPI(
     success: false,
     leads: [],
     totalCount: 0,
-    message: lastError?.message || 'API 호출에 실패했습니다.',
+    message: lastError?.message || 'API 호출에 실패했습니다. 설정에서 API 키를 확인하세요.',
   };
 }
 
