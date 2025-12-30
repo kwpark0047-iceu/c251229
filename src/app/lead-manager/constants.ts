@@ -9,15 +9,15 @@ export const DEFAULT_API_KEY = 'hxOJfL8Q8p70CnIkVXfHy5UFw3yVBh7MPRQwQy0l2QI=';
 
 // CORS 프록시 옵션
 export const CORS_PROXIES = [
-  { label: 'corsproxy.io (추천)', value: 'https://corsproxy.io/?' },
-  { label: 'allorigins.win', value: 'https://api.allorigins.win/raw?url=' },
+  { label: 'allorigins.win (추천)', value: 'https://api.allorigins.win/raw?url=' },
+  { label: 'corsproxy.io', value: 'https://corsproxy.io/?' },
 ];
 
 // 기본 설정
 export const DEFAULT_SETTINGS: Settings = {
   apiKey: DEFAULT_API_KEY,
   corsProxy: CORS_PROXIES[0].value,
-  searchType: 'license_date',
+  searchType: 'modified_date',
   regionCode: '6110000',
 };
 

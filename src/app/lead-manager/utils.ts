@@ -207,6 +207,17 @@ export function getDateBefore(days: number): Date {
 }
 
 /**
+ * 전월 24일 날짜 반환 (LocalData API 조회 가능 시작일)
+ * @returns Date 객체
+ */
+export function getPreviousMonth24th(): Date {
+  const date = new Date();
+  date.setMonth(date.getMonth() - 1);
+  date.setDate(24);
+  return date;
+}
+
+/**
  * API 키가 URL 인코딩되어 있는지 확인
  * @param key - API 키
  * @returns boolean

@@ -22,7 +22,7 @@ import {
 
 import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS } from './types';
 import { DEFAULT_SETTINGS } from './constants';
-import { formatDateDisplay, getDateBefore } from './utils';
+import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
 import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings } from './supabase-service';
 
@@ -45,9 +45,9 @@ export default function LeadManagerPage() {
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
-  // 날짜 범위 (기본: 최근 30일)
+  // 날짜 범위 (기본: 전월 24일 ~ 오늘, LocalData API 제한)
   const [dateRange, setDateRange] = useState({
-    start: getDateBefore(30),
+    start: getPreviousMonth24th(),
     end: new Date(),
   });
 
