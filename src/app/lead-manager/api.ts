@@ -139,9 +139,11 @@ function parseAPIResponse(xmlText: string): FetchResult {
       };
     }
 
-    // 결과 코드 확인
-    const resultCode = xmlDoc.querySelector('resultCode')?.textContent;
-    const resultMsg = xmlDoc.querySelector('resultMsg')?.textContent;
+    // 결과 코드 확인 (LocalData API는 process > code 구조 사용)
+    const resultCode = xmlDoc.querySelector('process > code')?.textContent ||
+                       xmlDoc.querySelector('code')?.textContent;
+    const resultMsg = xmlDoc.querySelector('process > message')?.textContent ||
+                      xmlDoc.querySelector('message')?.textContent;
 
     if (resultCode !== '00') {
       return {
@@ -152,10 +154,13 @@ function parseAPIResponse(xmlText: string): FetchResult {
       };
     }
 
-    // 전체 건수
-    const totalCount = parseInt(xmlDoc.querySelector('totalCount')?.textContent || '0');
+    // 전체 건수 (paging > totalCount 구조)
+    const totalCount = parseInt(
+      xmlDoc.querySelector('paging > totalCount')?.textContent ||
+      xmlDoc.querySelector('totalCount')?.textContent || '0'
+    );
 
-    // 데이터 항목들
+    // 데이터 항목들 (body > rows > row 구조)
     const rows = xmlDoc.querySelectorAll('row');
     const leads: Lead[] = [];
 
