@@ -101,3 +101,211 @@ export const REGION_CODES: Record<string, string> = {
   '6410000': '경기도',
   '6280000': '인천광역시',
 };
+
+// ============================================
+// 광고 인벤토리 타입
+// ============================================
+
+export type AvailabilityStatus = 'AVAILABLE' | 'RESERVED' | 'OCCUPIED';
+
+export const AVAILABILITY_LABELS: Record<AvailabilityStatus, string> = {
+  AVAILABLE: '가용',
+  RESERVED: '예약',
+  OCCUPIED: '사용중',
+};
+
+export const AVAILABILITY_COLORS: Record<AvailabilityStatus, { bg: string; text: string }> = {
+  AVAILABLE: { bg: 'bg-green-100', text: 'text-green-700' },
+  RESERVED: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
+  OCCUPIED: { bg: 'bg-gray-100', text: 'text-gray-700' },
+};
+
+export interface AdInventory {
+  id: string;
+  stationName: string;
+  locationCode: string;
+  adType: string;
+  adSize?: string;
+  priceMonthly?: number;
+  priceWeekly?: number;
+  availabilityStatus: AvailabilityStatus;
+  availableFrom?: string;
+  availableTo?: string;
+  floorPlanUrl?: string;
+  spotPositionX?: number;
+  spotPositionY?: number;
+  description?: string;
+  trafficDaily?: number;
+  demographics?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FloorPlan {
+  id: string;
+  stationName: string;
+  floorName: string;
+  imageUrl: string;
+  thumbnailUrl?: string;
+  width?: number;
+  height?: number;
+}
+
+// ============================================
+// 제안서 타입
+// ============================================
+
+export type ProposalStatus = 'DRAFT' | 'SENT' | 'VIEWED' | 'ACCEPTED' | 'REJECTED';
+
+export const PROPOSAL_STATUS_LABELS: Record<ProposalStatus, string> = {
+  DRAFT: '작성중',
+  SENT: '발송됨',
+  VIEWED: '열람됨',
+  ACCEPTED: '수락됨',
+  REJECTED: '거절됨',
+};
+
+export const PROPOSAL_STATUS_COLORS: Record<ProposalStatus, { bg: string; text: string }> = {
+  DRAFT: { bg: 'bg-gray-100', text: 'text-gray-700' },
+  SENT: { bg: 'bg-blue-100', text: 'text-blue-700' },
+  VIEWED: { bg: 'bg-purple-100', text: 'text-purple-700' },
+  ACCEPTED: { bg: 'bg-green-100', text: 'text-green-700' },
+  REJECTED: { bg: 'bg-red-100', text: 'text-red-700' },
+};
+
+export interface EffectAnalysis {
+  dailyImpressions: number;
+  monthlyReach: number;
+  targetDemographics: string[];
+  competitorAnalysis?: string;
+  expectedROI?: string;
+}
+
+export interface Proposal {
+  id: string;
+  leadId: string;
+  title: string;
+  greetingMessage?: string;
+  inventoryIds: string[];
+  inventory?: AdInventory[];
+  totalPrice?: number;
+  discountRate?: number;
+  finalPrice?: number;
+  effectAnalysis?: EffectAnalysis;
+  pdfUrl?: string;
+  status: ProposalStatus;
+  sentAt?: string;
+  viewedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ============================================
+// CRM 타입
+// ============================================
+
+export type CallOutcome =
+  | 'NO_ANSWER'
+  | 'REJECTED'
+  | 'INTERESTED'
+  | 'CALLBACK_REQUESTED'
+  | 'MEETING_SCHEDULED'
+  | 'OTHER';
+
+export const CALL_OUTCOME_LABELS: Record<CallOutcome, string> = {
+  NO_ANSWER: '부재중',
+  REJECTED: '거절',
+  INTERESTED: '관심',
+  CALLBACK_REQUESTED: '콜백 요청',
+  MEETING_SCHEDULED: '미팅 잡힘',
+  OTHER: '기타',
+};
+
+export const CALL_OUTCOME_COLORS: Record<CallOutcome, { bg: string; text: string }> = {
+  NO_ANSWER: { bg: 'bg-gray-100', text: 'text-gray-700' },
+  REJECTED: { bg: 'bg-red-100', text: 'text-red-700' },
+  INTERESTED: { bg: 'bg-green-100', text: 'text-green-700' },
+  CALLBACK_REQUESTED: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
+  MEETING_SCHEDULED: { bg: 'bg-blue-100', text: 'text-blue-700' },
+  OTHER: { bg: 'bg-purple-100', text: 'text-purple-700' },
+};
+
+export interface CallLog {
+  id: string;
+  leadId: string;
+  calledAt: string;
+  durationSeconds?: number;
+  outcome: CallOutcome;
+  contactPerson?: string;
+  notes?: string;
+  nextAction?: string;
+  nextContactDate?: string;
+  createdAt?: string;
+}
+
+export type ProgressStep =
+  | 'PROPOSAL_SENT'
+  | 'FIRST_CALL'
+  | 'MEETING_SCHEDULED'
+  | 'CONTRACT_SIGNED';
+
+export const PROGRESS_STEP_LABELS: Record<ProgressStep, string> = {
+  PROPOSAL_SENT: '제안서 발송',
+  FIRST_CALL: '1차 통화',
+  MEETING_SCHEDULED: '미팅 잡힘',
+  CONTRACT_SIGNED: '계약 성사',
+};
+
+export const PROGRESS_STEPS: ProgressStep[] = [
+  'PROPOSAL_SENT',
+  'FIRST_CALL',
+  'MEETING_SCHEDULED',
+  'CONTRACT_SIGNED',
+];
+
+export interface SalesProgress {
+  id: string;
+  leadId: string;
+  step: ProgressStep;
+  completedAt?: string;
+  notes?: string;
+}
+
+// ============================================
+// 확장된 Lead 타입 (CRM 포함)
+// ============================================
+
+export interface LeadWithCRM extends Lead {
+  email?: string;
+  contactPerson?: string;
+  preferredContactTime?: string;
+  budgetRange?: string;
+  callLogs?: CallLog[];
+  proposals?: Proposal[];
+  salesProgress?: SalesProgress[];
+  matchingInventory?: AdInventory[];
+}
+
+// ============================================
+// 엑셀 업로드 타입
+// ============================================
+
+export interface ExcelUploadResult {
+  success: boolean;
+  fileName: string;
+  rowCount: number;
+  successCount: number;
+  errorCount: number;
+  errors: { row: number; message: string }[];
+}
+
+export interface ExcelInventoryRow {
+  stationName: string;
+  locationCode: string;
+  adType: string;
+  adSize?: string;
+  priceMonthly?: number;
+  priceWeekly?: number;
+  availabilityStatus?: AvailabilityStatus;
+  description?: string;
+}

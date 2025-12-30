@@ -5,7 +5,7 @@
  * 병원 리드를 카드 형태로 표시
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Phone,
   FileText,
@@ -13,10 +13,14 @@ import {
   Train,
   Calendar,
   ChevronDown,
+  MessageSquare,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_COLORS, STATUS_LABELS, LINE_COLORS } from '../types';
-import { formatDistance, formatPhoneNumber, truncateString } from '../utils';
+import { formatDistance, truncateString } from '../utils';
+import CallLogModal from './crm/CallLogModal';
+import LeadDetailPanel from './crm/LeadDetailPanel';
+import { ProgressDots } from './crm/ProgressChecklist';
 
 interface GridViewProps {
   leads: Lead[];
@@ -24,52 +28,85 @@ interface GridViewProps {
 }
 
 export default function GridView({ leads, onStatusChange }: GridViewProps) {
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {leads.map(lead => (
-        <LeadCard key={lead.id} lead={lead} onStatusChange={onStatusChange} />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {leads.map(lead => (
+          <LeadCard
+            key={lead.id}
+            lead={lead}
+            onStatusChange={onStatusChange}
+            onSelect={() => setSelectedLeadId(lead.id)}
+          />
+        ))}
+      </div>
+
+      {/* 리드 상세 패널 */}
+      {selectedLeadId && (
+        <LeadDetailPanel
+          leadId={selectedLeadId}
+          onClose={() => setSelectedLeadId(null)}
+          onStatusChange={() => onStatusChange(selectedLeadId, leads.find(l => l.id === selectedLeadId)?.status || 'NEW')}
+        />
+      )}
+    </>
   );
 }
 
 interface LeadCardProps {
   lead: Lead;
   onStatusChange: (leadId: string, status: LeadStatus) => void;
+  onSelect: () => void;
 }
 
-function LeadCard({ lead, onStatusChange }: LeadCardProps) {
-  const [isStatusOpen, setIsStatusOpen] = React.useState(false);
+function LeadCard({ lead, onStatusChange, onSelect }: LeadCardProps) {
+  const [isStatusOpen, setIsStatusOpen] = useState(false);
+  const [showCallModal, setShowCallModal] = useState(false);
   const statusColor = STATUS_COLORS[lead.status];
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-      {/* 상단 - 상태 표시 */}
-      <div className={`px-4 py-2 ${statusColor.bg} border-b ${statusColor.border}`}>
-        <div className="flex items-center justify-between">
-          <span className={`text-sm font-medium ${statusColor.text}`}>
-            {STATUS_LABELS[lead.status]}
-          </span>
-          <div className="relative">
-            <button
-              onClick={() => setIsStatusOpen(!isStatusOpen)}
-              className="p-1 hover:bg-white/50 rounded transition-colors"
-            >
-              <ChevronDown className="w-4 h-4" />
-            </button>
-            {isStatusOpen && (
-              <StatusDropdown
-                currentStatus={lead.status}
-                onSelect={(status) => {
-                  onStatusChange(lead.id, status);
-                  setIsStatusOpen(false);
+    <>
+      <div
+        className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer"
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest('button, a')) return;
+          onSelect();
+        }}
+      >
+        {/* 상단 - 상태 표시 */}
+        <div className={`px-4 py-2 ${statusColor.bg} border-b ${statusColor.border}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-medium ${statusColor.text}`}>
+                {STATUS_LABELS[lead.status]}
+              </span>
+              <ProgressDots leadId={lead.id} />
+            </div>
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsStatusOpen(!isStatusOpen);
                 }}
-                onClose={() => setIsStatusOpen(false)}
-              />
-            )}
+                className="p-1 hover:bg-white/50 rounded transition-colors"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              {isStatusOpen && (
+                <StatusDropdown
+                  currentStatus={lead.status}
+                  onSelect={(status) => {
+                    onStatusChange(lead.id, status);
+                    setIsStatusOpen(false);
+                  }}
+                  onClose={() => setIsStatusOpen(false)}
+                />
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
       {/* 본문 */}
       <div className="p-4">
@@ -133,23 +170,44 @@ function LeadCard({ lead, onStatusChange }: LeadCardProps) {
         </div>
       </div>
 
-      {/* 하단 액션 버튼 */}
-      <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex gap-2">
-        {lead.phone && (
-          <a
-            href={`tel:${lead.phone}`}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
+        {/* 하단 액션 버튼 */}
+        <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex gap-2">
+          {lead.phone && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowCallModal(true);
+              }}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium"
+            >
+              <Phone className="w-4 h-4" />
+              통화기록
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect();
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
           >
-            <Phone className="w-4 h-4" />
-            전화
-          </a>
-        )}
-        <button className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium">
-          <FileText className="w-4 h-4" />
-          제안서
-        </button>
+            <FileText className="w-4 h-4" />
+            제안서
+          </button>
+        </div>
       </div>
-    </div>
+
+      {/* 통화 기록 모달 */}
+      {showCallModal && (
+        <CallLogModal
+          leadId={lead.id}
+          leadName={lead.bizName}
+          phone={lead.phone}
+          onClose={() => setShowCallModal(false)}
+          onSuccess={() => {}}
+        />
+      )}
+    </>
   );
 }
 
