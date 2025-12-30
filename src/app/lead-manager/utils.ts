@@ -7,13 +7,34 @@ import { PROJ4_DEFS, SUBWAY_STATIONS } from './constants';
 import { SubwayStation } from './types';
 
 // proj4 좌표계 등록
-proj4.defs('GRS80', PROJ4_DEFS.GRS80);
+proj4.defs('EPSG5174', PROJ4_DEFS.EPSG5174);
+proj4.defs('EPSG5181', PROJ4_DEFS.EPSG5181);
+proj4.defs('EPSG5179', PROJ4_DEFS.EPSG5179);
 proj4.defs('WGS84', PROJ4_DEFS.WGS84);
 
 /**
- * GRS80 좌표를 WGS84 위경도로 변환
- * @param x - GRS80 X 좌표
- * @param y - GRS80 Y 좌표
+ * 좌표값을 기반으로 좌표계 자동 감지
+ * @param x - X 좌표
+ * @param y - Y 좌표
+ * @returns 좌표계 이름
+ */
+function detectCoordinateSystem(x: number, y: number): string {
+  // EPSG:5179 (통합기준점): x가 약 100만~130만, y가 약 170만~220만
+  if (x > 800000 && x < 1500000 && y > 1500000 && y < 2500000) {
+    return 'EPSG5179';
+  }
+  // EPSG:5174/5181 (중부원점): x가 약 10만~40만, y가 약 40만~70만
+  if (x > 100000 && x < 500000 && y > 300000 && y < 800000) {
+    return 'EPSG5174';
+  }
+  // 기본값
+  return 'EPSG5174';
+}
+
+/**
+ * TM 좌표를 WGS84 위경도로 변환
+ * @param x - TM X 좌표
+ * @param y - TM Y 좌표
  * @returns { lat, lng } - 위도, 경도
  */
 export function convertGRS80ToWGS84(x: number, y: number): { lat: number; lng: number } | null {
@@ -21,7 +42,17 @@ export function convertGRS80ToWGS84(x: number, y: number): { lat: number; lng: n
     if (!x || !y || x === 0 || y === 0) {
       return null;
     }
-    const [lng, lat] = proj4('GRS80', 'WGS84', [x, y]);
+
+    // 좌표계 자동 감지
+    const sourceSystem = detectCoordinateSystem(x, y);
+    const [lng, lat] = proj4(sourceSystem, 'WGS84', [x, y]);
+
+    // 변환 결과 유효성 검사 (서울/경기 범위: 위도 37~38, 경도 126~128)
+    if (lat < 33 || lat > 43 || lng < 124 || lng > 132) {
+      console.warn(`좌표 변환 결과가 범위를 벗어남: (${lat}, ${lng})`);
+      return null;
+    }
+
     return { lat, lng };
   } catch (error) {
     console.error('좌표 변환 오류:', error);

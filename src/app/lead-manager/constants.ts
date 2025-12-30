@@ -128,7 +128,14 @@ export const SUBWAY_STATIONS: SubwayStation[] = [
 ];
 
 // 좌표 변환을 위한 proj4 정의
+// LocalData API는 EPSG:5174 (Korea 2000 / Central Belt) 좌표계 사용
 export const PROJ4_DEFS = {
-  GRS80: '+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80 +units=m +no_defs',
+  // EPSG:5174 - 중부원점TM (Bessel 타원체, 서울/경기 지역)
+  EPSG5174: '+proj=tmerc +lat_0=38 +lon_0=127.0028902777778 +k=1 +x_0=200000 +y_0=500000 +ellps=bessel +units=m +no_defs +towgs84=-115.80,474.99,674.11,1.16,-2.31,-1.63,6.43',
+  // EPSG:5181 - 중부원점TM (GRS80 타원체)
+  EPSG5181: '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs',
+  // EPSG:5179 - 통합기준점 (전국)
+  EPSG5179: '+proj=tmerc +lat_0=38 +lon_0=127.5 +k=0.9996 +x_0=1000000 +y_0=2000000 +ellps=GRS80 +units=m +no_defs',
+  // WGS84
   WGS84: '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs',
 };
