@@ -3,7 +3,7 @@
  * LocalData.go.kr API 호출 및 데이터 파싱
  */
 
-import { Lead, Settings } from './types';
+import { Lead, Settings, BusinessCategory, CATEGORY_SERVICE_IDS, ServiceIdInfo } from './types';
 import { API_ENDPOINT, CORS_PROXIES } from './constants';
 import {
   convertGRS80ToWGS84,
@@ -30,15 +30,18 @@ interface FetchResult {
  * @param endDate - 종료 날짜
  * @param pageIndex - 페이지 인덱스 (1부터 시작)
  * @param pageSize - 페이지 크기
+ * @param serviceInfo - 서비스 정보 (카테고리, 서비스ID 등)
  */
 export async function fetchLocalDataAPI(
   settings: Settings,
   startDate: Date,
   endDate: Date,
   pageIndex: number = 1,
-  pageSize: number = 100
+  pageSize: number = 100,
+  serviceInfo?: ServiceIdInfo
 ): Promise<FetchResult> {
-  const { apiKey, corsProxy, searchType, regionCode } = settings;
+  const { apiKey, corsProxy, regionCode } = settings;
+  const serviceId = serviceInfo?.id || '01_01_02_P';
 
   // API 키 인코딩 여부에 따른 처리
   const keyVariants = isURLEncoded(apiKey)
@@ -57,7 +60,7 @@ export async function fetchLocalDataAPI(
   for (const key of keyVariants) {
     for (const proxy of proxies.slice(0, 2)) {
       try {
-        const targetUrl = `${API_ENDPOINT}?authKey=${encodeURIComponent(key)}&opnSvcId=01_01_02_P&localCode=${regionCode}&${dateParams}&pageIndex=${pageIndex}&pageSize=${pageSize}&resultType=xml`;
+        const targetUrl = `${API_ENDPOINT}?authKey=${encodeURIComponent(key)}&opnSvcId=${serviceId}&localCode=${regionCode}&${dateParams}&pageIndex=${pageIndex}&pageSize=${pageSize}&resultType=xml`;
 
         // 프록시별 URL 구성
         let proxyUrl: string;
@@ -95,10 +98,10 @@ export async function fetchLocalDataAPI(
           throw new Error('프록시 서버 오류');
         }
 
-        const result = parseAPIResponse(xmlText);
+        const result = parseAPIResponse(xmlText, serviceInfo);
 
         if (result.success) {
-          console.log(`API 호출 성공: ${result.leads.length}건`);
+          console.log(`API 호출 성공 [${serviceInfo?.name || '병원'}]: ${result.leads.length}건`);
           return result;
         } else {
           throw new Error(result.message || '알 수 없는 오류');
@@ -122,8 +125,9 @@ export async function fetchLocalDataAPI(
 /**
  * XML 응답 파싱
  * @param xmlText - XML 문자열
+ * @param serviceInfo - 서비스 정보
  */
-function parseAPIResponse(xmlText: string): FetchResult {
+function parseAPIResponse(xmlText: string, serviceInfo?: ServiceIdInfo): FetchResult {
   try {
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
@@ -165,7 +169,7 @@ function parseAPIResponse(xmlText: string): FetchResult {
     const leads: Lead[] = [];
 
     rows.forEach((row) => {
-      const lead = parseRowToLead(row);
+      const lead = parseRowToLead(row, serviceInfo);
       if (lead) {
         leads.push(lead);
       }
@@ -190,8 +194,9 @@ function parseAPIResponse(xmlText: string): FetchResult {
 /**
  * XML row 요소를 Lead 객체로 변환
  * @param row - XML row 요소
+ * @param serviceInfo - 서비스 정보
  */
-function parseRowToLead(row: Element): Lead | null {
+function parseRowToLead(row: Element, serviceInfo?: ServiceIdInfo): Lead | null {
   const getValue = (tagName: string): string => {
     return row.querySelector(tagName)?.textContent?.trim() || '';
   };
@@ -239,6 +244,9 @@ function parseRowToLead(row: Element): Lead | null {
     longitude,
     phone: getValue('siteTel'), // 전화번호
     medicalSubject: getValue('medicalSubject') || getValue('uptaeNm'), // 진료과목/업태
+    category: serviceInfo?.category || 'HEALTH',
+    serviceId: serviceInfo?.id || '01_01_02_P',
+    serviceName: serviceInfo?.name || '병원',
     nearestStation,
     stationDistance,
     stationLines,
@@ -252,51 +260,72 @@ function parseRowToLead(row: Element): Lead | null {
  * @param startDate - 시작 날짜
  * @param endDate - 종료 날짜
  * @param onProgress - 진행 상황 콜백
+ * @param category - 업종 카테고리 (선택)
  */
 export async function fetchAllLeads(
   settings: Settings,
   startDate: Date,
   endDate: Date,
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number, status?: string) => void,
+  category?: BusinessCategory
 ): Promise<FetchResult> {
   const pageSize = 100;
   let allLeads: Lead[] = [];
-  let totalCount = 0;
-  let pageIndex = 1;
 
-  // 첫 페이지 조회
-  const firstResult = await fetchLocalDataAPI(settings, startDate, endDate, 1, pageSize);
+  // 카테고리에 해당하는 서비스 ID 목록
+  const serviceIds: ServiceIdInfo[] = category
+    ? CATEGORY_SERVICE_IDS[category]
+    : CATEGORY_SERVICE_IDS['HEALTH']; // 기본값: 건강
 
-  if (!firstResult.success) {
-    return firstResult;
-  }
+  let totalProcessed = 0;
+  let estimatedTotal = serviceIds.length * 100; // 초기 추정치
 
-  allLeads = [...firstResult.leads];
-  totalCount = firstResult.totalCount;
+  for (const serviceInfo of serviceIds) {
+    onProgress?.(totalProcessed, estimatedTotal, `${serviceInfo.name} 조회 중...`);
 
-  onProgress?.(allLeads.length, totalCount);
+    // 첫 페이지 조회
+    const firstResult = await fetchLocalDataAPI(settings, startDate, endDate, 1, pageSize, serviceInfo);
 
-  // 추가 페이지 조회
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  for (pageIndex = 2; pageIndex <= totalPages; pageIndex++) {
-    const result = await fetchLocalDataAPI(settings, startDate, endDate, pageIndex, pageSize);
-
-    if (result.success) {
-      allLeads = [...allLeads, ...result.leads];
-      onProgress?.(allLeads.length, totalCount);
-    } else {
-      console.error(`페이지 ${pageIndex} 조회 실패`);
+    if (!firstResult.success) {
+      console.error(`${serviceInfo.name} 조회 실패:`, firstResult.message);
+      continue;
     }
 
-    // API 호출 간격 (Rate Limiting 방지)
-    await new Promise(resolve => setTimeout(resolve, 200));
+    allLeads = [...allLeads, ...firstResult.leads];
+    totalProcessed += firstResult.leads.length;
+
+    // 총 예상 건수 업데이트
+    estimatedTotal = Math.max(estimatedTotal, totalProcessed + (serviceIds.length - serviceIds.indexOf(serviceInfo) - 1) * 50);
+    onProgress?.(totalProcessed, estimatedTotal, `${serviceInfo.name}: ${firstResult.totalCount}건`);
+
+    // 추가 페이지 조회
+    const totalPages = Math.ceil(firstResult.totalCount / pageSize);
+
+    for (let pageIndex = 2; pageIndex <= totalPages; pageIndex++) {
+      const result = await fetchLocalDataAPI(settings, startDate, endDate, pageIndex, pageSize, serviceInfo);
+
+      if (result.success) {
+        allLeads = [...allLeads, ...result.leads];
+        totalProcessed += result.leads.length;
+        onProgress?.(totalProcessed, estimatedTotal, `${serviceInfo.name}: ${totalProcessed}건`);
+      } else {
+        console.error(`${serviceInfo.name} 페이지 ${pageIndex} 조회 실패`);
+      }
+
+      // API 호출 간격 (Rate Limiting 방지)
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    // 서비스 간 간격
+    await new Promise(resolve => setTimeout(resolve, 300));
   }
+
+  onProgress?.(allLeads.length, allLeads.length, '완료');
 
   return {
     success: true,
     leads: allLeads,
-    totalCount,
+    totalCount: allLeads.length,
   };
 }
 

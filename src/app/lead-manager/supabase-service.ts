@@ -4,7 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-import { Lead, LeadStatus, Settings } from './types';
+import { Lead, LeadStatus, Settings, BusinessCategory } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 
 /**
@@ -105,6 +105,9 @@ export async function saveLeads(
         longitude: lead.longitude || null,
         phone: lead.phone || null,
         medical_subject: lead.medicalSubject || null,
+        category: lead.category || 'HEALTH',
+        service_id: lead.serviceId || null,
+        service_name: lead.serviceName || null,
         nearest_station: lead.nearestStation || null,
         station_distance: lead.stationDistance || null,
         station_lines: lead.stationLines || null,
@@ -151,6 +154,7 @@ export async function saveLeads(
  */
 export async function getLeads(filters?: {
   status?: LeadStatus;
+  category?: BusinessCategory;
   nearestStation?: string;
   startDate?: string;
   endDate?: string;
@@ -166,6 +170,9 @@ export async function getLeads(filters?: {
     // 필터 적용
     if (filters?.status) {
       query = query.eq('status', filters.status);
+    }
+    if (filters?.category) {
+      query = query.eq('category', filters.category);
     }
     if (filters?.nearestStation) {
       query = query.eq('nearest_station', filters.nearestStation);
@@ -198,6 +205,9 @@ export async function getLeads(filters?: {
       longitude: row.longitude,
       phone: row.phone,
       medicalSubject: row.medical_subject,
+      category: (row.category as BusinessCategory) || 'HEALTH',
+      serviceId: row.service_id,
+      serviceName: row.service_name,
       nearestStation: row.nearest_station,
       stationDistance: row.station_distance,
       stationLines: row.station_lines,

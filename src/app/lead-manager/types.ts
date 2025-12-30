@@ -21,10 +21,10 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   CONTRACTED: '계약 성사',
 };
 
-// 리드(병원) 데이터 타입
+// 리드(사업장) 데이터 타입
 export interface Lead {
   id: string;
-  bizName: string;           // 사업장명 (병원명)
+  bizName: string;           // 사업장명
   bizId?: string;            // 사업자등록번호
   licenseDate?: string;      // 인허가일자
   roadAddress?: string;      // 도로명 주소
@@ -34,7 +34,10 @@ export interface Lead {
   latitude?: number;         // 위도 (WGS84)
   longitude?: number;        // 경도 (WGS84)
   phone?: string;            // 전화번호
-  medicalSubject?: string;   // 진료과목
+  medicalSubject?: string;   // 진료과목/업태명
+  category?: BusinessCategory; // 업종 카테고리
+  serviceId?: string;        // API 서비스 ID
+  serviceName?: string;      // 서비스명 (병원, 약국 등)
   nearestStation?: string;   // 가장 가까운 역
   stationDistance?: number;  // 역까지 거리 (미터)
   stationLines?: string[];   // 해당 역 노선들
@@ -100,6 +103,91 @@ export const REGION_CODES: Record<string, string> = {
   '6110000': '서울특별시',
   '6410000': '경기도',
   '6280000': '인천광역시',
+};
+
+// ============================================
+// 업종 카테고리
+// ============================================
+
+export type BusinessCategory =
+  | 'HEALTH'      // 건강
+  | 'ANIMAL'      // 동물
+  | 'FOOD'        // 식품
+  | 'CULTURE'     // 문화
+  | 'LIVING'      // 생활
+  | 'ENVIRONMENT' // 자원환경
+  | 'OTHER';      // 기타
+
+export const CATEGORY_LABELS: Record<BusinessCategory, string> = {
+  HEALTH: '건강',
+  ANIMAL: '동물',
+  FOOD: '식품',
+  CULTURE: '문화',
+  LIVING: '생활',
+  ENVIRONMENT: '자원환경',
+  OTHER: '기타',
+};
+
+export const CATEGORY_COLORS: Record<BusinessCategory, { bg: string; text: string; border: string }> = {
+  HEALTH: { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' },
+  ANIMAL: { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300' },
+  FOOD: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
+  CULTURE: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
+  LIVING: { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-300' },
+  ENVIRONMENT: { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300' },
+  OTHER: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' },
+};
+
+// 카테고리별 LocalData API 서비스 ID
+export interface ServiceIdInfo {
+  id: string;
+  name: string;
+  category: BusinessCategory;
+}
+
+export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
+  HEALTH: [
+    { id: '01_01_02_P', name: '병원', category: 'HEALTH' },
+    { id: '01_01_03_P', name: '의원', category: 'HEALTH' },
+    { id: '01_01_04_P', name: '치과', category: 'HEALTH' },
+    { id: '01_01_05_P', name: '한의원', category: 'HEALTH' },
+    { id: '01_01_01_P', name: '약국', category: 'HEALTH' },
+    { id: '01_02_01_P', name: '안경업', category: 'HEALTH' },
+  ],
+  ANIMAL: [
+    { id: '07_01_01_P', name: '동물병원', category: 'ANIMAL' },
+    { id: '07_01_02_P', name: '동물판매업', category: 'ANIMAL' },
+    { id: '07_01_03_P', name: '동물미용업', category: 'ANIMAL' },
+    { id: '07_01_04_P', name: '동물위탁관리업', category: 'ANIMAL' },
+  ],
+  FOOD: [
+    { id: '07_24_04_P', name: '일반음식점', category: 'FOOD' },
+    { id: '07_24_05_P', name: '휴게음식점', category: 'FOOD' },
+    { id: '07_24_01_P', name: '식품제조가공업', category: 'FOOD' },
+    { id: '07_24_02_P', name: '즉석판매제조가공업', category: 'FOOD' },
+  ],
+  CULTURE: [
+    { id: '06_01_01_P', name: '공연장', category: 'CULTURE' },
+    { id: '06_01_02_P', name: '영화상영관', category: 'CULTURE' },
+    { id: '06_02_01_P', name: '비디오물감상실', category: 'CULTURE' },
+    { id: '06_03_01_P', name: '게임제공업', category: 'CULTURE' },
+    { id: '06_04_01_P', name: '노래연습장업', category: 'CULTURE' },
+  ],
+  LIVING: [
+    { id: '08_01_01_P', name: '숙박업', category: 'LIVING' },
+    { id: '08_02_01_P', name: '목욕장업', category: 'LIVING' },
+    { id: '08_02_02_P', name: '이용업', category: 'LIVING' },
+    { id: '08_02_03_P', name: '미용업', category: 'LIVING' },
+    { id: '08_02_04_P', name: '세탁업', category: 'LIVING' },
+    { id: '08_03_01_P', name: '체육시설업', category: 'LIVING' },
+  ],
+  ENVIRONMENT: [
+    { id: '03_01_01_P', name: '대기배출시설', category: 'ENVIRONMENT' },
+    { id: '03_02_01_P', name: '폐기물처리업', category: 'ENVIRONMENT' },
+  ],
+  OTHER: [
+    { id: '09_01_01_P', name: '기타', category: 'OTHER' },
+  ],
 };
 
 // ============================================

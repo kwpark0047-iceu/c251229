@@ -23,7 +23,7 @@ import {
   Upload,
 } from 'lucide-react';
 
-import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS } from './types';
+import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
@@ -50,10 +50,12 @@ export default function LeadManagerPage() {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
+  const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>('HEALTH');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [mainTab, setMainTab] = useState<MainTab>('leads');
   const [showInventoryUpload, setShowInventoryUpload] = useState(false);
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
+  const [loadingStatus, setLoadingStatus] = useState<string>('');
 
   // 날짜 범위 (기본: 전월 24일 ~ 오늘, LocalData API 제한)
   const [dateRange, setDateRange] = useState({
@@ -77,12 +79,18 @@ export default function LeadManagerPage() {
 
   // 필터 적용
   useEffect(() => {
-    if (statusFilter === 'ALL') {
-      setFilteredLeads(leads);
-    } else {
-      setFilteredLeads(leads.filter(lead => lead.status === statusFilter));
+    let filtered = leads;
+
+    // 카테고리 필터 적용 (선택된 카테고리만)
+    filtered = filtered.filter(lead => lead.category === categoryFilter);
+
+    // 상태 필터 적용
+    if (statusFilter !== 'ALL') {
+      filtered = filtered.filter(lead => lead.status === statusFilter);
     }
-  }, [leads, statusFilter]);
+
+    setFilteredLeads(filtered);
+  }, [leads, statusFilter, categoryFilter]);
 
   // 설정 로드
   const loadSettings = async () => {
@@ -111,17 +119,23 @@ export default function LeadManagerPage() {
   const refreshData = async () => {
     setIsLoading(true);
     setLoadingProgress({ current: 0, total: 0 });
+    setLoadingStatus('');
 
     try {
       const result = await fetchAllLeads(
         settings,
         dateRange.start,
         dateRange.end,
-        (current, total) => setLoadingProgress({ current, total })
+        (current, total, status) => {
+          setLoadingProgress({ current, total });
+          if (status) setLoadingStatus(status);
+        },
+        categoryFilter
       );
 
       if (result.success) {
         // DB에 신규 데이터만 저장
+        setLoadingStatus('DB에 저장 중...');
         const saveResult = await saveLeads(
           result.leads,
           (current, total, status) => {
@@ -135,7 +149,7 @@ export default function LeadManagerPage() {
           await loadLeadsFromDB();
           showMessage(
             'success',
-            `API에서 ${result.leads.length}건 조회. ${saveResult.message}`
+            `[${CATEGORY_LABELS[categoryFilter]}] API에서 ${result.leads.length}건 조회. ${saveResult.message}`
           );
         } else {
           showMessage('error', saveResult.message);
@@ -147,6 +161,7 @@ export default function LeadManagerPage() {
       showMessage('error', `오류: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
+      setLoadingStatus('');
     }
   };
 
@@ -375,28 +390,60 @@ export default function LeadManagerPage() {
           {/* 필터 바 */}
           <div className="bg-white border-b border-slate-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-              <div className="flex items-center gap-4">
-                <Filter className="w-4 h-4 text-slate-500" />
-                <div className="flex gap-2">
-                  {(['ALL', 'NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as const).map(status => (
-                    <button
-                      key={status}
-                      onClick={() => setStatusFilter(status)}
-                      className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                        statusFilter === status
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      {status === 'ALL' ? '전체' : STATUS_LABELS[status]}
-                      {status !== 'ALL' && (
-                        <span className="ml-1">
-                          ({leads.filter(l => l.status === status).length})
-                        </span>
-                      )}
-                    </button>
-                  ))}
+              <div className="flex flex-wrap items-center gap-4">
+                {/* 업종 카테고리 필터 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-600">업종:</span>
+                  <div className="flex gap-1">
+                    {(['HEALTH', 'ANIMAL', 'FOOD', 'CULTURE', 'LIVING', 'ENVIRONMENT', 'OTHER'] as BusinessCategory[]).map(category => {
+                      const colors = CATEGORY_COLORS[category];
+                      const count = leads.filter(l => l.category === category).length;
+                      return (
+                        <button
+                          key={category}
+                          onClick={() => setCategoryFilter(category)}
+                          className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                            categoryFilter === category
+                              ? `${colors.bg} ${colors.text} ${colors.border} border`
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {CATEGORY_LABELS[category]}
+                          {count > 0 && <span className="ml-1">({count})</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {/* 구분선 */}
+                <div className="h-6 w-px bg-slate-300" />
+
+                {/* 상태 필터 */}
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-slate-500" />
+                  <div className="flex gap-1">
+                    {(['ALL', 'NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as const).map(status => (
+                      <button
+                        key={status}
+                        onClick={() => setStatusFilter(status)}
+                        className={`px-3 py-1 text-sm rounded-full transition-colors ${
+                          statusFilter === status
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {status === 'ALL' ? '전체' : STATUS_LABELS[status]}
+                        {status !== 'ALL' && (
+                          <span className="ml-1">
+                            ({leads.filter(l => l.status === status).length})
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <span className="ml-auto text-sm text-slate-500">
                   총 {filteredLeads.length}건
                 </span>
@@ -436,9 +483,14 @@ export default function LeadManagerPage() {
           ) : isLoading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <RefreshCw className="w-8 h-8 text-blue-600 animate-spin mb-4" />
-              <p className="text-slate-600">LocalData API에서 데이터를 가져오는 중...</p>
+              <p className="text-slate-600">
+                [{CATEGORY_LABELS[categoryFilter]}] LocalData API에서 데이터를 가져오는 중...
+              </p>
+              {loadingStatus && (
+                <p className="text-sm text-blue-600 mt-2 font-medium">{loadingStatus}</p>
+              )}
               {loadingProgress.total > 0 && (
-                <p className="text-sm text-slate-500 mt-2">
+                <p className="text-sm text-slate-500 mt-1">
                   {loadingProgress.current} / {loadingProgress.total}
                 </p>
               )}
