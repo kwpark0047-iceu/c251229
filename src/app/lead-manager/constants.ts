@@ -21,8 +21,8 @@ export const DEFAULT_SETTINGS: Settings = {
   regionCode: '6110000',
 };
 
-// LocalData API 엔드포인트
-export const API_ENDPOINT = 'http://www.localdata.go.kr/platform/rest/01_01_02_P/openDataApi';
+// LocalData API 엔드포인트 (TO0 = 통합조회)
+export const API_ENDPOINT = 'http://www.localdata.go.kr/platform/rest/TO0/openDataApi';
 
 // 주요 서울 지하철역 데이터
 export const SUBWAY_STATIONS: SubwayStation[] = [

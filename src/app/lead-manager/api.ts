@@ -48,10 +48,8 @@ export async function fetchLocalDataAPI(
   // 프록시 목록 (설정된 프록시 우선)
   const proxies = [corsProxy, ...CORS_PROXIES.map(p => p.value).filter(p => p !== corsProxy)];
 
-  // 날짜 파라미터
-  const dateParams = searchType === 'license_date'
-    ? `bgnYmd=${formatDateToAPI(startDate)}&endYmd=${formatDateToAPI(endDate)}`
-    : `lastModTsBgn=${formatDateToAPI(startDate)}&lastModTsEnd=${formatDateToAPI(endDate)}`;
+  // 날짜 파라미터 (LocalData API는 lastModTs 기준으로만 동작)
+  const dateParams = `lastModTsBgn=${formatDateToAPI(startDate)}&lastModTsEnd=${formatDateToAPI(endDate)}`;
 
   // 최대 재시도
   let lastError: Error | null = null;
