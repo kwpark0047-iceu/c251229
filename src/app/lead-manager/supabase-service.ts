@@ -15,46 +15,133 @@ function getSupabase() {
 }
 
 /**
- * 리드를 데이터베이스에 저장 (Upsert)
- * @param leads - 저장할 리드 목록
+ * 리드 저장 결과 타입
  */
-export async function saveLeads(leads: Lead[]): Promise<{ success: boolean; message: string }> {
+export interface SaveLeadsResult {
+  success: boolean;
+  message: string;
+  newCount: number;
+  skippedCount: number;
+  newLeads: Lead[];
+}
+
+/**
+ * 리드를 데이터베이스에 저장 (신규 데이터만, 중복 체크)
+ * @param leads - 저장할 리드 목록
+ * @param onProgress - 진행 상황 콜백
+ */
+export async function saveLeads(
+  leads: Lead[],
+  onProgress?: (current: number, total: number, status: string) => void
+): Promise<SaveLeadsResult> {
   try {
     const supabase = getSupabase();
 
-    // Lead 객체를 DB 스키마에 맞게 변환
-    const dbLeads = leads.map(lead => ({
-      biz_name: lead.bizName,
-      biz_id: lead.bizId || null,
-      license_date: lead.licenseDate || null,
-      road_address: lead.roadAddress || null,
-      lot_address: lead.lotAddress || null,
-      coord_x: lead.coordX || null,
-      coord_y: lead.coordY || null,
-      latitude: lead.latitude || null,
-      longitude: lead.longitude || null,
-      phone: lead.phone || null,
-      medical_subject: lead.medicalSubject || null,
-      nearest_station: lead.nearestStation || null,
-      station_distance: lead.stationDistance || null,
-      station_lines: lead.stationLines || null,
-      status: lead.status,
-      notes: lead.notes || null,
-    }));
+    onProgress?.(0, leads.length, '기존 데이터 확인 중...');
 
-    const { error } = await supabase
+    // 기존 데이터 조회 (biz_name + road_address 조합으로 중복 체크)
+    const { data: existingData, error: fetchError } = await supabase
       .from('leads')
-      .upsert(dbLeads, { onConflict: 'biz_id' });
+      .select('biz_name, road_address');
 
-    if (error) {
-      console.error('리드 저장 오류:', error);
-      return { success: false, message: error.message };
+    if (fetchError) {
+      console.error('기존 데이터 조회 오류:', fetchError);
+      return { success: false, message: fetchError.message, newCount: 0, skippedCount: 0, newLeads: [] };
     }
 
-    return { success: true, message: `${leads.length}건의 리드가 저장되었습니다.` };
+    // 기존 데이터 키 세트 생성
+    const existingSet = new Set<string>();
+    (existingData || []).forEach(row => {
+      const key = `${row.biz_name || ''}|${row.road_address || ''}`;
+      existingSet.add(key);
+    });
+
+    console.log(`기존 데이터: ${existingSet.size}건`);
+
+    // 신규 데이터만 필터링
+    const newLeads: Lead[] = [];
+    const skippedLeads: Lead[] = [];
+
+    leads.forEach(lead => {
+      const key = `${lead.bizName}|${lead.roadAddress || ''}`;
+      if (existingSet.has(key)) {
+        skippedLeads.push(lead);
+      } else {
+        newLeads.push(lead);
+      }
+    });
+
+    console.log(`신규 데이터: ${newLeads.length}건, 중복: ${skippedLeads.length}건`);
+
+    if (newLeads.length === 0) {
+      return {
+        success: true,
+        message: '신규 데이터가 없습니다.',
+        newCount: 0,
+        skippedCount: skippedLeads.length,
+        newLeads: [],
+      };
+    }
+
+    // 배치로 저장 (50건씩)
+    const BATCH_SIZE = 50;
+    let savedCount = 0;
+
+    for (let i = 0; i < newLeads.length; i += BATCH_SIZE) {
+      const batch = newLeads.slice(i, i + BATCH_SIZE);
+
+      onProgress?.(savedCount, newLeads.length, `저장 중... (${savedCount}/${newLeads.length})`);
+
+      // Lead 객체를 DB 스키마에 맞게 변환
+      const dbLeads = batch.map(lead => ({
+        biz_name: lead.bizName,
+        biz_id: lead.bizId || null,
+        license_date: lead.licenseDate || null,
+        road_address: lead.roadAddress || null,
+        lot_address: lead.lotAddress || null,
+        coord_x: lead.coordX || null,
+        coord_y: lead.coordY || null,
+        latitude: lead.latitude || null,
+        longitude: lead.longitude || null,
+        phone: lead.phone || null,
+        medical_subject: lead.medicalSubject || null,
+        nearest_station: lead.nearestStation || null,
+        station_distance: lead.stationDistance || null,
+        station_lines: lead.stationLines || null,
+        status: lead.status,
+        notes: lead.notes || null,
+      }));
+
+      const { error } = await supabase
+        .from('leads')
+        .insert(dbLeads);
+
+      if (error) {
+        console.error('리드 저장 오류:', error);
+        return {
+          success: false,
+          message: `저장 오류: ${error.message}`,
+          newCount: savedCount,
+          skippedCount: skippedLeads.length,
+          newLeads: newLeads.slice(0, savedCount),
+        };
+      }
+
+      savedCount += batch.length;
+    }
+
+    onProgress?.(newLeads.length, newLeads.length, '저장 완료!');
+
+    return {
+      success: true,
+      message: `신규 ${newLeads.length}건 저장, 기존 ${skippedLeads.length}건 스킵`,
+      newCount: newLeads.length,
+      skippedCount: skippedLeads.length,
+      newLeads,
+    };
   } catch (error) {
     console.error('리드 저장 중 오류:', error);
-    return { success: false, message: (error as Error).message };
+    return { success: false, message: (error as Error).message, newCount: 0, skippedCount: 0, newLeads: [] };
   }
 }
 

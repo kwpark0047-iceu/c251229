@@ -103,14 +103,25 @@ export default function LeadManagerPage() {
       );
 
       if (result.success) {
-        setLeads(result.leads);
-
-        // DB에 저장
-        const saveResult = await saveLeads(result.leads);
-        showMessage(
-          saveResult.success ? 'success' : 'error',
-          `${result.leads.length}건의 데이터를 가져왔습니다. ${saveResult.message}`
+        // DB에 신규 데이터만 저장
+        const saveResult = await saveLeads(
+          result.leads,
+          (current, total, status) => {
+            console.log(status);
+            setLoadingProgress({ current, total });
+          }
         );
+
+        if (saveResult.success) {
+          // DB에서 다시 로드하여 최신 상태 반영
+          await loadLeadsFromDB();
+          showMessage(
+            'success',
+            `API에서 ${result.leads.length}건 조회. ${saveResult.message}`
+          );
+        } else {
+          showMessage('error', saveResult.message);
+        }
       } else {
         showMessage('error', result.message || '데이터 조회에 실패했습니다.');
       }
