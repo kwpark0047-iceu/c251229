@@ -36,6 +36,13 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // 루트 경로는 /lead-manager로 리다이렉트
+  if (pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/lead-manager'
+    return NextResponse.redirect(url)
+  }
+
   // 보호된 라우트 목록
   const protectedRoutes = ['/lead-manager']
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
