@@ -13,6 +13,7 @@ import {
   Lead,
   Proposal,
 } from './types';
+import { getOrganizationId } from './auth-service';
 
 function getSupabase() {
   return createClient();
@@ -38,6 +39,7 @@ export async function logCall(
 ): Promise<{ success: boolean; callLog?: CallLog; message: string }> {
   try {
     const supabase = getSupabase();
+    const orgId = await getOrganizationId();
 
     const { data, error } = await supabase
       .from('call_logs')
@@ -49,6 +51,7 @@ export async function logCall(
         notes: options?.notes || null,
         next_action: options?.nextAction || null,
         next_contact_date: options?.nextContactDate || null,
+        organization_id: orgId,
       })
       .select()
       .single();
@@ -128,6 +131,7 @@ export async function updateProgress(
 ): Promise<{ success: boolean; message: string }> {
   try {
     const supabase = getSupabase();
+    const orgId = await getOrganizationId();
 
     const { error } = await supabase
       .from('sales_progress')
@@ -136,6 +140,7 @@ export async function updateProgress(
         step,
         completed_at: new Date().toISOString(),
         notes: notes || null,
+        organization_id: orgId,
       }, { onConflict: 'lead_id,step' });
 
     if (error) {

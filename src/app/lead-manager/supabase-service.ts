@@ -6,6 +6,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { Lead, LeadStatus, Settings, BusinessCategory } from './types';
 import { DEFAULT_SETTINGS } from './constants';
+import { getOrganizationId } from './auth-service';
 
 /**
  * Supabase 클라이언트 인스턴스 가져오기
@@ -32,10 +33,14 @@ export interface SaveLeadsResult {
  */
 export async function saveLeads(
   leads: Lead[],
-  onProgress?: (current: number, total: number, status: string) => void
+  onProgress?: (current: number, total: number, status: string) => void,
+  organizationId?: string | null
 ): Promise<SaveLeadsResult> {
   try {
     const supabase = getSupabase();
+
+    // 조직 ID 가져오기 (전달되지 않은 경우)
+    const orgId = organizationId ?? await getOrganizationId();
 
     onProgress?.(0, leads.length, '기존 데이터 확인 중...');
 
@@ -46,7 +51,10 @@ export async function saveLeads(
 
     if (fetchError) {
       console.error('기존 데이터 조회 오류:', fetchError);
-      return { success: false, message: fetchError.message, newCount: 0, skippedCount: 0, newLeads: [] };
+      console.error('오류 상세:', JSON.stringify(fetchError, null, 2));
+      console.error('오류 코드:', fetchError.code, '메시지:', fetchError.message, '힌트:', fetchError.hint);
+      const errorMsg = fetchError.message || fetchError.code || '알 수 없는 오류 - 테이블이 존재하는지 확인하세요';
+      return { success: false, message: errorMsg, newCount: 0, skippedCount: 0, newLeads: [] };
     }
 
     // 기존 데이터 키 세트 생성
@@ -109,10 +117,11 @@ export async function saveLeads(
         service_id: lead.serviceId || null,
         service_name: lead.serviceName || null,
         nearest_station: lead.nearestStation || null,
-        station_distance: lead.stationDistance || null,
+        station_distance: lead.stationDistance ? Math.round(lead.stationDistance) : null,
         station_lines: lead.stationLines || null,
-        status: lead.status,
+        status: lead.status || 'NEW',
         notes: lead.notes || null,
+        organization_id: orgId,
       }));
 
       const { error } = await supabase
@@ -121,9 +130,22 @@ export async function saveLeads(
 
       if (error) {
         console.error('리드 저장 오류:', error);
+        console.error('오류 상세:', JSON.stringify(error, null, 2));
+
+        // 테이블이 없는 경우 안내 메시지
+        if (error.message.includes('relation') || error.code === '42P01') {
+          return {
+            success: false,
+            message: '테이블이 없습니다. Supabase에서 supabase-schema.sql을 실행하세요.',
+            newCount: savedCount,
+            skippedCount: skippedLeads.length,
+            newLeads: newLeads.slice(0, savedCount),
+          };
+        }
+
         return {
           success: false,
-          message: `저장 오류: ${error.message}`,
+          message: `저장 오류: ${error.message} (코드: ${error.code || 'unknown'})`,
           newCount: savedCount,
           skippedCount: skippedLeads.length,
           newLeads: newLeads.slice(0, savedCount),
@@ -290,14 +312,20 @@ export async function saveSettings(settings: Settings): Promise<{ success: boole
   try {
     const supabase = getSupabase();
 
+    // 현재 사용자 ID 가져오기
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id || null;
+
     const { error } = await supabase
       .from('user_settings')
       .upsert({
-        user_id: null, // 익명 사용자
+        user_id: userId,
         api_key: settings.apiKey,
         cors_proxy: settings.corsProxy,
         search_type: settings.searchType,
         region_code: settings.regionCode,
+      }, {
+        onConflict: 'user_id',
       });
 
     if (error) {
@@ -319,11 +347,19 @@ export async function getSettings(): Promise<{ success: boolean; settings: Setti
   try {
     const supabase = getSupabase();
 
-    const { data, error } = await supabase
-      .from('user_settings')
-      .select('*')
-      .limit(1)
-      .single();
+    // 현재 사용자 ID 가져오기
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
+    let query = supabase.from('user_settings').select('*');
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    } else {
+      query = query.is('user_id', null);
+    }
+
+    const { data, error } = await query.limit(1).single();
 
     if (error || !data) {
       // 설정이 없으면 기본값 반환

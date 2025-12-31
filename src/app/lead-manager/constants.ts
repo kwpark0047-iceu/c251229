@@ -9,16 +9,18 @@ export const DEFAULT_API_KEY = 'hxOJfL8Q8p70CnIkVXfHy5UFw3yVBh7MPRQwQy0l2QI=';
 
 // CORS 프록시 옵션
 export const CORS_PROXIES = [
-  { label: 'allorigins.win (추천)', value: 'https://api.allorigins.win/raw?url=' },
+  { label: '로컬 프록시 (추천)', value: '/api/proxy?url=' },
   { label: 'corsproxy.io', value: 'https://corsproxy.io/?' },
+  { label: 'allorigins.win', value: 'https://api.allorigins.win/raw?url=' },
 ];
 
 // 기본 설정
 export const DEFAULT_SETTINGS: Settings = {
   apiKey: DEFAULT_API_KEY,
-  corsProxy: CORS_PROXIES[0].value,
+  corsProxy: '/api/proxy?url=',
   searchType: 'modified_date',
   regionCode: '6110000',
+  regionCodes: ['6110000', '6410000'], // 서울, 경기도
 };
 
 // LocalData API 엔드포인트 (TO0 = 통합조회)

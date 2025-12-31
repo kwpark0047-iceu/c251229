@@ -15,6 +15,7 @@ import {
 } from './types';
 import { calculateDistance } from './utils';
 import { SUBWAY_STATIONS } from './constants';
+import { getOrganizationId } from './auth-service';
 
 function getSupabase() {
   return createClient();
@@ -26,22 +27,128 @@ function getSupabase() {
 
 /**
  * 엑셀 파일에서 인벤토리 데이터 파싱
+ * @param buffer - 엑셀 파일 버퍼
+ * @param defaultMediaType - 기본 매체 유형 (광고유형 컬럼이 없을 때 사용)
  */
-export function parseInventoryExcel(buffer: ArrayBuffer): ExcelInventoryRow[] {
+export function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?: string): ExcelInventoryRow[] {
   const workbook = XLSX.read(buffer, { type: 'array' });
   const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-  const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
 
-  return jsonData.map((row) => ({
-    stationName: String(row['역명'] || row['station_name'] || row['역이름'] || ''),
-    locationCode: String(row['위치코드'] || row['location_code'] || row['코드'] || ''),
-    adType: String(row['광고유형'] || row['ad_type'] || row['유형'] || ''),
-    adSize: row['크기'] || row['ad_size'] ? String(row['크기'] || row['ad_size']) : undefined,
-    priceMonthly: parseFloat(String(row['월단가'] || row['price_monthly'] || '0')) || undefined,
-    priceWeekly: parseFloat(String(row['주단가'] || row['price_weekly'] || '0')) || undefined,
-    availabilityStatus: mapAvailabilityStatus(String(row['상태'] || row['status'] || 'AVAILABLE')),
-    description: row['설명'] || row['description'] ? String(row['설명'] || row['description']) : undefined,
-  }));
+  // 전체 데이터를 배열로 변환 (헤더 없이)
+  const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
+
+  console.log('=== 엑셀 원본 데이터 ===');
+  console.log('전체 행 수:', rawData.length);
+  console.log('처음 5행:', rawData.slice(0, 5));
+
+  // 헤더 행 찾기 (역사, 유형, 위치명 등이 포함된 행)
+  let headerRowIndex = -1;
+  let headers: string[] = [];
+
+  for (let i = 0; i < Math.min(10, rawData.length); i++) {
+    const row = rawData[i];
+    if (!row || !Array.isArray(row)) continue;
+
+    const rowStr = row.map(cell => String(cell || '').toLowerCase()).join(',');
+    // 역사, 유형, 위치명 중 2개 이상 포함하면 헤더 행
+    const hasStation = rowStr.includes('역사') || rowStr.includes('역명');
+    const hasType = rowStr.includes('유형') || rowStr.includes('광고유형');
+    const hasLocation = rowStr.includes('위치명') || rowStr.includes('위치코드');
+
+    if ((hasStation && hasType) || (hasStation && hasLocation) || (hasType && hasLocation)) {
+      headerRowIndex = i;
+      headers = row.map(cell => String(cell || '').trim());
+      console.log(`헤더 발견 (행 ${i + 1}):`, headers);
+      break;
+    }
+  }
+
+  if (headerRowIndex === -1) {
+    console.error('헤더 행을 찾을 수 없습니다. 첫 번째 행을 헤더로 사용합니다.');
+    headerRowIndex = 0;
+    headers = (rawData[0] || []).map(cell => String(cell || '').trim());
+  }
+
+  // 헤더 이후의 데이터를 객체 배열로 변환
+  const jsonData: Record<string, unknown>[] = [];
+  for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+    const row = rawData[i];
+    if (!row || !Array.isArray(row) || row.every(cell => !cell)) continue;
+
+    const obj: Record<string, unknown> = {};
+    headers.forEach((header, idx) => {
+      if (header && row[idx] !== undefined) {
+        obj[header] = row[idx];
+      }
+    });
+    jsonData.push(obj);
+  }
+
+  console.log('파싱된 데이터 수:', jsonData.length);
+  if (jsonData.length > 0) {
+    console.log('첫 번째 데이터:', jsonData[0]);
+  }
+
+  return jsonData.map((row, index) => {
+    const keys = Object.keys(row);
+
+    // 더 유연한 컬럼 매칭 함수
+    const getValueByKey = (targetKeys: string[]): string => {
+      for (const targetKey of targetKeys) {
+        // 정확히 일치하는 키 찾기
+        if (row[targetKey] !== undefined && row[targetKey] !== null && row[targetKey] !== '') {
+          return String(row[targetKey]).trim();
+        }
+        // 부분 일치 (공백 제거 후)
+        const normalizedTarget = targetKey.replace(/\s+/g, '').toLowerCase();
+        for (const key of keys) {
+          const normalizedKey = key.replace(/\s+/g, '').toLowerCase();
+          if (normalizedKey === normalizedTarget || normalizedKey.includes(normalizedTarget) || normalizedTarget.includes(normalizedKey)) {
+            if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+              return String(row[key]).trim();
+            }
+          }
+        }
+      }
+      return '';
+    };
+
+    // 역명: 역사, 역명
+    const stationName = getValueByKey(['역사', '역명', 'station_name', '역이름']);
+    // 위치코드: 위치명
+    const locationCode = getValueByKey(['위치명', '위치코드', 'location_code']);
+    // 광고유형: 유형 (없으면 기본 매체유형 사용)
+    const adTypeFromExcel = getValueByKey(['유형', '광고유형', 'ad_type', '타입']);
+    const adType = adTypeFromExcel || defaultMediaType || '';
+    // 추가 정보
+    const line = getValueByKey(['호선']);
+    const grade = getValueByKey(['등급']);
+
+    // 디버깅: 첫 3개 행
+    if (index < 3) {
+      console.log(`=== 행 ${index + 2} ===`);
+      console.log('원본 데이터:', row);
+      console.log(`파싱 결과: 역명="${stationName}", 위치코드="${locationCode}", 광고유형="${adType}" (엑셀="${adTypeFromExcel}", 기본="${defaultMediaType}")`);
+    }
+
+    // 설명에 호선, 등급, 메모 포함
+    const memo = getValueByKey(['메모', '설명', 'description']);
+    const descParts = [];
+    if (line) descParts.push(`${line}호선`);
+    if (grade) descParts.push(`${grade}등급`);
+    if (memo) descParts.push(memo);
+
+    return {
+      stationName,
+      locationCode,
+      adType,
+      adSize: getValueByKey(['크기(mm)', '크기', 'ad_size']) || undefined,
+      priceMonthly: parseFloat(String(getValueByKey(['단가(월)', '월단가', 'price_monthly'])).replace(/,/g, '')) || undefined,
+      priceWeekly: parseFloat(String(getValueByKey(['단가(주)', '주단가', 'price_weekly'])).replace(/,/g, '')) || undefined,
+      availabilityStatus: mapAvailabilityStatus(getValueByKey(['상태', 'status']) || 'AVAILABLE'),
+      description: descParts.length > 0 ? descParts.join(' / ') : undefined,
+    };
+  });
 }
 
 /**
@@ -61,14 +168,18 @@ function mapAvailabilityStatus(status: string): AvailabilityStatus {
 
 /**
  * 엑셀 파일 업로드 및 DB 저장
+ * @param file - 엑셀 파일
+ * @param onProgress - 진행 상황 콜백
+ * @param defaultMediaType - 기본 매체 유형 (광고유형 컬럼이 없을 때 사용)
  */
 export async function uploadInventoryExcel(
   file: File,
-  onProgress?: (current: number, total: number) => void
+  onProgress?: (current: number, total: number) => void,
+  defaultMediaType?: string
 ): Promise<ExcelUploadResult> {
   try {
     const buffer = await file.arrayBuffer();
-    const rows = parseInventoryExcel(buffer);
+    const rows = parseInventoryExcel(buffer, defaultMediaType);
 
     if (rows.length === 0) {
       return {
@@ -82,6 +193,7 @@ export async function uploadInventoryExcel(
     }
 
     const supabase = getSupabase();
+    const orgId = await getOrganizationId();
     const errors: { row: number; message: string }[] = [];
     let successCount = 0;
 
@@ -110,6 +222,7 @@ export async function uploadInventoryExcel(
           price_weekly: row.priceWeekly || null,
           availability_status: row.availabilityStatus || 'AVAILABLE',
           description: row.description || null,
+          organization_id: orgId,
         };
       }).filter(Boolean);
 
@@ -217,6 +330,7 @@ export async function createInventory(
 ): Promise<{ success: boolean; inventory?: AdInventory; message: string }> {
   try {
     const supabase = getSupabase();
+    const orgId = await getOrganizationId();
 
     const { data, error } = await supabase
       .from('ad_inventory')
@@ -236,6 +350,7 @@ export async function createInventory(
         description: inventory.description || null,
         traffic_daily: inventory.trafficDaily || null,
         demographics: inventory.demographics || null,
+        organization_id: orgId,
       })
       .select()
       .single();
@@ -508,6 +623,7 @@ export async function saveFloorPlan(
 ): Promise<{ success: boolean; message: string }> {
   try {
     const supabase = getSupabase();
+    const orgId = await getOrganizationId();
 
     const { error } = await supabase
       .from('floor_plans')
@@ -517,6 +633,7 @@ export async function saveFloorPlan(
         floor_name: options?.floorName || 'B1',
         width: options?.width || null,
         height: options?.height || null,
+        organization_id: orgId,
       }, { onConflict: 'station_name' });
 
     if (error) {

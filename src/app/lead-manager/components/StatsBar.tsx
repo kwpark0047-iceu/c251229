@@ -1,14 +1,14 @@
 'use client';
 
 /**
- * 통계 바 컴포넌트
+ * 통계 바 컴포넌트 - Neo-Seoul Transit Design
  * 상태별 리드 수 요약 표시
  */
 
 import React from 'react';
-import { TrendingUp, Users, Send, Phone, CheckCircle } from 'lucide-react';
+import { TrendingUp, Users, Send, Phone, CheckCircle, Zap } from 'lucide-react';
 
-import { Lead, LeadStatus, STATUS_COLORS, STATUS_LABELS } from '../types';
+import { Lead, STATUS_LABELS } from '../types';
 
 interface StatsBarProps {
   leads: Lead[];
@@ -34,65 +34,137 @@ export default function StatsBar({ leads }: StatsBarProps) {
       label: '전체 리드',
       value: stats.total,
       icon: Users,
-      color: 'bg-slate-100 text-slate-600',
+      color: 'var(--metro-line9)',
+      bgColor: 'rgba(135, 114, 85, 0.15)',
     },
     {
       label: STATUS_LABELS.NEW,
       value: stats.NEW,
-      icon: TrendingUp,
-      color: 'bg-red-100 text-red-600',
+      icon: Zap,
+      color: 'var(--metro-line2)',
+      bgColor: 'rgba(60, 181, 74, 0.15)',
     },
     {
       label: STATUS_LABELS.PROPOSAL_SENT,
       value: stats.PROPOSAL_SENT,
       icon: Send,
-      color: 'bg-blue-100 text-blue-600',
+      color: 'var(--metro-line4)',
+      bgColor: 'rgba(50, 164, 206, 0.15)',
     },
     {
       label: STATUS_LABELS.CONTACTED,
       value: stats.CONTACTED,
       icon: Phone,
-      color: 'bg-orange-100 text-orange-600',
+      color: 'var(--metro-line5)',
+      bgColor: 'rgba(153, 51, 153, 0.15)',
     },
     {
       label: STATUS_LABELS.CONTRACTED,
       value: stats.CONTRACTED,
       icon: CheckCircle,
-      color: 'bg-green-100 text-green-600',
+      color: 'var(--metro-line3)',
+      bgColor: 'rgba(239, 124, 61, 0.15)',
     },
   ];
 
   return (
-    <div className="bg-white border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 backdrop-blur-sm">
+      <div className="max-w-[1600px] mx-auto px-6 py-5">
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {statItems.map(item => (
+          {statItems.map((item, index) => (
             <div
               key={item.label}
-              className="flex items-center gap-3 p-3 rounded-xl bg-slate-50"
+              className="group relative flex items-center gap-4 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] hover:border-[var(--glass-border)] transition-all duration-300 overflow-hidden"
+              style={{
+                animationDelay: `${index * 50}ms`,
+              }}
             >
-              <div className={`p-2 rounded-lg ${item.color}`}>
-                <item.icon className="w-5 h-5" />
+              {/* 배경 글로우 효과 */}
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                style={{
+                  background: `radial-gradient(circle at 30% 50%, ${item.bgColor} 0%, transparent 70%)`,
+                }}
+              />
+
+              <div
+                className="relative p-3 rounded-xl transition-transform duration-300 group-hover:scale-110"
+                style={{
+                  background: item.bgColor,
+                }}
+              >
+                <item.icon
+                  className="w-5 h-5"
+                  style={{ color: item.color }}
+                />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-800">{item.value}</p>
-                <p className="text-xs text-slate-500">{item.label}</p>
+              <div className="relative">
+                <p
+                  className="text-2xl font-bold tracking-tight"
+                  style={{ color: item.color }}
+                >
+                  {item.value.toLocaleString()}
+                </p>
+                <p className="text-xs text-[var(--text-muted)] font-medium">{item.label}</p>
               </div>
             </div>
           ))}
 
-          {/* 전환율 */}
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50">
-            <div className="p-2 rounded-lg bg-indigo-100 text-indigo-600">
-              <TrendingUp className="w-5 h-5" />
+          {/* 전환율 - 특별 카드 */}
+          <div
+            className="group relative flex items-center gap-4 p-4 rounded-xl border overflow-hidden transition-all duration-300"
+            style={{
+              background: 'linear-gradient(135deg, rgba(60, 181, 74, 0.1) 0%, rgba(50, 164, 206, 0.1) 100%)',
+              borderColor: 'rgba(60, 181, 74, 0.3)',
+            }}
+          >
+            {/* 애니메이션 배경 */}
+            <div
+              className="absolute inset-0 opacity-50"
+              style={{
+                background: `
+                  linear-gradient(90deg,
+                    transparent 0%,
+                    rgba(60, 181, 74, 0.1) 50%,
+                    transparent 100%
+                  )
+                `,
+                animation: 'shimmer 3s infinite',
+              }}
+            />
+
+            <div
+              className="relative p-3 rounded-xl"
+              style={{
+                background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
+                boxShadow: '0 4px 15px rgba(60, 181, 74, 0.3)',
+              }}
+            >
+              <TrendingUp className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <p className="text-2xl font-bold text-indigo-600">{conversionRate}%</p>
-              <p className="text-xs text-slate-500">전환율</p>
+            <div className="relative">
+              <p
+                className="text-2xl font-bold tracking-tight"
+                style={{
+                  background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                {conversionRate}%
+              </p>
+              <p className="text-xs text-[var(--text-muted)] font-medium">전환율</p>
             </div>
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 }

@@ -38,18 +38,21 @@ export async function fetchLocalDataAPI(
   endDate: Date,
   pageIndex: number = 1,
   pageSize: number = 100,
-  serviceInfo?: ServiceIdInfo
+  serviceInfo?: ServiceIdInfo,
+  regionCode?: string
 ): Promise<FetchResult> {
-  const { apiKey, corsProxy, regionCode } = settings;
+  const { apiKey, corsProxy } = settings;
   const serviceId = serviceInfo?.id || '01_01_02_P';
+  const region = regionCode || settings.regionCode;
 
   // API 키 인코딩 여부에 따른 처리
   const keyVariants = isURLEncoded(apiKey)
     ? [apiKey, decodeURIComponent(apiKey)]
     : [apiKey, encodeURIComponent(apiKey)];
 
-  // 프록시 목록 (설정된 프록시 우선)
-  const proxies = [corsProxy, ...CORS_PROXIES.map(p => p.value).filter(p => p !== corsProxy)];
+  // 프록시 목록 (설정된 프록시 우선, 모든 프록시 시도)
+  const allProxies = CORS_PROXIES.map(p => p.value);
+  const proxies = [corsProxy, ...allProxies.filter(p => p !== corsProxy)];
 
   // 날짜 파라미터 (LocalData API는 lastModTs 기준으로만 동작)
   const dateParams = `lastModTsBgn=${formatDateToAPI(startDate)}&lastModTsEnd=${formatDateToAPI(endDate)}`;
@@ -58,13 +61,16 @@ export async function fetchLocalDataAPI(
   let lastError: Error | null = null;
 
   for (const key of keyVariants) {
-    for (const proxy of proxies.slice(0, 2)) {
+    for (const proxy of proxies) {
       try {
-        const targetUrl = `${API_ENDPOINT}?authKey=${encodeURIComponent(key)}&opnSvcId=${serviceId}&localCode=${regionCode}&${dateParams}&pageIndex=${pageIndex}&pageSize=${pageSize}&resultType=xml`;
+        const targetUrl = `${API_ENDPOINT}?authKey=${encodeURIComponent(key)}&opnSvcId=${serviceId}&localCode=${region}&${dateParams}&pageIndex=${pageIndex}&pageSize=${pageSize}&resultType=xml`;
 
         // 프록시별 URL 구성
         let proxyUrl: string;
-        if (proxy.includes('corsproxy.io')) {
+        if (proxy.includes('/api/proxy')) {
+          // 로컬 Next.js API 프록시
+          proxyUrl = `${proxy}${encodeURIComponent(targetUrl)}`;
+        } else if (proxy.includes('corsproxy.io')) {
           proxyUrl = `${proxy}${encodeURIComponent(targetUrl)}`;
         } else if (proxy.includes('allorigins.win')) {
           proxyUrl = `${proxy}${encodeURIComponent(targetUrl)}`;
@@ -72,15 +78,16 @@ export async function fetchLocalDataAPI(
           proxyUrl = `${proxy}${encodeURIComponent(targetUrl)}`;
         }
 
-        console.log(`API 호출 시도: ${proxy.substring(0, 30)}...`);
+        console.log(`API 호출 시도: ${proxy.substring(0, 35)}...`);
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
 
         const response = await fetch(proxyUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/xml, text/xml, */*',
+            'X-Requested-With': 'XMLHttpRequest',
           },
           signal: controller.signal,
         });
@@ -107,7 +114,7 @@ export async function fetchLocalDataAPI(
           throw new Error(result.message || '알 수 없는 오류');
         }
       } catch (error) {
-        console.error(`API 호출 실패:`, error);
+        console.error(`API 호출 실패 (${proxy.substring(0, 20)}...):`, error);
         lastError = error as Error;
         continue;
       }
@@ -277,47 +284,64 @@ export async function fetchAllLeads(
     ? CATEGORY_SERVICE_IDS[category]
     : CATEGORY_SERVICE_IDS['HEALTH']; // 기본값: 건강
 
+  // 지역 코드 목록 (다중 지역 지원)
+  const regionCodes = settings.regionCodes?.length
+    ? settings.regionCodes
+    : [settings.regionCode];
+
+  // 지역명 매핑
+  const regionNames: Record<string, string> = {
+    '6110000': '서울',
+    '6410000': '경기',
+  };
+
   let totalProcessed = 0;
-  let estimatedTotal = serviceIds.length * 100; // 초기 추정치
+  let estimatedTotal = serviceIds.length * regionCodes.length * 100; // 초기 추정치
 
-  for (const serviceInfo of serviceIds) {
-    onProgress?.(totalProcessed, estimatedTotal, `${serviceInfo.name} 조회 중...`);
+  for (const regionCode of regionCodes) {
+    const regionName = regionNames[regionCode] || regionCode;
 
-    // 첫 페이지 조회
-    const firstResult = await fetchLocalDataAPI(settings, startDate, endDate, 1, pageSize, serviceInfo);
+    for (const serviceInfo of serviceIds) {
+      onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name} 조회 중...`);
 
-    if (!firstResult.success) {
-      console.error(`${serviceInfo.name} 조회 실패:`, firstResult.message);
-      continue;
-    }
+      // 첫 페이지 조회
+      const firstResult = await fetchLocalDataAPI(settings, startDate, endDate, 1, pageSize, serviceInfo, regionCode);
 
-    allLeads = [...allLeads, ...firstResult.leads];
-    totalProcessed += firstResult.leads.length;
-
-    // 총 예상 건수 업데이트
-    estimatedTotal = Math.max(estimatedTotal, totalProcessed + (serviceIds.length - serviceIds.indexOf(serviceInfo) - 1) * 50);
-    onProgress?.(totalProcessed, estimatedTotal, `${serviceInfo.name}: ${firstResult.totalCount}건`);
-
-    // 추가 페이지 조회
-    const totalPages = Math.ceil(firstResult.totalCount / pageSize);
-
-    for (let pageIndex = 2; pageIndex <= totalPages; pageIndex++) {
-      const result = await fetchLocalDataAPI(settings, startDate, endDate, pageIndex, pageSize, serviceInfo);
-
-      if (result.success) {
-        allLeads = [...allLeads, ...result.leads];
-        totalProcessed += result.leads.length;
-        onProgress?.(totalProcessed, estimatedTotal, `${serviceInfo.name}: ${totalProcessed}건`);
-      } else {
-        console.error(`${serviceInfo.name} 페이지 ${pageIndex} 조회 실패`);
+      if (!firstResult.success) {
+        console.error(`[${regionName}] ${serviceInfo.name} 조회 실패:`, firstResult.message);
+        continue;
       }
 
-      // API 호출 간격 (Rate Limiting 방지)
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
+      allLeads = [...allLeads, ...firstResult.leads];
+      totalProcessed += firstResult.leads.length;
 
-    // 서비스 간 간격
-    await new Promise(resolve => setTimeout(resolve, 300));
+      // 총 예상 건수 업데이트
+      const remainingServices = serviceIds.length - serviceIds.indexOf(serviceInfo) - 1;
+      const remainingRegions = regionCodes.length - regionCodes.indexOf(regionCode) - 1;
+      estimatedTotal = Math.max(estimatedTotal, totalProcessed + (remainingServices + remainingRegions * serviceIds.length) * 50);
+      onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name}: ${firstResult.totalCount}건`);
+
+      // 추가 페이지 조회
+      const totalPages = Math.ceil(firstResult.totalCount / pageSize);
+
+      for (let pageIndex = 2; pageIndex <= totalPages; pageIndex++) {
+        const result = await fetchLocalDataAPI(settings, startDate, endDate, pageIndex, pageSize, serviceInfo, regionCode);
+
+        if (result.success) {
+          allLeads = [...allLeads, ...result.leads];
+          totalProcessed += result.leads.length;
+          onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name}: ${totalProcessed}건`);
+        } else {
+          console.error(`[${regionName}] ${serviceInfo.name} 페이지 ${pageIndex} 조회 실패`);
+        }
+
+        // API 호출 간격 (Rate Limiting 방지)
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      // 서비스 간 간격
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
   }
 
   onProgress?.(allLeads.length, allLeads.length, '완료');

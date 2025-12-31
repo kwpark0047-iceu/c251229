@@ -9,6 +9,17 @@ import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle } from 'lucide-rea
 import { ExcelUploadResult } from '../../types';
 import { uploadInventoryExcel } from '../../inventory-service';
 
+// 광고 매체 유형
+const MEDIA_TYPES = [
+  { value: '조명', label: '조명광고', color: 'bg-yellow-100 text-yellow-800' },
+  { value: '포스터', label: '포스터', color: 'bg-blue-100 text-blue-800' },
+  { value: '디지털', label: '디지털사이니지', color: 'bg-purple-100 text-purple-800' },
+  { value: '스크린도어', label: '스크린도어', color: 'bg-green-100 text-green-800' },
+  { value: '랩핑', label: '랩핑광고', color: 'bg-pink-100 text-pink-800' },
+  { value: '역사내', label: '역사내광고', color: 'bg-orange-100 text-orange-800' },
+  { value: '기타', label: '기타', color: 'bg-slate-100 text-slate-800' },
+];
+
 interface InventoryUploadModalProps {
   onClose: () => void;
   onSuccess: () => void;
@@ -19,6 +30,7 @@ export default function InventoryUploadModal({
   onSuccess,
 }: InventoryUploadModalProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [mediaType, setMediaType] = useState<string>('조명');
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [result, setResult] = useState<ExcelUploadResult | null>(null);
@@ -56,9 +68,13 @@ export default function InventoryUploadModal({
     setUploading(true);
     setProgress({ current: 0, total: 0 });
 
-    const uploadResult = await uploadInventoryExcel(file, (current, total) => {
-      setProgress({ current, total });
-    });
+    const uploadResult = await uploadInventoryExcel(
+      file,
+      (current, total) => {
+        setProgress({ current, total });
+      },
+      mediaType // 선택된 매체 유형 전달
+    );
 
     setResult(uploadResult);
     setUploading(false);
@@ -137,21 +153,41 @@ export default function InventoryUploadModal({
             )}
           </div>
 
-          {/* 필수 컬럼 안내 */}
+          {/* 매체 유형 선택 */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">
+              매체 유형 선택
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {MEDIA_TYPES.map((type) => (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => setMediaType(type.value)}
+                  className={`px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                    mediaType === type.value
+                      ? `${type.color} border-current ring-2 ring-offset-1`
+                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 컬럼 매핑 안내 */}
           <div className="bg-slate-50 rounded-lg p-4">
             <h3 className="text-sm font-medium text-slate-700 mb-2">
-              필수 컬럼
+              엑셀 컬럼 매핑
             </h3>
             <ul className="text-sm text-slate-600 space-y-1">
-              <li>• 역명 (station_name)</li>
-              <li>• 위치코드 (location_code)</li>
-              <li>• 광고유형 (ad_type)</li>
-            </ul>
-            <h3 className="text-sm font-medium text-slate-700 mt-3 mb-2">
-              선택 컬럼
-            </h3>
-            <ul className="text-sm text-slate-600 space-y-1">
-              <li>• 크기, 월단가, 주단가, 상태, 설명</li>
+              <li>• <strong>역사</strong> → 역명</li>
+              <li>• <strong>위치명</strong> → 위치코드</li>
+              <li>• <strong>유형</strong> → 광고유형 (없으면 선택한 매체유형 사용)</li>
+              <li>• <strong>단가(월)</strong> → 월단가</li>
+              <li>• <strong>크기(mm)</strong> → 크기</li>
+              <li>• <strong>호선, 등급, 메모</strong> → 설명</li>
             </ul>
           </div>
 

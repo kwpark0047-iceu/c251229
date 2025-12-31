@@ -87,7 +87,8 @@ export interface Settings {
   apiKey: string;
   corsProxy: string;
   searchType: SearchType;
-  regionCode: string;
+  regionCode: string;      // 단일 지역 (하위 호환)
+  regionCodes?: string[];  // 다중 지역 선택
 }
 
 // API 응답 타입

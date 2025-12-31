@@ -1,26 +1,707 @@
+/* Google Fonts - Pretendard for Korean, Plus Jakarta Sans for Latin */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @import "tailwindcss";
 
+/* ============================================
+   Neo-Seoul Transit Design System
+   서울 지하철의 모던한 미학을 재해석한 프리미엄 인터페이스
+   ============================================ */
+
+/* ============================================
+   Design Tokens
+   ============================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core Colors - Deep Metro Night */
+  --bg-primary: #08080C;
+  --bg-secondary: #0E0E14;
+  --bg-tertiary: #14141C;
+  --bg-elevated: #1A1A24;
+  --bg-hover: #22222E;
+
+  /* Text Colors - Warm Cream Tones */
+  --text-primary: #F5F2EB;
+  --text-secondary: #A8A4A0;
+  --text-tertiary: #6B6865;
+  --text-muted: #4A4845;
+
+  /* Seoul Metro Line Colors */
+  --line-1: #0052A4;      /* 1호선 - 남색 */
+  --line-2: #00A84D;      /* 2호선 - 녹색 */
+  --line-3: #EF7C1C;      /* 3호선 - 주황 */
+  --line-4: #00A5DE;      /* 4호선 - 하늘 */
+  --line-5: #996CAC;      /* 5호선 - 보라 */
+  --line-6: #CD7C2F;      /* 6호선 - 황토 */
+  --line-7: #747F00;      /* 7호선 - 올리브 */
+  --line-8: #E6186C;      /* 8호선 - 분홍 */
+  --line-9: #BDB092;      /* 9호선 - 금색 */
+  --line-shin: #D31145;   /* 신분당선 - 빨강 */
+
+  /* Accent Colors */
+  --accent-primary: #00A5DE;
+  --accent-secondary: #00A84D;
+  --accent-warning: #EF7C1C;
+  --accent-danger: #E6186C;
+  --accent-success: #00A84D;
+
+  /* Glass & Overlay */
+  --glass-bg: rgba(20, 20, 28, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --overlay: rgba(8, 8, 12, 0.9);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 40px rgba(0, 165, 222, 0.15);
+
+  /* Border Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* Typography Scale */
+  --font-display: 'Plus Jakarta Sans', 'Pretendard Variable', sans-serif;
+  --font-body: 'Pretendard Variable', 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* ============================================
+   Theme Configuration
+   ============================================ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================
+   Base Styles
+   ============================================ */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  min-height: 100vh;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+/* Scrollbar - Metro Style */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-hover);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* ============================================
+   Typography
+   ============================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.text-display-xl {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.text-display {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+}
+
+.text-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.text-body {
+  font-size: 0.9375rem;
+  font-weight: 400;
+}
+
+.text-caption {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.text-overline {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ============================================
+   Metro Line Badge System
+   ============================================ */
+.line-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: white;
+  white-space: nowrap;
+}
+
+.line-badge-1 { background: var(--line-1); }
+.line-badge-2 { background: var(--line-2); }
+.line-badge-3 { background: var(--line-3); }
+.line-badge-4 { background: var(--line-4); }
+.line-badge-5 { background: var(--line-5); }
+.line-badge-6 { background: var(--line-6); }
+.line-badge-7 { background: var(--line-7); }
+.line-badge-8 { background: var(--line-8); }
+.line-badge-9 { background: var(--line-9); }
+.line-badge-shin { background: var(--line-shin); }
+
+/* ============================================
+   Glass Card Components
+   ============================================ */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+}
+
+.glass-card-elevated {
+  background: linear-gradient(
+    135deg,
+    rgba(26, 26, 36, 0.95) 0%,
+    rgba(20, 20, 28, 0.9) 100%
+  );
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ============================================
+   Input System - Metro Station Style
+   ============================================ */
+.metro-input {
+  width: 100%;
+  padding: 14px 18px;
+  background: var(--bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 15px;
+  transition: all var(--transition-base);
+  outline: none;
+}
+
+.metro-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.metro-input:hover {
+  background: var(--bg-hover);
+}
+
+.metro-input:focus {
+  background: var(--bg-elevated);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(0, 165, 222, 0.15);
+}
+
+.metro-input-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+/* ============================================
+   Button System
+   ============================================ */
+.metro-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 28px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.metro-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%
+  );
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.metro-btn:hover::before {
+  opacity: 1;
+}
+
+.metro-btn-primary {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #0088CC 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(0, 165, 222, 0.3);
+}
+
+.metro-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0, 165, 222, 0.4);
+}
+
+.metro-btn-primary:active {
+  transform: translateY(0);
+}
+
+.metro-btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+}
+
+.metro-btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.metro-btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.metro-btn-ghost:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.metro-btn-danger {
+  background: linear-gradient(135deg, var(--accent-danger) 0%, #C01050 100%);
+  color: white;
+}
+
+.metro-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ============================================
+   Status System
+   ============================================ */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.status-new {
+  background: rgba(0, 165, 222, 0.15);
+  color: var(--accent-primary);
+  border: 1px solid rgba(0, 165, 222, 0.3);
+}
+
+.status-proposal {
+  background: rgba(239, 124, 28, 0.15);
+  color: var(--accent-warning);
+  border: 1px solid rgba(239, 124, 28, 0.3);
+}
+
+.status-contacted {
+  background: rgba(153, 108, 172, 0.15);
+  color: var(--line-5);
+  border: 1px solid rgba(153, 108, 172, 0.3);
+}
+
+.status-contracted {
+  background: rgba(0, 168, 77, 0.15);
+  color: var(--accent-success);
+  border: 1px solid rgba(0, 168, 77, 0.3);
+}
+
+/* ============================================
+   Decorative Elements
+   ============================================ */
+/* Metro Grid Pattern */
+.metro-grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Noise Texture Overlay */
+.noise-overlay::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Gradient Orbs */
+.gradient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.gradient-orb-blue {
+  background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
+}
+
+.gradient-orb-green {
+  background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%);
+}
+
+.gradient-orb-orange {
+  background: radial-gradient(circle, var(--accent-warning) 0%, transparent 70%);
+}
+
+/* Metro Line Decorative */
+.metro-line-decoration {
+  position: absolute;
+  width: 3px;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--accent-primary) 20%,
+    var(--accent-primary) 80%,
+    transparent 100%
+  );
+  border-radius: 3px;
+}
+
+/* ============================================
+   Animations
+   ============================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 165, 222, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 165, 222, 0.5);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes trainDoor {
+  0% {
+    clip-path: inset(0 50% 0 50%);
+  }
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Animation Utilities */
+.animate-fade-in {
+  animation: fadeIn var(--transition-slow) ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp var(--transition-slow) ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight var(--transition-slow) ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft var(--transition-slow) ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--transition-base) ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-train-door {
+  animation: trainDoor 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Stagger Delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* ============================================
+   Data Table Styles
+   ============================================ */
+.metro-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.metro-table th {
+  padding: 14px 18px;
+  background: var(--bg-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: left;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.metro-table th:first-child {
+  border-radius: var(--radius-md) 0 0 0;
+}
+
+.metro-table th:last-child {
+  border-radius: 0 var(--radius-md) 0 0;
+}
+
+.metro-table td {
+  padding: 16px 18px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--glass-border);
+  transition: background var(--transition-fast);
+}
+
+.metro-table tr:hover td {
+  background: var(--bg-tertiary);
+}
+
+.metro-table tr:last-child td:first-child {
+  border-radius: 0 0 0 var(--radius-md);
+}
+
+.metro-table tr:last-child td:last-child {
+  border-radius: 0 0 var(--radius-md) 0;
+}
+
+/* ============================================
+   Custom Cursor (Optional)
+   ============================================ */
+.custom-cursor {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='8' fill='%2300A5DE' fill-opacity='0.3'/%3E%3Ccircle cx='12' cy='12' r='4' fill='%2300A5DE'/%3E%3C/svg%3E") 12 12, auto;
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+@media (max-width: 768px) {
+  :root {
+    --space-xl: 24px;
+    --space-2xl: 32px;
+    --space-3xl: 48px;
+  }
+
+  .text-display-xl {
+    font-size: 2rem;
+  }
+
+  .text-display {
+    font-size: 1.5rem;
+  }
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+.text-gradient {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-accent {
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.border-gradient {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--bg-secondary), var(--bg-secondary)) padding-box,
+    linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)) border-box;
+}
+
+.glow-accent {
+  box-shadow: 0 0 30px rgba(0, 165, 222, 0.2);
+}
+
+.backdrop-blur-heavy {
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
 }
