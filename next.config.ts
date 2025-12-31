@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // 루트 경로에서 /lead-manager로 리다이렉트
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/lead-manager',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
