@@ -1,100 +1,100 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+이 파일은 Claude Code (claude.ai/code)가 이 저장소의 코드를 작업할 때 참고하는 가이드입니다.
 
-## Project Overview
+## 프로젝트 개요
 
-Seoul Subway Ad Sales System (서울 지하철 광고 영업 시스템) - a lead management application for subway advertising sales. Built with Next.js 16, React 19, TypeScript, Tailwind CSS 4, and Supabase.
+서울 지하철 광고 영업 시스템 - 지하철 광고 영업을 위한 리드 관리 애플리케이션. Next.js 16, React 19, TypeScript, Tailwind CSS 4, Supabase로 구축됨.
 
-## Commands
+## 명령어
 
 ```bash
-npm run dev      # Start development server (localhost:3000)
-npm run build    # Production build
-npm run lint     # ESLint check
-npm run start    # Start production server
+npm run dev      # 개발 서버 시작 (localhost:3000)
+npm run build    # 프로덕션 빌드
+npm run lint     # ESLint 검사
+npm run start    # 프로덕션 서버 시작
 ```
 
-## Architecture
+## 아키텍처
 
-### Tech Stack
-- **Framework**: Next.js 16 (App Router)
-- **Database**: Supabase (PostgreSQL with RLS)
-- **Styling**: Tailwind CSS 4 with CSS variables for metro line colors
-- **Auth**: Supabase Auth with organization-based multi-tenancy
-- **External API**: LocalData.go.kr (Korean business license data)
+### 기술 스택
+- **프레임워크**: Next.js 16 (App Router)
+- **데이터베이스**: Supabase (PostgreSQL + RLS)
+- **스타일링**: Tailwind CSS 4 + 지하철 노선 색상용 CSS 변수
+- **인증**: Supabase Auth (조직 기반 멀티테넌시)
+- **외부 API**: LocalData.go.kr (사업자 인허가 데이터)
 
-### Key Directories
+### 주요 디렉토리
 ```
 src/
 ├── app/
-│   ├── lead-manager/       # Main application
-│   │   ├── page.tsx        # Dashboard (leads + inventory tabs)
-│   │   ├── types.ts        # All type definitions
-│   │   ├── api.ts          # LocalData API integration
-│   │   ├── supabase-service.ts   # Lead CRUD operations
-│   │   ├── crm-service.ts        # CRM features (calls, proposals)
-│   │   ├── inventory-service.ts  # Ad inventory management
-│   │   ├── auth-service.ts       # Auth helpers
-│   │   └── components/     # UI components
-│   ├── auth/               # Auth pages
-│   └── api/proxy/          # CORS proxy for LocalData API
+│   ├── lead-manager/       # 메인 애플리케이션
+│   │   ├── page.tsx        # 대시보드 (리드 + 인벤토리 탭)
+│   │   ├── types.ts        # 모든 타입 정의
+│   │   ├── api.ts          # LocalData API 연동
+│   │   ├── supabase-service.ts   # 리드 CRUD 작업
+│   │   ├── crm-service.ts        # CRM 기능 (통화, 제안서)
+│   │   ├── inventory-service.ts  # 광고 인벤토리 관리
+│   │   ├── auth-service.ts       # 인증 헬퍼
+│   │   └── components/     # UI 컴포넌트
+│   ├── auth/               # 인증 페이지
+│   └── api/proxy/          # LocalData API용 CORS 프록시
 ├── lib/supabase/
-│   ├── client.ts           # Browser Supabase client
-│   └── server.ts           # Server-side Supabase client
+│   ├── client.ts           # 브라우저용 Supabase 클라이언트
+│   └── server.ts           # 서버용 Supabase 클라이언트
 ```
 
-### Database Schema
-Schema is defined in `supabase-schema.sql`. Key tables:
-- `leads` - Business leads with location, status, nearest station
-- `ad_inventory` - Advertising inventory (station, type, price)
-- `proposals` - Sales proposals linked to leads
-- `call_logs` - CRM call tracking
-- `sales_progress` - Sales pipeline stages
-- `user_settings` - Per-user API settings
+### 데이터베이스 스키마
+스키마는 `supabase-schema.sql`에 정의됨. 주요 테이블:
+- `leads` - 사업장 리드 (위치, 상태, 인근역 정보)
+- `ad_inventory` - 광고매체 인벤토리 (역, 유형, 가격)
+- `proposals` - 리드에 연결된 제안서
+- `call_logs` - CRM 통화 기록
+- `sales_progress` - 영업 파이프라인 단계
+- `user_settings` - 사용자별 API 설정
 
-### Data Flow
-1. User fetches data from LocalData.go.kr API (Korean business registry)
-2. Coordinates converted from GRS80 (Korean TM) to WGS84 using proj4
-3. Nearest subway station calculated for each lead
-4. Data stored in Supabase with duplicate detection (biz_name + road_address)
-5. Organization-based data isolation via RLS policies
+### 데이터 흐름
+1. LocalData.go.kr API에서 사업자 인허가 데이터 조회
+2. proj4를 사용하여 GRS80 (한국 TM) 좌표를 WGS84로 변환
+3. 각 리드에 대해 가장 가까운 지하철역 계산
+4. 중복 체크 (biz_name + road_address) 후 Supabase에 저장
+5. RLS 정책을 통한 조직별 데이터 격리
 
-### Business Categories
-Seven categories with mapped LocalData service IDs:
-- HEALTH (건강): Hospitals, clinics, pharmacies, opticians
-- ANIMAL (동물): Vet clinics, pet stores, grooming
-- FOOD (식품): Restaurants, food processing
-- CULTURE (문화): Theaters, game rooms, karaoke
-- LIVING (생활): Hotels, salons, gyms
-- ENVIRONMENT (자원환경): Environmental facilities
+### 업종 카테고리
+LocalData 서비스 ID가 매핑된 7개 카테고리:
+- HEALTH (건강): 병원, 의원, 약국, 안경점
+- ANIMAL (동물): 동물병원, 펫샵, 미용
+- FOOD (식품): 음식점, 식품제조
+- CULTURE (문화): 공연장, 게임장, 노래방
+- LIVING (생활): 숙박, 미용실, 체육시설
+- ENVIRONMENT (자원환경): 환경시설
 - OTHER (기타)
 
-### Lead Status Flow
-`NEW` -> `PROPOSAL_SENT` -> `CONTACTED` -> `CONTRACTED`
+### 리드 상태 흐름
+`NEW (신규)` -> `PROPOSAL_SENT (제안 발송)` -> `CONTACTED (컨택 완료)` -> `CONTRACTED (계약 성사)`
 
-## Environment Variables
+## 환경 변수
 
-Required in `.env.local`:
+`.env.local`에 필요한 변수:
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
 
-## Conventions
+## 컨벤션
 
-### Naming
-- Korean comments throughout codebase
-- DB columns: snake_case
+### 네이밍
+- 코드베이스 전체에 한글 주석 사용
+- DB 컬럼: snake_case
 - TypeScript: camelCase
-- Type exports co-located in `types.ts`
+- 타입 정의는 `types.ts`에 모아서 관리
 
-### Styling
-- CSS variables for metro line colors (`--metro-line1` through `--metro-line9`)
-- Glass morphism effects using `glass-card` class
-- Design theme: "Neo-Seoul Transit"
+### 스타일링
+- 지하철 노선 색상용 CSS 변수 (`--metro-line1` ~ `--metro-line9`)
+- `glass-card` 클래스를 사용한 글래스모피즘 효과
+- 디자인 테마: "Neo-Seoul Transit"
 
-### API Handling
-- CORS proxy at `/api/proxy` for LocalData API calls
-- Multiple fallback CORS proxies configured
-- 200ms delay between API calls to avoid rate limiting
+### API 처리
+- LocalData API 호출을 위한 CORS 프록시 (`/api/proxy`)
+- 다중 폴백 CORS 프록시 설정
+- Rate Limiting 방지를 위한 API 호출 간 200ms 지연
