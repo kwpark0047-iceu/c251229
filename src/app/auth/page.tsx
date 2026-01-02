@@ -63,7 +63,7 @@ function StationDot({ color, delay, size = 8 }: { color: string; delay: number; 
   )
 }
 
-function AuthContent() {
+export function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/lead-manager'
@@ -541,7 +541,7 @@ function AuthContent() {
 }
 
 // Loading Fallback
-function AuthLoading() {
+export function AuthLoading() {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
       <div className="text-center">

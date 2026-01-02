@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-이 파일은 Claude Code (claude.ai/code)가 이 저장소의 코드를 작업할 때 참고하는 가이드입니다.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 프로젝트 개요
 
@@ -23,6 +23,9 @@ npm run start    # 프로덕션 서버 시작
 - **스타일링**: Tailwind CSS 4 + 지하철 노선 색상용 CSS 변수
 - **인증**: Supabase Auth (조직 기반 멀티테넌시)
 - **외부 API**: LocalData.go.kr (사업자 인허가 데이터)
+- **지도**: Leaflet + react-leaflet
+- **PDF 생성**: jspdf + html2canvas
+- **엑셀 처리**: xlsx
 
 ### 주요 디렉토리
 ```
@@ -31,18 +34,27 @@ src/
 │   ├── lead-manager/       # 메인 애플리케이션
 │   │   ├── page.tsx        # 대시보드 (리드 + 인벤토리 탭)
 │   │   ├── types.ts        # 모든 타입 정의
+│   │   ├── constants.ts    # 지하철역 데이터, 좌표 변환 상수
 │   │   ├── api.ts          # LocalData API 연동
 │   │   ├── supabase-service.ts   # 리드 CRUD 작업
 │   │   ├── crm-service.ts        # CRM 기능 (통화, 제안서)
 │   │   ├── inventory-service.ts  # 광고 인벤토리 관리
+│   │   ├── proposal-service.ts   # 제안서 생성/관리
 │   │   ├── auth-service.ts       # 인증 헬퍼
 │   │   └── components/     # UI 컴포넌트
-│   ├── auth/               # 인증 페이지
+│   ├── auth/               # 인증 페이지 (callback 포함)
 │   └── api/proxy/          # LocalData API용 CORS 프록시
+├── components/             # 공통 컴포넌트 (ThemeProvider 등)
 ├── lib/supabase/
 │   ├── client.ts           # 브라우저용 Supabase 클라이언트
 │   └── server.ts           # 서버용 Supabase 클라이언트
+middleware.ts               # 인증 미들웨어 (세션 관리, 라우트 보호)
 ```
+
+### 인증 흐름
+- `middleware.ts`가 모든 요청을 가로채서 세션 관리
+- `/lead-manager/*` 경로는 보호됨 (미인증 시 `/auth`로 리다이렉트)
+- `/auth`에서 로그인 후 원래 요청 경로로 리다이렉트
 
 ### 데이터베이스 스키마
 스키마는 `supabase-schema.sql`에 정의됨. 주요 테이블:
@@ -55,13 +67,19 @@ src/
 
 ### 데이터 흐름
 1. LocalData.go.kr API에서 사업자 인허가 데이터 조회
-2. proj4를 사용하여 GRS80 (한국 TM) 좌표를 WGS84로 변환
-3. 각 리드에 대해 가장 가까운 지하철역 계산
+2. proj4를 사용하여 EPSG:5174/5181 (한국 TM) 좌표를 WGS84로 변환
+3. 각 리드에 대해 가장 가까운 지하철역 계산 (Haversine 공식)
 4. 중복 체크 (biz_name + road_address) 후 Supabase에 저장
 5. RLS 정책을 통한 조직별 데이터 격리
 
+### 좌표 변환
+`constants.ts`에 정의된 proj4 변환 설정:
+- EPSG:5174 - 중부원점TM (Bessel 타원체, 서울/경기)
+- EPSG:5181 - 중부원점TM (GRS80 타원체)
+- WGS84 - 표준 GPS 좌표계
+
 ### 업종 카테고리
-LocalData 서비스 ID가 매핑된 7개 카테고리:
+LocalData 서비스 ID가 매핑된 7개 카테고리 (`types.ts`의 `CATEGORY_SERVICE_IDS`):
 - HEALTH (건강): 병원, 의원, 약국, 안경점
 - ANIMAL (동물): 동물병원, 펫샵, 미용
 - FOOD (식품): 음식점, 식품제조
@@ -71,7 +89,7 @@ LocalData 서비스 ID가 매핑된 7개 카테고리:
 - OTHER (기타)
 
 ### 리드 상태 흐름
-`NEW (신규)` -> `PROPOSAL_SENT (제안 발송)` -> `CONTACTED (컨택 완료)` -> `CONTRACTED (계약 성사)`
+`NEW (신규)` → `PROPOSAL_SENT (제안 발송)` → `CONTACTED (컨택 완료)` → `CONTRACTED (계약 성사)`
 
 ## 환경 변수
 
@@ -96,5 +114,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 
 ### API 처리
 - LocalData API 호출을 위한 CORS 프록시 (`/api/proxy`)
-- 다중 폴백 CORS 프록시 설정
+- 다중 폴백 CORS 프록시 설정 (constants.ts의 `CORS_PROXIES`)
 - Rate Limiting 방지를 위한 API 호출 간 200ms 지연
+- 배치 저장 시 50건씩 처리

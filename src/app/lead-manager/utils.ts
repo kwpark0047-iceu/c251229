@@ -260,3 +260,41 @@ export function isURLEncoded(key: string): boolean {
     return false;
   }
 }
+
+
+/**
+ * 검색어와 일치하는 텍스트 하이라이트를 위한 정보 반환
+ * @param text - 원본 텍스트
+ * @param query - 검색어
+ * @returns 하이라이트 정보 배열 [{text, isHighlight}]
+ */
+export function getHighlightParts(text: string, query: string): { text: string; isHighlight: boolean }[] {
+  if (!text || !query || !query.trim()) {
+    return [{ text: text || '', isHighlight: false }];
+  }
+
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase().trim();
+  const parts: { text: string; isHighlight: boolean }[] = [];
+
+  let lastIndex = 0;
+  let index = lowerText.indexOf(lowerQuery);
+
+  while (index !== -1) {
+    // 매칭 전 텍스트
+    if (index > lastIndex) {
+      parts.push({ text: text.slice(lastIndex, index), isHighlight: false });
+    }
+    // 매칭된 텍스트
+    parts.push({ text: text.slice(index, index + lowerQuery.length), isHighlight: true });
+    lastIndex = index + lowerQuery.length;
+    index = lowerText.indexOf(lowerQuery, lastIndex);
+  }
+
+  // 남은 텍스트
+  if (lastIndex < text.length) {
+    parts.push({ text: text.slice(lastIndex), isHighlight: false });
+  }
+
+  return parts.length > 0 ? parts : [{ text, isHighlight: false }];
+}

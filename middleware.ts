@@ -4,11 +4,12 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 루트 경로는 /lead-manager로 리다이렉트
+  console.log('[Middleware] pathname:', pathname)
+
+  // 랜딩 페이지는 항상 통과 (리다이렉트 없음)
   if (pathname === '/') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/lead-manager'
-    return NextResponse.redirect(url)
+    console.log('[Middleware] Landing page - passing through')
+    return NextResponse.next()
   }
 
   // 환경 변수 확인
@@ -16,7 +17,7 @@ export async function middleware(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    // 환경 변수가 없으면 인증 체크 없이 통과
+    console.log('[Middleware] No env vars, passing through')
     return NextResponse.next()
   }
 
@@ -53,24 +54,29 @@ export async function middleware(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
 
+    console.log('[Middleware] user:', user ? user.email : 'null')
+
     // 보호된 라우트 목록
     const protectedRoutes = ['/lead-manager']
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
-    // 인증 페이지 (로그인된 사용자는 리다이렉트)
-    const authRoutes = ['/auth']
-    const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
+    // 인증 페이지 (로그인된 사용자는 리다이렉트) - /auth만 포함 (랜딩 페이지 제외)
+    const isAuthRoute = pathname === '/auth' || pathname.startsWith('/auth/')
+
+    console.log('[Middleware] isProtectedRoute:', isProtectedRoute, 'isAuthRoute:', isAuthRoute)
 
     // 보호된 라우트에 미인증 사용자 접근 시 → 로그인 페이지로
     if (isProtectedRoute && !user) {
+      console.log('[Middleware] Redirecting to /auth (unauthenticated)')
       const url = request.nextUrl.clone()
       url.pathname = '/auth'
       url.searchParams.set('redirect', pathname)
       return NextResponse.redirect(url)
     }
 
-    // 인증 페이지에 로그인된 사용자 접근 시 → 메인 페이지로
+    // 인증 페이지에 로그인된 사용자 접근 시 → 대시보드로
     if (isAuthRoute && user) {
+      console.log('[Middleware] Redirecting to /lead-manager (authenticated)')
       const url = request.nextUrl.clone()
       const redirect = url.searchParams.get('redirect') || '/lead-manager'
       url.pathname = redirect
@@ -78,23 +84,16 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
+    console.log('[Middleware] Passing through')
     return supabaseResponse
   } catch (error) {
-    // 오류 발생 시 통과 (인증 체크 없이)
-    console.error('Middleware error:', error)
+    console.error('[Middleware] Error:', error)
     return NextResponse.next()
   }
 }
 
 export const config = {
   matcher: [
-    /*
-     * 다음 경로는 제외:
-     * - _next/static (정적 파일)
-     * - _next/image (이미지 최적화 파일)
-     * - favicon.ico (파비콘)
-     * - public 폴더 파일들
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

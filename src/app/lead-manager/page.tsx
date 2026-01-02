@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
+  Search,
   Settings as SettingsIcon,
   RefreshCw,
   ChevronLeft,
@@ -69,6 +70,7 @@ export default function LeadManagerPage() {
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>('HEALTH');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [mainTab, setMainTab] = useState<MainTab>('leads');
   const [showInventoryUpload, setShowInventoryUpload] = useState(false);
@@ -826,10 +828,10 @@ export default function LeadManagerPage() {
           ) : (
             <>
               {viewMode === 'grid' && (
-                <GridView leads={filteredLeads} onStatusChange={handleStatusChange} />
+                <GridView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} />
               )}
               {viewMode === 'list' && (
-                <ListView leads={filteredLeads} onStatusChange={handleStatusChange} />
+                <ListView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} />
               )}
               {viewMode === 'map' && (
                 <MapView leads={filteredLeads} onStatusChange={handleStatusChange} />

@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { Phone, FileText, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
-import { formatDistance, formatPhoneNumber, truncateString } from '../utils';
+import { formatDistance, formatPhoneNumber, truncateString, getHighlightParts } from '../utils';
 import { ProgressDots } from './crm/ProgressChecklist';
 import CallLogModal from './crm/CallLogModal';
 import LeadDetailPanel from './crm/LeadDetailPanel';
@@ -41,12 +41,13 @@ const STATUS_METRO_COLORS: Record<LeadStatus, { bg: string; text: string; border
 interface ListViewProps {
   leads: Lead[];
   onStatusChange: (leadId: string, status: LeadStatus) => void;
+  searchQuery?: string;
 }
 
 type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status';
 type SortOrder = 'asc' | 'desc';
 
-export default function ListView({ leads, onStatusChange }: ListViewProps) {
+export default function ListView({ leads, onStatusChange, searchQuery = '' }: ListViewProps) {
   const [sortField, setSortField] = useState<SortField>('licenseDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
@@ -202,6 +203,7 @@ export default function ListView({ leads, onStatusChange }: ListViewProps) {
                   onStatusChange={onStatusChange}
                   onSelect={() => setSelectedLeadId(lead.id)}
                   onCallLog={() => setCallModalLeadId(lead.id)}
+                  searchQuery={searchQuery}
                 />
               ))}
             </tbody>
@@ -238,10 +240,27 @@ interface LeadRowProps {
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   onSelect: () => void;
   onCallLog: () => void;
+  searchQuery?: string;
 }
 
-function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog }: LeadRowProps) {
+function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery = '' }: LeadRowProps) {
   const statusColor = STATUS_METRO_COLORS[lead.status];
+
+  // 하이라이트 렌더링 컴포넌트
+  const HighlightText = ({ text }: { text: string }) => {
+    const parts = getHighlightParts(text, searchQuery);
+    return (
+      <>
+        {parts.map((part, i) =>
+          part.isHighlight ? (
+            <mark key={i} className="bg-yellow-400/60 text-inherit rounded px-0.5">{part.text}</mark>
+          ) : (
+            <span key={i}>{part.text}</span>
+          )
+        )}
+      </>
+    );
+  };
 
   return (
     <tr
@@ -258,11 +277,11 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog }: LeadRowPr
       <td className="px-5 py-4">
         <div>
           <div className="font-semibold text-[var(--text-primary)] line-clamp-1" title={lead.bizName}>
-            {lead.bizName}
+            <HighlightText text={lead.bizName} />
           </div>
           {lead.medicalSubject && (
             <div className="text-xs text-[var(--text-muted)] line-clamp-1 mt-0.5">
-              {lead.medicalSubject}
+              <HighlightText text={lead.medicalSubject} />
             </div>
           )}
         </div>
@@ -271,7 +290,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog }: LeadRowPr
       {/* 주소 */}
       <td className="px-5 py-4">
         <span className="text-sm text-[var(--text-secondary)] line-clamp-1" title={lead.roadAddress || lead.lotAddress}>
-          {truncateString(lead.roadAddress || lead.lotAddress || '-', 30)}
+          <HighlightText text={truncateString(lead.roadAddress || lead.lotAddress || '-', 30)} />
         </span>
       </td>
 
@@ -279,7 +298,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog }: LeadRowPr
       <td className="px-5 py-4">
         {lead.nearestStation ? (
           <div className="flex items-center gap-2">
-            <span className="font-medium text-[var(--text-primary)]">{lead.nearestStation}</span>
+            <span className="font-medium text-[var(--text-primary)]"><HighlightText text={lead.nearestStation || ''} /></span>
             {lead.stationLines && (
               <div className="flex gap-1">
                 {lead.stationLines.slice(0, 2).map(line => (
@@ -315,7 +334,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog }: LeadRowPr
             style={{ color: 'var(--metro-line4)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {formatPhoneNumber(lead.phone)}
+            <HighlightText text={formatPhoneNumber(lead.phone)} />
           </a>
         ) : (
           <span className="text-[var(--text-muted)]">-</span>

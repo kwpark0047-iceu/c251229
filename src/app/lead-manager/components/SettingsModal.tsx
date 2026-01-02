@@ -2,14 +2,16 @@
 
 /**
  * 설정 모달 컴포넌트 - Neo-Seoul Transit Design
- * API 키, CORS 프록시, 검색 기준 등 설정
+ * CORS 프록시, 검색 기준 등 설정
+ *
+ * 참고: API 키는 서버에서 환경변수로 관리됩니다 (보안 강화)
  */
 
 import React, { useState } from 'react';
-import { X, Key, Globe, Search, MapPin, Eye, EyeOff, Settings } from 'lucide-react';
+import { X, Globe, Search, MapPin, Settings, Shield } from 'lucide-react';
 
 import { Settings as SettingsType, SearchType, REGION_CODES } from '../types';
-import { CORS_PROXIES, DEFAULT_API_KEY } from '../constants';
+import { CORS_PROXIES } from '../constants';
 
 interface SettingsModalProps {
   settings: SettingsType;
@@ -19,7 +21,6 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ settings, onSave, onClose }: SettingsModalProps) {
   const [formData, setFormData] = useState<SettingsType>({ ...settings });
-  const [showApiKey, setShowApiKey] = useState(false);
   const [customProxy, setCustomProxy] = useState('');
 
   // 프록시가 기본 목록에 있는지 확인
@@ -83,36 +84,23 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
 
         {/* 본문 */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* API 인증키 */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
-              <Key className="w-4 h-4 text-[var(--metro-line5)]" />
-              API 인증키
-            </label>
-            <div className="relative">
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                value={formData.apiKey}
-                onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
-                className="metro-input pr-12"
-                placeholder="LocalData API 인증키 입력"
-              />
-              <button
-                type="button"
-                onClick={() => setShowApiKey(!showApiKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-              >
-                {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+          {/* API 키 안내 (보안) */}
+          <div
+            className="flex items-start gap-3 p-4 rounded-xl border"
+            style={{
+              background: 'rgba(60, 181, 74, 0.1)',
+              borderColor: 'rgba(60, 181, 74, 0.3)',
+            }}
+          >
+            <Shield className="w-5 h-5 text-[var(--metro-line2)] flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-[var(--metro-line2)]">
+                API 키 보안 강화
+              </p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">
+                API 키는 서버에서 안전하게 관리됩니다. 환경변수 LOCALDATA_API_KEY로 설정하세요.
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, apiKey: DEFAULT_API_KEY })}
-              className="mt-2 text-xs font-medium transition-colors"
-              style={{ color: 'var(--metro-line4)' }}
-            >
-              기본 키 사용
-            </button>
           </div>
 
           {/* CORS 프록시 */}
@@ -143,7 +131,7 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
               />
             )}
             <p className="mt-2 text-xs text-[var(--text-muted)]">
-              CORS 문제 해결을 위한 프록시 서버 URL
+              서버사이드 API를 사용하므로 프록시는 선택 사항입니다
             </p>
           </div>
 

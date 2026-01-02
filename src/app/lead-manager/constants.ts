@@ -4,7 +4,8 @@
 
 import { SubwayStation, Settings } from './types';
 
-// 기본 API 키
+// 기본 API 키 (deprecated - 서버에서 환경변수로 관리됨)
+// 환경변수 LOCALDATA_API_KEY에 설정하세요
 export const DEFAULT_API_KEY = 'hxOJfL8Q8p70CnIkVXfHy5UFw3yVBh7MPRQwQy0l2QI=';
 
 // CORS 프록시 옵션

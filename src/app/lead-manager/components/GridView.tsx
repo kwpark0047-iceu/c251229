@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
-import { formatDistance, truncateString } from '../utils';
+import { formatDistance, truncateString, getHighlightParts } from '../utils';
 import CallLogModal from './crm/CallLogModal';
 import LeadDetailPanel from './crm/LeadDetailPanel';
 import { ProgressDots } from './crm/ProgressChecklist';
@@ -52,9 +52,10 @@ const STATUS_METRO_COLORS: Record<LeadStatus, { bg: string; text: string; border
 interface GridViewProps {
   leads: Lead[];
   onStatusChange: (leadId: string, status: LeadStatus) => void;
+  searchQuery?: string;
 }
 
-export default function GridView({ leads, onStatusChange }: GridViewProps) {
+export default function GridView({ leads, onStatusChange, searchQuery = '' }: GridViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   return (
@@ -67,6 +68,7 @@ export default function GridView({ leads, onStatusChange }: GridViewProps) {
             index={index}
             onStatusChange={onStatusChange}
             onSelect={() => setSelectedLeadId(lead.id)}
+            searchQuery={searchQuery}
           />
         ))}
       </div>
@@ -88,10 +90,28 @@ interface LeadCardProps {
   index: number;
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   onSelect: () => void;
+  searchQuery?: string;
 }
 
-function LeadCard({ lead, index, onStatusChange, onSelect }: LeadCardProps) {
+function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '' }: LeadCardProps) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
+
+  // 하이라이트 렌더링 컴포넌트
+  const HighlightText = ({ text, className }: { text: string; className?: string }) => {
+    const parts = getHighlightParts(text, searchQuery);
+    return (
+      <span className={className}>
+        {parts.map((part, i) =>
+          part.isHighlight ? (
+            <mark key={i} className="bg-yellow-400/60 text-inherit rounded px-0.5">{part.text}</mark>
+          ) : (
+            <span key={i}>{part.text}</span>
+          )
+        )}
+      </span>
+    );
+  };
+
   const [showCallModal, setShowCallModal] = useState(false);
   const statusColor = STATUS_METRO_COLORS[lead.status];
 
@@ -168,13 +188,13 @@ function LeadCard({ lead, index, onStatusChange, onSelect }: LeadCardProps) {
             className="font-bold text-[var(--text-primary)] mb-2 line-clamp-1"
             title={lead.bizName}
           >
-            {lead.bizName}
+            <HighlightText text={lead.bizName} />
           </h3>
 
           {/* 진료과목 */}
           {lead.medicalSubject && (
             <p className="text-sm text-[var(--text-muted)] mb-3 line-clamp-1">
-              {lead.medicalSubject}
+              <HighlightText text={lead.medicalSubject} />
             </p>
           )}
 
@@ -184,7 +204,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect }: LeadCardProps) {
             <div className="flex items-start gap-2.5 text-[var(--text-secondary)]">
               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--metro-line3)]" />
               <span className="line-clamp-2">
-                {truncateString(lead.roadAddress || lead.lotAddress || '-', 50)}
+                <HighlightText text={truncateString(lead.roadAddress || lead.lotAddress || '-', 50)} />
               </span>
             </div>
 
@@ -194,7 +214,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect }: LeadCardProps) {
                 <Train className="w-4 h-4 flex-shrink-0 text-[var(--metro-line4)]" />
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-[var(--text-primary)]">
-                    {lead.nearestStation}역
+                    <HighlightText text={lead.nearestStation + '역'} />
                   </span>
                   {lead.stationLines && (
                     <div className="flex gap-1">
