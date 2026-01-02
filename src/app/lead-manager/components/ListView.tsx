@@ -42,12 +42,13 @@ interface ListViewProps {
   leads: Lead[];
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   searchQuery?: string;
+  onMapView?: (lead: Lead) => void;
 }
 
 type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status' | 'createdAt';
 type SortOrder = 'asc' | 'desc';
 
-export default function ListView({ leads, onStatusChange, searchQuery = '' }: ListViewProps) {
+export default function ListView({ leads, onStatusChange, searchQuery = '', onMapView }: ListViewProps) {
   const [sortField, setSortField] = useState<SortField>('licenseDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
@@ -208,6 +209,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '' }: Li
                   onSelect={() => setSelectedLeadId(lead.id)}
                   onCallLog={() => setCallModalLeadId(lead.id)}
                   searchQuery={searchQuery}
+                  onMapView={() => onMapView?.(lead)}
                 />
               ))}
             </tbody>
@@ -245,9 +247,10 @@ interface LeadRowProps {
   onSelect: () => void;
   onCallLog: () => void;
   searchQuery?: string;
+  onMapView?: () => void;
 }
 
-function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery = '' }: LeadRowProps) {
+function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery = '', onMapView }: LeadRowProps) {
   const statusColor = STATUS_METRO_COLORS[lead.status];
 
   // 하이라이트 렌더링 컴포넌트
@@ -277,12 +280,19 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
         animationDelay: `${index * 20}ms`,
       }}
     >
-      {/* 병원명 */}
+      {/* 병원명 - 클릭 시 맵 뷰로 이동 */}
       <td className="px-5 py-4">
         <div>
-          <div className="font-semibold text-[var(--text-primary)] line-clamp-1" title={lead.bizName}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMapView?.();
+            }}
+            className="font-semibold text-[var(--text-primary)] line-clamp-1 text-left hover:text-[var(--metro-line4)] hover:underline transition-colors"
+            title={`${lead.bizName} - 지도에서 보기`}
+          >
             <HighlightText text={lead.bizName} />
-          </div>
+          </button>
           {lead.medicalSubject && (
             <div className="text-xs text-[var(--text-muted)] line-clamp-1 mt-0.5">
               <HighlightText text={lead.medicalSubject} />

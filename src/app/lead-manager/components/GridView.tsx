@@ -53,9 +53,10 @@ interface GridViewProps {
   leads: Lead[];
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   searchQuery?: string;
+  onMapView?: (lead: Lead) => void;
 }
 
-export default function GridView({ leads, onStatusChange, searchQuery = '' }: GridViewProps) {
+export default function GridView({ leads, onStatusChange, searchQuery = '', onMapView }: GridViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   return (
@@ -69,6 +70,7 @@ export default function GridView({ leads, onStatusChange, searchQuery = '' }: Gr
             onStatusChange={onStatusChange}
             onSelect={() => setSelectedLeadId(lead.id)}
             searchQuery={searchQuery}
+            onMapView={() => onMapView?.(lead)}
           />
         ))}
       </div>
@@ -91,9 +93,10 @@ interface LeadCardProps {
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   onSelect: () => void;
   searchQuery?: string;
+  onMapView?: () => void;
 }
 
-function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '' }: LeadCardProps) {
+function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onMapView }: LeadCardProps) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
 
   // 하이라이트 렌더링 컴포넌트
@@ -183,13 +186,17 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '' }: L
 
         {/* 본문 */}
         <div className="relative p-4">
-          {/* 병원명 */}
-          <h3
-            className="font-bold text-[var(--text-primary)] mb-2 line-clamp-1"
-            title={lead.bizName}
+          {/* 병원명 - 클릭 시 지도 뷰로 이동 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMapView?.();
+            }}
+            className="font-bold text-[var(--text-primary)] mb-2 line-clamp-1 text-left w-full hover:text-[var(--metro-line4)] hover:underline transition-colors"
+            title={`${lead.bizName} - 지도에서 보기`}
           >
             <HighlightText text={lead.bizName} />
-          </h3>
+          </button>
 
           {/* 진료과목 */}
           {lead.medicalSubject && (

@@ -5,7 +5,7 @@
  * Leaflet 지도에 병원 위치 표시
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
 
 import { Lead, LeadStatus, STATUS_COLORS, STATUS_LABELS, LINE_COLORS } from '../types';
@@ -15,6 +15,9 @@ import { formatDistance, formatPhoneNumber } from '../utils';
 interface MapViewProps {
   leads: Lead[];
   onStatusChange: (leadId: string, status: LeadStatus) => void;
+  onListView?: () => void;
+  focusLead?: Lead | null;  // 포커스할 리드
+  onFocusClear?: () => void;  // 포커스 해제 콜백
 }
 
 // Leaflet은 SSR에서 작동하지 않으므로 동적 임포트
@@ -39,7 +42,13 @@ const CircleMarker = dynamic(
   { ssr: false }
 );
 
-export default function MapView({ leads, onStatusChange }: MapViewProps) {
+// 지도 포커스 컨트롤러 컴포넌트 (useMap 사용)
+const MapFocusController = dynamic(
+  () => import('./MapFocusController'),
+  { ssr: false }
+);
+
+export default function MapView({ leads, onStatusChange, onListView, focusLead, onFocusClear }: MapViewProps) {
   const [isClient, setIsClient] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
@@ -50,13 +59,18 @@ export default function MapView({ leads, onStatusChange }: MapViewProps) {
   // 유효한 좌표가 있는 리드만 필터링
   const validLeads = leads.filter(lead => lead.latitude && lead.longitude);
 
-  // 지도 중심점 계산 (서울 강남 기본)
-  const center = validLeads.length > 0
-    ? {
-        lat: validLeads.reduce((sum, l) => sum + (l.latitude || 0), 0) / validLeads.length,
-        lng: validLeads.reduce((sum, l) => sum + (l.longitude || 0), 0) / validLeads.length,
-      }
-    : { lat: 37.5012, lng: 127.0396 }; // 강남역
+  // 지도 중심점 계산 (focusLead가 있으면 해당 위치, 없으면 평균)
+  const center = focusLead?.latitude && focusLead?.longitude
+    ? { lat: focusLead.latitude, lng: focusLead.longitude }
+    : validLeads.length > 0
+      ? {
+          lat: validLeads.reduce((sum, l) => sum + (l.latitude || 0), 0) / validLeads.length,
+          lng: validLeads.reduce((sum, l) => sum + (l.longitude || 0), 0) / validLeads.length,
+        }
+      : { lat: 37.5012, lng: 127.0396 }; // 강남역
+
+  // 줌 레벨 (focusLead가 있으면 더 높은 줌)
+  const zoomLevel = focusLead?.latitude && focusLead?.longitude ? 17 : 14;
 
   if (!isClient) {
     return (
@@ -111,9 +125,12 @@ export default function MapView({ leads, onStatusChange }: MapViewProps) {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <MapContainer
           center={[center.lat, center.lng]}
-          zoom={14}
+          zoom={zoomLevel}
           scrollWheelZoom={true}
         >
+          {/* 지도 포커스 컨트롤러 */}
+          <MapFocusController focusLead={focusLead} onFocusClear={onFocusClear} />
+
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -146,24 +163,27 @@ export default function MapView({ leads, onStatusChange }: MapViewProps) {
           ))}
 
           {/* 병원 마커 */}
-          {validLeads.map(lead => (
-            <CircleMarker
-              key={lead.id}
-              center={[lead.latitude!, lead.longitude!]}
-              radius={8}
-              fillColor={getStatusColor(lead.status)}
-              fillOpacity={0.8}
-              color={getStatusColor(lead.status)}
-              weight={2}
-              eventHandlers={{
-                click: () => setSelectedLead(lead),
-              }}
-            >
-              <Popup>
-                <LeadPopup lead={lead} onStatusChange={onStatusChange} />
-              </Popup>
-            </CircleMarker>
-          ))}
+          {validLeads.map(lead => {
+            const isFocused = focusLead?.id === lead.id;
+            return (
+              <CircleMarker
+                key={lead.id}
+                center={[lead.latitude!, lead.longitude!]}
+                radius={isFocused ? 14 : 8}
+                fillColor={isFocused ? '#FF0000' : getStatusColor(lead.status)}
+                fillOpacity={isFocused ? 1 : 0.8}
+                color={isFocused ? '#FF0000' : getStatusColor(lead.status)}
+                weight={isFocused ? 4 : 2}
+                eventHandlers={{
+                  click: () => setSelectedLead(lead),
+                }}
+              >
+                <Popup>
+                  <LeadPopup lead={lead} onStatusChange={onStatusChange} onListView={onListView} />
+                </Popup>
+              </CircleMarker>
+            );
+          })}
         </MapContainer>
       </div>
 
@@ -235,12 +255,19 @@ function createStationIcon(name: string, lines: string[]) {
 interface LeadPopupProps {
   lead: Lead;
   onStatusChange: (leadId: string, status: LeadStatus) => void;
+  onListView?: () => void;
 }
 
-function LeadPopup({ lead, onStatusChange }: LeadPopupProps) {
+function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
   return (
     <div className="min-w-[200px]">
-      <h3 className="font-semibold text-slate-800 mb-1">{lead.bizName}</h3>
+      <button
+        onClick={() => onListView?.()}
+        className="font-semibold text-slate-800 mb-1 text-left hover:text-blue-600 hover:underline transition-colors"
+        title={`${lead.bizName} - 리스트에서 보기`}
+      >
+        {lead.bizName}
+      </button>
 
       {lead.medicalSubject && (
         <p className="text-xs text-slate-500 mb-2">{lead.medicalSubject}</p>

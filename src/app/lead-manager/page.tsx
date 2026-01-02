@@ -33,7 +33,7 @@ import {
   Zap,
 } from 'lucide-react';
 
-import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS } from './types';
+import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS, ServiceIdInfo } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
@@ -70,12 +70,14 @@ export default function LeadManagerPage() {
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>('HEALTH');
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);  // 선택된 세부 서비스 ID들
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [mainTab, setMainTab] = useState<MainTab>('leads');
   const [showInventoryUpload, setShowInventoryUpload] = useState(false);
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
   const [loadingStatus, setLoadingStatus] = useState<string>('');
+  const [mapFocusLead, setMapFocusLead] = useState<Lead | null>(null);  // 지도에서 포커스할 리드
 
   // 사용자 정보
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -138,14 +140,22 @@ export default function LeadManagerPage() {
     }
   }, [categoryFilter]);
 
-  // 상태 필터 적용 (클라이언트 사이드)
+  // 상태 및 세부항목 필터 적용 (클라이언트 사이드)
   useEffect(() => {
     let filtered = leads;
+
+    // 세부항목 필터 적용 (선택된 serviceIds가 있으면 해당 항목만 표시)
+    if (selectedServiceIds.length > 0) {
+      filtered = filtered.filter(lead => lead.serviceId && selectedServiceIds.includes(lead.serviceId));
+    }
+
+    // 상태 필터 적용
     if (statusFilter !== 'ALL') {
       filtered = filtered.filter(lead => lead.status === statusFilter);
     }
+
     setFilteredLeads(filtered);
-  }, [leads, statusFilter]);
+  }, [leads, statusFilter, selectedServiceIds]);
 
   // 설정 로드
   const loadSettings = async () => {
@@ -192,7 +202,8 @@ export default function LeadManagerPage() {
           setLoadingProgress({ current, total });
           if (status) setLoadingStatus(status);
         },
-        categoryFilter
+        categoryFilter,
+        selectedServiceIds  // 선택된 세부항목 전달
       );
 
       if (result.success) {
@@ -210,9 +221,16 @@ export default function LeadManagerPage() {
           const regionNames = selectedRegions
             .map(code => REGION_OPTIONS.find(r => r.code === code)?.name || code)
             .join('+');
+          // 선택된 세부항목 이름 표시
+          const serviceNames = selectedServiceIds.length > 0
+            ? CATEGORY_SERVICE_IDS[categoryFilter]
+                .filter(s => selectedServiceIds.includes(s.id))
+                .map(s => s.name)
+                .join(', ')
+            : '전체';
           showMessage(
             'success',
-            `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}] API에서 ${result.leads.length}건 조회. ${saveResult.message}`
+            `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}/${serviceNames}] API에서 ${result.leads.length}건 조회. ${saveResult.message}`
           );
         } else {
           showMessage('error', saveResult.message);
@@ -654,7 +672,8 @@ export default function LeadManagerPage() {
 
           {/* 필터 바 */}
           <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50 backdrop-blur-sm">
-            <div className="max-w-[1600px] mx-auto px-6 py-4">
+            <div className="max-w-[1600px] mx-auto px-6 py-4 space-y-4">
+              {/* 상단: 업종 카테고리 + 상태 필터 */}
               <div className="flex flex-wrap items-center gap-6">
                 {/* 업종 카테고리 필터 */}
                 <div className="flex items-center gap-3">
@@ -663,24 +682,30 @@ export default function LeadManagerPage() {
                     {(['HEALTH', 'ANIMAL', 'FOOD', 'CULTURE', 'LIVING', 'ENVIRONMENT', 'OTHER'] as BusinessCategory[]).map(category => {
                       const colors = CATEGORY_COLORS[category];
                       const count = leads.filter(l => l.category === category).length;
+                      const getCategoryColor = () => {
+                        if (colors.bg.includes('red')) return 'var(--metro-line1)';
+                        if (colors.bg.includes('amber')) return 'var(--metro-line3)';
+                        if (colors.bg.includes('orange')) return 'var(--metro-line3)';
+                        if (colors.bg.includes('purple')) return 'var(--metro-line5)';
+                        if (colors.bg.includes('cyan')) return 'var(--metro-line4)';
+                        if (colors.bg.includes('emerald')) return 'var(--metro-line2)';
+                        return 'var(--metro-line9)';
+                      };
                       return (
                         <button
                           key={category}
-                          onClick={() => setCategoryFilter(category)}
+                          onClick={() => {
+                            setCategoryFilter(category);
+                            setSelectedServiceIds([]);  // 카테고리 변경 시 세부항목 초기화
+                          }}
                           className={`px-4 py-2 text-sm rounded-lg transition-all duration-300 font-medium border ${
                             categoryFilter === category
                               ? 'text-white shadow-md border-transparent'
                               : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--text-muted)]'
                           }`}
                           style={categoryFilter === category ? {
-                            background: colors.bg.replace('bg-', '').includes('blue') ? 'var(--metro-line1)'
-                              : colors.bg.includes('green') ? 'var(--metro-line2)'
-                              : colors.bg.includes('orange') ? 'var(--metro-line3)'
-                              : colors.bg.includes('pink') ? 'var(--metro-line7)'
-                              : colors.bg.includes('purple') ? 'var(--metro-line5)'
-                              : colors.bg.includes('teal') ? 'var(--metro-line4)'
-                              : 'var(--metro-line9)',
-                            boxShadow: `0 2px 10px ${colors.bg.includes('blue') ? 'var(--metro-line1)' : 'var(--metro-line2)'}40`,
+                            background: getCategoryColor(),
+                            boxShadow: `0 2px 10px ${getCategoryColor()}40`,
                           } : {}}
                         >
                           {CATEGORY_LABELS[category]}
@@ -731,6 +756,51 @@ export default function LeadManagerPage() {
                 <span className="ml-auto text-sm font-semibold text-[var(--metro-line2)]">
                   총 {filteredLeads.length}건
                 </span>
+              </div>
+
+              {/* 하단: 세부항목 선택 */}
+              <div className="flex items-center gap-3 pt-2 border-t border-[var(--border-subtle)]">
+                <span className="text-sm font-semibold text-[var(--text-muted)]">세부항목</span>
+                <div className="flex flex-wrap gap-2">
+                  {/* 전체 선택 버튼 */}
+                  <button
+                    onClick={() => setSelectedServiceIds([])}
+                    className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-300 font-medium border ${
+                      selectedServiceIds.length === 0
+                        ? 'bg-[var(--metro-line2)] text-white border-transparent shadow-md'
+                        : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border-[var(--border-subtle)]'
+                    }`}
+                  >
+                    전체
+                  </button>
+                  {/* 개별 서비스 버튼 */}
+                  {CATEGORY_SERVICE_IDS[categoryFilter].map(service => {
+                    const isSelected = selectedServiceIds.includes(service.id);
+                    const serviceCount = leads.filter(l => l.serviceId === service.id).length;
+                    return (
+                      <button
+                        key={service.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedServiceIds(prev => prev.filter(id => id !== service.id));
+                          } else {
+                            setSelectedServiceIds(prev => [...prev, service.id]);
+                          }
+                        }}
+                        className={`px-3 py-1.5 text-xs rounded-lg transition-all duration-300 font-medium border ${
+                          isSelected
+                            ? 'bg-[var(--metro-line4)] text-white border-transparent shadow-md'
+                            : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--metro-line4)]'
+                        }`}
+                      >
+                        {service.name}
+                        {serviceCount > 0 && (
+                          <span className="ml-1 opacity-75">({serviceCount})</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -836,13 +906,35 @@ export default function LeadManagerPage() {
           ) : (
             <>
               {viewMode === 'grid' && (
-                <GridView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} />
+                <GridView
+                  leads={filteredLeads}
+                  onStatusChange={handleStatusChange}
+                  searchQuery={searchQuery}
+                  onMapView={(lead) => {
+                    setMapFocusLead(lead);
+                    setViewMode('map');
+                  }}
+                />
               )}
               {viewMode === 'list' && (
-                <ListView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} />
+                <ListView
+                  leads={filteredLeads}
+                  onStatusChange={handleStatusChange}
+                  searchQuery={searchQuery}
+                  onMapView={(lead) => {
+                    setMapFocusLead(lead);
+                    setViewMode('map');
+                  }}
+                />
               )}
               {viewMode === 'map' && (
-                <MapView leads={filteredLeads} onStatusChange={handleStatusChange} />
+                <MapView
+                  leads={filteredLeads}
+                  onStatusChange={handleStatusChange}
+                  onListView={() => setViewMode('list')}
+                  focusLead={mapFocusLead}
+                  onFocusClear={() => setMapFocusLead(null)}
+                />
               )}
             </>
           )

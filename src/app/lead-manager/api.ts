@@ -171,15 +171,21 @@ export async function fetchAllLeads(
   startDate: Date,
   endDate: Date,
   onProgress?: (current: number, total: number, status?: string) => void,
-  category?: BusinessCategory
+  category?: BusinessCategory,
+  selectedServiceIds?: string[]  // 선택된 세부항목 ID들
 ): Promise<FetchResult> {
   const pageSize = 100;
   let allLeads: Lead[] = [];
 
   // 카테고리에 해당하는 서비스 ID 목록
-  const serviceIds: ServiceIdInfo[] = category
+  let serviceIds: ServiceIdInfo[] = category
     ? CATEGORY_SERVICE_IDS[category]
     : CATEGORY_SERVICE_IDS['HEALTH'];
+
+  // 선택된 세부항목이 있으면 해당 항목만 필터링
+  if (selectedServiceIds && selectedServiceIds.length > 0) {
+    serviceIds = serviceIds.filter(s => selectedServiceIds.includes(s.id));
+  }
 
   // 지역 코드 목록 (다중 지역 지원)
   const regionCodes = settings.regionCodes?.length
