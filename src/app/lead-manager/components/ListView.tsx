@@ -48,7 +48,7 @@ type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate
 type SortOrder = 'asc' | 'desc';
 
 export default function ListView({ leads, onStatusChange, searchQuery = '' }: ListViewProps) {
-  const [sortField, setSortField] = useState<SortField>('createdAt');
+  const [sortField, setSortField] = useState<SortField>('licenseDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [callModalLeadId, setCallModalLeadId] = useState<string | null>(null);

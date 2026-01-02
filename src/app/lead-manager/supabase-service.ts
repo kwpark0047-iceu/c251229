@@ -187,6 +187,7 @@ export async function getLeads(filters?: {
     let query = supabase
       .from('leads')
       .select('*')
+      .order('license_date', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false });
 
     // 필터 적용
