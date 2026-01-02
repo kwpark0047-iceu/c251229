@@ -44,11 +44,11 @@ interface ListViewProps {
   searchQuery?: string;
 }
 
-type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status';
+type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status' | 'createdAt';
 type SortOrder = 'asc' | 'desc';
 
 export default function ListView({ leads, onStatusChange, searchQuery = '' }: ListViewProps) {
-  const [sortField, setSortField] = useState<SortField>('licenseDate');
+  const [sortField, setSortField] = useState<SortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [callModalLeadId, setCallModalLeadId] = useState<string | null>(null);
@@ -81,6 +81,10 @@ export default function ListView({ leads, onStatusChange, searchQuery = '' }: Li
       case 'status':
         aVal = a.status;
         bVal = b.status;
+        break;
+      case 'createdAt':
+        aVal = a.createdAt || '';
+        bVal = b.createdAt || '';
         break;
     }
 
