@@ -131,15 +131,21 @@ export default function LeadManagerPage() {
     }
   };
 
-  // 필터 적용
+  // 업종 필터 변경 시 DB에서 다시 로드
+  useEffect(() => {
+    if (!initialLoading) {
+      loadLeadsFromDB(categoryFilter);
+    }
+  }, [categoryFilter]);
+
+  // 상태 필터 적용 (클라이언트 사이드)
   useEffect(() => {
     let filtered = leads;
-    filtered = filtered.filter(lead => lead.category === categoryFilter);
     if (statusFilter !== 'ALL') {
       filtered = filtered.filter(lead => lead.status === statusFilter);
     }
     setFilteredLeads(filtered);
-  }, [leads, statusFilter, categoryFilter]);
+  }, [leads, statusFilter]);
 
   // 설정 로드
   const loadSettings = async () => {
@@ -149,9 +155,11 @@ export default function LeadManagerPage() {
     }
   };
 
-  // DB에서 리드 로드
-  const loadLeadsFromDB = async () => {
-    const result = await getLeads();
+  // DB에서 리드 로드 (선택된 업종 필터 적용)
+  const loadLeadsFromDB = async (category?: BusinessCategory) => {
+    const result = await getLeads({
+      category: category || categoryFilter,
+    });
     if (result.success) {
       setLeads(result.leads);
     }
