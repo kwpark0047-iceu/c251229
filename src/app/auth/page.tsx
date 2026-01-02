@@ -1,8 +1,31 @@
 'use client'
 
-import { useState, Suspense, useEffect } from 'react'
+import { useState, Suspense, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+
+// 에러 메시지 변환 함수
+function getErrorMessage(error: Error | unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+
+  if (message.includes('Failed to fetch') || message.includes('failed to fetch')) {
+    return '서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요.'
+  }
+  if (message.includes('환경 변수')) {
+    return '서버 설정 오류입니다. 관리자에게 문의해주세요.'
+  }
+  if (message.includes('User already registered')) {
+    return '이미 등록된 이메일입니다.'
+  }
+  if (message.includes('Invalid login credentials')) {
+    return '이메일 또는 비밀번호가 올바르지 않습니다.'
+  }
+  if (message.includes('new row violates row-level security')) {
+    return '권한 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+  }
+
+  return message
+}
 
 type AuthMode = 'login' | 'signup' | 'join-org'
 
@@ -81,36 +104,62 @@ export function AuthContent() {
 
   useEffect(() => {
     setMounted(true)
+    // Supabase 설정 확인
+    if (!isSupabaseConfigured) {
+      setError('서버 설정 오류입니다. 관리자에게 문의해주세요.')
+    }
   }, [])
 
-  const supabase = createClient()
+  const supabase = useMemo(() => {
+    try {
+      return createClient()
+    } catch (e) {
+      console.error('Supabase 클라이언트 생성 실패:', e)
+      return null
+    }
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      setError(error.message === 'Invalid login credentials'
-        ? '이메일 또는 비밀번호가 올바르지 않습니다.'
-        : error.message)
+    if (!supabase) {
+      setError('서버 설정 오류입니다. 관리자에게 문의해주세요.')
       setLoading(false)
       return
     }
 
-    router.push(redirect)
-    router.refresh()
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        setError(getErrorMessage(error))
+        setLoading(false)
+        return
+      }
+
+      router.push(redirect)
+      router.refresh()
+    } catch (err) {
+      setError(getErrorMessage(err))
+      setLoading(false)
+    }
   }
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
+    if (!supabase) {
+      setError('서버 설정 오류입니다. 관리자에게 문의해주세요.')
+      setLoading(false)
+      return
+    }
 
     if (password !== confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.')
@@ -124,48 +173,59 @@ export function AuthContent() {
       return
     }
 
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (signUpError) {
-      setError(signUpError.message)
-      setLoading(false)
-      return
-    }
-
-    if (!authData.user) {
-      setError('회원가입에 실패했습니다.')
-      setLoading(false)
-      return
-    }
-
-    const { data: orgData, error: orgError } = await supabase
-      .from('organizations')
-      .insert({ name: orgName || `${email.split('@')[0]}의 조직` })
-      .select()
-      .single()
-
-    if (orgError) {
-      setError('조직 생성에 실패했습니다.')
-      setLoading(false)
-      return
-    }
-
-    await supabase
-      .from('organization_members')
-      .insert({
-        organization_id: orgData.id,
-        user_id: authData.user.id,
-        role: 'owner',
+    try {
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
 
-    setMessage('회원가입이 완료되었습니다. 이메일을 확인해주세요.')
-    setLoading(false)
+      if (signUpError) {
+        setError(getErrorMessage(signUpError))
+        setLoading(false)
+        return
+      }
+
+      if (!authData.user) {
+        setError('회원가입에 실패했습니다.')
+        setLoading(false)
+        return
+      }
+
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .insert({ name: orgName || `${email.split('@')[0]}의 조직` })
+        .select()
+        .single()
+
+      if (orgError) {
+        console.error('조직 생성 오류:', orgError)
+        setError(getErrorMessage(orgError))
+        setLoading(false)
+        return
+      }
+
+      const { error: memberError } = await supabase
+        .from('organization_members')
+        .insert({
+          organization_id: orgData.id,
+          user_id: authData.user.id,
+          role: 'owner',
+        })
+
+      if (memberError) {
+        console.error('멤버 추가 오류:', memberError)
+      }
+
+      setMessage('회원가입이 완료되었습니다. 이메일을 확인해주세요.')
+      setLoading(false)
+    } catch (err) {
+      console.error('회원가입 오류:', err)
+      setError(getErrorMessage(err))
+      setLoading(false)
+    }
   }
 
   const handleJoinOrg = async (e: React.FormEvent) => {
@@ -173,60 +233,72 @@ export function AuthContent() {
     setLoading(true)
     setError(null)
 
+    if (!supabase) {
+      setError('서버 설정 오류입니다. 관리자에게 문의해주세요.')
+      setLoading(false)
+      return
+    }
+
     if (password !== confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.')
       setLoading(false)
       return
     }
 
-    const { data: orgData, error: orgError } = await supabase
-      .from('organizations')
-      .select('id, name')
-      .eq('invite_code', inviteCode.trim())
-      .single()
+    try {
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('invite_code', inviteCode.trim())
+        .single()
 
-    if (orgError || !orgData) {
-      setError('유효하지 않은 초대 코드입니다.')
-      setLoading(false)
-      return
-    }
+      if (orgError || !orgData) {
+        setError('유효하지 않은 초대 코드입니다.')
+        setLoading(false)
+        return
+      }
 
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (signUpError) {
-      setError(signUpError.message)
-      setLoading(false)
-      return
-    }
-
-    if (!authData.user) {
-      setError('회원가입에 실패했습니다.')
-      setLoading(false)
-      return
-    }
-
-    const { error: memberError } = await supabase
-      .from('organization_members')
-      .insert({
-        organization_id: orgData.id,
-        user_id: authData.user.id,
-        role: 'member',
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
 
-    if (memberError) {
-      setError('조직 가입에 실패했습니다.')
-      setLoading(false)
-      return
-    }
+      if (signUpError) {
+        setError(getErrorMessage(signUpError))
+        setLoading(false)
+        return
+      }
 
-    setMessage(`'${orgData.name}' 조직에 가입되었습니다. 이메일을 확인해주세요.`)
-    setLoading(false)
+      if (!authData.user) {
+        setError('회원가입에 실패했습니다.')
+        setLoading(false)
+        return
+      }
+
+      const { error: memberError } = await supabase
+        .from('organization_members')
+        .insert({
+          organization_id: orgData.id,
+          user_id: authData.user.id,
+          role: 'member',
+        })
+
+      if (memberError) {
+        setError(getErrorMessage(memberError))
+        setLoading(false)
+        return
+      }
+
+      setMessage(`'${orgData.name}' 조직에 가입되었습니다. 이메일을 확인해주세요.`)
+      setLoading(false)
+    } catch (err) {
+      console.error('조직 가입 오류:', err)
+      setError(getErrorMessage(err))
+      setLoading(false)
+    }
   }
 
   const tabs = [
