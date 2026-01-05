@@ -386,7 +386,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                 }}
               >
                 <p className="text-[var(--text-muted)]">
-                  {selectedStation ? '해당 역에 가용 광고 매체가 없습니다.' : '역사를 선택해주세요.'}
+                  {selectedStation ? '대신 관심있으신 매체 문의 부탁드립니다.' : '역사를 선택해주세요.'}
                 </p>
               </div>
             ) : (

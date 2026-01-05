@@ -307,6 +307,7 @@ export interface Proposal {
   status: ProposalStatus;
   sentAt?: string;
   viewedAt?: string;
+  emailRecipient?: string;
   createdAt?: string;
   updatedAt?: string;
 }

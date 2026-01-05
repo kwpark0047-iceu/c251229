@@ -16,18 +16,29 @@ import {
   Clock,
   ChevronRight,
   ExternalLink,
+  Plus,
+  Send,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Download,
+  MoreVertical,
 } from 'lucide-react';
 import {
   LeadWithCRM,
   CallLog,
+  Proposal,
+  ProposalStatus,
   CALL_OUTCOME_LABELS,
   CALL_OUTCOME_COLORS,
   STATUS_LABELS,
   STATUS_COLORS,
+  PROPOSAL_STATUS_LABELS,
+  PROPOSAL_STATUS_COLORS,
 } from '../../types';
 import { getLeadWithCRM, generateMailtoLink, generateTelLink } from '../../crm-service';
 import { findInventoryForLead } from '../../inventory-service';
-import { downloadProposalPDF } from '../../proposal-service';
+import { downloadProposalPDF, updateProposal } from '../../proposal-service';
 import { formatDistance } from '../../utils';
 import ProgressChecklist from './ProgressChecklist';
 import CallLogModal from './CallLogModal';
@@ -258,40 +269,35 @@ export default function LeadDetailPanel({
           )}
 
           {activeTab === 'proposals' && (
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* 새 제안서 버튼 */}
+              <button
+                onClick={() => setShowProposalForm(true)}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                새 제안서 작성
+              </button>
+
+              {/* 제안서 목록 */}
               {lead.proposals && lead.proposals.length > 0 ? (
                 lead.proposals.map(proposal => (
-                  <div
+                  <ProposalCard
                     key={proposal.id}
-                    className="p-4 bg-white border border-slate-200 rounded-lg"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h4 className="font-medium text-slate-800">
-                          {proposal.title}
-                        </h4>
-                        <p className="text-sm text-slate-500">
-                          {new Date(proposal.createdAt || '').toLocaleDateString('ko-KR')}
-                        </p>
-                      </div>
-                      <span className="text-sm font-medium text-blue-600">
-                        {(proposal.finalPrice || 0).toLocaleString()}원
-                      </span>
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <button
-                        onClick={() => downloadProposalPDF(proposal.id)}
-                        className="flex-1 text-sm text-blue-600 hover:text-blue-700"
-                      >
-                        PDF 다운로드
-                      </button>
-                    </div>
-                  </div>
+                    proposal={proposal}
+                    onStatusChange={async (status) => {
+                      await updateProposal(proposal.id, { status });
+                      loadLead();
+                      onStatusChange?.();
+                    }}
+                    onDownloadPDF={() => downloadProposalPDF(proposal.id)}
+                  />
                 ))
               ) : (
                 <div className="text-center py-8 text-slate-500">
                   <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p>제안서가 없습니다.</p>
+                  <p className="text-sm mt-1">위 버튼을 클릭하여 첫 제안서를 작성하세요.</p>
                 </div>
               )}
             </div>
@@ -373,6 +379,120 @@ function CallLogCard({ log }: { log: CallLog }) {
           {log.nextContactDate && ` (${log.nextContactDate})`}
         </p>
       )}
+    </div>
+  );
+}
+
+/**
+ * 제안서 카드
+ */
+function ProposalCard({
+  proposal,
+  onStatusChange,
+  onDownloadPDF,
+}: {
+  proposal: Proposal;
+  onStatusChange: (status: ProposalStatus) => void;
+  onDownloadPDF: () => void;
+}) {
+  const [showMenu, setShowMenu] = useState(false);
+  const statusColor = PROPOSAL_STATUS_COLORS[proposal.status];
+
+  const statusOptions: ProposalStatus[] = ['DRAFT', 'SENT', 'VIEWED', 'ACCEPTED', 'REJECTED'];
+
+  return (
+    <div className="p-4 bg-white border border-slate-200 rounded-lg">
+      {/* 헤더 */}
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <h4 className="font-medium text-slate-800">{proposal.title}</h4>
+          {proposal.createdAt && (
+            <p className="text-xs text-slate-400 mt-1">
+              {new Date(proposal.createdAt).toLocaleDateString('ko-KR')}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={`px-2 py-1 text-xs font-medium rounded ${statusColor.bg} ${statusColor.text}`}
+          >
+            {PROPOSAL_STATUS_LABELS[proposal.status]}
+          </span>
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-1 hover:bg-slate-100 rounded transition-colors"
+            >
+              <MoreVertical className="w-4 h-4 text-slate-400" />
+            </button>
+            {showMenu && (
+              <div className="absolute right-0 mt-1 w-32 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
+                {statusOptions.map(status => (
+                  <button
+                    key={status}
+                    onClick={() => {
+                      onStatusChange(status);
+                      setShowMenu(false);
+                    }}
+                    className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${
+                      proposal.status === status ? 'bg-slate-100 font-medium' : ''
+                    }`}
+                  >
+                    {PROPOSAL_STATUS_LABELS[status]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 정보 */}
+      <div className="mt-3 space-y-2">
+        {proposal.inventoryIds && proposal.inventoryIds.length > 0 && (
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <FileText className="w-4 h-4 text-slate-400" />
+            <span>광고 매체 {proposal.inventoryIds.length}개</span>
+          </div>
+        )}
+        {proposal.finalPrice && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-slate-600">월 광고비:</span>
+            <span className="font-semibold text-blue-600">
+              {proposal.finalPrice.toLocaleString()}원
+            </span>
+            {proposal.discountRate && proposal.discountRate > 0 && (
+              <span className="text-xs text-red-500">(-{proposal.discountRate}%)</span>
+            )}
+          </div>
+        )}
+        {proposal.sentAt && (
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <Send className="w-3 h-3" />
+            <span>발송: {new Date(proposal.sentAt).toLocaleString('ko-KR')}</span>
+          </div>
+        )}
+      </div>
+
+      {/* 액션 버튼 */}
+      <div className="mt-4 flex gap-2">
+        <button
+          onClick={onDownloadPDF}
+          className="flex-1 flex items-center justify-center gap-1 py-2 text-sm text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+        >
+          <Download className="w-4 h-4" />
+          PDF
+        </button>
+        {proposal.emailRecipient && (
+          <a
+            href={`mailto:${proposal.emailRecipient}`}
+            className="flex-1 flex items-center justify-center gap-1 py-2 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+          >
+            <Mail className="w-4 h-4" />
+            재발송
+          </a>
+        )}
+      </div>
     </div>
   );
 }

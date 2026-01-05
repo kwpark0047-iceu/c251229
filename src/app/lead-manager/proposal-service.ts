@@ -598,6 +598,7 @@ function mapProposalFromDB(row: Record<string, unknown>): Proposal {
     status: (row.status as ProposalStatus) || 'DRAFT',
     sentAt: row.sent_at ? String(row.sent_at) : undefined,
     viewedAt: row.viewed_at ? String(row.viewed_at) : undefined,
+    emailRecipient: row.email_recipient ? String(row.email_recipient) : undefined,
     createdAt: row.created_at ? String(row.created_at) : undefined,
     updatedAt: row.updated_at ? String(row.updated_at) : undefined,
   };
