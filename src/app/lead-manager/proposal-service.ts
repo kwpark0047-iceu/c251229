@@ -17,6 +17,42 @@ function getSupabase() {
   return createClient();
 }
 
+// 한글 폰트 로드 상태
+let koreanFontLoaded = false;
+
+/**
+ * 한글 폰트 로드 (Noto Sans KR)
+ */
+async function loadKoreanFont(pdf: jsPDF): Promise<void> {
+  if (koreanFontLoaded) {
+    pdf.setFont('NotoSansKR');
+    return;
+  }
+
+  try {
+    // Google Fonts에서 Noto Sans KR 폰트 로드
+    const fontUrl = 'https://cdn.jsdelivr.net/npm/@aspect-ratio/noto-sans-kr-base64@1.0.0/NotoSansKR-Regular.js';
+
+    // 대체 방법: 직접 폰트 파일 로드
+    const response = await fetch('https://fonts.gstatic.com/s/notosanskr/v36/PbyxFmXiEBPT4ITbgNA5Cgms3VYcOA-vvnIzzuoyeLGC5n9iJx9M.woff2');
+    const fontBuffer = await response.arrayBuffer();
+
+    // ArrayBuffer를 Base64로 변환
+    const base64Font = btoa(
+      new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+
+    // jsPDF에 폰트 등록
+    pdf.addFileToVFS('NotoSansKR-Regular.ttf', base64Font);
+    pdf.addFont('NotoSansKR-Regular.ttf', 'NotoSansKR', 'normal');
+    pdf.setFont('NotoSansKR');
+
+    koreanFontLoaded = true;
+  } catch (error) {
+    console.warn('한글 폰트 로드 실패, 기본 폰트 사용:', error);
+  }
+}
+
 // ============================================
 // 제안서 CRUD
 // ============================================
@@ -272,8 +308,8 @@ export async function generateProposalPDF(
     const margin = 20;
     const contentWidth = pageWidth - margin * 2;
 
-    // 한글 폰트 설정 (기본 폰트 사용 - 한글은 제한적)
-    // 실제 프로젝트에서는 한글 폰트 파일을 추가해야 함
+    // 한글 폰트 로드
+    await loadKoreanFont(pdf);
 
     // === 페이지 1: 표지 ===
     let yPos = 40;
@@ -281,7 +317,7 @@ export async function generateProposalPDF(
     // 제목
     pdf.setFontSize(24);
     pdf.setTextColor(30, 64, 175); // blue-700
-    pdf.text('Subway Ad Proposal', pageWidth / 2, yPos, { align: 'center' });
+    pdf.text('서울 지하철 광고 제안서', pageWidth / 2, yPos, { align: 'center' });
     yPos += 15;
 
     pdf.setFontSize(16);
@@ -292,7 +328,7 @@ export async function generateProposalPDF(
     // 고객 정보
     if (leadData) {
       pdf.setFontSize(14);
-      pdf.text(`To: ${leadData.biz_name}`, margin, yPos);
+      pdf.text(`수신: ${leadData.biz_name}`, margin, yPos);
       yPos += 10;
 
       if (leadData.road_address) {
@@ -318,16 +354,16 @@ export async function generateProposalPDF(
 
     pdf.setFontSize(16);
     pdf.setTextColor(30, 64, 175);
-    pdf.text('Ad Locations', margin, yPos);
+    pdf.text('광고 위치', margin, yPos);
     yPos += 15;
 
     // 테이블 헤더
     pdf.setFontSize(10);
     pdf.setTextColor(100, 100, 100);
-    pdf.text('Station', margin, yPos);
-    pdf.text('Location', margin + 40, yPos);
-    pdf.text('Type', margin + 80, yPos);
-    pdf.text('Price/Month', margin + 120, yPos);
+    pdf.text('역사', margin, yPos);
+    pdf.text('위치', margin + 40, yPos);
+    pdf.text('유형', margin + 80, yPos);
+    pdf.text('월 단가', margin + 120, yPos);
     yPos += 8;
 
     // 구분선
@@ -343,10 +379,10 @@ export async function generateProposalPDF(
         yPos = 30;
       }
 
-      pdf.text(`${index + 1}. ${item.stationName}`, margin, yPos);
+      pdf.text(`${index + 1}. ${item.stationName}역`, margin, yPos);
       pdf.text(item.locationCode, margin + 40, yPos);
       pdf.text(item.adType, margin + 80, yPos);
-      pdf.text(`${(item.priceMonthly || 0).toLocaleString()} KRW`, margin + 120, yPos);
+      pdf.text(`${(item.priceMonthly || 0).toLocaleString()}원`, margin + 120, yPos);
       yPos += 8;
     });
 
@@ -358,18 +394,18 @@ export async function generateProposalPDF(
     yPos += 10;
 
     pdf.setFontSize(12);
-    pdf.text(`Total: ${(proposal.totalPrice || 0).toLocaleString()} KRW`, margin + 100, yPos);
+    pdf.text(`합계: ${(proposal.totalPrice || 0).toLocaleString()}원`, margin + 100, yPos);
     yPos += 8;
 
     if (proposal.discountRate && proposal.discountRate > 0) {
       pdf.setTextColor(220, 38, 38); // red
-      pdf.text(`Discount: ${proposal.discountRate}%`, margin + 100, yPos);
+      pdf.text(`할인: ${proposal.discountRate}%`, margin + 100, yPos);
       yPos += 8;
     }
 
     pdf.setFontSize(14);
     pdf.setTextColor(30, 64, 175);
-    pdf.text(`Final Price: ${(proposal.finalPrice || 0).toLocaleString()} KRW/month`, margin + 80, yPos);
+    pdf.text(`최종 금액: ${(proposal.finalPrice || 0).toLocaleString()}원/월`, margin + 80, yPos);
 
     // === 페이지 3: 효과 분석 ===
     if (proposal.effectAnalysis) {
@@ -377,7 +413,7 @@ export async function generateProposalPDF(
       yPos = 30;
 
       pdf.setFontSize(16);
-      pdf.text('Expected Effect Analysis', margin, yPos);
+      pdf.text('예상 광고 효과', margin, yPos);
       yPos += 15;
 
       pdf.setFontSize(11);
@@ -386,19 +422,19 @@ export async function generateProposalPDF(
       const analysis = proposal.effectAnalysis;
 
       if (analysis.dailyImpressions) {
-        pdf.text(`Daily Impressions: ${analysis.dailyImpressions.toLocaleString()}`, margin, yPos);
+        pdf.text(`일일 노출수: ${analysis.dailyImpressions.toLocaleString()}회`, margin, yPos);
         yPos += 8;
       }
       if (analysis.monthlyReach) {
-        pdf.text(`Monthly Reach: ${analysis.monthlyReach.toLocaleString()}`, margin, yPos);
+        pdf.text(`월간 도달수: ${analysis.monthlyReach.toLocaleString()}명`, margin, yPos);
         yPos += 8;
       }
       if (analysis.targetDemographics && analysis.targetDemographics.length > 0) {
-        pdf.text(`Target Demographics: ${analysis.targetDemographics.join(', ')}`, margin, yPos);
+        pdf.text(`타겟 고객층: ${analysis.targetDemographics.join(', ')}`, margin, yPos);
         yPos += 8;
       }
       if (analysis.expectedROI) {
-        pdf.text(`Expected ROI: ${analysis.expectedROI}`, margin, yPos);
+        pdf.text(`예상 ROI: ${analysis.expectedROI}`, margin, yPos);
         yPos += 8;
       }
     }
@@ -409,16 +445,16 @@ export async function generateProposalPDF(
 
     pdf.setFontSize(14);
     pdf.setTextColor(0, 0, 0);
-    pdf.text('Thank you for your interest!', pageWidth / 2, yPos, { align: 'center' });
+    pdf.text('관심 가져주셔서 감사합니다!', pageWidth / 2, yPos, { align: 'center' });
     yPos += 20;
 
     pdf.setFontSize(11);
-    pdf.text('Seoul Subway Advertising Team', pageWidth / 2, yPos, { align: 'center' });
+    pdf.text('서울 지하철 광고 영업팀', pageWidth / 2, yPos, { align: 'center' });
     yPos += 30;
 
     pdf.setFontSize(9);
     pdf.setTextColor(100, 100, 100);
-    pdf.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, yPos, { align: 'center' });
+    pdf.text(`작성일: ${new Date().toLocaleDateString('ko-KR')}`, pageWidth / 2, yPos, { align: 'center' });
 
     // PDF Blob 반환
     const pdfBlob = pdf.output('blob');
