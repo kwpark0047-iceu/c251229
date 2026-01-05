@@ -47,6 +47,7 @@ import SettingsModal from './components/SettingsModal';
 import StatsBar from './components/StatsBar';
 import InventoryTable from './components/inventory/InventoryTable';
 import InventoryUploadModal from './components/inventory/InventoryUploadModal';
+import BackupButton from './components/BackupButton';
 
 type MainTab = 'leads' | 'inventory';
 
@@ -542,6 +543,9 @@ export default function LeadManagerPage() {
               >
                 <Download className="w-5 h-5" />
               </button>
+
+              {/* 데이터 백업/복원 */}
+              <BackupButton />
 
               {/* 설정 */}
               <button

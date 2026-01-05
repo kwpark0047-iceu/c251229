@@ -31,6 +31,7 @@ import { downloadProposalPDF } from '../../proposal-service';
 import { formatDistance } from '../../utils';
 import ProgressChecklist from './ProgressChecklist';
 import CallLogModal from './CallLogModal';
+import ProposalForm from '../ProposalForm';
 
 interface LeadDetailPanelProps {
   leadId: string;
@@ -47,6 +48,7 @@ export default function LeadDetailPanel({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'info' | 'calls' | 'proposals'>('info');
   const [showCallModal, setShowCallModal] = useState(false);
+  const [showProposalForm, setShowProposalForm] = useState(false);
   const [inventoryCount, setInventoryCount] = useState(0);
 
   useEffect(() => {
@@ -121,15 +123,13 @@ export default function LeadDetailPanel({
             <FileText className="w-4 h-4" />
             <span className="text-sm">통화기록</span>
           </button>
-          {lead.email && (
-            <a
-              href={generateMailtoLink(lead)}
-              className="flex-1 flex items-center justify-center gap-2 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-            >
-              <Mail className="w-4 h-4" />
-              <span className="text-sm">이메일</span>
-            </a>
-          )}
+          <button
+            onClick={() => setShowProposalForm(true)}
+            className="flex-1 flex items-center justify-center gap-2 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+          >
+            <Mail className="w-4 h-4" />
+            <span className="text-sm">제안서</span>
+          </button>
         </div>
 
         {/* 탭 */}
@@ -306,6 +306,18 @@ export default function LeadDetailPanel({
           leadName={lead.bizName}
           phone={lead.phone}
           onClose={() => setShowCallModal(false)}
+          onSuccess={() => {
+            loadLead();
+            onStatusChange?.();
+          }}
+        />
+      )}
+
+      {/* 제안서 작성 폼 */}
+      {showProposalForm && (
+        <ProposalForm
+          lead={lead}
+          onClose={() => setShowProposalForm(false)}
           onSuccess={() => {
             loadLead();
             onStatusChange?.();
