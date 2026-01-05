@@ -6,14 +6,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase 클라이언트 (서버용)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Supabase 클라이언트 생성 함수 (런타임에 호출)
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    throw new Error('Supabase 환경변수가 설정되지 않았습니다.');
+  }
+
+  return createClient(url, key);
+}
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = getSupabase();
     const { searchParams } = new URL(request.url);
     const tables = searchParams.get('tables')?.split(',') || ['leads', 'proposals', 'ad_inventory'];
 
@@ -72,6 +79,7 @@ export async function GET(request: NextRequest) {
 // 복원 API (POST)
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabase();
     const backup = await request.json();
 
     // 백업 데이터 유효성 검사

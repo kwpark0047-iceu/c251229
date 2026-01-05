@@ -7,13 +7,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Resend 클라이언트 생성 함수 (런타임에 호출)
+function getResend() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY 환경변수가 설정되지 않았습니다.');
+  }
+  return new Resend(apiKey);
+}
 
-// Supabase 클라이언트 (서버용)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Supabase 클라이언트 생성 함수 (런타임에 호출)
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !key) {
+    throw new Error('Supabase 환경변수가 설정되지 않았습니다.');
+  }
+
+  return createClient(url, key);
+}
 
 interface SendProposalRequest {
   leadId: string;
@@ -38,6 +51,8 @@ interface SendProposalRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    const resend = getResend();
+    const supabase = getSupabase();
     const body: SendProposalRequest = await request.json();
 
     // 필수 필드 검증
