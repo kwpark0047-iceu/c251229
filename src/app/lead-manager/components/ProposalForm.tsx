@@ -164,8 +164,8 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
   // 저장 (발송 없이)
   const handleSave = async () => {
-    if (!selectedStation || selectedInventory.length === 0) {
-      alert('역사와 광고 매체를 선택해주세요.');
+    if (!selectedStation) {
+      alert('역사를 선택해주세요.');
       return;
     }
 
@@ -202,8 +202,8 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
       alert('수신자 이메일을 입력해주세요.');
       return;
     }
-    if (!selectedStation || selectedInventory.length === 0) {
-      alert('역사와 광고 매체를 선택해주세요.');
+    if (!selectedStation) {
+      alert('역사를 선택해주세요.');
       return;
     }
 
@@ -503,7 +503,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || selectedInventory.length === 0}
+            disabled={saving || !selectedStation}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
             style={{
               background: 'var(--metro-line4)',
@@ -515,7 +515,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
           </button>
           <button
             onClick={handleSend}
-            disabled={sending || selectedInventory.length === 0 || !recipientEmail}
+            disabled={sending || !selectedStation || !recipientEmail}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
             style={{
               background: 'var(--metro-line2)',

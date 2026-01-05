@@ -249,7 +249,7 @@ export async function markProposalSent(
  */
 export async function generateProposalPDF(
   proposalId: string
-): Promise<{ success: boolean; pdfBlob?: Blob; message: string }> {
+): Promise<{ success: boolean; pdfBlob?: Blob; bizName?: string; message: string }> {
   try {
     const result = await getProposalWithInventory(proposalId);
     if (!result || !result.proposal) {
@@ -426,6 +426,7 @@ export async function generateProposalPDF(
     return {
       success: true,
       pdfBlob,
+      bizName: leadData?.biz_name,
       message: 'PDF가 생성되었습니다.',
     };
   } catch (error) {
@@ -443,10 +444,16 @@ export async function downloadProposalPDF(proposalId: string): Promise<boolean> 
     return false;
   }
 
+  // 파일명: 상호명_날짜.pdf
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  const bizName = result.bizName || '제안서';
+  const filename = `${bizName}_${dateStr}.pdf`;
+
   const url = URL.createObjectURL(result.pdfBlob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `proposal_${proposalId.substring(0, 8)}.pdf`;
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
