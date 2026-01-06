@@ -80,6 +80,16 @@
   --glow-pink: 0 0 20px rgba(230, 24, 108, 0.2);
 }
 
+/* 배경 효과 - 다크 모드 */
+.bg-effect-green { opacity: 0.3; }
+.bg-effect-blue { opacity: 0.2; }
+.bg-pattern { opacity: 0.02; }
+
+/* 배경 효과 - 라이트 모드 */
+[data-theme="light"] .bg-effect-green { opacity: 0.15; }
+[data-theme="light"] .bg-effect-blue { opacity: 0.1; }
+[data-theme="light"] .bg-pattern { opacity: 0.03; }
+
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }

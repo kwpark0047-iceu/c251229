@@ -351,17 +351,17 @@ export default function LeadManagerPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] relative overflow-hidden">
       {/* 배경 효과 */}
-      <div className="fixed inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden bg-gradient-overlay">
         {/* 그라디언트 오브 */}
         <div
-          className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full opacity-30"
+          className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-effect-green"
           style={{
             background: 'radial-gradient(circle, var(--metro-line2) 0%, transparent 70%)',
             filter: 'blur(80px)',
           }}
         />
         <div
-          className="absolute bottom-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full opacity-20"
+          className="absolute bottom-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full bg-effect-blue"
           style={{
             background: 'radial-gradient(circle, var(--metro-line4) 0%, transparent 70%)',
             filter: 'blur(100px)',
@@ -370,7 +370,7 @@ export default function LeadManagerPage() {
 
         {/* 메트로 패턴 */}
         <div
-          className="absolute inset-0 opacity-[0.02]"
+          className="absolute inset-0 bg-pattern"
           style={{
             backgroundImage: `
               linear-gradient(var(--border-subtle) 1px, transparent 1px),

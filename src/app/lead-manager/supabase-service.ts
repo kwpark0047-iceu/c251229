@@ -44,10 +44,10 @@ export async function saveLeads(
 
     onProgress?.(0, leads.length, '기존 데이터 확인 중...');
 
-    // 기존 데이터 조회 (biz_name + road_address 조합으로 중복 체크)
+    // 기존 데이터 조회 (상호명으로 중복 체크)
     const { data: existingData, error: fetchError } = await supabase
       .from('leads')
-      .select('biz_name, road_address');
+      .select('biz_name');
 
     if (fetchError) {
       console.error('기존 데이터 조회 오류:', fetchError);
@@ -57,25 +57,26 @@ export async function saveLeads(
       return { success: false, message: errorMsg, newCount: 0, skippedCount: 0, newLeads: [] };
     }
 
-    // 기존 데이터 키 세트 생성
+    // 기존 데이터 키 세트 생성 (상호명 기준)
     const existingSet = new Set<string>();
     (existingData || []).forEach(row => {
-      const key = `${row.biz_name || ''}|${row.road_address || ''}`;
+      const key = (row.biz_name || '').trim();
       existingSet.add(key);
     });
 
     console.log(`기존 데이터: ${existingSet.size}건`);
 
-    // 신규 데이터만 필터링
+    // 신규 데이터만 필터링 (상호명 기준 중복 체크)
     const newLeads: Lead[] = [];
     const skippedLeads: Lead[] = [];
 
     leads.forEach(lead => {
-      const key = `${lead.bizName}|${lead.roadAddress || ''}`;
+      const key = (lead.bizName || '').trim();
       if (existingSet.has(key)) {
         skippedLeads.push(lead);
       } else {
         newLeads.push(lead);
+        existingSet.add(key); // 같은 배치 내 중복 방지
       }
     });
 
@@ -383,8 +384,8 @@ export async function getSettings(): Promise<{ success: boolean; settings: Setti
 }
 
 /**
- * 중복 리드 삭제 (biz_name + road_address 기준)
- * 같은 조합의 데이터 중 가장 오래된 것만 남기고 삭제
+ * 중복 리드 삭제 (상호명 기준)
+ * 같은 상호명의 데이터 중 가장 오래된 것만 남기고 삭제
  */
 export async function removeDuplicateLeads(): Promise<{
   success: boolean;
@@ -397,7 +398,7 @@ export async function removeDuplicateLeads(): Promise<{
     // 모든 리드 조회
     const { data: allLeads, error: fetchError } = await supabase
       .from('leads')
-      .select('id, biz_name, road_address, created_at')
+      .select('id, biz_name, created_at')
       .order('created_at', { ascending: true });
 
     if (fetchError) {
@@ -409,12 +410,12 @@ export async function removeDuplicateLeads(): Promise<{
       return { success: true, message: '리드가 없습니다.', removedCount: 0 };
     }
 
-    // 중복 찾기 (첫 번째 등록된 것만 유지)
+    // 중복 찾기 (상호명 기준, 첫 번째 등록된 것만 유지)
     const seen = new Map<string, string>(); // key -> first id
     const duplicateIds: string[] = [];
 
     allLeads.forEach(lead => {
-      const key = `${lead.biz_name || ''}|${lead.road_address || ''}`;
+      const key = (lead.biz_name || '').trim();
       if (seen.has(key)) {
         // 이미 있으면 중복 - 삭제 대상
         duplicateIds.push(lead.id);
