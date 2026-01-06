@@ -43,6 +43,8 @@ interface Proposal {
     company: string;
     phone: string;
     email: string;
+    address?: string;
+    businessType?: string;
   };
   request: {
     adType: string;
@@ -50,6 +52,9 @@ interface Proposal {
     message: string;
   };
   recommendation: {
+    reason?: string;
+    nearestDistrict?: string;
+    nearestStations?: string[];
     lines: { number: string; name: string; stations: string[] }[];
     inventory: {
       id: string;
@@ -577,6 +582,39 @@ export default function ContactPage() {
                   </div>
                 )}
               </div>
+
+              {/* AI 추천 이유 */}
+              {proposal.recommendation.reason && (
+                <div
+                  className="p-6 rounded-2xl"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(0, 165, 222, 0.1) 0%, rgba(0, 168, 77, 0.1) 100%)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--glass-border)',
+                  }}
+                >
+                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-[#00A5DE]" />
+                    AI 추천 분석
+                  </h4>
+                  <p className="text-[var(--text-secondary)] text-lg leading-relaxed">
+                    {proposal.recommendation.reason}
+                  </p>
+                  {proposal.recommendation.nearestStations && proposal.recommendation.nearestStations.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span className="text-[var(--text-muted)] text-sm">인근 추천역:</span>
+                      {proposal.recommendation.nearestStations.map((station, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 rounded-full text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
+                        >
+                          {station}역
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 추천 노선 */}
               <div
