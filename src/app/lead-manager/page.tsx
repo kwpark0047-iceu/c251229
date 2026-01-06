@@ -73,7 +73,15 @@ export default function LeadManagerPage() {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
-  const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>('HEALTH');
+  const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('leadManager_categoryFilter');
+      if (saved) {
+        return saved as BusinessCategory;
+      }
+    }
+    return 'HEALTH';
+  });
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);  // 선택된 세부 서비스 ID들
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
@@ -94,8 +102,20 @@ export default function LeadManagerPage() {
     end: new Date(),
   });
 
-  // 선택된 지역 (서울, 경기도)
-  const [selectedRegions, setSelectedRegions] = useState<string[]>(['6110000', '6410000']);
+  // 선택된 지역 (서울, 경기도) - localStorage에서 복원
+  const [selectedRegions, setSelectedRegions] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('leadManager_selectedRegions');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return ['6110000', '6410000'];
+        }
+      }
+    }
+    return ['6110000', '6410000'];
+  });
 
   // 지역 코드 매핑
   const REGION_OPTIONS = [
@@ -136,6 +156,20 @@ export default function LeadManagerPage() {
       setTimeout(() => setCopiedInviteCode(false), 2000);
     }
   };
+
+  // 지역 필터 변경 시 localStorage에 저장
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('leadManager_selectedRegions', JSON.stringify(selectedRegions));
+    }
+  }, [selectedRegions]);
+
+  // 업종 필터 변경 시 localStorage에 저장
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('leadManager_categoryFilter', categoryFilter);
+    }
+  }, [categoryFilter]);
 
   // 업종 필터 변경 시 DB에서 다시 로드
   useEffect(() => {
