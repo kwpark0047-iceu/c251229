@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "지하철 광고 영업 시스템 | Lead Manager",
-  description: "서울 지하철 광고 영업 관리 시스템",
+  title: "위마켓 | 지하철 광고 플랫폼",
+  description: "서울 지하철 광고 플랫폼 - 위마켓",
 };
 
 export default function RootLayout({

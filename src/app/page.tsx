@@ -14,6 +14,7 @@ import {
   Target,
   ChevronRight
 } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function Home() {
   const features = [
@@ -32,7 +33,8 @@ export default function Home() {
   ];
 
   const stats = [
-    { value: '9호선', label: '서울 지하철', color: '#00A5DE' },
+    { value: '서울교통공사', label: '광고 매체', color: '#00A5DE' },
+    { value: '한국철도공사', label: '광고 매체', color: '#003DA5' },
     { value: '300+', label: '지하철역', color: '#00A84D' },
     { value: '실시간', label: '데이터 동기화', color: '#EF7C1C' },
     { value: '100%', label: '클라우드 기반', color: '#9B6DD6' },
@@ -48,7 +50,7 @@ export default function Home() {
         zIndex: 50,
         backdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--border-subtle)',
-        background: 'rgba(255,255,255,0.9)'
+        background: 'var(--glass-bg)'
       }}>
         <div style={{
           maxWidth: '1200px',
@@ -74,26 +76,29 @@ export default function Home() {
               <Train size={20} color="white" />
             </div>
             <span style={{ fontWeight: 700, fontSize: '20px', color: 'var(--text-primary)' }}>
-              Metro CRM
+              위마켓
             </span>
           </div>
-          <Link
-            href="/auth"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 20px',
-              borderRadius: '12px',
-              fontWeight: 500,
-              background: 'var(--bg-tertiary)',
-              color: 'var(--text-primary)',
-              textDecoration: 'none'
-            }}
-          >
-            로그인
-            <ChevronRight size={16} />
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <ThemeToggle />
+            <Link
+              href="/auth"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 20px',
+                borderRadius: '12px',
+                fontWeight: 500,
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+                textDecoration: 'none'
+              }}
+            >
+              로그인
+              <ChevronRight size={16} />
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -127,8 +132,8 @@ export default function Home() {
             lineHeight: 1.3,
             color: 'var(--text-primary)'
           }}>
-            <span className="text-gradient-accent">지하철 광고</span> 영업의
-            <br />새로운 기준
+            <span className="text-gradient-accent">당신에게 맞는</span> 광고를
+            <br />확인하세요
           </h1>
 
           {/* 서브 타이틀 */}
@@ -138,15 +143,13 @@ export default function Home() {
             lineHeight: 1.7,
             color: 'var(--text-secondary)'
           }}>
-            서울 지하철역 주변 잠재 고객을 발굴하고,
-            <br />
-            체계적인 영업 관리로 성과를 높이세요.
+            당신에게 맞는 광고매체를 찾아드리고 매칭하겠습니다.
           </p>
 
           {/* CTA 버튼 */}
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px' }}>
             <Link
-              href="/auth"
+              href="/contact"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -161,7 +164,7 @@ export default function Home() {
                 textDecoration: 'none'
               }}
             >
-              시작하기
+              AI자동추천
               <ArrowRight size={18} />
             </Link>
             <Link
@@ -203,10 +206,10 @@ export default function Home() {
         }}>
           {stats.map((stat, index) => (
             <div key={index} style={{ textAlign: 'center', padding: '8px' }}>
-              <div style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 700, marginBottom: '4px', color: stat.color }}>
+              <div style={{ fontSize: 'clamp(14px, 3vw, 20px)', fontWeight: 700, marginBottom: '4px', color: stat.color, whiteSpace: 'nowrap' }}>
                 {stat.value}
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                 {stat.label}
               </div>
             </div>
@@ -338,13 +341,13 @@ export default function Home() {
           boxSizing: 'border-box'
         }}>
           <h2 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>
-            지금 바로 시작하세요
+            광고 문의하기
           </h2>
           <p style={{ fontSize: '15px', marginBottom: '24px', color: 'var(--text-secondary)' }}>
-            무료로 가입하고 지하철 광고 영업의 효율을 높여보세요.
+            서울교통공사 지하철 광고에 대해 문의해 주세요.
           </p>
           <Link
-            href="/auth"
+            href="/contact"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -359,7 +362,7 @@ export default function Home() {
               textDecoration: 'none'
             }}
           >
-            무료로 시작하기
+            광고문의하기
             <ArrowRight size={18} />
           </Link>
         </div>
@@ -395,7 +398,7 @@ export default function Home() {
               <Train size={14} color="white" />
             </div>
             <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
-              Metro CRM
+              위마켓
             </span>
           </div>
 

@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+이 파일은 Claude Code (claude.ai/code)가 이 저장소에서 작업할 때 참고하는 가이드입니다.
 
 ## 프로젝트 개요
 
@@ -26,6 +26,7 @@ npm run start    # 프로덕션 서버 시작
 - **지도**: Leaflet + react-leaflet
 - **PDF 생성**: jspdf + html2canvas
 - **엑셀 처리**: xlsx
+- **이메일**: Resend
 
 ### 주요 디렉토리
 ```
@@ -36,20 +37,32 @@ src/
 │   │   ├── types.ts        # 모든 타입 정의
 │   │   ├── constants.ts    # 지하철역 데이터, 좌표 변환 상수
 │   │   ├── api.ts          # LocalData API 연동
+│   │   ├── utils.ts        # 유틸리티 (좌표 변환, 거리 계산)
 │   │   ├── supabase-service.ts   # 리드 CRUD 작업
 │   │   ├── crm-service.ts        # CRM 기능 (통화, 제안서)
 │   │   ├── inventory-service.ts  # 광고 인벤토리 관리
 │   │   ├── proposal-service.ts   # 제안서 생성/관리
 │   │   ├── auth-service.ts       # 인증 헬퍼
-│   │   └── components/     # UI 컴포넌트
-│   ├── auth/               # 인증 페이지 (callback 포함)
-│   └── api/proxy/          # LocalData API용 CORS 프록시
-├── components/             # 공통 컴포넌트 (ThemeProvider 등)
+│   │   └── components/
+│   │       ├── crm/        # CRM 컴포넌트 (통화기록, 리드상세, 진행체크리스트)
+│   │       ├── inventory/  # 인벤토리 컴포넌트 (테이블, 업로드모달)
+│   │       └── *.tsx       # 뷰 컴포넌트 (그리드뷰, 리스트뷰, 지도뷰, 제안서폼 등)
+│   ├── auth/               # 인증 페이지 (콜백 포함)
+│   └── api/
+│       ├── proxy/          # LocalData API용 CORS 프록시
+│       ├── localdata/      # LocalData API 직접 연동
+│       ├── backup/         # 데이터 백업 API
+│       └── send-proposal/  # 이메일 제안서 발송 (Resend 사용)
+├── components/             # 공통 컴포넌트 (테마제공자 등)
 ├── lib/supabase/
 │   ├── client.ts           # 브라우저용 Supabase 클라이언트
 │   └── server.ts           # 서버용 Supabase 클라이언트
 middleware.ts               # 인증 미들웨어 (세션 관리, 라우트 보호)
 ```
+
+### 배포
+- **플랫폼**: Vercel (리전: icn1/서울)
+- **설정**: `vercel.json` 참조
 
 ### 인증 흐름
 - `middleware.ts`가 모든 요청을 가로채서 세션 관리
@@ -97,6 +110,7 @@ LocalData 서비스 ID가 매핑된 7개 카테고리 (`types.ts`의 `CATEGORY_S
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+RESEND_API_KEY=              # 이메일 발송용 (선택)
 ```
 
 ## 컨벤션

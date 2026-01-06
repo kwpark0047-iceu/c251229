@@ -23,6 +23,7 @@ import {
   Package,
   Users,
   Upload,
+  Home,
   Calendar,
   MapPin,
   LogOut,
@@ -31,6 +32,7 @@ import {
   Check,
   Train,
   Zap,
+  FileImage,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS, ServiceIdInfo } from './types';
@@ -48,6 +50,7 @@ import StatsBar from './components/StatsBar';
 import InventoryTable from './components/inventory/InventoryTable';
 import InventoryUploadModal from './components/inventory/InventoryUploadModal';
 import BackupButton from './components/BackupButton';
+import ThemeToggle from '@/components/ThemeToggle';
 
 type MainTab = 'leads' | 'inventory';
 
@@ -371,6 +374,18 @@ export default function LeadManagerPage() {
                 </div>
               </div>
 
+              {/* 메인페이지 버튼 */}
+              <button
+                onClick={() => router.push('/')}
+                className="p-2.5 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors"
+                title="메인페이지"
+              >
+                <Home className="w-5 h-5 text-[var(--text-muted)] hover:text-[var(--text-secondary)]" />
+              </button>
+
+              {/* 테마 토글 */}
+              <ThemeToggle />
+
               {/* 메인 탭 */}
               <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                 <button
@@ -402,6 +417,13 @@ export default function LeadManagerPage() {
                 >
                   <Package className="w-4 h-4" />
                   인벤토리
+                </button>
+                <button
+                  onClick={() => router.push('/floor-plans')}
+                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-lg transition-all duration-300 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+                >
+                  <FileImage className="w-4 h-4" />
+                  도면
                 </button>
               </div>
             </div>
