@@ -222,7 +222,7 @@ export default function ContactPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col">
+    <div className="min-h-screen w-full bg-[var(--bg-primary)] flex flex-col items-center">
       {/* 배경 효과 */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div
@@ -242,8 +242,8 @@ export default function ContactPage() {
       </div>
 
       {/* 헤더 */}
-      <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto px-6 py-4">
+      <header className="w-full border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl sticky top-0 z-40">
+        <div className="w-full max-w-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
@@ -283,8 +283,8 @@ export default function ContactPage() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <main className="px-6 pt-4 pb-12 relative z-10">
-        <div className="max-w-2xl mx-auto">
+      <main className="flex-1 w-full flex flex-col items-center px-6 pt-4 pb-12 relative z-10">
+        <div className="w-full max-w-2xl">
           {/* 타이틀 */}
           <div className="text-center mb-10">
             <div
