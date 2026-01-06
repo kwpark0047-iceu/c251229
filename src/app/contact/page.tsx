@@ -243,7 +243,7 @@ export default function ContactPage() {
 
       {/* 헤더 */}
       <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-6 py-4">
+        <div className="max-w-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link
