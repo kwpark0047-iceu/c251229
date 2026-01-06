@@ -8,20 +8,24 @@
  */
 
 import React, { useState } from 'react';
-import { X, Globe, Search, MapPin, Settings, Shield } from 'lucide-react';
+import { X, Globe, Search, MapPin, Settings, Shield, Trash2, Loader2 } from 'lucide-react';
 
 import { Settings as SettingsType, SearchType, REGION_CODES } from '../types';
 import { CORS_PROXIES } from '../constants';
+import { removeDuplicateLeads } from '../supabase-service';
 
 interface SettingsModalProps {
   settings: SettingsType;
   onSave: (settings: SettingsType) => void;
   onClose: () => void;
+  onDataChanged?: () => void;
 }
 
-export default function SettingsModal({ settings, onSave, onClose }: SettingsModalProps) {
+export default function SettingsModal({ settings, onSave, onClose, onDataChanged }: SettingsModalProps) {
   const [formData, setFormData] = useState<SettingsType>({ ...settings });
   const [customProxy, setCustomProxy] = useState('');
+  const [isRemovingDuplicates, setIsRemovingDuplicates] = useState(false);
+  const [duplicateResult, setDuplicateResult] = useState<string | null>(null);
 
   // 프록시가 기본 목록에 있는지 확인
   const isPresetProxy = CORS_PROXIES.some(p => p.value === formData.corsProxy);
@@ -36,6 +40,27 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
       setFormData({ ...formData, corsProxy: customProxy });
     } else {
       setFormData({ ...formData, corsProxy: value });
+    }
+  };
+
+  const handleRemoveDuplicates = async () => {
+    if (!confirm('중복된 리드를 삭제하시겠습니까?\n(같은 업체명+주소 조합 중 가장 먼저 등록된 데이터만 유지됩니다)')) {
+      return;
+    }
+
+    setIsRemovingDuplicates(true);
+    setDuplicateResult(null);
+
+    try {
+      const result = await removeDuplicateLeads();
+      setDuplicateResult(result.message);
+      if (result.success && result.removedCount > 0) {
+        onDataChanged?.();
+      }
+    } catch (error) {
+      setDuplicateResult(`오류: ${(error as Error).message}`);
+    } finally {
+      setIsRemovingDuplicates(false);
     }
   };
 
@@ -206,6 +231,44 @@ export default function SettingsModal({ settings, onSave, onClose }: SettingsMod
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* 데이터 관리 */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
+              <Trash2 className="w-4 h-4 text-red-400" />
+              데이터 관리
+            </label>
+            <button
+              type="button"
+              onClick={handleRemoveDuplicates}
+              disabled={isRemovingDuplicates}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium transition-all duration-300 hover:bg-red-500/10 disabled:opacity-50"
+              style={{
+                borderColor: 'rgba(239, 68, 68, 0.3)',
+                color: '#ef4444',
+              }}
+            >
+              {isRemovingDuplicates ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  중복 제거 중...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  중복 리드 삭제
+                </>
+              )}
+            </button>
+            {duplicateResult && (
+              <p className={`mt-2 text-sm ${duplicateResult.includes('오류') ? 'text-red-400' : 'text-[var(--metro-line2)]'}`}>
+                {duplicateResult}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-[var(--text-muted)]">
+              같은 업체명+주소 조합의 중복 데이터를 삭제합니다
+            </p>
           </div>
 
           {/* 버튼 */}

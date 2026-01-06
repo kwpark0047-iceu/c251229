@@ -990,6 +990,7 @@ export default function LeadManagerPage() {
           settings={settings}
           onSave={handleSaveSettings}
           onClose={() => setIsSettingsOpen(false)}
+          onDataChanged={() => loadLeadsFromDB()}
         />
       )}
     </div>

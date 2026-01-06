@@ -383,6 +383,89 @@ export async function getSettings(): Promise<{ success: boolean; settings: Setti
 }
 
 /**
+ * 중복 리드 삭제 (biz_name + road_address 기준)
+ * 같은 조합의 데이터 중 가장 오래된 것만 남기고 삭제
+ */
+export async function removeDuplicateLeads(): Promise<{
+  success: boolean;
+  message: string;
+  removedCount: number;
+}> {
+  try {
+    const supabase = getSupabase();
+
+    // 모든 리드 조회
+    const { data: allLeads, error: fetchError } = await supabase
+      .from('leads')
+      .select('id, biz_name, road_address, created_at')
+      .order('created_at', { ascending: true });
+
+    if (fetchError) {
+      console.error('리드 조회 오류:', fetchError);
+      return { success: false, message: fetchError.message, removedCount: 0 };
+    }
+
+    if (!allLeads || allLeads.length === 0) {
+      return { success: true, message: '리드가 없습니다.', removedCount: 0 };
+    }
+
+    // 중복 찾기 (첫 번째 등록된 것만 유지)
+    const seen = new Map<string, string>(); // key -> first id
+    const duplicateIds: string[] = [];
+
+    allLeads.forEach(lead => {
+      const key = `${lead.biz_name || ''}|${lead.road_address || ''}`;
+      if (seen.has(key)) {
+        // 이미 있으면 중복 - 삭제 대상
+        duplicateIds.push(lead.id);
+      } else {
+        // 처음 보는 것 - 유지
+        seen.set(key, lead.id);
+      }
+    });
+
+    if (duplicateIds.length === 0) {
+      return { success: true, message: '중복 데이터가 없습니다.', removedCount: 0 };
+    }
+
+    console.log(`중복 리드 ${duplicateIds.length}건 발견, 삭제 시작...`);
+
+    // 배치로 삭제 (100건씩)
+    const BATCH_SIZE = 100;
+    let removedCount = 0;
+
+    for (let i = 0; i < duplicateIds.length; i += BATCH_SIZE) {
+      const batch = duplicateIds.slice(i, i + BATCH_SIZE);
+
+      const { error: deleteError } = await supabase
+        .from('leads')
+        .delete()
+        .in('id', batch);
+
+      if (deleteError) {
+        console.error('삭제 오류:', deleteError);
+        return {
+          success: false,
+          message: `삭제 오류: ${deleteError.message}`,
+          removedCount,
+        };
+      }
+
+      removedCount += batch.length;
+    }
+
+    return {
+      success: true,
+      message: `중복 리드 ${removedCount}건 삭제 완료`,
+      removedCount,
+    };
+  } catch (error) {
+    console.error('중복 삭제 중 오류:', error);
+    return { success: false, message: (error as Error).message, removedCount: 0 };
+  }
+}
+
+/**
  * 통계 조회
  */
 export async function getLeadStats(): Promise<{
