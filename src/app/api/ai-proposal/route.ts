@@ -5,12 +5,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getStationsByNames, StationInfo } from '@/lib/kric-api';
 
 interface ProposalRequest {
   name: string;
   company: string;
   phone: string;
   email: string;
+  address: string;
+  businessType: string;
   adType: string;
   budget: string;
   message: string;
@@ -82,6 +85,31 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // KRIC API로 역사 상세 정보 조회
+    const allStationNames = Object.values(stationsByLine).flat();
+    const stationInfoMap = await getStationsByNames(allStationNames);
+
+    // 역사 정보 배열 생성
+    const stationDetails: {
+      stationName: string;
+      lineNumber: string;
+      address: string;
+      englishName: string;
+      latitude: string;
+      longitude: string;
+    }[] = [];
+
+    stationInfoMap.forEach((info, name) => {
+      stationDetails.push({
+        stationName: name,
+        lineNumber: info.lnCd,
+        address: info.roadNmAdr || info.lonmAdr || '',
+        englishName: info.stinNmEng || '',
+        latitude: info.stinLocLat || '',
+        longitude: info.stinLocLon || '',
+      });
+    });
+
     // 제안서 데이터 생성
     const proposal = {
       id: `PROP-${Date.now()}`,
@@ -120,6 +148,7 @@ export async function POST(request: NextRequest) {
           imageUrl: plan.image_url,
           planType: plan.plan_type,
         })),
+        stationDetails, // KRIC API 역사 정보
       },
       summary: {
         totalMedia: inventory.length,

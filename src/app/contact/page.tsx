@@ -68,6 +68,14 @@ interface Proposal {
       imageUrl: string;
       planType: string;
     }[];
+    stationDetails?: {
+      stationName: string;
+      lineNumber: string;
+      address: string;
+      englishName: string;
+      latitude: string;
+      longitude: string;
+    }[];
   };
   summary: {
     totalMedia: number;
@@ -636,6 +644,52 @@ export default function ContactPage() {
                             <td className="py-3 px-4 text-[var(--text-secondary)]">{item.mediaType}</td>
                             <td className="py-3 px-4 text-[var(--text-secondary)]">{item.location || '-'}</td>
                             <td className="py-3 px-4 text-[var(--text-secondary)]">{item.size || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 역사 상세 정보 (KRIC API) */}
+              {proposal.recommendation.stationDetails && proposal.recommendation.stationDetails.length > 0 && (
+                <div
+                  className="p-6 rounded-2xl"
+                  style={{
+                    background: 'var(--glass-bg)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--glass-border)',
+                  }}
+                >
+                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                    <Train className="w-5 h-5 text-[#0052A4]" />
+                    역사 상세정보
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-[var(--border-subtle)]">
+                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">노선</th>
+                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">역명</th>
+                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">영문명</th>
+                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">주소</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {proposal.recommendation.stationDetails.map((station, idx) => (
+                          <tr key={idx} className="border-b border-[var(--border-subtle)]/50">
+                            <td className="py-3 px-4">
+                              <span
+                                className="px-2 py-1 rounded text-white text-sm font-medium"
+                                style={{ background: LINE_COLORS[station.lineNumber] || '#666' }}
+                              >
+                                {station.lineNumber}호선
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 text-[var(--text-primary)] font-medium">{station.stationName}</td>
+                            <td className="py-3 px-4 text-[var(--text-secondary)]">{station.englishName || '-'}</td>
+                            <td className="py-3 px-4 text-[var(--text-secondary)] text-sm">{station.address || '-'}</td>
                           </tr>
                         ))}
                       </tbody>
