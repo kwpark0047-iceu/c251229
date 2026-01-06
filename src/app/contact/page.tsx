@@ -35,58 +35,61 @@ interface ContactForm {
   message: string;
 }
 
+// 새로운 6개 섹션 제안서 구조
 interface Proposal {
   id: string;
   createdAt: string;
-  client: {
-    name: string;
+
+  // ① 광고주 정보 요약
+  clientInfo: {
     company: string;
+    businessType: string;
+    location: string;
+    contactPerson: string;
     phone: string;
     email: string;
-    address?: string;
-    businessType?: string;
   };
-  request: {
+
+  // ② 광고 목적 분석
+  purposeAnalysis: {
+    industry: string;
+    purposes: string[];
+    targetAudience: string;
+  };
+
+  // ③ 추천 매체
+  recommendedMedia: {
+    mediaTypes: string[];
+    keyPoints: string[];
     adType: string;
-    budget: string;
-    message: string;
   };
-  recommendation: {
-    reason?: string;
-    nearestDistrict?: string;
-    nearestStations?: string[];
-    lines: { number: string; name: string; stations: string[] }[];
-    inventory: {
-      id: string;
-      stationName: string;
-      lineNumber: string;
-      mediaType: string;
-      location: string;
-      size: string;
-      price: number;
-      priceUnit: string;
-    }[];
-    floorPlans: {
-      id: string;
-      stationName: string;
-      lineNumber: string;
-      imageUrl: string;
-      planType: string;
-    }[];
-    stationDetails?: {
-      stationName: string;
-      lineNumber: string;
-      address: string;
-      englishName: string;
-      latitude: string;
-      longitude: string;
-    }[];
+
+  // ④ AI 추천 역 TOP 2
+  topStations: {
+    rank: number;
+    stationName: string;
+    dailyTraffic: number;
+    characteristics: string;
+    lineNumbers: string[];
+    floorPlans: { imageUrl: string; planType: string }[];
+  }[];
+
+  // ⑤ 예산 기반 구성안
+  budgetPlan: {
+    inputBudget: string;
+    monthlyEstimate: string;
+    recommendation: string[];
+    contractTip: string;
   };
-  summary: {
-    totalMedia: number;
-    totalStations: number;
-    estimatedBudget: string;
-    recommendedPeriod: string;
+
+  // ⑥ 기대 효과
+  expectedEffects: string[];
+
+  // 추가 정보
+  additionalInfo: {
+    nearestDistrict: string | null;
+    recommendedLines: string[];
+    userMessage: string;
   };
 }
 
@@ -489,7 +492,7 @@ export default function ContactPage() {
             </form>
           </div>
 
-          {/* 제안서 표시 영역 */}
+          {/* 제안서 표시 영역 - 6개 섹션 */}
           {proposal && (
             <div ref={proposalRef} className="space-y-6">
               {/* 제안서 헤더 */}
@@ -516,11 +519,11 @@ export default function ContactPage() {
                   AI 자동추천 제안서
                 </h3>
                 <p className="text-white/80 text-lg">
-                  {proposal.client.company || proposal.client.name}님을 위한 맞춤 광고 제안
+                  {proposal.clientInfo.company}님을 위한 맞춤 광고 제안
                 </p>
               </div>
 
-              {/* 고객 정보 */}
+              {/* ① 광고주 정보 요약 */}
               <div
                 className="p-6 rounded-2xl"
                 style={{
@@ -530,93 +533,63 @@ export default function ContactPage() {
                 }}
               >
                 <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5 text-[#00A5DE]" />
-                  고객 정보
+                  <span className="w-7 h-7 rounded-full bg-[#00A5DE] text-white text-sm font-bold flex items-center justify-center">①</span>
+                  광고주 정보 요약
                 </h4>
                 <div className="grid sm:grid-cols-2 gap-4 text-lg">
                   <div>
-                    <span className="text-[var(--text-muted)]">담당자: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.client.name}</span>
+                    <span className="text-[var(--text-muted)]">업체명: </span>
+                    <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.company}</span>
                   </div>
                   <div>
-                    <span className="text-[var(--text-muted)]">회사: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.client.company || '-'}</span>
+                    <span className="text-[var(--text-muted)]">업종: </span>
+                    <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.businessType}</span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--text-muted)]">담당자: </span>
+                    <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.contactPerson}</span>
                   </div>
                   <div>
                     <span className="text-[var(--text-muted)]">연락처: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.client.phone}</span>
+                    <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.phone}</span>
                   </div>
-                  <div>
-                    <span className="text-[var(--text-muted)]">이메일: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.client.email}</span>
+                  <div className="sm:col-span-2">
+                    <span className="text-[var(--text-muted)]">주소: </span>
+                    <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.location}</span>
                   </div>
                 </div>
               </div>
 
-              {/* 요청 사항 */}
+              {/* ② 광고 목적 분석 */}
               <div
                 className="p-6 rounded-2xl"
                 style={{
-                  background: 'var(--glass-bg)',
+                  background: 'linear-gradient(135deg, rgba(0, 165, 222, 0.1) 0%, rgba(0, 168, 77, 0.1) 100%)',
                   backdropFilter: 'blur(20px)',
                   border: '1px solid var(--glass-border)',
                 }}
               >
                 <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-[#00A84D]" />
-                  요청 사항
+                  <span className="w-7 h-7 rounded-full bg-[#00A84D] text-white text-sm font-bold flex items-center justify-center">②</span>
+                  광고 목적 분석 ({proposal.purposeAnalysis.industry})
                 </h4>
-                <div className="grid sm:grid-cols-2 gap-4 text-lg">
+                <div className="space-y-4">
                   <div>
-                    <span className="text-[var(--text-muted)]">광고 유형: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.request.adType || '미지정'}</span>
-                  </div>
-                  <div>
-                    <span className="text-[var(--text-muted)]">예상 예산: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.request.budget || '미정'}</span>
-                  </div>
-                </div>
-                {proposal.request.message && (
-                  <div className="mt-4 p-4 rounded-xl bg-[var(--bg-tertiary)]/50">
-                    <p className="text-[var(--text-secondary)]">{proposal.request.message}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* AI 추천 이유 */}
-              {proposal.recommendation.reason && (
-                <div
-                  className="p-6 rounded-2xl"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(0, 165, 222, 0.1) 0%, rgba(0, 168, 77, 0.1) 100%)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
-                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-[#00A5DE]" />
-                    AI 추천 분석
-                  </h4>
-                  <p className="text-[var(--text-secondary)] text-lg leading-relaxed">
-                    {proposal.recommendation.reason}
-                  </p>
-                  {proposal.recommendation.nearestStations && proposal.recommendation.nearestStations.length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <span className="text-[var(--text-muted)] text-sm">인근 추천역:</span>
-                      {proposal.recommendation.nearestStations.map((station, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1 rounded-full text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
-                        >
-                          {station}역
-                        </span>
+                    <p className="text-[var(--text-muted)] mb-2">주요 목적</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {proposal.purposeAnalysis.purposes.map((purpose, idx) => (
+                        <li key={idx} className="text-[var(--text-primary)]">{purpose}</li>
                       ))}
-                    </div>
-                  )}
+                    </ul>
+                  </div>
+                  <div className="pt-3 border-t border-[var(--border-subtle)]">
+                    <p className="text-[var(--text-muted)]">타겟 고객층</p>
+                    <p className="text-[var(--text-primary)] font-medium text-lg mt-1">{proposal.purposeAnalysis.targetAudience}</p>
+                  </div>
                 </div>
-              )}
+              </div>
 
-              {/* 추천 노선 */}
+              {/* ③ 추천 매체 */}
               <div
                 className="p-6 rounded-2xl"
                 style={{
@@ -626,161 +599,156 @@ export default function ContactPage() {
                 }}
               >
                 <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <Train className="w-5 h-5 text-[#996CAC]" />
-                  추천 노선
+                  <span className="w-7 h-7 rounded-full bg-[#996CAC] text-white text-sm font-bold flex items-center justify-center">③</span>
+                  추천 매체
                 </h4>
-                <div className="flex flex-wrap gap-3">
-                  {proposal.recommendation.lines.map(line => (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-3">
+                    {proposal.recommendedMedia.mediaTypes.map((media, idx) => (
+                      <span
+                        key={idx}
+                        className="px-4 py-2 rounded-xl text-white font-medium"
+                        style={{ background: 'linear-gradient(135deg, #996CAC 0%, #7E5B99 100%)' }}
+                      >
+                        {media}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="pt-3 border-t border-[var(--border-subtle)]">
+                    <p className="text-[var(--text-muted)] mb-2">핵심 포인트</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      {proposal.recommendedMedia.keyPoints.map((point, idx) => (
+                        <li key={idx} className="text-[var(--text-secondary)]">{point}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* ④ AI 추천 역 TOP 2 */}
+              <div
+                className="p-6 rounded-2xl"
+                style={{
+                  background: 'var(--glass-bg)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid var(--glass-border)',
+                }}
+              >
+                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-full bg-[#EF7C1C] text-white text-sm font-bold flex items-center justify-center">④</span>
+                  AI 추천 역 TOP 2
+                </h4>
+                <div className="space-y-6">
+                  {proposal.topStations.map((station) => (
                     <div
-                      key={line.number}
-                      className="px-5 py-3 rounded-xl text-white font-bold text-lg"
-                      style={{ background: LINE_COLORS[line.number] || '#666' }}
+                      key={station.rank}
+                      className="p-4 rounded-xl border border-[var(--border-subtle)]"
+                      style={{
+                        background: station.rank === 1
+                          ? 'linear-gradient(135deg, rgba(0, 165, 222, 0.15) 0%, rgba(0, 165, 222, 0.05) 100%)'
+                          : 'var(--bg-tertiary)',
+                      }}
                     >
-                      {line.name}
+                      <div className="flex items-center gap-3 mb-3">
+                        <span
+                          className="w-10 h-10 rounded-full text-white text-lg font-bold flex items-center justify-center"
+                          style={{ background: station.rank === 1 ? '#00A5DE' : '#666' }}
+                        >
+                          {station.rank}
+                        </span>
+                        <div>
+                          <h5 className="text-xl font-bold text-[var(--text-primary)]">{station.stationName}역</h5>
+                          <div className="flex gap-2 mt-1">
+                            {station.lineNumbers.filter(l => /^\d+$/.test(l)).slice(0, 3).map(line => (
+                              <span
+                                key={line}
+                                className="px-2 py-0.5 rounded text-white text-xs font-medium"
+                                style={{ background: LINE_COLORS[line] || '#666' }}
+                              >
+                                {line}호선
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="ml-auto text-right">
+                          <p className="text-2xl font-bold text-[#00A5DE]">{station.dailyTraffic.toLocaleString()}</p>
+                          <p className="text-sm text-[var(--text-muted)]">일 평균 유동인구</p>
+                        </div>
+                      </div>
+                      <p className="text-[var(--text-secondary)] mb-4">{station.characteristics}</p>
+
+                      {/* 도면 이미지 */}
+                      {station.floorPlans && station.floorPlans.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+                          <p className="text-sm text-[var(--text-muted)] mb-3 flex items-center gap-2">
+                            <MapPin className="w-4 h-4" />
+                            역사 도면
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {station.floorPlans.map((plan, idx) => (
+                              <div key={idx} className="rounded-lg overflow-hidden border border-[var(--border-subtle)]">
+                                <div className="aspect-[4/3] bg-[var(--bg-tertiary)] relative">
+                                  <img
+                                    src={plan.imageUrl}
+                                    alt={`${station.stationName} ${plan.planType}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="p-2 bg-[var(--bg-tertiary)]/50 text-center">
+                                  <span className="text-sm text-[var(--text-secondary)]">{plan.planType}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* 추천 매체 */}
-              {proposal.recommendation.inventory.length > 0 && (
-                <div
-                  className="p-6 rounded-2xl"
-                  style={{
-                    background: 'var(--glass-bg)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
-                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                    <Package className="w-5 h-5 text-[#EF7C1C]" />
-                    추천 광고매체
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-[var(--border-subtle)]">
-                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">노선</th>
-                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">역명</th>
-                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">매체유형</th>
-                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">위치</th>
-                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">규격</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {proposal.recommendation.inventory.map((item, idx) => (
-                          <tr key={idx} className="border-b border-[var(--border-subtle)]/50">
-                            <td className="py-3 px-4">
-                              <span
-                                className="px-2 py-1 rounded text-white text-sm font-medium"
-                                style={{ background: LINE_COLORS[item.lineNumber] || '#666' }}
-                              >
-                                {item.lineNumber}호선
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-[var(--text-primary)] font-medium">{item.stationName}</td>
-                            <td className="py-3 px-4 text-[var(--text-secondary)]">{item.mediaType}</td>
-                            <td className="py-3 px-4 text-[var(--text-secondary)]">{item.location || '-'}</td>
-                            <td className="py-3 px-4 text-[var(--text-secondary)]">{item.size || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {/* ⑤ 예산 기반 구성안 */}
+              <div
+                className="p-6 rounded-2xl"
+                style={{
+                  background: 'var(--glass-bg)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid var(--glass-border)',
+                }}
+              >
+                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-full bg-[#00A84D] text-white text-sm font-bold flex items-center justify-center">⑤</span>
+                  예산 기반 구성안
+                </h4>
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-[var(--text-muted)]">요청 예산</p>
+                    <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{proposal.budgetPlan.inputBudget}</p>
+                  </div>
+                  <div>
+                    <p className="text-[var(--text-muted)]">예상 월 비용</p>
+                    <p className="text-2xl font-bold text-[#00A84D] mt-1">{proposal.budgetPlan.monthlyEstimate}</p>
                   </div>
                 </div>
-              )}
-
-              {/* 역사 상세 정보 (KRIC API) */}
-              {proposal.recommendation.stationDetails && proposal.recommendation.stationDetails.length > 0 && (
-                <div
-                  className="p-6 rounded-2xl"
-                  style={{
-                    background: 'var(--glass-bg)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
-                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                    <Train className="w-5 h-5 text-[#0052A4]" />
-                    역사 상세정보
-                  </h4>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-[var(--border-subtle)]">
-                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">노선</th>
-                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">역명</th>
-                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">영문명</th>
-                          <th className="py-3 px-4 text-[var(--text-muted)] font-medium">주소</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {proposal.recommendation.stationDetails.map((station, idx) => (
-                          <tr key={idx} className="border-b border-[var(--border-subtle)]/50">
-                            <td className="py-3 px-4">
-                              <span
-                                className="px-2 py-1 rounded text-white text-sm font-medium"
-                                style={{ background: LINE_COLORS[station.lineNumber] || '#666' }}
-                              >
-                                {station.lineNumber}호선
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-[var(--text-primary)] font-medium">{station.stationName}</td>
-                            <td className="py-3 px-4 text-[var(--text-secondary)]">{station.englishName || '-'}</td>
-                            <td className="py-3 px-4 text-[var(--text-secondary)] text-sm">{station.address || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* 추천 도면 */}
-              {proposal.recommendation.floorPlans.length > 0 && (
-                <div
-                  className="p-6 rounded-2xl"
-                  style={{
-                    background: 'var(--glass-bg)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
-                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-[#E6186C]" />
-                    역사 도면
-                  </h4>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {proposal.recommendation.floorPlans.map((plan, idx) => (
-                      <div
+                <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+                  <p className="text-[var(--text-muted)] mb-2">추천 구성</p>
+                  <div className="flex flex-wrap gap-2">
+                    {proposal.budgetPlan.recommendation.map((item, idx) => (
+                      <span
                         key={idx}
-                        className="rounded-xl overflow-hidden border border-[var(--border-subtle)]"
+                        className="px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
                       >
-                        <div className="aspect-[4/3] bg-[var(--bg-tertiary)] relative">
-                          <img
-                            src={plan.imageUrl}
-                            alt={`${plan.stationName} 도면`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="p-3 bg-[var(--bg-tertiary)]/50">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="px-2 py-0.5 rounded text-white text-xs font-medium"
-                              style={{ background: LINE_COLORS[plan.lineNumber] || '#666' }}
-                            >
-                              {plan.lineNumber}호선
-                            </span>
-                            <span className="text-[var(--text-primary)] font-medium">{plan.stationName}</span>
-                          </div>
-                        </div>
-                      </div>
+                        {item}
+                      </span>
                     ))}
                   </div>
                 </div>
-              )}
+                <div className="mt-4 p-4 rounded-xl bg-[#00A84D]/10 border border-[#00A84D]/30">
+                  <p className="text-[#00A84D] font-medium">💡 {proposal.budgetPlan.contractTip}</p>
+                </div>
+              </div>
 
-              {/* 요약 */}
+              {/* ⑥ 기대 효과 */}
               <div
                 className="p-6 rounded-2xl"
                 style={{
@@ -788,26 +756,50 @@ export default function ContactPage() {
                   border: '1px solid rgba(0, 168, 77, 0.3)',
                 }}
               >
-                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4">제안 요약</h4>
-                <div className="grid sm:grid-cols-4 gap-4 text-center">
-                  <div>
-                    <p className="text-3xl font-bold text-[#00A5DE]">{proposal.recommendation.lines.length}</p>
-                    <p className="text-[var(--text-muted)]">추천 노선</p>
-                  </div>
-                  <div>
-                    <p className="text-3xl font-bold text-[#00A84D]">{proposal.summary.totalStations}</p>
-                    <p className="text-[var(--text-muted)]">추천 역</p>
-                  </div>
-                  <div>
-                    <p className="text-3xl font-bold text-[#EF7C1C]">{proposal.recommendation.inventory.length}</p>
-                    <p className="text-[var(--text-muted)]">추천 매체</p>
-                  </div>
-                  <div>
-                    <p className="text-3xl font-bold text-[#996CAC]">{proposal.recommendation.floorPlans.length}</p>
-                    <p className="text-[var(--text-muted)]">도면</p>
-                  </div>
+                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                  <span className="w-7 h-7 rounded-full bg-[#E6186C] text-white text-sm font-bold flex items-center justify-center">⑥</span>
+                  기대 효과
+                </h4>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {proposal.expectedEffects.map((effect, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-white/10"
+                    >
+                      <CheckCircle className="w-5 h-5 text-[#00A84D] flex-shrink-0" />
+                      <span className="text-[var(--text-primary)]">{effect}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
+
+              {/* 추천 노선 */}
+              {proposal.additionalInfo.recommendedLines.length > 0 && (
+                <div
+                  className="p-6 rounded-2xl"
+                  style={{
+                    background: 'var(--glass-bg)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--glass-border)',
+                  }}
+                >
+                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                    <Train className="w-5 h-5 text-[#996CAC]" />
+                    추천 노선
+                  </h4>
+                  <div className="flex flex-wrap gap-3">
+                    {proposal.additionalInfo.recommendedLines.filter(l => /^\d+$/.test(l)).map(line => (
+                      <div
+                        key={line}
+                        className="px-5 py-3 rounded-xl text-white font-bold text-lg"
+                        style={{ background: LINE_COLORS[line] || '#666' }}
+                      >
+                        {line}호선
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* 액션 버튼 */}
               <div className="flex flex-col sm:flex-row gap-4">

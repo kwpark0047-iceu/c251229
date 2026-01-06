@@ -35,7 +35,7 @@ export const SUBWAY_STATIONS: SubwayStation[] = [
   { name: '선릉', lat: 37.5045, lng: 127.0490, lines: ['2', 'K'] },
   { name: '삼성', lat: 37.5088, lng: 127.0632, lines: ['2'] },
   { name: '종합운동장', lat: 37.5104, lng: 127.0736, lines: ['2', '9'] },
-  { name: '신논현', lat: 37.5048, lng: 127.0252, lines: ['9'] },
+  { name: '신논현', lat: 37.5048, lng: 127.0252, lines: ['9', 'S'] },
   { name: '교대', lat: 37.4934, lng: 127.0146, lines: ['2', '3'] },
   { name: '서초', lat: 37.4919, lng: 127.0078, lines: ['2'] },
   { name: '방배', lat: 37.4814, lng: 126.9976, lines: ['2'] },
@@ -80,11 +80,10 @@ export const SUBWAY_STATIONS: SubwayStation[] = [
   { name: '청담', lat: 37.5198, lng: 127.0535, lines: ['7'] },
 
   // 분당선 강남권
-  { name: '선정릉', lat: 37.5104, lng: 127.0432, lines: ['B'] },
+  { name: '선정릉', lat: 37.5104, lng: 127.0432, lines: ['B', '9'] },
   { name: '한티', lat: 37.4987, lng: 127.0503, lines: ['B'] },
 
   // 신분당선
-  { name: '신논현', lat: 37.5048, lng: 127.0252, lines: ['S'] },
   { name: '판교', lat: 37.3948, lng: 127.1112, lines: ['S'] },
   { name: '정자', lat: 37.3661, lng: 127.1086, lines: ['S', 'B'] },
 
@@ -103,7 +102,6 @@ export const SUBWAY_STATIONS: SubwayStation[] = [
 
   // 5호선 주요역
   { name: '광화문', lat: 37.5715, lng: 126.9768, lines: ['5'] },
-  { name: '종로3가', lat: 37.5710, lng: 126.9916, lines: ['1', '3', '5'] },
   { name: '여의도', lat: 37.5214, lng: 126.9244, lines: ['5', '9'] },
   { name: '여의나루', lat: 37.5270, lng: 126.9327, lines: ['5'] },
   { name: '마포', lat: 37.5393, lng: 126.9457, lines: ['5'] },
@@ -115,9 +113,7 @@ export const SUBWAY_STATIONS: SubwayStation[] = [
   { name: '삼각지', lat: 37.5348, lng: 126.9731, lines: ['4', '6'] },
 
   // 9호선 주요역
-  { name: '신논현', lat: 37.5048, lng: 127.0252, lines: ['9'] },
   { name: '언주', lat: 37.5071, lng: 127.0340, lines: ['9'] },
-  { name: '선정릉', lat: 37.5104, lng: 127.0432, lines: ['9', 'B'] },
   { name: '봉은사', lat: 37.5148, lng: 127.0577, lines: ['9'] },
 
   // 경의중앙선 주요역

@@ -188,8 +188,7 @@ export async function getLeads(filters?: {
     let query = supabase
       .from('leads')
       .select('*')
-      .order('road_address', { ascending: true, nullsFirst: false })
-      .order('biz_name', { ascending: true });
+      .order('created_at', { ascending: false });
 
     // 필터 적용
     if (filters?.status) {

@@ -41,6 +41,10 @@ const CircleMarker = dynamic(
   () => import('react-leaflet').then(mod => mod.CircleMarker),
   { ssr: false }
 );
+const Polyline = dynamic(
+  () => import('react-leaflet').then(mod => mod.Polyline),
+  { ssr: false }
+);
 
 // 지도 포커스 컨트롤러 컴포넌트 (useMap 사용)
 const MapFocusController = dynamic(
@@ -48,9 +52,155 @@ const MapFocusController = dynamic(
   { ssr: false }
 );
 
+// 서울 지하철 노선 좌표 (주요역 기준 간략화)
+const SUBWAY_LINE_ROUTES: Record<string, { color: string; coords: [number, number][] }> = {
+  '1': {
+    color: '#0052A4',
+    coords: [
+      [37.6019, 127.0372], // 창동
+      [37.5894, 127.0457], // 석계
+      [37.5803, 127.0470], // 청량리
+      [37.5712, 127.0097], // 동대문
+      [37.5660, 126.9772], // 종로3가
+      [37.5559, 126.9723], // 서울역
+      [37.5151, 126.9072], // 영등포
+      [37.5030, 126.8820], // 구로
+    ],
+  },
+  '2': {
+    color: '#00A84D',
+    coords: [
+      [37.5443, 127.0557], // 건대입구
+      [37.5410, 127.0441], // 성수
+      [37.5614, 127.0370], // 왕십리
+      [37.5665, 127.0089], // 신당
+      [37.5660, 126.9772], // 을지로
+      [37.5559, 126.9723], // 시청
+      [37.5571, 126.9250], // 신촌
+      [37.5568, 126.9232], // 이대
+      [37.5563, 126.9103], // 아현
+      [37.5348, 126.9026], // 당산
+      [37.5172, 126.9102], // 영등포구청
+      [37.5013, 126.9474], // 신림
+      [37.4815, 126.9527], // 서울대입구
+      [37.4766, 126.9617], // 낙성대
+      [37.4762, 126.9814], // 사당
+      [37.4844, 127.0343], // 잠실새내
+      [37.5133, 127.1000], // 잠실
+      [37.5352, 127.0744], // 뚝섬
+      [37.5443, 127.0557], // 건대입구 (순환)
+    ],
+  },
+  '3': {
+    color: '#EF7C1C',
+    coords: [
+      [37.6532, 126.9165], // 대화
+      [37.6198, 126.9214], // 정발산
+      [37.5985, 126.9155], // 화정
+      [37.5833, 126.9015], // 원당
+      [37.5778, 126.9426], // 연신내
+      [37.5718, 126.9532], // 불광
+      [37.5635, 126.9664], // 독립문
+      [37.5596, 126.9725], // 경복궁
+      [37.5517, 127.0073], // 종로3가
+      [37.5406, 127.0047], // 충무로
+      [37.5253, 127.0236], // 약수
+      [37.5008, 127.0377], // 고속터미널
+      [37.4856, 127.0341], // 교대
+      [37.4686, 127.0402], // 양재
+      [37.4395, 127.0551], // 수서
+    ],
+  },
+  '4': {
+    color: '#00A5DE',
+    coords: [
+      [37.6531, 127.0606], // 당고개
+      [37.6323, 127.0741], // 상계
+      [37.6065, 127.0553], // 노원
+      [37.5960, 127.0476], // 미아사거리
+      [37.5803, 127.0470], // 혜화
+      [37.5659, 127.0041], // 동대문
+      [37.5608, 127.0010], // 동대문역사문화공원
+      [37.5611, 126.9975], // 충무로
+      [37.5559, 126.9723], // 서울역
+      [37.5330, 126.9696], // 숙대입구
+      [37.5101, 126.9441], // 사당
+      [37.4504, 126.9018], // 과천
+      [37.3947, 126.9635], // 안산
+    ],
+  },
+  '5': {
+    color: '#996CAC',
+    coords: [
+      [37.5613, 127.1807], // 상일동
+      [37.5455, 127.1289], // 강동
+      [37.5392, 127.1237], // 천호
+      [37.5284, 127.1262], // 광나루
+      [37.5442, 127.0563], // 군자
+      [37.5615, 127.0369], // 왕십리
+      [37.5649, 126.9786], // 동대문역사문화공원
+      [37.5611, 126.9457], // 충정로
+      [37.5568, 126.9232], // 애오개
+      [37.5348, 126.9015], // 여의도
+      [37.5302, 126.8946], // 여의나루
+      [37.5513, 126.8671], // 발산
+      [37.5618, 126.8088], // 김포공항
+    ],
+  },
+  '7': {
+    color: '#747F00',
+    coords: [
+      [37.6754, 127.0554], // 장암
+      [37.6407, 127.0718], // 도봉산
+      [37.6065, 127.0553], // 노원
+      [37.5688, 127.0931], // 중곡
+      [37.5443, 127.0557], // 건대입구
+      [37.5354, 127.0957], // 뚝섬유원지
+      [37.5142, 127.0630], // 청담
+      [37.4957, 127.0285], // 논현
+      [37.5030, 126.8820], // 온수
+      [37.4789, 126.8567], // 부천시청
+    ],
+  },
+  '8': {
+    color: '#E6186C',
+    coords: [
+      [37.5517, 127.1435], // 암사
+      [37.5392, 127.1237], // 천호
+      [37.5185, 127.1126], // 잠실
+      [37.5020, 127.1127], // 석촌
+      [37.4921, 127.1184], // 송파
+      [37.4849, 127.1265], // 가락시장
+      [37.4768, 127.1274], // 문정
+      [37.4540, 127.1473], // 복정
+      [37.4364, 127.1395], // 산성
+      [37.4309, 127.1289], // 모란
+    ],
+  },
+  '9': {
+    color: '#BDB092',
+    coords: [
+      [37.5567, 127.0859], // 중앙보훈병원
+      [37.5202, 127.0553], // 봉은사
+      [37.5087, 127.0443], // 신논현
+      [37.5008, 127.0377], // 고속터미널
+      [37.5020, 127.0249], // 사평
+      [37.4929, 127.0127], // 흑석
+      [37.5117, 126.9538], // 노량진
+      [37.5270, 126.9291], // 여의도
+      [37.5607, 126.8272], // 마곡나루
+      [37.5618, 126.8088], // 김포공항
+    ],
+  },
+};
+
+// 노선 표시 여부 상태
+const DEFAULT_VISIBLE_LINES = ['2', '5', '7', '8'];
+
 export default function MapView({ leads, onStatusChange, onListView, focusLead, onFocusClear }: MapViewProps) {
   const [isClient, setIsClient] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [visibleLines, setVisibleLines] = useState<string[]>(DEFAULT_VISIBLE_LINES);
 
   useEffect(() => {
     setIsClient(true);
@@ -136,6 +286,21 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
+          {/* 지하철 노선 */}
+          {Object.entries(SUBWAY_LINE_ROUTES).map(([lineNumber, route]) => (
+            visibleLines.includes(lineNumber) && (
+              <Polyline
+                key={`line-${lineNumber}`}
+                positions={route.coords}
+                pathOptions={{
+                  color: route.color,
+                  weight: 5,
+                  opacity: 0.8,
+                }}
+              />
+            )
+          ))}
+
           {/* 지하철역 마커 */}
           {SUBWAY_STATIONS.map(station => (
             <Marker
@@ -199,6 +364,35 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
               />
               <span className="text-slate-600">{STATUS_LABELS[status]}</span>
             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 노선 표시 토글 */}
+      <div className="absolute bottom-4 left-36 bg-white rounded-lg shadow-lg p-3 z-10">
+        <h4 className="text-sm font-semibold text-slate-700 mb-2">노선 표시</h4>
+        <div className="flex flex-wrap gap-1">
+          {Object.entries(SUBWAY_LINE_ROUTES).map(([lineNumber, route]) => (
+            <button
+              key={lineNumber}
+              onClick={() => {
+                setVisibleLines(prev =>
+                  prev.includes(lineNumber)
+                    ? prev.filter(l => l !== lineNumber)
+                    : [...prev, lineNumber]
+                );
+              }}
+              className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
+                visibleLines.includes(lineNumber)
+                  ? 'text-white shadow-md'
+                  : 'bg-gray-200 text-gray-500'
+              }`}
+              style={{
+                backgroundColor: visibleLines.includes(lineNumber) ? route.color : undefined,
+              }}
+            >
+              {lineNumber}
+            </button>
           ))}
         </div>
       </div>
