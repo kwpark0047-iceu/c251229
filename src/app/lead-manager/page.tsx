@@ -301,11 +301,21 @@ export default function LeadManagerPage() {
 
     if (result.success) {
       setLeads(prev =>
-        prev.map(lead =>
-          lead.id === leadId ? { ...lead, status: newStatus } : lead
-        )
+        prev.map(lead => {
+          if (lead.id !== leadId) return lead;
+
+          const updatedLead = { ...lead, status: newStatus };
+
+          // 컨택완료 시 담당자 정보도 업데이트
+          if (newStatus === 'CONTACTED' && result.assignedToName) {
+            updatedLead.assignedToName = result.assignedToName;
+            updatedLead.assignedAt = new Date().toISOString();
+          }
+
+          return updatedLead;
+        })
       );
-      showMessage('success', '상태가 변경되었습니다.');
+      showMessage('success', result.message);
     } else {
       showMessage('error', result.message);
     }
