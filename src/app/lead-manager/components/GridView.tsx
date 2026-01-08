@@ -13,6 +13,7 @@ import {
   Train,
   Calendar,
   ChevronDown,
+  User,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
@@ -249,6 +250,16 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">
                 <Calendar className="w-4 h-4 flex-shrink-0 text-[var(--metro-line5)]" />
                 <span>{lead.licenseDate}</span>
+              </div>
+            )}
+
+            {/* 담당자 */}
+            {lead.assignedToName && (
+              <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">
+                <User className="w-4 h-4 flex-shrink-0 text-[var(--metro-line9)]" />
+                <span className="font-medium text-[var(--text-primary)]">
+                  {lead.assignedToName}
+                </span>
               </div>
             )}
           </div>

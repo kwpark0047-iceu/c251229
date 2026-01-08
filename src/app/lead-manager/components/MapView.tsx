@@ -45,6 +45,10 @@ const Polyline = dynamic(
   () => import('react-leaflet').then(mod => mod.Polyline),
   { ssr: false }
 );
+const Tooltip = dynamic(
+  () => import('react-leaflet').then(mod => mod.Tooltip),
+  { ssr: false }
+);
 
 // 지도 포커스 컨트롤러 컴포넌트 (useMap 사용)
 const MapFocusController = dynamic(
@@ -247,17 +251,45 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
           border-radius: 0.75rem;
           z-index: 1;
         }
-        .station-marker {
+        .station-marker-wrapper {
+          background: transparent !important;
+          border: none !important;
+        }
+        .station-icon-container {
+          position: relative;
           display: flex;
-          align-items: center;
-          gap: 2px;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .station-pin {
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+          transition: transform 0.2s ease;
+        }
+        .station-pin:hover {
+          transform: scale(1.1);
+        }
+        .station-label {
+          position: absolute;
+          left: 28px;
+          top: 4px;
           background: white;
-          padding: 2px 6px;
-          border-radius: 4px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-          font-size: 11px;
-          font-weight: 600;
+          padding: 3px 8px;
+          border-radius: 6px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: max-content;
+        }
+        .station-name {
+          font-size: 12px;
+          font-weight: 700;
+          color: #1e293b;
           white-space: nowrap;
+        }
+        .line-badges {
+          display: flex;
+          gap: 2px;
         }
         .line-badge {
           width: 16px;
@@ -267,8 +299,25 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
           align-items: center;
           justify-content: center;
           color: white;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: bold;
+        }
+        .lead-tooltip {
+          background: white !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 6px !important;
+          padding: 4px 8px !important;
+          font-size: 12px !important;
+          font-weight: 600 !important;
+          color: #334155 !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+          white-space: nowrap !important;
+        }
+        .lead-tooltip::before {
+          border-top-color: white !important;
+        }
+        .leaflet-tooltip-top:before {
+          border-top-color: #e2e8f0 !important;
         }
       `}</style>
 
@@ -343,6 +392,14 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                   click: () => setSelectedLead(lead),
                 }}
               >
+                <Tooltip
+                  direction="top"
+                  offset={[0, -10]}
+                  permanent={true}
+                  className="lead-tooltip"
+                >
+                  {lead.bizName}
+                </Tooltip>
                 <Popup>
                   <LeadPopup lead={lead} onStatusChange={onStatusChange} onListView={onListView} />
                 </Popup>
@@ -423,14 +480,15 @@ function getStatusColor(status: LeadStatus): string {
   }
 }
 
-// 지하철역 아이콘 생성
+// 지하철역 아이콘 생성 (개선된 버전)
 function createStationIcon(name: string, lines: string[]) {
   if (typeof window === 'undefined') return undefined;
 
   const L = require('leaflet');
 
+  // 노선 뱃지 HTML 생성
   const linesHtml = lines
-    .slice(0, 2)
+    .slice(0, 3)
     .map(
       line =>
         `<span class="line-badge" style="background-color: ${LINE_COLORS[line] || '#888'}">${line}</span>`
@@ -439,9 +497,24 @@ function createStationIcon(name: string, lines: string[]) {
 
   return L.divIcon({
     className: 'station-marker-wrapper',
-    html: `<div class="station-marker">${linesHtml}<span>${name}</span></div>`,
-    iconSize: [80, 24],
-    iconAnchor: [40, 12],
+    html: `
+      <div class="station-icon-container">
+        <div class="station-pin">
+          <svg width="24" height="32" viewBox="0 0 24 32" fill="none">
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20c0-6.627-5.373-12-12-12z" fill="${LINE_COLORS[lines[0]] || '#666'}"/>
+            <circle cx="12" cy="12" r="6" fill="white"/>
+            <text x="12" y="15" text-anchor="middle" font-size="8" font-weight="bold" fill="${LINE_COLORS[lines[0]] || '#666'}">${lines[0]}</text>
+          </svg>
+        </div>
+        <div class="station-label">
+          <span class="station-name">${name}</span>
+          <div class="line-badges">${linesHtml}</div>
+        </div>
+      </div>
+    `,
+    iconSize: [100, 40],
+    iconAnchor: [12, 32],
+    popupAnchor: [0, -32],
   });
 }
 

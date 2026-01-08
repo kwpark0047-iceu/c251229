@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { FileText, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { FileText, ChevronDown, ChevronUp, MessageSquare, User } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
 import { formatDistance, formatPhoneNumber, truncateString, getHighlightParts } from '../utils';
@@ -209,6 +209,9 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                 <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)]">
                   진행
                 </th>
+                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)]">
+                  담당자
+                </th>
                 <th
                   className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
                   onClick={() => handleSort('status')}
@@ -371,6 +374,20 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       {/* 진행 상태 */}
       <td className="px-5 py-4">
         <ProgressDots leadId={lead.id} />
+      </td>
+
+      {/* 담당자 */}
+      <td className="px-5 py-4">
+        {lead.assignedToName ? (
+          <div className="flex items-center gap-1.5">
+            <User className="w-3.5 h-3.5 text-[var(--metro-line9)]" />
+            <span className="text-sm font-medium text-[var(--text-primary)]">
+              {lead.assignedToName.split('@')[0]}
+            </span>
+          </div>
+        ) : (
+          <span className="text-[var(--text-muted)]">-</span>
+        )}
       </td>
 
       {/* 상태 */}

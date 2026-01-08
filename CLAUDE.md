@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-서울 지하철 광고 영업 시스템 - 지하철 광고 영업을 위한 리드 관리 애플리케이션. Next.js 16, React 19, TypeScript, Tailwind CSS 4, Supabase로 구축됨.
+서울 지하철 광고 영업 시스템 - 지하철 광고 영업을 위한 리드 관리 애플리케이션. Next.js 15, React 19, TypeScript, Tailwind CSS 4, Supabase로 구축됨.
 
 ## 명령어
 
@@ -22,7 +22,7 @@ npm run start    # 프로덕션 서버 시작
 - **데이터베이스**: Supabase (PostgreSQL + RLS)
 - **스타일링**: Tailwind CSS 4 + 지하철 노선 색상용 CSS 변수
 - **인증**: Supabase Auth (조직 기반 멀티테넌시)
-- **외부 API**: LocalData.go.kr (사업자 인허가 데이터)
+- **외부 API**: LocalData.go.kr (사업자 인허가 데이터), KRIC (역사 편의시설 정보)
 - **지도**: Leaflet + react-leaflet
 - **PDF 생성**: jspdf + html2canvas
 - **엑셀 처리**: xlsx
@@ -54,13 +54,15 @@ src/
 │   │       └── *.tsx       # 뷰 컴포넌트 (그리드뷰, 리스트뷰, 지도뷰, 제안서폼 등)
 │   ├── floor-plans/        # 역사 도면 페이지 (노선별 도면 뷰어, ZIP 다운로드)
 │   ├── auth/               # 인증 페이지 (콜백 포함)
+│   ├── contact/            # 문의 페이지
 │   └── api/
 │       ├── proxy/          # LocalData API용 CORS 프록시
 │       ├── localdata/      # LocalData API 직접 연동
 │       ├── backup/         # 데이터 백업 API
 │       ├── floor-plans/    # 도면 업로드/다운로드 API
 │       ├── ai-proposal/    # AI 제안서 생성
-│       └── send-proposal/  # 이메일 제안서 발송 (Resend 사용)
+│       ├── send-proposal/  # 이메일 제안서 발송 (Resend 사용)
+│       └── station-info/   # KRIC 역사 편의시설 정보 API
 ├── components/             # 공통 컴포넌트
 │   ├── Providers.tsx       # 루트 프로바이더 래퍼
 │   ├── ThemeProvider.tsx   # 다크모드 테마 제공자
@@ -84,7 +86,11 @@ middleware.ts               # 인증 미들웨어 (세션 관리, 라우트 보�
 - `/auth`에서 로그인 후 원래 요청 경로로 리다이렉트
 
 ### 데이터베이스 스키마
-스키마는 `supabase-schema.sql`에 정의됨. 마이그레이션은 `supabase/migrations/`에 위치. 주요 테이블:
+스키마는 `supabase-schema.sql`에 정의됨. 마이그레이션은 `supabase/migrations/`에 위치.
+- 마이그레이션 네이밍: `YYYYMMDDHHMMSS_description.sql`
+- 새 마이그레이션 생성 시 timestamp 순서 유지 필수
+
+주요 테이블:
 - `leads` - 사업장 리드 (위치, 상태, 인근역 정보)
 - `ad_inventory` - 광고매체 인벤토리 (역, 유형, 가격)
 - `proposals` - 리드에 연결된 제안서
@@ -127,7 +133,9 @@ LocalData 서비스 ID가 매핑된 7개 카테고리 (`types.ts`의 `CATEGORY_S
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+LOCALDATA_API_KEY=           # LocalData.go.kr API 키 (서버사이드 전용)
 RESEND_API_KEY=              # 이메일 발송용 (선택)
+STATION_INFO_API_KEY=        # KRIC 역사별 정보 API 키 (서버사이드 전용)
 ```
 
 ## 컨벤션

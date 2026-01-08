@@ -254,6 +254,9 @@ export async function getLeads(filters?: {
       stationLines: row.station_lines,
       status: row.status as LeadStatus,
       notes: row.notes,
+      assignedTo: row.assigned_to,
+      assignedToName: row.assigned_to_name,
+      assignedAt: row.assigned_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     }));
@@ -269,17 +272,38 @@ export async function getLeads(filters?: {
  * 리드 상태 업데이트
  * @param leadId - 리드 ID
  * @param status - 새 상태
+ *
+ * CONTACTED(컨택완료) 상태로 변경 시 현재 사용자를 담당자로 자동 지정
  */
 export async function updateLeadStatus(
   leadId: string,
   status: LeadStatus
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message: string; assignedToName?: string }> {
   try {
     const supabase = getSupabase();
 
+    // 업데이트할 데이터
+    const updateData: {
+      status: LeadStatus;
+      assigned_to?: string;
+      assigned_to_name?: string;
+      assigned_at?: string;
+    } = { status };
+
+    // 컨택완료 상태로 변경 시 담당자 자동 지정
+    if (status === 'CONTACTED') {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        updateData.assigned_to = user.id;
+        updateData.assigned_to_name = user.user_metadata?.full_name || user.email || '알 수 없음';
+        updateData.assigned_at = new Date().toISOString();
+      }
+    }
+
     const { error } = await supabase
       .from('leads')
-      .update({ status })
+      .update(updateData)
       .eq('id', leadId);
 
     if (error) {
@@ -287,7 +311,15 @@ export async function updateLeadStatus(
       return { success: false, message: error.message };
     }
 
-    return { success: true, message: '상태가 업데이트되었습니다.' };
+    const message = status === 'CONTACTED' && updateData.assigned_to_name
+      ? `컨택완료! 담당자: ${updateData.assigned_to_name}`
+      : '상태가 업데이트되었습니다.';
+
+    return {
+      success: true,
+      message,
+      assignedToName: updateData.assigned_to_name,
+    };
   } catch (error) {
     console.error('상태 업데이트 중 오류:', error);
     return { success: false, message: (error as Error).message };

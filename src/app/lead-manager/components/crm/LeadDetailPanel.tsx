@@ -19,6 +19,7 @@ import {
   Send,
   Download,
   MoreVertical,
+  User,
 } from 'lucide-react';
 import {
   LeadWithCRM,
@@ -39,6 +40,7 @@ import { formatDistance } from '../../utils';
 import ProgressChecklist from './ProgressChecklist';
 import CallLogModal from './CallLogModal';
 import ProposalForm from '../ProposalForm';
+import StationInfoModal from '../StationInfoModal';
 
 interface LeadDetailPanelProps {
   leadId: string;
@@ -56,6 +58,7 @@ export default function LeadDetailPanel({
   const [activeTab, setActiveTab] = useState<'info' | 'calls' | 'proposals'>('info');
   const [showCallModal, setShowCallModal] = useState(false);
   const [showProposalForm, setShowProposalForm] = useState(false);
+  const [showStationInfo, setShowStationInfo] = useState(false);
   const [inventoryCount, setInventoryCount] = useState(0);
 
   const loadLead = useCallback(async () => {
@@ -175,10 +178,13 @@ export default function LeadDetailPanel({
                     </div>
                   )}
                   {lead.nearestStation && (
-                    <div className="flex items-start gap-3">
-                      <Train className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                      <div>
-                        <span className="text-sm text-slate-600">
+                    <button
+                      onClick={() => setShowStationInfo(true)}
+                      className="flex items-start gap-3 w-full text-left hover:bg-slate-50 -mx-2 px-2 py-1 rounded-lg transition-colors group"
+                    >
+                      <Train className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0 group-hover:text-blue-500" />
+                      <div className="flex-1">
+                        <span className="text-sm text-slate-600 group-hover:text-blue-600">
                           {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'}
                         </span>
                         {lead.stationDistance && (
@@ -186,8 +192,12 @@ export default function LeadDetailPanel({
                             ({formatDistance(lead.stationDistance)})
                           </span>
                         )}
+                        <span className="text-xs text-blue-500 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          편의시설 보기
+                        </span>
                       </div>
-                    </div>
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 mt-0.5" />
+                    </button>
                   )}
                   {lead.licenseDate && (
                     <div className="flex items-start gap-3">
@@ -205,6 +215,24 @@ export default function LeadDetailPanel({
                   )}
                 </div>
               </section>
+
+              {/* 담당자 정보 */}
+              {lead.assignedToName && (
+                <section className="p-4 bg-purple-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <User className="w-5 h-5 text-purple-600" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-purple-800">담당 영업사원</h3>
+                      <p className="text-sm text-purple-600">{lead.assignedToName}</p>
+                      {lead.assignedAt && (
+                        <p className="text-xs text-purple-400 mt-0.5">
+                          {new Date(lead.assignedAt).toLocaleDateString('ko-KR')} 지정
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
 
               {/* 인근 광고매체 */}
               {inventoryCount > 0 && (
@@ -324,6 +352,16 @@ export default function LeadDetailPanel({
             loadLead();
             onStatusChange?.();
           }}
+        />
+      )}
+
+      {/* 역사 정보 모달 */}
+      {lead.nearestStation && (
+        <StationInfoModal
+          isOpen={showStationInfo}
+          onClose={() => setShowStationInfo(false)}
+          stationName={lead.nearestStation.replace(/역$/, '')}
+          stationLines={lead.stationLines || ['1']}
         />
       )}
     </>

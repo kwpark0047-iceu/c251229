@@ -43,6 +43,9 @@ export interface Lead {
   stationLines?: string[];   // 해당 역 노선들
   status: LeadStatus;        // 리드 상태
   notes?: string;            // 메모
+  assignedTo?: string;       // 담당 영업사원 ID
+  assignedToName?: string;   // 담당 영업사원 이름/이메일
+  assignedAt?: string;       // 담당자 지정 시간
   createdAt?: string;        // 생성일
   updatedAt?: string;        // 수정일
 }
