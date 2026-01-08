@@ -26,7 +26,7 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     return null
   }
 
-  // 조직 정보 조회
+  // 조직 정보 조회 (멤버십이 없을 수 있으므로 maybeSingle 사용)
   const { data: memberData } = await supabase
     .from('organization_members')
     .select(`
@@ -39,7 +39,7 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
       )
     `)
     .eq('user_id', user.id)
-    .single()
+    .maybeSingle()
 
   // organizations는 단일 객체로 반환됨 (single() 사용 시)
   const orgData = memberData?.organizations as unknown
