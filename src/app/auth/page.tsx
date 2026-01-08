@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense, useEffect, useMemo } from 'react'
+import { useState, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
@@ -98,15 +98,19 @@ export function AuthContent() {
   const [orgName, setOrgName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(
+    // 초기값으로 Supabase 설정 오류 체크
+    !isSupabaseConfigured ? '서버 설정 오류입니다. 관리자에게 문의해주세요.' : null
+  )
   const [message, setMessage] = useState<string | null>(null)
+  const mountedRef = useRef(false)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-    // Supabase 설정 확인
-    if (!isSupabaseConfigured) {
-      setError('서버 설정 오류입니다. 관리자에게 문의해주세요.')
+    // 마운트 상태를 ref로 추적하고 state는 한 번만 업데이트
+    if (!mountedRef.current) {
+      mountedRef.current = true
+      setMounted(true)
     }
   }, [])
 

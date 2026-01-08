@@ -100,7 +100,8 @@ export async function POST(request: NextRequest) {
 
       for (const record of records) {
         // id, created_at, updated_at 제외하고 upsert
-        const { id, created_at, updated_at, ...data } = record as Record<string, unknown>;
+        const { id, created_at: _createdAt, updated_at: _updatedAt, ...data } = record as Record<string, unknown>;
+        void _createdAt; void _updatedAt; // 의도적으로 사용하지 않음
 
         const { error } = await supabase
           .from(table)

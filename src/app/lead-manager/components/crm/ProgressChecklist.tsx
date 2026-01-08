@@ -4,8 +4,8 @@
  * 영업 진행 체크리스트 컴포넌트
  */
 
-import React, { useState, useEffect } from 'react';
-import { Check, Circle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Check } from 'lucide-react';
 import {
   ProgressStep,
   PROGRESS_STEP_LABELS,
@@ -29,16 +29,16 @@ export default function ProgressChecklist({
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<ProgressStep | null>(null);
 
-  useEffect(() => {
-    loadProgress();
-  }, [leadId]);
-
-  const loadProgress = async () => {
+  const loadProgress = useCallback(async () => {
     setLoading(true);
     const data = await getProgress(leadId);
     setProgress(data);
     setLoading(false);
-  };
+  }, [leadId]);
+
+  useEffect(() => {
+    loadProgress();
+  }, [loadProgress]);
 
   const isCompleted = (step: ProgressStep): boolean => {
     return progress.some(p => p.step === step && p.completedAt);
@@ -64,15 +64,6 @@ export default function ProgressChecklist({
     await loadProgress();
     setUpdating(null);
     onUpdate?.();
-  };
-
-  const getCurrentStepIndex = (): number => {
-    for (let i = PROGRESS_STEPS.length - 1; i >= 0; i--) {
-      if (isCompleted(PROGRESS_STEPS[i])) {
-        return i + 1;
-      }
-    }
-    return 0;
   };
 
   if (loading) {
@@ -180,7 +171,7 @@ export function ProgressDots({ leadId }: { leadId: string }) {
 
   return (
     <div className="flex items-center gap-1">
-      {PROGRESS_STEPS.map((step, index) => (
+      {PROGRESS_STEPS.map((step) => (
         <div
           key={step}
           className={`w-2 h-2 rounded-full ${

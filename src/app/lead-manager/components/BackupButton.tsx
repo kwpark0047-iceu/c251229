@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { Download, Upload, Loader2, Database, CheckCircle, AlertCircle } from 'lucide-react';
+import { Download, Upload, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface BackupButtonProps {
   className?: string;
@@ -86,15 +86,19 @@ export default function BackupButton({ className = '' }: BackupButtonProps) {
         body: text,
       });
 
-      const result = await response.json();
+      const result = await response.json() as {
+        success: boolean;
+        message?: string;
+        results?: Record<string, { success: number; failed: number }>;
+      };
 
       if (result.success) {
         const resultStr = Object.entries(result.results || {})
-          .map(([table, r]: [string, any]) => `${table}: ${r.success}건 성공, ${r.failed}건 실패`)
+          .map(([table, r]) => `${table}: ${r.success}건 성공, ${r.failed}건 실패`)
           .join('\n');
         setMessage({ type: 'success', text: `복원 완료\n${resultStr}` });
       } else {
-        setMessage({ type: 'error', text: result.message });
+        setMessage({ type: 'error', text: result.message || '복원 실패' });
       }
     } catch (error) {
       setMessage({ type: 'error', text: `복원 실패: ${(error as Error).message}` });

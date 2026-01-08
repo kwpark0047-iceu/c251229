@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { Phone, FileText, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
+import { FileText, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
 import { formatDistance, formatPhoneNumber, truncateString, getHighlightParts } from '../utils';
@@ -47,6 +47,40 @@ interface ListViewProps {
 
 type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status' | 'createdAt';
 type SortOrder = 'asc' | 'desc';
+
+// 정렬 아이콘 컴포넌트 (렌더 밖에서 정의)
+function SortIcon({
+  field,
+  sortField,
+  sortOrder
+}: {
+  field: SortField;
+  sortField: SortField;
+  sortOrder: SortOrder;
+}) {
+  if (sortField !== field) return null;
+  return sortOrder === 'asc' ? (
+    <ChevronUp className="w-4 h-4" />
+  ) : (
+    <ChevronDown className="w-4 h-4" />
+  );
+}
+
+// 하이라이트 텍스트 컴포넌트 (렌더 밖에서 정의)
+function HighlightText({ text, searchQuery }: { text: string; searchQuery: string }) {
+  const parts = getHighlightParts(text, searchQuery);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.isHighlight ? (
+          <mark key={i} className="bg-yellow-400/60 text-inherit rounded px-0.5">{part.text}</mark>
+        ) : (
+          <span key={i}>{part.text}</span>
+        )
+      )}
+    </>
+  );
+}
 
 export default function ListView({ leads, onStatusChange, searchQuery = '', onMapView }: ListViewProps) {
   const [sortField, setSortField] = useState<SortField>('licenseDate');
@@ -110,16 +144,6 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
     }
   };
 
-  // 정렬 아이콘
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return null;
-    return sortOrder === 'asc' ? (
-      <ChevronUp className="w-4 h-4" />
-    ) : (
-      <ChevronDown className="w-4 h-4" />
-    );
-  };
-
   return (
     <>
       <div
@@ -146,7 +170,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                 >
                   <div className="flex items-center gap-1.5">
                     병원명
-                    <SortIcon field="bizName" />
+                    <SortIcon field="bizName" sortField={sortField} sortOrder={sortOrder} />
                   </div>
                 </th>
                 <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)]">
@@ -158,7 +182,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                 >
                   <div className="flex items-center gap-1.5">
                     인근역
-                    <SortIcon field="nearestStation" />
+                    <SortIcon field="nearestStation" sortField={sortField} sortOrder={sortOrder} />
                   </div>
                 </th>
                 <th
@@ -167,7 +191,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                 >
                   <div className="flex items-center gap-1.5">
                     거리
-                    <SortIcon field="stationDistance" />
+                    <SortIcon field="stationDistance" sortField={sortField} sortOrder={sortOrder} />
                   </div>
                 </th>
                 <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)]">
@@ -179,7 +203,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                 >
                   <div className="flex items-center gap-1.5">
                     인허가일
-                    <SortIcon field="licenseDate" />
+                    <SortIcon field="licenseDate" sortField={sortField} sortOrder={sortOrder} />
                   </div>
                 </th>
                 <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)]">
@@ -191,7 +215,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                 >
                   <div className="flex items-center gap-1.5">
                     상태
-                    <SortIcon field="status" />
+                    <SortIcon field="status" sortField={sortField} sortOrder={sortOrder} />
                   </div>
                 </th>
                 <th className="px-5 py-4 text-center text-sm font-semibold text-[var(--text-secondary)]">
@@ -253,22 +277,6 @@ interface LeadRowProps {
 function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery = '', onMapView }: LeadRowProps) {
   const statusColor = STATUS_METRO_COLORS[lead.status];
 
-  // 하이라이트 렌더링 컴포넌트
-  const HighlightText = ({ text }: { text: string }) => {
-    const parts = getHighlightParts(text, searchQuery);
-    return (
-      <>
-        {parts.map((part, i) =>
-          part.isHighlight ? (
-            <mark key={i} className="bg-yellow-400/60 text-inherit rounded px-0.5">{part.text}</mark>
-          ) : (
-            <span key={i}>{part.text}</span>
-          )
-        )}
-      </>
-    );
-  };
-
   return (
     <tr
       className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
@@ -291,11 +299,11 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
             className="font-semibold text-[var(--text-primary)] line-clamp-1 text-left hover:text-[var(--metro-line4)] hover:underline transition-colors"
             title={`${lead.bizName} - 지도에서 보기`}
           >
-            <HighlightText text={lead.bizName} />
+            <HighlightText text={lead.bizName} searchQuery={searchQuery} />
           </button>
           {lead.medicalSubject && (
             <div className="text-xs text-[var(--text-muted)] line-clamp-1 mt-0.5">
-              <HighlightText text={lead.medicalSubject} />
+              <HighlightText text={lead.medicalSubject} searchQuery={searchQuery} />
             </div>
           )}
         </div>
@@ -304,7 +312,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       {/* 주소 */}
       <td className="px-5 py-4">
         <span className="text-sm text-[var(--text-secondary)] line-clamp-1" title={lead.roadAddress || lead.lotAddress}>
-          <HighlightText text={truncateString(lead.roadAddress || lead.lotAddress || '-', 30)} />
+          <HighlightText text={truncateString(lead.roadAddress || lead.lotAddress || '-', 30)} searchQuery={searchQuery} />
         </span>
       </td>
 
@@ -312,7 +320,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       <td className="px-5 py-4">
         {lead.nearestStation ? (
           <div className="flex items-center gap-2">
-            <span className="font-medium text-[var(--text-primary)]"><HighlightText text={lead.nearestStation || ''} /></span>
+            <span className="font-medium text-[var(--text-primary)]"><HighlightText text={lead.nearestStation || ''} searchQuery={searchQuery} /></span>
             {lead.stationLines && (
               <div className="flex gap-1">
                 {lead.stationLines.slice(0, 2).map(line => (
@@ -348,7 +356,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
             style={{ color: 'var(--metro-line4)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <HighlightText text={formatPhoneNumber(lead.phone)} />
+            <HighlightText text={formatPhoneNumber(lead.phone)} searchQuery={searchQuery} />
           </a>
         ) : (
           <span className="text-[var(--text-muted)]">-</span>

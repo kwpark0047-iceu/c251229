@@ -5,7 +5,7 @@
  * 광고매체 재고 목록 표시
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Train,
   Search,
@@ -32,18 +32,18 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
   const [statusFilter, setStatusFilter] = useState<AvailabilityStatus | 'ALL'>('ALL');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
 
-  useEffect(() => {
-    loadInventory();
-  }, []);
-
-  const loadInventory = async () => {
+  const loadInventory = useCallback(async () => {
     setLoading(true);
     const result = await getInventory();
     if (result.success) {
       setInventory(result.inventory);
     }
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    loadInventory();
+  }, [loadInventory]);
 
   // 필터링된 인벤토리
   const filteredInventory = inventory.filter(item => {

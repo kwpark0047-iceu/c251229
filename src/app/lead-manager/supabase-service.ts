@@ -39,6 +39,8 @@ export async function saveLeads(
   try {
     const supabase = getSupabase();
 
+    const supabase = getSupabase();
+
     // 조직 ID 가져오기 (전달되지 않은 경우)
     const orgId = organizationId ?? await getOrganizationId();
 
@@ -185,10 +187,27 @@ export async function getLeads(filters?: {
   try {
     const supabase = getSupabase();
 
+    // 🔍 디버깅: 세션 및 조직 멤버십 확인
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    console.log('🔍 [DEBUG] 세션:', {
+      hasSession: !!sessionData?.session,
+      userId: sessionData?.session?.user?.id,
+      email: sessionData?.session?.user?.email,
+      error: sessionError?.message,
+    });
+    if (sessionData?.session?.user?.id) {
+      const { data: memberData, error: memberError } = await supabase
+        .from('organization_members')
+        .select('organization_id, role')
+        .eq('user_id', sessionData.session.user.id);
+      console.log('🔍 [DEBUG] 조직 멤버십:', { memberships: memberData, error: memberError?.message });
+    }
+
+
     let query = supabase
       .from('leads')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('license_date', { ascending: false, nullsFirst: false });
 
     // 필터 적용
     if (filters?.status) {
@@ -259,6 +278,8 @@ export async function updateLeadStatus(
   try {
     const supabase = getSupabase();
 
+    const supabase = getSupabase();
+
     const { error } = await supabase
       .from('leads')
       .update({ status })
@@ -288,6 +309,8 @@ export async function updateLeadNotes(
   try {
     const supabase = getSupabase();
 
+    const supabase = getSupabase();
+
     const { error } = await supabase
       .from('leads')
       .update({ notes })
@@ -311,6 +334,8 @@ export async function updateLeadNotes(
  */
 export async function saveSettings(settings: Settings): Promise<{ success: boolean; message: string }> {
   try {
+    const supabase = getSupabase();
+
     const supabase = getSupabase();
 
     // 현재 사용자 ID 가져오기
@@ -346,6 +371,8 @@ export async function saveSettings(settings: Settings): Promise<{ success: boole
  */
 export async function getSettings(): Promise<{ success: boolean; settings: Settings }> {
   try {
+    const supabase = getSupabase();
+
     const supabase = getSupabase();
 
     // 현재 사용자 ID 가져오기
@@ -392,6 +419,8 @@ export async function removeDuplicateLeads(): Promise<{
   removedCount: number;
 }> {
   try {
+    const supabase = getSupabase();
+
     const supabase = getSupabase();
 
     // 모든 리드 조회

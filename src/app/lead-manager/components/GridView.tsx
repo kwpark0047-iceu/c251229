@@ -87,6 +87,22 @@ export default function GridView({ leads, onStatusChange, searchQuery = '', onMa
   );
 }
 
+// 하이라이트 렌더링 컴포넌트 (렌더 밖에서 정의)
+function HighlightText({ text, searchQuery, className }: { text: string; searchQuery: string; className?: string }) {
+  const parts = getHighlightParts(text, searchQuery);
+  return (
+    <span className={className}>
+      {parts.map((part, i) =>
+        part.isHighlight ? (
+          <mark key={i} className="bg-yellow-400/60 text-inherit rounded px-0.5">{part.text}</mark>
+        ) : (
+          <span key={i}>{part.text}</span>
+        )
+      )}
+    </span>
+  );
+}
+
 interface LeadCardProps {
   lead: Lead;
   index: number;
@@ -98,23 +114,6 @@ interface LeadCardProps {
 
 function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onMapView }: LeadCardProps) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
-
-  // 하이라이트 렌더링 컴포넌트
-  const HighlightText = ({ text, className }: { text: string; className?: string }) => {
-    const parts = getHighlightParts(text, searchQuery);
-    return (
-      <span className={className}>
-        {parts.map((part, i) =>
-          part.isHighlight ? (
-            <mark key={i} className="bg-yellow-400/60 text-inherit rounded px-0.5">{part.text}</mark>
-          ) : (
-            <span key={i}>{part.text}</span>
-          )
-        )}
-      </span>
-    );
-  };
-
   const [showCallModal, setShowCallModal] = useState(false);
   const statusColor = STATUS_METRO_COLORS[lead.status];
 
@@ -195,13 +194,13 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
             className="font-bold text-[var(--text-primary)] mb-2 line-clamp-1 text-left w-full hover:text-[var(--metro-line4)] hover:underline transition-colors"
             title={`${lead.bizName} - 지도에서 보기`}
           >
-            <HighlightText text={lead.bizName} />
+            <HighlightText text={lead.bizName} searchQuery={searchQuery} />
           </button>
 
           {/* 진료과목 */}
           {lead.medicalSubject && (
             <p className="text-sm text-[var(--text-muted)] mb-3 line-clamp-1">
-              <HighlightText text={lead.medicalSubject} />
+              <HighlightText text={lead.medicalSubject} searchQuery={searchQuery} />
             </p>
           )}
 
@@ -211,7 +210,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
             <div className="flex items-start gap-2.5 text-[var(--text-secondary)]">
               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--metro-line3)]" />
               <span className="line-clamp-2">
-                <HighlightText text={truncateString(lead.roadAddress || lead.lotAddress || '-', 50)} />
+                <HighlightText text={truncateString(lead.roadAddress || lead.lotAddress || '-', 50)} searchQuery={searchQuery} />
               </span>
             </div>
 
@@ -221,7 +220,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                 <Train className="w-4 h-4 flex-shrink-0 text-[var(--metro-line4)]" />
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-[var(--text-primary)]">
-                    <HighlightText text={lead.nearestStation + '역'} />
+                    <HighlightText text={lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'} searchQuery={searchQuery} />
                   </span>
                   {lead.stationLines && (
                     <div className="flex gap-1">

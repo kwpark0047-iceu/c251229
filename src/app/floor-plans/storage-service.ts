@@ -12,7 +12,7 @@ import {
   FloorPlanInput,
   parseFloorPlanPath,
 } from './types';
-import { saveFloorPlan, saveFloorPlansBatch } from './floor-plan-service';
+import { saveFloorPlan } from './floor-plan-service';
 
 const BUCKET_NAME = 'floor-plans';
 

@@ -5,10 +5,10 @@
  * Leaflet 지도에 병원 위치 표시
  */
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 
-import { Lead, LeadStatus, STATUS_COLORS, STATUS_LABELS, LINE_COLORS } from '../types';
+import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
 import { SUBWAY_STATIONS } from '../constants';
 import { formatDistance, formatPhoneNumber } from '../utils';
 
@@ -199,7 +199,7 @@ const DEFAULT_VISIBLE_LINES = ['2', '5', '7', '8'];
 
 export default function MapView({ leads, onStatusChange, onListView, focusLead, onFocusClear }: MapViewProps) {
   const [isClient, setIsClient] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [, setSelectedLead] = useState<Lead | null>(null);
   const [visibleLines, setVisibleLines] = useState<string[]>(DEFAULT_VISIBLE_LINES);
 
   useEffect(() => {
@@ -480,7 +480,7 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
         )}
         {lead.nearestStation && (
           <p className="text-slate-600">
-            {lead.nearestStation}역 {lead.stationDistance && `(${formatDistance(lead.stationDistance)})`}
+            {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'} {lead.stationDistance && `(${formatDistance(lead.stationDistance)})`}
           </p>
         )}
       </div>

@@ -8,16 +8,12 @@ import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  Send,
   CheckCircle,
   Train,
-  MessageSquare,
   Home,
-  FileText,
   Mail,
   Download,
   MapPin,
-  Package,
   Loader2,
   Sparkles,
 } from 'lucide-react';

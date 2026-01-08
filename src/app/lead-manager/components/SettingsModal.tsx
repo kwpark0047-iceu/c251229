@@ -23,7 +23,7 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ settings, onSave, onClose, onDataChanged }: SettingsModalProps) {
   const [formData, setFormData] = useState<SettingsType>({ ...settings });
-  const [customProxy, setCustomProxy] = useState('');
+  const [customProxy] = useState('');
   const [isRemovingDuplicates, setIsRemovingDuplicates] = useState(false);
   const [duplicateResult, setDuplicateResult] = useState<string | null>(null);
 

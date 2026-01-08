@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     for (const file of files) {
       try {
         // 파일명에서 정보 파싱
-        let parsedInfo = folderName
+        const parsedInfo = folderName
           ? parseFloorPlanPath(folderName, file.name, file.name)
           : null;
 

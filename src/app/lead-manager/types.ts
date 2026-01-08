@@ -421,3 +421,103 @@ export interface ExcelInventoryRow {
   availabilityStatus?: AvailabilityStatus;
   description?: string;
 }
+
+// ============================================
+// 업무/스케줄 타입
+// ============================================
+
+export type TaskType =
+  | 'CALL'           // 전화
+  | 'MEETING'        // 미팅
+  | 'PROPOSAL'       // 제안서 작성
+  | 'FOLLOW_UP'      // 후속 조치
+  | 'CONTRACT'       // 계약 관련
+  | 'OTHER';         // 기타
+
+export const TASK_TYPE_LABELS: Record<TaskType, string> = {
+  CALL: '전화',
+  MEETING: '미팅',
+  PROPOSAL: '제안서',
+  FOLLOW_UP: '후속',
+  CONTRACT: '계약',
+  OTHER: '기타',
+};
+
+export const TASK_TYPE_COLORS: Record<TaskType, { bg: string; text: string; border: string }> = {
+  CALL: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
+  MEETING: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
+  PROPOSAL: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
+  FOLLOW_UP: { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
+  CONTRACT: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
+  OTHER: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' },
+};
+
+export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  PENDING: '대기',
+  IN_PROGRESS: '진행중',
+  COMPLETED: '완료',
+  CANCELLED: '취소',
+};
+
+export const TASK_STATUS_COLORS: Record<TaskStatus, { bg: string; text: string }> = {
+  PENDING: { bg: 'bg-slate-100', text: 'text-slate-700' },
+  IN_PROGRESS: { bg: 'bg-blue-100', text: 'text-blue-700' },
+  COMPLETED: { bg: 'bg-green-100', text: 'text-green-700' },
+  CANCELLED: { bg: 'bg-red-100', text: 'text-red-700' },
+};
+
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
+  LOW: '낮음',
+  MEDIUM: '보통',
+  HIGH: '높음',
+  URGENT: '긴급',
+};
+
+export const TASK_PRIORITY_COLORS: Record<TaskPriority, { bg: string; text: string }> = {
+  LOW: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  MEDIUM: { bg: 'bg-blue-100', text: 'text-blue-600' },
+  HIGH: { bg: 'bg-orange-100', text: 'text-orange-600' },
+  URGENT: { bg: 'bg-red-100', text: 'text-red-600' },
+};
+
+export interface Task {
+  id: string;
+  leadId?: string;          // 연결된 리드 (선택)
+  lead?: Lead;              // 리드 정보 (조인)
+  taskType: TaskType;
+  title: string;
+  description?: string;
+  dueDate: string;          // 예정일 (YYYY-MM-DD)
+  dueTime?: string;         // 예정 시간 (HH:MM)
+  status: TaskStatus;
+  priority: TaskPriority;
+  assignee?: string;        // 담당자
+  reminderAt?: string;      // 알림 시간
+  completedAt?: string;     // 완료 시간
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TaskWithLead extends Task {
+  lead?: Lead;
+}
+
+// 캘린더 이벤트 (콜로그의 next_contact_date + Task 통합)
+export interface CalendarEvent {
+  id: string;
+  type: 'task' | 'callback';
+  title: string;
+  date: string;
+  time?: string;
+  leadId?: string;
+  leadName?: string;
+  taskType?: TaskType;
+  priority?: TaskPriority;
+  status?: TaskStatus;
+  callOutcome?: CallOutcome;
+}

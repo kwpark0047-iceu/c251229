@@ -4,7 +4,7 @@
  * 리드 상세 패널 (CRM 기능 통합)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   X,
   Phone,
@@ -15,12 +15,8 @@ import {
   FileText,
   Clock,
   ChevronRight,
-  ExternalLink,
   Plus,
   Send,
-  Eye,
-  CheckCircle,
-  XCircle,
   Download,
   MoreVertical,
 } from 'lucide-react';
@@ -36,7 +32,7 @@ import {
   PROPOSAL_STATUS_LABELS,
   PROPOSAL_STATUS_COLORS,
 } from '../../types';
-import { getLeadWithCRM, generateMailtoLink, generateTelLink } from '../../crm-service';
+import { getLeadWithCRM, generateTelLink } from '../../crm-service';
 import { findInventoryForLead } from '../../inventory-service';
 import { downloadProposalPDF, updateProposal } from '../../proposal-service';
 import { formatDistance } from '../../utils';
@@ -62,11 +58,7 @@ export default function LeadDetailPanel({
   const [showProposalForm, setShowProposalForm] = useState(false);
   const [inventoryCount, setInventoryCount] = useState(0);
 
-  useEffect(() => {
-    loadLead();
-  }, [leadId]);
-
-  const loadLead = async () => {
+  const loadLead = useCallback(async () => {
     setLoading(true);
     const data = await getLeadWithCRM(leadId);
     setLead(data);
@@ -78,7 +70,11 @@ export default function LeadDetailPanel({
     }
 
     setLoading(false);
-  };
+  }, [leadId]);
+
+  useEffect(() => {
+    loadLead();
+  }, [loadLead]);
 
   if (loading || !lead) {
     return (
@@ -183,7 +179,7 @@ export default function LeadDetailPanel({
                       <Train className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
                       <div>
                         <span className="text-sm text-slate-600">
-                          {lead.nearestStation}역
+                          {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'}
                         </span>
                         {lead.stationDistance && (
                           <span className="text-sm text-slate-400 ml-2">

@@ -251,7 +251,8 @@ export function generateMailtoLink(
   body += `안녕하세요. 서울 지하철 광고 영업 담당입니다.\n\n`;
 
   if (lead.nearestStation) {
-    body += `${lead.nearestStation}역 인근에서 새로 개원하신 것을 축하드립니다.\n`;
+    const stationName = lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역';
+    body += `${stationName} 인근에서 새로 개원하신 것을 축하드립니다.\n`;
     body += `역세권 최고의 광고 위치를 제안드리고자 연락드립니다.\n\n`;
   }
 
