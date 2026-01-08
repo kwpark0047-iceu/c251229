@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-이 파일은 Claude Code (claude.ai/code)가 이 저장소에서 작업할 때 참고하는 가이드입니다.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 프로젝트 개요
 
@@ -28,12 +28,15 @@ npm run start    # 프로덕션 서버 시작
 - **엑셀 처리**: xlsx
 - **이메일**: Resend
 
+### 경로 별칭
+`@/*` → `src/*` (tsconfig.json에 정의)
+
 ### 주요 디렉토리
 ```
 src/
 ├── app/
 │   ├── lead-manager/       # 메인 애플리케이션
-│   │   ├── page.tsx        # 대시보드 (리드 + 인벤토리 탭)
+│   │   ├── page.tsx        # 대시보드 (리드 + 인벤토리 + 일정 탭)
 │   │   ├── types.ts        # 모든 타입 정의
 │   │   ├── constants.ts    # 지하철역 데이터, 좌표 변환 상수
 │   │   ├── api.ts          # LocalData API 연동
@@ -42,21 +45,32 @@ src/
 │   │   ├── crm-service.ts        # CRM 기능 (통화, 제안서)
 │   │   ├── inventory-service.ts  # 광고 인벤토리 관리
 │   │   ├── proposal-service.ts   # 제안서 생성/관리
+│   │   ├── task-service.ts       # 업무/스케줄 CRUD
 │   │   ├── auth-service.ts       # 인증 헬퍼
 │   │   └── components/
 │   │       ├── crm/        # CRM 컴포넌트 (통화기록, 리드상세, 진행체크리스트)
 │   │       ├── inventory/  # 인벤토리 컴포넌트 (테이블, 업로드모달)
+│   │       ├── schedule/   # 스케줄 컴포넌트 (캘린더, 태스크보드, 폼모달)
 │   │       └── *.tsx       # 뷰 컴포넌트 (그리드뷰, 리스트뷰, 지도뷰, 제안서폼 등)
+│   ├── floor-plans/        # 역사 도면 페이지 (노선별 도면 뷰어, ZIP 다운로드)
 │   ├── auth/               # 인증 페이지 (콜백 포함)
 │   └── api/
 │       ├── proxy/          # LocalData API용 CORS 프록시
 │       ├── localdata/      # LocalData API 직접 연동
 │       ├── backup/         # 데이터 백업 API
+│       ├── floor-plans/    # 도면 업로드/다운로드 API
+│       ├── ai-proposal/    # AI 제안서 생성
 │       └── send-proposal/  # 이메일 제안서 발송 (Resend 사용)
-├── components/             # 공통 컴포넌트 (테마제공자 등)
-├── lib/supabase/
-│   ├── client.ts           # 브라우저용 Supabase 클라이언트
-│   └── server.ts           # 서버용 Supabase 클라이언트
+├── components/             # 공통 컴포넌트
+│   ├── Providers.tsx       # 루트 프로바이더 래퍼
+│   ├── ThemeProvider.tsx   # 다크모드 테마 제공자
+│   └── ThemeToggle.tsx     # 테마 토글 버튼
+└── lib/supabase/
+    ├── client.ts           # 브라우저용 Supabase 클라이언트
+    └── server.ts           # 서버용 Supabase 클라이언트
+scripts/
+└── upload-floor-plans.js   # 도면 일괄 업로드 스크립트
+supabase/migrations/        # DB 마이그레이션 파일
 middleware.ts               # 인증 미들웨어 (세션 관리, 라우트 보호)
 ```
 
@@ -70,13 +84,16 @@ middleware.ts               # 인증 미들웨어 (세션 관리, 라우트 보�
 - `/auth`에서 로그인 후 원래 요청 경로로 리다이렉트
 
 ### 데이터베이스 스키마
-스키마는 `supabase-schema.sql`에 정의됨. 주요 테이블:
+스키마는 `supabase-schema.sql`에 정의됨. 마이그레이션은 `supabase/migrations/`에 위치. 주요 테이블:
 - `leads` - 사업장 리드 (위치, 상태, 인근역 정보)
 - `ad_inventory` - 광고매체 인벤토리 (역, 유형, 가격)
 - `proposals` - 리드에 연결된 제안서
 - `call_logs` - CRM 통화 기록
 - `sales_progress` - 영업 파이프라인 단계
 - `user_settings` - 사용자별 API 설정
+- `floor_plans` - 역사 도면 (노선별, 층별)
+- `floor_plan_ad_positions` - 도면 위 광고 위치 마커
+- `tasks` - 업무/스케줄 관리 (전화, 미팅, 제안서, 후속, 계약)
 
 ### 데이터 흐름
 1. LocalData.go.kr API에서 사업자 인허가 데이터 조회
@@ -125,9 +142,15 @@ RESEND_API_KEY=              # 이메일 발송용 (선택)
 - 지하철 노선 색상용 CSS 변수 (`--metro-line1` ~ `--metro-line9`)
 - `glass-card` 클래스를 사용한 글래스모피즘 효과
 - 디자인 테마: "Neo-Seoul Transit"
+- 다크모드: ThemeProvider로 지원
 
 ### API 처리
 - LocalData API 호출을 위한 CORS 프록시 (`/api/proxy`)
 - 다중 폴백 CORS 프록시 설정 (constants.ts의 `CORS_PROXIES`)
 - Rate Limiting 방지를 위한 API 호출 간 200ms 지연
 - 배치 저장 시 50건씩 처리
+
+### 서비스 레이어 패턴
+각 기능별 서비스 파일 분리:
+- DB↔TS 변환 헬퍼 함수 (`dbToXxx`, `xxxToDb`)
+- snake_case (DB) ↔ camelCase (TS) 변환 일관성 유지
