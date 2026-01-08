@@ -39,7 +39,6 @@ export async function saveLeads(
   try {
     const supabase = getSupabase();
 
-    const supabase = getSupabase();
 
     // 조직 ID 가져오기 (전달되지 않은 경우)
     const orgId = organizationId ?? await getOrganizationId();
@@ -278,8 +277,6 @@ export async function updateLeadStatus(
   try {
     const supabase = getSupabase();
 
-    const supabase = getSupabase();
-
     const { error } = await supabase
       .from('leads')
       .update({ status })
@@ -309,8 +306,6 @@ export async function updateLeadNotes(
   try {
     const supabase = getSupabase();
 
-    const supabase = getSupabase();
-
     const { error } = await supabase
       .from('leads')
       .update({ notes })
@@ -334,8 +329,6 @@ export async function updateLeadNotes(
  */
 export async function saveSettings(settings: Settings): Promise<{ success: boolean; message: string }> {
   try {
-    const supabase = getSupabase();
-
     const supabase = getSupabase();
 
     // 현재 사용자 ID 가져오기
@@ -371,8 +364,6 @@ export async function saveSettings(settings: Settings): Promise<{ success: boole
  */
 export async function getSettings(): Promise<{ success: boolean; settings: Settings }> {
   try {
-    const supabase = getSupabase();
-
     const supabase = getSupabase();
 
     // 현재 사용자 ID 가져오기
@@ -419,8 +410,6 @@ export async function removeDuplicateLeads(): Promise<{
   removedCount: number;
 }> {
   try {
-    const supabase = getSupabase();
-
     const supabase = getSupabase();
 
     // 모든 리드 조회
