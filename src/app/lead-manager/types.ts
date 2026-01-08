@@ -21,6 +21,34 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   CONTRACTED: '계약 성사',
 };
 
+// 상태별 메트로 라인 색상 (Neo-Seoul Transit Design)
+export const STATUS_METRO_COLORS: Record<LeadStatus, { bg: string; text: string; border: string; glow: string }> = {
+  NEW: {
+    bg: 'rgba(60, 181, 74, 0.15)',
+    text: 'var(--metro-line2)',
+    border: 'rgba(60, 181, 74, 0.4)',
+    glow: 'rgba(60, 181, 74, 0.2)',
+  },
+  PROPOSAL_SENT: {
+    bg: 'rgba(50, 164, 206, 0.15)',
+    text: 'var(--metro-line4)',
+    border: 'rgba(50, 164, 206, 0.4)',
+    glow: 'rgba(50, 164, 206, 0.2)',
+  },
+  CONTACTED: {
+    bg: 'rgba(153, 51, 153, 0.15)',
+    text: 'var(--metro-line5)',
+    border: 'rgba(153, 51, 153, 0.4)',
+    glow: 'rgba(153, 51, 153, 0.2)',
+  },
+  CONTRACTED: {
+    bg: 'rgba(239, 124, 61, 0.15)',
+    text: 'var(--metro-line3)',
+    border: 'rgba(239, 124, 61, 0.4)',
+    glow: 'rgba(239, 124, 61, 0.2)',
+  },
+};
+
 // 리드(사업장) 데이터 타입
 export interface Lead {
   id: string;
@@ -205,14 +233,12 @@ export const AVAILABILITY_LABELS: Record<AvailabilityStatus, string> = {
   RESERVED: '예약',
   OCCUPIED: '사용중',
 };
-export const AVAILABILITY_STATUS_LABELS = AVAILABILITY_LABELS;
 
 export const AVAILABILITY_COLORS: Record<AvailabilityStatus, { bg: string; text: string; border: string }> = {
   AVAILABLE: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300' },
   RESERVED: { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
   OCCUPIED: { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-300' },
 };
-export const AVAILABILITY_STATUS_COLORS = AVAILABILITY_COLORS;
 
 // 광고 유형 라벨
 export const AD_TYPE_LABELS: Record<string, string> = {

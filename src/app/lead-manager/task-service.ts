@@ -3,8 +3,6 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-
-const supabase = createClient();
 import {
   Task,
   TaskWithLead,
@@ -14,6 +12,13 @@ import {
   CalendarEvent,
   CallLog,
 } from './types';
+
+/**
+ * Supabase 클라이언트 인스턴스 가져오기
+ */
+function getSupabase() {
+  return createClient();
+}
 
 // ============================================
 // Task 타입 변환 헬퍼
@@ -73,6 +78,7 @@ export async function getTasks(filters?: {
   dateFrom?: string;
   dateTo?: string;
 }): Promise<TaskWithLead[]> {
+  const supabase = getSupabase();
   let query = supabase
     .from('tasks')
     .select(`
@@ -134,6 +140,7 @@ export async function getTasks(filters?: {
  * 특정 리드의 업무 조회
  */
 export async function getTasksByLead(leadId: string): Promise<Task[]> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
@@ -152,6 +159,7 @@ export async function getTasksByLead(leadId: string): Promise<Task[]> {
  * 특정 날짜의 업무 조회
  */
 export async function getTasksByDate(date: string): Promise<TaskWithLead[]> {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('tasks')
     .select(`
@@ -217,6 +225,7 @@ export async function getWeekTasks(): Promise<TaskWithLead[]> {
  * 업무 생성
  */
 export async function createTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task | null> {
+  const supabase = getSupabase();
   const dbData = taskToDb(task);
 
   const { data, error } = await supabase
@@ -237,6 +246,7 @@ export async function createTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedA
  * 업무 수정
  */
 export async function updateTask(id: string, updates: Partial<Task>): Promise<Task | null> {
+  const supabase = getSupabase();
   const dbData = taskToDb(updates);
 
   const { data, error } = await supabase
@@ -258,6 +268,7 @@ export async function updateTask(id: string, updates: Partial<Task>): Promise<Ta
  * 업무 상태 변경
  */
 export async function updateTaskStatus(id: string, status: TaskStatus): Promise<boolean> {
+  const supabase = getSupabase();
   const updates: Record<string, unknown> = { status };
 
   if (status === 'COMPLETED') {
@@ -281,6 +292,7 @@ export async function updateTaskStatus(id: string, status: TaskStatus): Promise<
  * 업무 삭제
  */
 export async function deleteTask(id: string): Promise<boolean> {
+  const supabase = getSupabase();
   const { error } = await supabase.from('tasks').delete().eq('id', id);
 
   if (error) {
@@ -319,6 +331,7 @@ export async function getCalendarEvents(dateFrom: string, dateTo: string): Promi
   });
 
   // 2. 콜백 예정 조회 (call_logs의 next_contact_date)
+  const supabase = getSupabase();
   const { data: callbacks, error } = await supabase
     .from('call_logs')
     .select(`
@@ -394,6 +407,7 @@ export async function getTaskStats(): Promise<{
   todayCount: number;
   weekCount: number;
 }> {
+  const supabase = getSupabase();
   const today = new Date().toISOString().split('T')[0];
 
   const { data, error } = await supabase
@@ -461,6 +475,7 @@ export async function getTaskStats(): Promise<{
 export async function getTasksByAssignee(): Promise<
   { assignee: string; total: number; completed: number; pending: number }[]
 > {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('tasks')
     .select('assignee, status');

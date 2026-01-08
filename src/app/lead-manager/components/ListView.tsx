@@ -8,35 +8,11 @@
 import React, { useState } from 'react';
 import { FileText, ChevronDown, ChevronUp, MessageSquare, User } from 'lucide-react';
 
-import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
+import { Lead, LeadStatus, STATUS_LABELS, STATUS_METRO_COLORS, LINE_COLORS } from '../types';
 import { formatDistance, formatPhoneNumber, truncateString, getHighlightParts } from '../utils';
 import { ProgressDots } from './crm/ProgressChecklist';
 import CallLogModal from './crm/CallLogModal';
 import LeadDetailPanel from './crm/LeadDetailPanel';
-
-// 상태별 메트로 라인 색상 매핑
-const STATUS_METRO_COLORS: Record<LeadStatus, { bg: string; text: string; border: string }> = {
-  NEW: {
-    bg: 'rgba(60, 181, 74, 0.15)',
-    text: 'var(--metro-line2)',
-    border: 'rgba(60, 181, 74, 0.4)',
-  },
-  PROPOSAL_SENT: {
-    bg: 'rgba(50, 164, 206, 0.15)',
-    text: 'var(--metro-line4)',
-    border: 'rgba(50, 164, 206, 0.4)',
-  },
-  CONTACTED: {
-    bg: 'rgba(153, 51, 153, 0.15)',
-    text: 'var(--metro-line5)',
-    border: 'rgba(153, 51, 153, 0.4)',
-  },
-  CONTRACTED: {
-    bg: 'rgba(239, 124, 61, 0.15)',
-    text: 'var(--metro-line3)',
-    border: 'rgba(239, 124, 61, 0.4)',
-  },
-};
 
 interface ListViewProps {
   leads: Lead[];

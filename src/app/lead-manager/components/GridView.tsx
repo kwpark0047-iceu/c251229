@@ -16,39 +16,11 @@ import {
   User,
 } from 'lucide-react';
 
-import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
+import { Lead, LeadStatus, STATUS_LABELS, STATUS_METRO_COLORS, LINE_COLORS } from '../types';
 import { formatDistance, truncateString, getHighlightParts } from '../utils';
 import CallLogModal from './crm/CallLogModal';
 import LeadDetailPanel from './crm/LeadDetailPanel';
 import { ProgressDots } from './crm/ProgressChecklist';
-
-// 상태별 메트로 라인 색상 매핑
-const STATUS_METRO_COLORS: Record<LeadStatus, { bg: string; text: string; border: string; glow: string }> = {
-  NEW: {
-    bg: 'rgba(60, 181, 74, 0.15)',
-    text: 'var(--metro-line2)',
-    border: 'rgba(60, 181, 74, 0.4)',
-    glow: 'rgba(60, 181, 74, 0.2)',
-  },
-  PROPOSAL_SENT: {
-    bg: 'rgba(50, 164, 206, 0.15)',
-    text: 'var(--metro-line4)',
-    border: 'rgba(50, 164, 206, 0.4)',
-    glow: 'rgba(50, 164, 206, 0.2)',
-  },
-  CONTACTED: {
-    bg: 'rgba(153, 51, 153, 0.15)',
-    text: 'var(--metro-line5)',
-    border: 'rgba(153, 51, 153, 0.4)',
-    glow: 'rgba(153, 51, 153, 0.2)',
-  },
-  CONTRACTED: {
-    bg: 'rgba(239, 124, 61, 0.15)',
-    text: 'var(--metro-line3)',
-    border: 'rgba(239, 124, 61, 0.4)',
-    glow: 'rgba(239, 124, 61, 0.2)',
-  },
-};
 
 interface GridViewProps {
   leads: Lead[];

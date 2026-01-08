@@ -15,8 +15,8 @@ import {
 import {
   AdInventory,
   AvailabilityStatus,
-  AVAILABILITY_STATUS_LABELS,
-  AVAILABILITY_STATUS_COLORS,
+  AVAILABILITY_LABELS,
+  AVAILABILITY_COLORS,
   AD_TYPE_LABELS,
 } from '../../types';
 import { getInventory, deleteInventory, updateInventoryStatus } from '../../inventory-service';
@@ -183,7 +183,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
             </thead>
             <tbody className="divide-y divide-slate-200">
               {filteredInventory.map(item => {
-                const statusColor = AVAILABILITY_STATUS_COLORS[item.availabilityStatus];
+                const statusColor = AVAILABILITY_COLORS[item.availabilityStatus];
                 return (
                   <tr key={item.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
@@ -246,7 +246,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
       <div className="grid grid-cols-3 gap-4">
         {(['AVAILABLE', 'RESERVED', 'OCCUPIED'] as AvailabilityStatus[]).map(status => {
           const count = inventory.filter(i => i.availabilityStatus === status).length;
-          const color = AVAILABILITY_STATUS_COLORS[status];
+          const color = AVAILABILITY_COLORS[status];
           return (
             <div
               key={status}
@@ -254,7 +254,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
             >
               <div className={`text-2xl font-bold ${color.text}`}>{count}</div>
               <div className="text-sm text-slate-600">
-                {AVAILABILITY_STATUS_LABELS[status]}
+                {AVAILABILITY_LABELS[status]}
               </div>
             </div>
           );
