@@ -307,8 +307,8 @@ export default function ContactPage() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <main className="flex-1 w-full flex flex-row relative z-10">
-        {/* 왼쪽: 폼 영역 */}
+      <main className="flex-1 w-full flex flex-row-reverse relative z-10">
+        {/* 오른쪽: 폼 영역 */}
         <div className="w-1/2 px-6 pt-4 pb-12 overflow-y-auto">
           <div className="w-full max-w-xl mx-auto">
           {/* 타이틀 */}
@@ -873,9 +873,9 @@ export default function ContactPage() {
             integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
             crossOrigin=""
           />
-          {/* 오른쪽: 서울 지하철 지도 */}
+          {/* 왼쪽: 서울 지하철 지도 */}
         <div className="w-1/2 sticky top-16 h-[calc(100vh-4rem)]">
-          <div className="h-full rounded-l-3xl overflow-hidden border-l border-[var(--border-subtle)]">
+          <div className="h-full rounded-r-3xl overflow-hidden border-r border-[var(--border-subtle)]">
             <MapContainer
               center={[37.5665, 126.9780]}
               zoom={12}
