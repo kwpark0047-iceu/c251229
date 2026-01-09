@@ -866,7 +866,14 @@ export default function ContactPage() {
           </div>
         </div>
 
-        {/* 오른쪽: 서울 지하철 지도 */}
+        {/* Leaflet CSS */}
+          <link
+            rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+            crossOrigin=""
+          />
+          {/* 오른쪽: 서울 지하철 지도 */}
         <div className="w-1/2 sticky top-16 h-[calc(100vh-4rem)]">
           <div className="h-full rounded-l-3xl overflow-hidden border-l border-[var(--border-subtle)]">
             <MapContainer
