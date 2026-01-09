@@ -12,6 +12,7 @@ import {
   AdInventory,
   EffectAnalysis,
 } from './types';
+import { getOrganizationId } from './auth-service';
 
 function getSupabase() {
   return createClient();
@@ -70,6 +71,7 @@ export async function createProposal(
   }
 ): Promise<{ success: boolean; proposal?: Proposal; message: string }> {
   try {
+    const orgId = await getOrganizationId();
     const supabase = getSupabase();
 
     // 리드 정보 조회
@@ -113,6 +115,7 @@ export async function createProposal(
         discount_rate: discountRate,
         final_price: finalPrice,
         status: 'DRAFT',
+        organization_id: orgId,
       })
       .select()
       .single();

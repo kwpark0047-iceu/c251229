@@ -12,6 +12,7 @@ import {
   CalendarEvent,
   CallLog,
 } from './types';
+import { getOrganizationId } from './auth-service';
 
 /**
  * Supabase 클라이언트 인스턴스 가져오기
@@ -225,8 +226,9 @@ export async function getWeekTasks(): Promise<TaskWithLead[]> {
  * 업무 생성
  */
 export async function createTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Promise<Task | null> {
+  const orgId = await getOrganizationId();
   const supabase = getSupabase();
-  const dbData = taskToDb(task);
+  const dbData = { ...taskToDb(task), organization_id: orgId };
 
   const { data, error } = await supabase
     .from('tasks')

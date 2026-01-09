@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-서울 지하철 광고 영업 시스템 - 지하철 광고 영업을 위한 리드 관리 애플리케이션. Next.js 15, React 19, TypeScript, Tailwind CSS 4, Supabase로 구축됨.
+서울 지하철 광고 영업 시스템 - 지하철 광고 영업을 위한 리드 관리 애플리케이션. Next.js 16, React 19, TypeScript, Tailwind CSS 4, Supabase로 구축됨.
 
 ## 명령어
 
@@ -72,7 +72,7 @@ src/
     └── server.ts           # 서버용 Supabase 클라이언트
 scripts/
 └── upload-floor-plans.js   # 도면 일괄 업로드 스크립트
-supabase/migrations/        # DB 마이그레이션 파일
+supabase/migrations/        # DB 마이그레이션 파일 (YYYYMMDDHHMMSS_description.sql)
 middleware.ts               # 인증 미들웨어 (세션 관리, 라우트 보호)
 ```
 
@@ -85,13 +85,11 @@ middleware.ts               # 인증 미들웨어 (세션 관리, 라우트 보�
 - `/lead-manager/*` 경로는 보호됨 (미인증 시 `/auth`로 리다이렉트)
 - `/auth`에서 로그인 후 원래 요청 경로로 리다이렉트
 
-### 데이터베이스 스키마
+### 데이터베이스
 스키마는 `supabase-schema.sql`에 정의됨. 마이그레이션은 `supabase/migrations/`에 위치.
-- 마이그레이션 네이밍: `YYYYMMDDHHMMSS_description.sql`
-- 새 마이그레이션 생성 시 timestamp 순서 유지 필수
 
 주요 테이블:
-- `leads` - 사업장 리드 (위치, 상태, 인근역 정보)
+- `leads` - 사업장 리드 (위치, 상태, 인근역 정보, assigned_to)
 - `ad_inventory` - 광고매체 인벤토리 (역, 유형, 가격)
 - `proposals` - 리드에 연결된 제안서
 - `call_logs` - CRM 통화 기록
