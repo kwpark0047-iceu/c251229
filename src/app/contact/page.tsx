@@ -4,7 +4,8 @@
  * AI 자동추천 페이지
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -18,6 +19,25 @@ import {
   Sparkles,
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
+import { SUBWAY_STATIONS } from '@/app/lead-manager/constants';
+
+// Leaflet 동적 임포트 (SSR 비활성화)
+const MapContainer = dynamic(
+  () => import('react-leaflet').then(mod => mod.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import('react-leaflet').then(mod => mod.TileLayer),
+  { ssr: false }
+);
+const CircleMarker = dynamic(
+  () => import('react-leaflet').then(mod => mod.CircleMarker),
+  { ssr: false }
+);
+const Tooltip = dynamic(
+  () => import('react-leaflet').then(mod => mod.Tooltip),
+  { ssr: false }
+);
 
 interface ContactForm {
   name: string;
@@ -287,8 +307,10 @@ export default function ContactPage() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <main className="flex-1 w-full flex flex-col items-center px-6 pt-4 pb-12 relative z-10">
-        <div className="w-full max-w-2xl">
+      <main className="flex-1 w-full flex flex-row relative z-10">
+        {/* 왼쪽: 폼 영역 */}
+        <div className="w-1/2 px-6 pt-4 pb-12 overflow-y-auto">
+          <div className="w-full max-w-xl mx-auto">
           {/* 타이틀 */}
           <div className="text-center mb-10">
             <div
@@ -841,6 +863,82 @@ export default function ContactPage() {
               </div>
             </div>
           )}
+          </div>
+        </div>
+
+        {/* 오른쪽: 서울 지하철 지도 */}
+        <div className="w-1/2 sticky top-16 h-[calc(100vh-4rem)]">
+          <div className="h-full rounded-l-3xl overflow-hidden border-l border-[var(--border-subtle)]">
+            <MapContainer
+              center={[37.5665, 126.9780]}
+              zoom={12}
+              style={{ height: '100%', width: '100%' }}
+              zoomControl={true}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              />
+              {/* 지하철 역 마커 */}
+              {SUBWAY_STATIONS.map((station) => {
+                const isRecommended = proposal?.topStations?.some(
+                  (s) => s.stationName === station.name || s.stationName === station.name + '역'
+                );
+                return (
+                  <CircleMarker
+                    key={station.name}
+                    center={[station.lat, station.lng]}
+                    radius={isRecommended ? 12 : 6}
+                    pathOptions={{
+                      color: isRecommended ? '#00A5DE' : '#666',
+                      fillColor: isRecommended ? '#00A5DE' : '#444',
+                      fillOpacity: isRecommended ? 0.9 : 0.6,
+                      weight: isRecommended ? 3 : 1,
+                    }}
+                  >
+                    <Tooltip
+                      direction="top"
+                      offset={[0, -10]}
+                      permanent={isRecommended}
+                      className={isRecommended ? 'recommended-station-tooltip' : ''}
+                    >
+                      <div className="text-center">
+                        <div className="font-bold">{station.name}역</div>
+                        <div className="text-xs text-gray-400">
+                          {station.lines.join(', ')}호선
+                        </div>
+                        {isRecommended && (
+                          <div className="text-xs text-[#00A5DE] font-bold mt-1">
+                            ⭐ AI 추천
+                          </div>
+                        )}
+                      </div>
+                    </Tooltip>
+                  </CircleMarker>
+                );
+              })}
+            </MapContainer>
+
+            {/* 지도 범례 */}
+            <div
+              className="absolute bottom-4 left-4 p-3 rounded-xl z-[1000]"
+              style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid var(--glass-border)',
+              }}
+            >
+              <p className="text-xs text-[var(--text-muted)] mb-2">지도 범례</p>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-3 h-3 rounded-full bg-[#00A5DE]" />
+                <span className="text-[var(--text-secondary)]">AI 추천역</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs mt-1">
+                <span className="w-2 h-2 rounded-full bg-[#666]" />
+                <span className="text-[var(--text-secondary)]">지하철역</span>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>
