@@ -3,7 +3,7 @@
  * 광고매체 재고 관리, 엑셀 업로드, 지리적 매칭
  */
 
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { createClient } from '@/lib/supabase/client';
 import {
   AdInventory,
@@ -30,12 +30,16 @@ function getSupabase() {
  * @param buffer - 엑셀 파일 버퍼
  * @param defaultMediaType - 기본 매체 유형 (광고유형 컬럼이 없을 때 사용)
  */
-export function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?: string): ExcelInventoryRow[] {
-  const workbook = XLSX.read(buffer, { type: 'array' });
-  const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?: string): Promise<ExcelInventoryRow[]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const worksheet = workbook.worksheets[0];
 
   // 전체 데이터를 배열로 변환 (헤더 없이)
-  const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
+  const rawData: unknown[][] = [];
+  worksheet.eachRow((row) => {
+    rawData.push(row.values as unknown[]);
+  });
 
   console.log('=== 엑셀 원본 데이터 ===');
   console.log('전체 행 수:', rawData.length);
@@ -179,7 +183,7 @@ export async function uploadInventoryExcel(
 ): Promise<ExcelUploadResult> {
   try {
     const buffer = await file.arrayBuffer();
-    const rows = parseInventoryExcel(buffer, defaultMediaType);
+    const rows = await parseInventoryExcel(buffer, defaultMediaType);
 
     if (rows.length === 0) {
       return {
