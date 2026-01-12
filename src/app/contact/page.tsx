@@ -561,491 +561,239 @@ export default function ContactPage() {
         {/* 오른쪽: 폼 영역 */}
         <div className="w-[calc(50%-2.5rem)] px-6 pt-4 pb-12 overflow-y-auto" style={{ position: 'relative', zIndex: 10 }}>
           <div className="w-full max-w-xl mx-auto">
-          {/* 타이틀 */}
-          <div className="text-center mb-10">
-            <div
-              className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6"
-              style={{ background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)' }}
-            >
-              <Sparkles className="w-10 h-10 text-white" />
+            {/* 타이틀 */}
+            <div className="text-center mb-10">
+              <div
+                className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6"
+                style={{ background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)' }}
+              >
+                <Sparkles className="w-10 h-10 text-white" />
+              </div>
+              <h2 className="text-4xl font-bold text-[var(--text-primary)] mb-4">
+                AI자동추천
+              </h2>
+              <p className="text-xl text-[var(--text-secondary)]">
+                AI자동추천 제안서를 발송합니다.
+              </p>
             </div>
-            <h2 className="text-4xl font-bold text-[var(--text-primary)] mb-4">
-              AI자동추천
-            </h2>
-            <p className="text-xl text-[var(--text-secondary)]">
-              AI자동추천 제안서를 발송합니다.
-            </p>
-          </div>
 
-          {/* 문의 폼 */}
-          <div
-            className="p-10 rounded-3xl mb-8 bg-white"
-            style={{
-              boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08)',
-            }}
-          >
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* 기본 정보 */}
-              <div className="grid sm:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    담당자명 <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    required
-                    placeholder="홍길동"
-                    className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    회사명
-                  </label>
-                  <input
-                    type="text"
-                    name="company"
-                    value={form.company}
-                    onChange={handleChange}
-                    placeholder="(주)회사명"
-                    className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors"
-                  />
-                </div>
-              </div>
-
-              {/* 연락처 */}
-              <div className="grid sm:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    연락처 <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    required
-                    placeholder="010-1234-5678"
-                    className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    이메일 <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    required
-                    placeholder="email@example.com"
-                    className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors"
-                  />
-                </div>
-              </div>
-
-              {/* 주소 & 업종 */}
-              <div className="grid sm:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    주소
-                  </label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={form.address}
-                    onChange={handleChange}
-                    placeholder="서울시 강남구 역삼동"
-                    className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    업종
-                  </label>
-                  <select
-                    name="businessType"
-                    value={form.businessType}
-                    onChange={handleChange}
-                    className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-[#00A5DE] transition-colors cursor-pointer"
-                  >
-                    <option value="">선택해주세요</option>
-                    {businessTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* 광고 정보 */}
-              <div className="grid sm:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    희망 광고 유형
-                  </label>
-                  <select
-                    name="adType"
-                    value={form.adType}
-                    onChange={handleChange}
-                    className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-[#00A5DE] transition-colors cursor-pointer"
-                  >
-                    <option value="">선택해주세요</option>
-                    {adTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    예상 예산
-                  </label>
-                  <select
-                    name="budget"
-                    value={form.budget}
-                    onChange={handleChange}
-                    className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-[#00A5DE] transition-colors cursor-pointer"
-                  >
-                    <option value="">선택해주세요</option>
-                    {budgetRanges.map(range => (
-                      <option key={range} value={range}>{range}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* 문의 내용 */}
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">
-                  추가 요청사항
-                </label>
-                <textarea
-                  name="message"
-                  value={form.message}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="추가 요청사항을 작성해주세요. (선택)"
-                  className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors resize-none"
-                />
-              </div>
-
-              {/* 제출 버튼 */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-3 px-8 py-5 rounded-xl text-white text-xl font-semibold disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                style={{
-                  background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-                  boxShadow: '0 8px 24px rgba(0, 165, 222, 0.3)',
-                }}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                    AI 분석 중...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-6 h-6" />
-                    AI추천요청
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-
-          {/* 제안서 표시 영역 - 6개 섹션 */}
-          {proposal && (
+            {/* 문의 폼 */}
             <div
-              ref={proposalRef}
-              data-proposal-content="true"
-              className="space-y-6"
-              style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Malgun Gothic", "맑은 고딕", sans-serif' }}
+              className="p-10 rounded-3xl mb-8 bg-white"
+              style={{
+                boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08)',
+              }}
             >
-              {/* 제안서 헤더 */}
-              <div
-                className="p-8 rounded-3xl"
-                style={{
-                  background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-                  boxShadow: '0 25px 50px rgba(0, 165, 222, 0.3)',
-                }}
-              >
-                <div className="flex items-center justify-between mb-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* 기본 정보 */}
+                <div className="grid sm:grid-cols-2 gap-5">
                   <div>
-                    <p className="text-white/70 text-sm mb-1">제안서 번호</p>
-                    <p className="text-white text-2xl font-bold">{proposal.id}</p>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      담당자명 <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={form.name}
+                      onChange={handleChange}
+                      required
+                      placeholder="홍길동"
+                      className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors"
+                    />
                   </div>
-                  <div className="text-right">
-                    <p className="text-white/70 text-sm mb-1">생성일시</p>
-                    <p className="text-white font-medium">
-                      {new Date(proposal.createdAt).toLocaleString('ko-KR')}
-                    </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      회사명
+                    </label>
+                    <input
+                      type="text"
+                      name="company"
+                      value={form.company}
+                      onChange={handleChange}
+                      placeholder="(주)회사명"
+                      className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors"
+                    />
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold text-white mb-2">
-                  AI 자동추천 제안서
-                </h3>
-                <p className="text-white/80 text-lg">
-                  {proposal.clientInfo.company}님을 위한 맞춤 광고 제안
-                </p>
-              </div>
 
-              {/* ① 광고주 정보 요약 */}
-              <div
-                className="p-6 rounded-2xl"
-                style={{
-                  background: 'var(--glass-bg)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid var(--glass-border)',
-                }}
-              >
-                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-[#00A5DE] text-white text-sm font-bold flex items-center justify-center">①</span>
-                  광고주 정보 요약
-                </h4>
-                <div className="grid sm:grid-cols-2 gap-4 text-lg">
+                {/* 연락처 */}
+                <div className="grid sm:grid-cols-2 gap-5">
                   <div>
-                    <span className="text-[var(--text-muted)]">업체명: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.company}</span>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      연락처 <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      required
+                      placeholder="010-1234-5678"
+                      className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors"
+                    />
                   </div>
                   <div>
-                    <span className="text-[var(--text-muted)]">업종: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.businessType}</span>
-                  </div>
-                  <div>
-                    <span className="text-[var(--text-muted)]">담당자: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.contactPerson}</span>
-                  </div>
-                  <div>
-                    <span className="text-[var(--text-muted)]">연락처: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.phone}</span>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <span className="text-[var(--text-muted)]">주소: </span>
-                    <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.location}</span>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      이메일 <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      required
+                      placeholder="email@example.com"
+                      className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors"
+                    />
                   </div>
                 </div>
-              </div>
 
-              {/* ② 광고 목적 분석 */}
-              <div
-                className="p-6 rounded-2xl"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(0, 165, 222, 0.1) 0%, rgba(0, 168, 77, 0.1) 100%)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid var(--glass-border)',
-                }}
-              >
-                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-[#00A84D] text-white text-sm font-bold flex items-center justify-center">②</span>
-                  광고 목적 분석 ({proposal.purposeAnalysis.industry})
-                </h4>
-                <div className="space-y-4">
+                {/* 주소 & 업종 */}
+                <div className="grid sm:grid-cols-2 gap-5">
                   <div>
-                    <p className="text-[var(--text-muted)] mb-2">주요 목적</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      {proposal.purposeAnalysis.purposes.map((purpose, idx) => (
-                        <li key={idx} className="text-[var(--text-primary)]">{purpose}</li>
-                      ))}
-                    </ul>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      주소
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      value={form.address}
+                      onChange={handleChange}
+                      placeholder="서울시 강남구 역삼동"
+                      className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors"
+                    />
                   </div>
-                  <div className="pt-3 border-t border-[var(--border-subtle)]">
-                    <p className="text-[var(--text-muted)]">타겟 고객층</p>
-                    <p className="text-[var(--text-primary)] font-medium text-lg mt-1">{proposal.purposeAnalysis.targetAudience}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* ③ 추천 매체 */}
-              <div
-                className="p-6 rounded-2xl"
-                style={{
-                  background: 'var(--glass-bg)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid var(--glass-border)',
-                }}
-              >
-                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-[#996CAC] text-white text-sm font-bold flex items-center justify-center">③</span>
-                  추천 매체
-                </h4>
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-3">
-                    {proposal.recommendedMedia.mediaTypes.map((media, idx) => (
-                      <span
-                        key={idx}
-                        className="px-4 py-2 rounded-xl text-white font-medium"
-                        style={{ background: 'linear-gradient(135deg, #996CAC 0%, #7E5B99 100%)' }}
-                      >
-                        {media}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="pt-3 border-t border-[var(--border-subtle)]">
-                    <p className="text-[var(--text-muted)] mb-2">핵심 포인트</p>
-                    <ul className="list-disc list-inside space-y-1">
-                      {proposal.recommendedMedia.keyPoints.map((point, idx) => (
-                        <li key={idx} className="text-[var(--text-secondary)]">{point}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              {/* ④ AI 추천 역 TOP 2 */}
-              <div
-                className="p-6 rounded-2xl"
-                style={{
-                  background: 'var(--glass-bg)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid var(--glass-border)',
-                }}
-              >
-                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-[#EF7C1C] text-white text-sm font-bold flex items-center justify-center">④</span>
-                  AI 추천 역 TOP 2
-                </h4>
-                <div className="space-y-6">
-                  {proposal.topStations.map((station) => (
-                    <div
-                      key={station.rank}
-                      className="p-4 rounded-xl border border-[var(--border-subtle)]"
-                      style={{
-                        background: station.rank === 1
-                          ? 'linear-gradient(135deg, rgba(0, 165, 222, 0.15) 0%, rgba(0, 165, 222, 0.05) 100%)'
-                          : 'var(--bg-tertiary)',
-                      }}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      업종
+                    </label>
+                    <select
+                      name="businessType"
+                      value={form.businessType}
+                      onChange={handleChange}
+                      className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-[#00A5DE] transition-colors cursor-pointer"
                     >
-                      <div className="flex items-center gap-3 mb-3">
-                        <span
-                          className="w-10 h-10 rounded-full text-white text-lg font-bold flex items-center justify-center"
-                          style={{ background: station.rank === 1 ? '#00A5DE' : '#666' }}
-                        >
-                          {station.rank}
-                        </span>
-                        <div>
-                          <h5 className="text-xl font-bold text-[var(--text-primary)]">{station.stationName}역</h5>
-                          <div className="flex gap-2 mt-1">
-                            {station.lineNumbers.filter(l => /^\d+$/.test(l)).slice(0, 3).map(line => (
-                              <span
-                                key={line}
-                                className="px-2 py-0.5 rounded text-white text-xs font-medium"
-                                style={{ background: LINE_COLORS[line] || '#666' }}
-                              >
-                                {line}호선
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="ml-auto text-right">
-                          <p className="text-2xl font-bold text-[#00A5DE]">{station.dailyTraffic.toLocaleString()}</p>
-                          <p className="text-sm text-[var(--text-muted)]">일 평균 유동인구</p>
-                        </div>
-                      </div>
-                      <p className="text-[var(--text-secondary)] mb-4">{station.characteristics}</p>
-
-                      {/* 도면 이미지 */}
-                      {station.floorPlans && station.floorPlans.length > 0 && (
-                        <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
-                          <p className="text-sm text-[var(--text-muted)] mb-3 flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            역사 도면
-                          </p>
-                          <div className="grid grid-cols-2 gap-3">
-                            {station.floorPlans.map((plan, idx) => (
-                              <div key={idx} className="rounded-lg overflow-hidden border border-[var(--border-subtle)]">
-                                <div className="aspect-[4/3] bg-[var(--bg-tertiary)] relative">
-                                  {/* eslint-disable-next-line @next/next/no-img-element -- 외부 Supabase Storage URL */}
-                                  <img
-                                    src={plan.imageUrl}
-                                    alt={`${station.stationName} ${plan.planType}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                                <div className="p-2 bg-[var(--bg-tertiary)]/50 text-center">
-                                  <span className="text-sm text-[var(--text-secondary)]">{plan.planType}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                      <option value="">선택해주세요</option>
+                      {businessTypes.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
 
-              {/* ⑤ 예산 기반 구성안 */}
-              <div
-                className="p-6 rounded-2xl"
-                style={{
-                  background: 'var(--glass-bg)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid var(--glass-border)',
-                }}
-              >
-                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-[#00A84D] text-white text-sm font-bold flex items-center justify-center">⑤</span>
-                  예산 기반 구성안
-                </h4>
-                <div className="grid sm:grid-cols-2 gap-6">
+                {/* 광고 정보 */}
+                <div className="grid sm:grid-cols-2 gap-5">
                   <div>
-                    <p className="text-[var(--text-muted)]">요청 예산</p>
-                    <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{proposal.budgetPlan.inputBudget}</p>
-                  </div>
-                  <div>
-                    <p className="text-[var(--text-muted)]">예상 월 비용</p>
-                    <p className="text-2xl font-bold text-[#00A84D] mt-1">{proposal.budgetPlan.monthlyEstimate}</p>
-                  </div>
-                </div>
-                <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
-                  <p className="text-[var(--text-muted)] mb-2">추천 구성</p>
-                  <div className="flex flex-wrap gap-2">
-                    {proposal.budgetPlan.recommendation.map((item, idx) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
-                      >
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="mt-4 p-4 rounded-xl bg-[#00A84D]/10 border border-[#00A84D]/30">
-                  <p className="text-[#00A84D] font-medium">💡 {proposal.budgetPlan.contractTip}</p>
-                </div>
-              </div>
-
-              {/* ⑥ 기대 효과 */}
-              <div
-                className="p-6 rounded-2xl"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(0, 168, 77, 0.2) 0%, rgba(0, 165, 222, 0.2) 100%)',
-                  border: '1px solid rgba(0, 168, 77, 0.3)',
-                }}
-              >
-                <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-full bg-[#E6186C] text-white text-sm font-bold flex items-center justify-center">⑥</span>
-                  기대 효과
-                </h4>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {proposal.expectedEffects.map((effect, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-white/10"
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      희망 광고 유형
+                    </label>
+                    <select
+                      name="adType"
+                      value={form.adType}
+                      onChange={handleChange}
+                      className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-[#00A5DE] transition-colors cursor-pointer"
                     >
-                      <CheckCircle className="w-5 h-5 text-[#00A84D] flex-shrink-0" />
-                      <span className="text-[var(--text-primary)]">{effect}</span>
-                    </div>
-                  ))}
+                      <option value="">선택해주세요</option>
+                      {adTypes.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                      예상 예산
+                    </label>
+                    <select
+                      name="budget"
+                      value={form.budget}
+                      onChange={handleChange}
+                      className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-[#00A5DE] transition-colors cursor-pointer"
+                    >
+                      <option value="">선택해주세요</option>
+                      {budgetRanges.map(range => (
+                        <option key={range} value={range}>{range}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-              </div>
 
-              {/* 추천 노선 */}
-              {proposal.additionalInfo.recommendedLines.length > 0 && (
+                {/* 문의 내용 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    추가 요청사항
+                  </label>
+                  <textarea
+                    name="message"
+                    value={form.message}
+                    onChange={handleChange}
+                    rows={3}
+                    placeholder="추가 요청사항을 작성해주세요. (선택)"
+                    className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#00A5DE] transition-colors resize-none"
+                  />
+                </div>
+
+                {/* 제출 버튼 */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full flex items-center justify-center gap-3 px-8 py-5 rounded-xl text-white text-xl font-semibold disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{
+                    background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
+                    boxShadow: '0 8px 24px rgba(0, 165, 222, 0.3)',
+                  }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      AI 분석 중...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-6 h-6" />
+                      AI추천요청
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+
+            {/* 제안서 표시 영역 - 6개 섹션 */}
+            {proposal && (
+              <div
+                ref={proposalRef}
+                data-proposal-content="true"
+                className="space-y-6"
+                style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Malgun Gothic", "맑은 고딕", sans-serif' }}
+              >
+                {/* 제안서 헤더 */}
+                <div
+                  className="p-8 rounded-3xl"
+                  style={{
+                    background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
+                    boxShadow: '0 25px 50px rgba(0, 165, 222, 0.3)',
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <p className="text-white/70 text-sm mb-1">제안서 번호</p>
+                      <p className="text-white text-2xl font-bold">{proposal.id}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-white/70 text-sm mb-1">생성일시</p>
+                      <p className="text-white font-medium">
+                        {new Date(proposal.createdAt).toLocaleString('ko-KR')}
+                      </p>
+                    </div>
+                  </div>
+                  <h3 className="text-3xl font-bold text-white mb-2">
+                    AI 자동추천 제안서
+                  </h3>
+                  <p className="text-white/80 text-lg">
+                    {proposal.clientInfo.company}님을 위한 맞춤 광고 제안
+                  </p>
+                </div>
+
+                {/* ① 광고주 정보 요약 */}
                 <div
                   className="p-6 rounded-2xl"
                   style={{
@@ -1055,83 +803,335 @@ export default function ContactPage() {
                   }}
                 >
                   <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                    <Train className="w-5 h-5 text-[#996CAC]" />
-                    추천 노선
+                    <span className="w-7 h-7 rounded-full bg-[#00A5DE] text-white text-sm font-bold flex items-center justify-center">①</span>
+                    광고주 정보 요약
                   </h4>
-                  <div className="flex flex-wrap gap-3">
-                    {proposal.additionalInfo.recommendedLines.filter(l => /^\d+$/.test(l)).map(line => (
+                  <div className="grid sm:grid-cols-2 gap-4 text-lg">
+                    <div>
+                      <span className="text-[var(--text-muted)]">업체명: </span>
+                      <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.company}</span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--text-muted)]">업종: </span>
+                      <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.businessType}</span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--text-muted)]">담당자: </span>
+                      <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.contactPerson}</span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--text-muted)]">연락처: </span>
+                      <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.phone}</span>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <span className="text-[var(--text-muted)]">주소: </span>
+                      <span className="text-[var(--text-primary)] font-medium">{proposal.clientInfo.location}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ② 광고 목적 분석 */}
+                <div
+                  className="p-6 rounded-2xl"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(0, 165, 222, 0.1) 0%, rgba(0, 168, 77, 0.1) 100%)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--glass-border)',
+                  }}
+                >
+                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-[#00A84D] text-white text-sm font-bold flex items-center justify-center">②</span>
+                    광고 목적 분석 ({proposal.purposeAnalysis.industry})
+                  </h4>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[var(--text-muted)] mb-2">주요 목적</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {proposal.purposeAnalysis.purposes.map((purpose, idx) => (
+                          <li key={idx} className="text-[var(--text-primary)]">{purpose}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="pt-3 border-t border-[var(--border-subtle)]">
+                      <p className="text-[var(--text-muted)]">타겟 고객층</p>
+                      <p className="text-[var(--text-primary)] font-medium text-lg mt-1">{proposal.purposeAnalysis.targetAudience}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ③ 추천 매체 */}
+                <div
+                  className="p-6 rounded-2xl"
+                  style={{
+                    background: 'var(--glass-bg)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--glass-border)',
+                  }}
+                >
+                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-[#996CAC] text-white text-sm font-bold flex items-center justify-center">③</span>
+                    추천 매체
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-3">
+                      {proposal.recommendedMedia.mediaTypes.map((media, idx) => (
+                        <span
+                          key={idx}
+                          className="px-4 py-2 rounded-xl text-white font-medium"
+                          style={{ background: 'linear-gradient(135deg, #996CAC 0%, #7E5B99 100%)' }}
+                        >
+                          {media}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="pt-3 border-t border-[var(--border-subtle)]">
+                      <p className="text-[var(--text-muted)] mb-2">핵심 포인트</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {proposal.recommendedMedia.keyPoints.map((point, idx) => (
+                          <li key={idx} className="text-[var(--text-secondary)]">{point}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ④ AI 추천 역 TOP 2 */}
+                <div
+                  className="p-6 rounded-2xl"
+                  style={{
+                    background: 'var(--glass-bg)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--glass-border)',
+                  }}
+                >
+                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-[#EF7C1C] text-white text-sm font-bold flex items-center justify-center">④</span>
+                    AI 추천 역 TOP 2
+                  </h4>
+                  <div className="space-y-6">
+                    {proposal.topStations.map((station) => (
                       <div
-                        key={line}
-                        className="px-5 py-3 rounded-xl text-white font-bold text-lg"
-                        style={{ background: LINE_COLORS[line] || '#666' }}
+                        key={station.rank}
+                        className="p-4 rounded-xl border border-[var(--border-subtle)]"
+                        style={{
+                          background: station.rank === 1
+                            ? 'linear-gradient(135deg, rgba(0, 165, 222, 0.15) 0%, rgba(0, 165, 222, 0.05) 100%)'
+                            : 'var(--bg-tertiary)',
+                        }}
                       >
-                        {line}호선
+                        <div className="flex items-center gap-3 mb-3">
+                          <span
+                            className="w-10 h-10 rounded-full text-white text-lg font-bold flex items-center justify-center"
+                            style={{ background: station.rank === 1 ? '#00A5DE' : '#666' }}
+                          >
+                            {station.rank}
+                          </span>
+                          <div>
+                            <h5 className="text-xl font-bold text-[var(--text-primary)]">{station.stationName}역</h5>
+                            <div className="flex gap-2 mt-1">
+                              {station.lineNumbers.filter(l => /^\d+$/.test(l)).slice(0, 3).map(line => (
+                                <span
+                                  key={line}
+                                  className="px-2 py-0.5 rounded text-white text-xs font-medium"
+                                  style={{ background: LINE_COLORS[line] || '#666' }}
+                                >
+                                  {line}호선
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="ml-auto text-right">
+                            <p className="text-2xl font-bold text-[#00A5DE]">{station.dailyTraffic.toLocaleString()}</p>
+                            <p className="text-sm text-[var(--text-muted)]">일 평균 유동인구</p>
+                          </div>
+                        </div>
+                        <p className="text-[var(--text-secondary)] mb-4">{station.characteristics}</p>
+
+                        {/* 도면 이미지 */}
+                        {station.floorPlans && station.floorPlans.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+                            <p className="text-sm text-[var(--text-muted)] mb-3 flex items-center gap-2">
+                              <MapPin className="w-4 h-4" />
+                              역사 도면
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                              {station.floorPlans.map((plan, idx) => (
+                                <div key={idx} className="rounded-lg overflow-hidden border border-[var(--border-subtle)]">
+                                  <div className="aspect-[4/3] bg-[var(--bg-tertiary)] relative">
+                                    {/* eslint-disable-next-line @next/next/no-img-element -- 외부 Supabase Storage URL */}
+                                    <img
+                                      src={plan.imageUrl}
+                                      alt={`${station.stationName} ${plan.planType}`}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                  <div className="p-2 bg-[var(--bg-tertiary)]/50 text-center">
+                                    <span className="text-sm text-[var(--text-secondary)]">{plan.planType}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
-              )}
 
-              {/* 액션 버튼 */}
-              <div className="flex flex-col sm:flex-row gap-4 relative z-50">
-                <button
-                  type="button"
-                  onClick={handleDownloadPDF}
-                  className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+                {/* ⑤ 예산 기반 구성안 */}
+                <div
+                  className="p-6 rounded-2xl"
                   style={{
-                    background: 'linear-gradient(135deg, #00A84D 0%, #00C853 100%)',
-                    boxShadow: '0 8px 24px rgba(0, 168, 77, 0.3)',
-                    position: 'relative',
-                    zIndex: 100,
+                    background: 'var(--glass-bg)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid var(--glass-border)',
                   }}
                 >
-                  <Download className="w-5 h-5" />
-                  PDF 저장
-                </button>
-                <button
-                  onClick={handleSendEmail}
-                  disabled={isSendingEmail || emailSent}
-                  className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] disabled:opacity-50"
+                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-[#00A84D] text-white text-sm font-bold flex items-center justify-center">⑤</span>
+                    예산 기반 구성안
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-6">
+                    <div>
+                      <p className="text-[var(--text-muted)]">요청 예산</p>
+                      <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{proposal.budgetPlan.inputBudget}</p>
+                    </div>
+                    <div>
+                      <p className="text-[var(--text-muted)]">예상 월 비용</p>
+                      <p className="text-2xl font-bold text-[#00A84D] mt-1">{proposal.budgetPlan.monthlyEstimate}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
+                    <p className="text-[var(--text-muted)] mb-2">추천 구성</p>
+                    <div className="flex flex-wrap gap-2">
+                      {proposal.budgetPlan.recommendation.map((item, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] text-[var(--text-primary)]"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-4 p-4 rounded-xl bg-[#00A84D]/10 border border-[#00A84D]/30">
+                    <p className="text-[#00A84D] font-medium">💡 {proposal.budgetPlan.contractTip}</p>
+                  </div>
+                </div>
+
+                {/* ⑥ 기대 효과 */}
+                <div
+                  className="p-6 rounded-2xl"
                   style={{
-                    background: emailSent
-                      ? 'linear-gradient(135deg, #666 0%, #888 100%)'
-                      : 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-                    boxShadow: emailSent ? 'none' : '0 8px 24px rgba(0, 165, 222, 0.3)',
+                    background: 'linear-gradient(135deg, rgba(0, 168, 77, 0.2) 0%, rgba(0, 165, 222, 0.2) 100%)',
+                    border: '1px solid rgba(0, 168, 77, 0.3)',
                   }}
                 >
-                  {isSendingEmail ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      발송 중...
-                    </>
-                  ) : emailSent ? (
-                    <>
-                      <CheckCircle className="w-5 h-5" />
-                      발송 완료
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="w-5 h-5" />
-                      이메일 발송
-                    </>
-                  )}
-                </button>
+                  <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-full bg-[#E6186C] text-white text-sm font-bold flex items-center justify-center">⑥</span>
+                    기대 효과
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {proposal.expectedEffects.map((effect, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-white/10"
+                      >
+                        <CheckCircle className="w-5 h-5 text-[#00A84D] flex-shrink-0" />
+                        <span className="text-[var(--text-primary)]">{effect}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 추천 노선 */}
+                {proposal.additionalInfo.recommendedLines.length > 0 && (
+                  <div
+                    className="p-6 rounded-2xl"
+                    style={{
+                      background: 'var(--glass-bg)',
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid var(--glass-border)',
+                    }}
+                  >
+                    <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                      <Train className="w-5 h-5 text-[#996CAC]" />
+                      추천 노선
+                    </h4>
+                    <div className="flex flex-wrap gap-3">
+                      {proposal.additionalInfo.recommendedLines.filter(l => /^\d+$/.test(l)).map(line => (
+                        <div
+                          key={line}
+                          className="px-5 py-3 rounded-xl text-white font-bold text-lg"
+                          style={{ background: LINE_COLORS[line] || '#666' }}
+                        >
+                          {line}호선
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 액션 버튼 */}
+                <div className="flex flex-col sm:flex-row gap-4 relative z-50">
+                  <button
+                    type="button"
+                    onClick={handleDownloadPDF}
+                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+                    style={{
+                      background: 'linear-gradient(135deg, #00A84D 0%, #00C853 100%)',
+                      boxShadow: '0 8px 24px rgba(0, 168, 77, 0.3)',
+                      position: 'relative',
+                      zIndex: 100,
+                    }}
+                  >
+                    <Download className="w-5 h-5" />
+                    PDF 저장
+                  </button>
+                  <button
+                    onClick={handleSendEmail}
+                    disabled={isSendingEmail || emailSent}
+                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] disabled:opacity-50"
+                    style={{
+                      background: emailSent
+                        ? 'linear-gradient(135deg, #666 0%, #888 100%)'
+                        : 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
+                      boxShadow: emailSent ? 'none' : '0 8px 24px rgba(0, 165, 222, 0.3)',
+                    }}
+                  >
+                    {isSendingEmail ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        발송 중...
+                      </>
+                    ) : emailSent ? (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        발송 완료
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-5 h-5" />
+                        이메일 발송
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
 
         {/* Leaflet CSS */}
-          <link
-            rel="stylesheet"
-            href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-            crossOrigin=""
-          />
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossOrigin=""
+        />
 
-          {/* 지도 마커 스타일 */}
-          <style>{`
+        {/* 지도 마커 스타일 */}
+        <style>{`
             .station-marker-wrapper {
               background: transparent !important;
               border: none !important;
@@ -1201,7 +1201,7 @@ export default function ContactPage() {
             }
           `}</style>
 
-          {/* 왼쪽: 서울 지하철 지도 */}
+        {/* 왼쪽: 서울 지하철 지도 */}
         <div className="w-[calc(50%-2.5rem)] sticky top-16 h-[calc(100vh-4rem)]" style={{ zIndex: 1 }}>
           <div className="h-full rounded-r-3xl overflow-hidden border-r border-[var(--border-subtle)] relative" style={{ zIndex: 1 }}>
             <MapContainer
