@@ -27,7 +27,6 @@ import {
   TaskPriority,
   TASK_TYPE_LABELS,
   TASK_TYPE_COLORS,
-  TASK_STATUS_LABELS,
   TASK_PRIORITY_LABELS,
   TASK_PRIORITY_COLORS,
 } from '../../types';
@@ -227,6 +226,7 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
   }, [filter.taskType, filter.priority]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 초기 데이터 로드
     loadData();
   }, [loadData]);
 

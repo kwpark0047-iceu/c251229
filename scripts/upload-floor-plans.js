@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * 지하철 역사 도면 JPG 파일 일괄 업로드 스크립트
  *

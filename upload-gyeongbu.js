@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /**
  * 1호선 경부선 도면 업로드 스크립트
  */

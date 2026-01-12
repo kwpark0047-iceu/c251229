@@ -42,6 +42,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadInventory();
   }, [loadInventory]);
 

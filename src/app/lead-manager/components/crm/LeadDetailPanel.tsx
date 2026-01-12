@@ -76,6 +76,7 @@ export default function LeadDetailPanel({
   }, [leadId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 초기 데이터 로드
     loadLead();
   }, [loadLead]);
 

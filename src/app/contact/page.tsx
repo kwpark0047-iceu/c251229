@@ -399,33 +399,39 @@ export default function ContactPage() {
       await document.fonts.ready;
     }
 
-    // 잠시 대기하여 렌더링 완료 보장
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // 폰트 완전 로딩을 위한 추가 대기
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const canvas = await html2canvas(element, {
-      scale: 3, // 고해상도로 캡처
+      scale: 2,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: '#ffffff', // 흰색 배경으로 변경 (가독성 향상)
+      backgroundColor: '#ffffff',
       logging: false,
-      letterRendering: true, // 텍스트 렌더링 개선
-      foreignObjectRendering: false, // 호환성을 위해 비활성화
-      removeContainer: true,
-      imageTimeout: 15000,
+      imageTimeout: 30000,
       onclone: (clonedDoc) => {
-        // 클론된 문서에서 한글 폰트 스타일 강제 적용
+        // Google Fonts CSS를 클론된 문서에 직접 삽입
+        const style = clonedDoc.createElement('style');
+        style.textContent = `
+          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+          * {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', -apple-system, BlinkMacSystemFont, sans-serif !important;
+          }
+        `;
+        clonedDoc.head.appendChild(style);
+
+        // 클론된 요소에 폰트 강제 적용
         const clonedElement = clonedDoc.body.querySelector('[data-proposal-content]');
         if (clonedElement instanceof HTMLElement) {
-          clonedElement.style.fontFamily = 'var(--font-noto-sans-kr), "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", "맑은 고딕", sans-serif';
-          // 모든 자식 요소에도 폰트 적용
+          clonedElement.style.cssText += `
+            font-family: 'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', sans-serif !important;
+          `;
           clonedElement.querySelectorAll('*').forEach((el) => {
             if (el instanceof HTMLElement) {
-              el.style.fontFamily = 'inherit';
+              el.style.fontFamily = "'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', sans-serif";
             }
           });
         }
-        // body에도 폰트 적용
-        clonedDoc.body.style.fontFamily = 'var(--font-noto-sans-kr), "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", "맑은 고딕", sans-serif';
       },
     });
 

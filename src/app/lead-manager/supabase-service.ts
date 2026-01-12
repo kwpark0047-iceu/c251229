@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Lead, LeadStatus, Settings, BusinessCategory } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { getOrganizationId } from './auth-service';
+import { createLeadKey } from './lead-utils';
 
 /**
  * Supabase 클라이언트 인스턴스 가져오기
@@ -61,7 +62,7 @@ export async function saveLeads(
     // 기존 데이터 키 세트 생성 (상호명 + 주소 조합)
     const existingSet = new Set<string>();
     (existingData || []).forEach(row => {
-      const key = `${(row.biz_name || '').trim()}||${(row.road_address || '').trim()}`;
+      const key = createLeadKey(row.biz_name, row.road_address);
       existingSet.add(key);
     });
 
@@ -72,7 +73,7 @@ export async function saveLeads(
     const skippedLeads: Lead[] = [];
 
     leads.forEach(lead => {
-      const key = `${(lead.bizName || '').trim()}||${(lead.roadAddress || '').trim()}`;
+      const key = createLeadKey(lead.bizName, lead.roadAddress);
       if (existingSet.has(key)) {
         skippedLeads.push(lead);
       } else {
@@ -145,6 +146,19 @@ export async function saveLeads(
           };
         }
 
+        // UNIQUE 제약조건 위반 시 (중복 데이터) - 개별 삽입 시도
+        if (error.code === '23505') {
+          console.warn('중복 데이터 발견, 개별 삽입 시도:', error.message);
+          for (const dbLead of dbLeads) {
+            const { error: singleError } = await supabase
+              .from('leads')
+              .insert(dbLead);
+            if (!singleError) {
+              savedCount++;
+            }
+          }
+          continue;
+        }
         return {
           success: false,
           message: `저장 오류: ${error.message} (코드: ${error.code || 'unknown'})`,
@@ -464,7 +478,7 @@ export async function removeDuplicateLeads(): Promise<{
     const duplicateIds: string[] = [];
 
     allLeads.forEach(lead => {
-      const key = `${(lead.biz_name || '').trim()}||${(lead.road_address || '').trim()}`;
+      const key = createLeadKey(lead.biz_name, lead.road_address);
       if (seen.has(key)) {
         // 이미 있으면 중복 - 삭제 대상
         duplicateIds.push(lead.id);

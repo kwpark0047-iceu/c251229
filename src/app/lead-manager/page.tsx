@@ -8,7 +8,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Search,
+
   Settings as SettingsIcon,
   RefreshCw,
   ChevronLeft,
@@ -19,13 +19,13 @@ import {
   Wifi,
   WifiOff,
   Download,
-  Filter,
+
   Package,
   Users,
   Upload,
-  Home,
+
   Calendar,
-  MapPin,
+
   LogOut,
   Building2,
   Copy,
@@ -35,7 +35,7 @@ import {
   FileImage,
 } from 'lucide-react';
 
-import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS, ServiceIdInfo } from './types';
+import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
@@ -86,7 +86,7 @@ export default function LeadManagerPage() {
     return 'HEALTH';
   });
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);  // 선택된 세부 서비스 ID들
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery] = useState<string>('');  // 검색 기능 (현재 미사용, 추후 구현)
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [mainTab, setMainTab] = useState<MainTab>('leads');
   const [showInventoryUpload, setShowInventoryUpload] = useState(false);
@@ -148,6 +148,7 @@ export default function LeadManagerPage() {
       setInitialLoading(false);
     };
     init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 초기 마운트 시에만 실행
   }, []);
 
   // 로그아웃 처리
@@ -187,6 +188,7 @@ export default function LeadManagerPage() {
     if (!initialLoading) {
       loadLeadsFromDB(categoryFilter);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- categoryFilter 변경 시에만 실행
   }, [categoryFilter]);
 
   // 상태 및 세부항목 필터 적용 (클라이언트 사이드)

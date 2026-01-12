@@ -27,6 +27,7 @@ export default function StationInfoModal({
     if (isOpen && stationName) {
       fetchStationInfo();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 의존성 고정
   }, [isOpen, stationName, selectedLine]);
 
   const fetchStationInfo = async () => {
@@ -44,7 +45,7 @@ export default function StationInfoModal({
         setError(response.error || '역사 정보를 찾을 수 없습니다.');
         setStationInfo(null);
       }
-    } catch (err) {
+    } catch {
       setError('역사 정보를 가져오는 중 오류가 발생했습니다.');
       setStationInfo(null);
     } finally {

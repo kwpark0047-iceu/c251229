@@ -20,7 +20,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 
-import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
+import { Lead, LeadStatus, STATUS_LABELS } from '../types';
 
 // Recharts 동적 임포트 (SSR 방지)
 const PieChart = dynamic(() => import('recharts').then(mod => mod.PieChart), { ssr: false });
@@ -66,6 +66,29 @@ const METRO_CHART_COLORS: Record<string, string> = {
   'K': '#77C4A3',
   'B': '#F5A200',
 };
+
+// 커스텀 툴팁 컴포넌트 (컴포넌트 외부에 정의하여 렌더링 시 재생성 방지)
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string; color: string }[]; label?: string }) {
+  if (active && payload && payload.length) {
+    return (
+      <div
+        className="px-3 py-2 rounded-lg shadow-lg border"
+        style={{
+          background: 'var(--bg-secondary)',
+          borderColor: 'var(--border-subtle)',
+        }}
+      >
+        <p className="text-sm font-medium text-[var(--text-primary)]">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm" style={{ color: entry.color }}>
+            {entry.name}: {entry.value}건
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
 
 export default function StatsDashboard({ leads, isExpanded = false, onToggle }: StatsDashboardProps) {
   const [activeChart, setActiveChart] = useState<'status' | 'trend' | 'line' | 'funnel'>('status');
@@ -185,29 +208,6 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle }: 
 
     return { total, contracted, conversionRate, thisWeekLeads, weeklyChange };
   }, [leads]);
-
-  // 커스텀 툴팁
-  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string; color: string }[]; label?: string }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div
-          className="px-3 py-2 rounded-lg shadow-lg border"
-          style={{
-            background: 'var(--bg-secondary)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          <p className="text-sm font-medium text-[var(--text-primary)]">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value}건
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (!isExpanded) {
     // 축소된 상태 - 요약 카드만 표시
@@ -478,7 +478,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle }: 
 
           {activeChart === 'funnel' && (
             <div className="flex flex-col gap-3" style={{ height: 280 }}>
-              {funnelData.map((stage, index) => (
+              {funnelData.map((stage) => (
                 <div key={stage.stage} className="flex items-center gap-4">
                   <div className="w-24 text-sm text-[var(--text-secondary)]">{stage.stage}</div>
                   <div className="flex-1 relative h-10">

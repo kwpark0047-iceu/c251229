@@ -31,10 +31,7 @@ async function loadKoreanFont(pdf: jsPDF): Promise<void> {
   }
 
   try {
-    // Google Fonts에서 Noto Sans KR 폰트 로드
-    const fontUrl = 'https://cdn.jsdelivr.net/npm/@aspect-ratio/noto-sans-kr-base64@1.0.0/NotoSansKR-Regular.js';
-
-    // 대체 방법: 직접 폰트 파일 로드
+    // Google Fonts에서 Noto Sans KR 폰트 로드 (직접 폰트 파일 로드)
     const response = await fetch('https://fonts.gstatic.com/s/notosanskr/v36/PbyxFmXiEBPT4ITbgNA5Cgms3VYcOA-vvnIzzuoyeLGC5n9iJx9M.woff2');
     const fontBuffer = await response.arrayBuffer();
 

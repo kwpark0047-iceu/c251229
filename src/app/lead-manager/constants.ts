@@ -63,7 +63,6 @@ export const SUBWAY_STATIONS: SubwayStation[] = [
   { name: '잠실나루', lat: 37.521419, lng: 127.102131, lines: ['2'] },
   { name: '잠실', lat: 37.513282, lng: 127.100150, lines: ['2', '8'] },
   { name: '잠실새내', lat: 37.511687, lng: 127.086162, lines: ['2'] },
-  { name: '종합운동장', lat: 37.510997, lng: 127.073642, lines: ['2', '9'] },
 
   // 3호선 (정확한 좌표)
   { name: '압구정', lat: 37.527026, lng: 127.028311, lines: ['3'] },

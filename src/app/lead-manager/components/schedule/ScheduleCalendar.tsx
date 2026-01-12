@@ -63,6 +63,7 @@ export default function ScheduleCalendar({
   }, [year, month]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadEvents();
   }, [loadEvents]);
 

@@ -133,6 +133,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     if (selectedStation) {
       loadInventory(selectedStation.name);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedStation만 의존
   }, [selectedStation]);
 
   const loadInventory = async (stationName: string) => {

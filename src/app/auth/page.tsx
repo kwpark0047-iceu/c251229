@@ -110,6 +110,7 @@ export function AuthContent() {
     // 마운트 상태를 ref로 추적하고 state는 한 번만 업데이트
     if (!mountedRef.current) {
       mountedRef.current = true
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMounted(true)
     }
   }, [])
