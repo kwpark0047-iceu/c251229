@@ -494,23 +494,53 @@ export async function POST(request: NextRequest) {
     const stationFloorPlans: Record<string, { imageUrl: string; planType: string }[]> = {};
 
     for (const station of topStations) {
-      const lineNumber = getStationLine(station.name);
-      if (lineNumber) {
-        // floor_plans 테이블에서 역명으로 조회
-        const { data: floorPlans } = await supabase
+      // 역명으로 도면 검색 (노선번호 없이 역명만으로 검색)
+      // 역명이 "강남"이면 "강남역", "강남" 모두 검색
+      const stationNameVariants = [
+        station.name,
+        `${station.name}역`,
+        station.name.replace('역', ''),
+      ];
+
+      let foundPlans: { imageUrl: string; planType: string }[] = [];
+
+      for (const nameVariant of stationNameVariants) {
+        if (foundPlans.length > 0) break;
+
+        // 먼저 정확한 역명 매칭 시도
+        const { data: exactMatch } = await supabase
           .from('floor_plans')
-          .select('image_url, plan_type, station_name')
-          .eq('line_number', lineNumber)
-          .ilike('station_name', `%${station.name}%`)
+          .select('image_url, plan_type, station_name, line_number')
+          .eq('station_name', nameVariant)
           .order('sort_order', { ascending: true })
           .limit(2);
 
-        if (floorPlans && floorPlans.length > 0) {
-          stationFloorPlans[station.name] = floorPlans.map(fp => ({
+        if (exactMatch && exactMatch.length > 0) {
+          foundPlans = exactMatch.map(fp => ({
+            imageUrl: fp.image_url,
+            planType: fp.plan_type === 'psd' ? 'PSD도면' : '역구내도면',
+          }));
+          break;
+        }
+
+        // 정확한 매칭 실패 시 부분 매칭
+        const { data: partialMatch } = await supabase
+          .from('floor_plans')
+          .select('image_url, plan_type, station_name, line_number')
+          .ilike('station_name', `%${nameVariant}%`)
+          .order('sort_order', { ascending: true })
+          .limit(2);
+
+        if (partialMatch && partialMatch.length > 0) {
+          foundPlans = partialMatch.map(fp => ({
             imageUrl: fp.image_url,
             planType: fp.plan_type === 'psd' ? 'PSD도면' : '역구내도면',
           }));
         }
+      }
+
+      if (foundPlans.length > 0) {
+        stationFloorPlans[station.name] = foundPlans;
       }
     }
 

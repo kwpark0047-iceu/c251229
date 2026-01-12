@@ -393,29 +393,62 @@ export default function ContactPage() {
     const { jsPDF } = await import('jspdf');
 
     const element = proposalRef.current;
+
+    // 폰트 로딩 대기
+    if (document.fonts && document.fonts.ready) {
+      await document.fonts.ready;
+    }
+
+    // 잠시 대기하여 렌더링 완료 보장
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: 3, // 고해상도로 캡처
       useCORS: true,
       allowTaint: true,
-      backgroundColor: '#1a1a2e',
+      backgroundColor: '#ffffff', // 흰색 배경으로 변경 (가독성 향상)
+      logging: false,
+      letterRendering: true, // 텍스트 렌더링 개선
+      foreignObjectRendering: false, // 호환성을 위해 비활성화
+      removeContainer: true,
+      imageTimeout: 15000,
+      onclone: (clonedDoc) => {
+        // 클론된 문서에서 한글 폰트 스타일 강제 적용
+        const clonedElement = clonedDoc.body.querySelector('[data-proposal-content]');
+        if (clonedElement instanceof HTMLElement) {
+          clonedElement.style.fontFamily = 'var(--font-noto-sans-kr), "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", "맑은 고딕", sans-serif';
+          // 모든 자식 요소에도 폰트 적용
+          clonedElement.querySelectorAll('*').forEach((el) => {
+            if (el instanceof HTMLElement) {
+              el.style.fontFamily = 'inherit';
+            }
+          });
+        }
+        // body에도 폰트 적용
+        clonedDoc.body.style.fontFamily = 'var(--font-noto-sans-kr), "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Malgun Gothic", "맑은 고딕", sans-serif';
+      },
     });
 
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/png', 1.0);
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgWidth = 210;
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const imgWidth = pageWidth;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
     let heightLeft = imgHeight;
     let position = 0;
 
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-    heightLeft -= 297;
+    // 첫 페이지
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+    heightLeft -= pageHeight;
 
+    // 추가 페이지
     while (heightLeft > 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= 297;
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= pageHeight;
     }
 
     pdf.save(`AI추천_제안서_${proposal?.id || 'proposal'}.pdf`);
@@ -720,7 +753,12 @@ export default function ContactPage() {
 
           {/* 제안서 표시 영역 - 6개 섹션 */}
           {proposal && (
-            <div ref={proposalRef} className="space-y-6">
+            <div
+              ref={proposalRef}
+              data-proposal-content="true"
+              className="space-y-6"
+              style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Malgun Gothic", "맑은 고딕", sans-serif' }}
+            >
               {/* 제안서 헤더 */}
               <div
                 className="p-8 rounded-3xl"
@@ -1158,10 +1196,12 @@ export default function ContactPage() {
         <div className="w-[calc(50%-2.5rem)] sticky top-16 h-[calc(100vh-4rem)]">
           <div className="h-full rounded-r-3xl overflow-hidden border-r border-[var(--border-subtle)] relative">
             <MapContainer
-              center={[37.5665, 126.9780]}
-              zoom={12}
+              center={[37.52, 126.95]}
+              zoom={11}
               style={{ height: '100%', width: '100%' }}
               zoomControl={true}
+              minZoom={10}
+              maxZoom={18}
             >
               <TileLayer
                 attribution='&copy; <a href="https://carto.com/">CARTO</a>'

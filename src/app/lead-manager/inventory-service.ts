@@ -35,10 +35,12 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
   await workbook.xlsx.load(buffer);
   const worksheet = workbook.worksheets[0];
 
-  // 전체 데이터를 배열로 변환 (헤더 없이)
+  // 전체 데이터를 배열로 변환 (ExcelJS row.values는 1-indexed이므로 0번째 요소 제거)
   const rawData: unknown[][] = [];
   worksheet.eachRow((row) => {
-    rawData.push(row.values as unknown[]);
+    const values = row.values as unknown[];
+    // ExcelJS는 1-indexed 배열을 반환하므로 첫 번째 요소(undefined) 제거
+    rawData.push(values.slice(1));
   });
 
   console.log('=== 엑셀 원본 데이터 ===');
@@ -54,12 +56,13 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
     if (!row || !Array.isArray(row)) continue;
 
     const rowStr = row.map(cell => String(cell || '').toLowerCase()).join(',');
-    // 역사, 유형, 위치명 중 2개 이상 포함하면 헤더 행
+    // 역사, 유형, 위치명, 단가 중 2개 이상 포함하면 헤더 행
     const hasStation = rowStr.includes('역사') || rowStr.includes('역명');
     const hasType = rowStr.includes('유형') || rowStr.includes('광고유형');
     const hasLocation = rowStr.includes('위치명') || rowStr.includes('위치코드');
+    const hasPrice = rowStr.includes('단가');
 
-    if ((hasStation && hasType) || (hasStation && hasLocation) || (hasType && hasLocation)) {
+    if ((hasStation && hasType) || (hasStation && hasLocation) || (hasType && hasLocation) || (hasStation && hasPrice)) {
       headerRowIndex = i;
       headers = row.map(cell => String(cell || '').trim());
       console.log(`헤더 발견 (행 ${i + 1}):`, headers);
@@ -85,7 +88,11 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
         obj[header] = row[idx];
       }
     });
-    jsonData.push(obj);
+
+    // 빈 객체가 아닌 경우에만 추가
+    if (Object.keys(obj).length > 0) {
+      jsonData.push(obj);
+    }
   }
 
   console.log('파싱된 데이터 수:', jsonData.length);
@@ -128,11 +135,35 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
     const line = getValueByKey(['호선']);
     const grade = getValueByKey(['등급']);
 
+    // 날짜 컬럼 확인하여 가용 상태 결정 (MM/DD 또는 숫자/문자가 있는 날짜 컬럼)
+    // 날짜 컬럼에 값이 있으면 계약됨(OCCUPIED), 없으면 가용(AVAILABLE)
+    let hasOccupiedDate = false;
+    for (const key of keys) {
+      // 날짜 패턴 확인 (01/05, 02/15 등) 또는 미사용 컬럼 제외
+      if (/^\d{2}\/\d{2}$/.test(key)) {
+        const cellValue = row[key];
+        // 값이 있으면 (null, undefined, '' 제외) 계약된 것으로 판단
+        if (cellValue !== null && cellValue !== undefined && cellValue !== '') {
+          hasOccupiedDate = true;
+          break;
+        }
+      }
+    }
+
+    // 상태 컬럼이 있으면 우선 사용, 없으면 날짜 컬럼 기반으로 판단
+    const statusFromExcel = getValueByKey(['상태', 'status']);
+    let availabilityStatus: AvailabilityStatus;
+    if (statusFromExcel) {
+      availabilityStatus = mapAvailabilityStatus(statusFromExcel);
+    } else {
+      availabilityStatus = hasOccupiedDate ? 'OCCUPIED' : 'AVAILABLE';
+    }
+
     // 디버깅: 첫 3개 행
     if (index < 3) {
       console.log(`=== 행 ${index + 2} ===`);
       console.log('원본 데이터:', row);
-      console.log(`파싱 결과: 역명="${stationName}", 위치코드="${locationCode}", 광고유형="${adType}" (엑셀="${adTypeFromExcel}", 기본="${defaultMediaType}")`);
+      console.log(`파싱 결과: 역명="${stationName}", 위치코드="${locationCode}", 광고유형="${adType}", 상태="${availabilityStatus}" (날짜컬럼계약여부=${hasOccupiedDate})`);
     }
 
     // 설명에 호선, 등급, 메모 포함
@@ -149,7 +180,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
       adSize: getValueByKey(['크기(mm)', '크기', 'ad_size']) || undefined,
       priceMonthly: parseFloat(String(getValueByKey(['단가(월)', '월단가', 'price_monthly'])).replace(/,/g, '')) || undefined,
       priceWeekly: parseFloat(String(getValueByKey(['단가(주)', '주단가', 'price_weekly'])).replace(/,/g, '')) || undefined,
-      availabilityStatus: mapAvailabilityStatus(getValueByKey(['상태', 'status']) || 'AVAILABLE'),
+      availabilityStatus,
       description: descParts.length > 0 ? descParts.join(' / ') : undefined,
     };
   });
