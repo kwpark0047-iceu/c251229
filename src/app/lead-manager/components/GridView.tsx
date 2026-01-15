@@ -16,7 +16,7 @@ import {
   User,
 } from 'lucide-react';
 
-import { Lead, LeadStatus, STATUS_LABELS, STATUS_METRO_COLORS, LINE_COLORS } from '../types';
+import { Lead, LeadStatus, STATUS_LABELS, STATUS_METRO_COLORS, LINE_COLORS, SalesProgress } from '../types';
 import { formatDistance, truncateString, getHighlightParts } from '../utils';
 import CallLogModal from './crm/CallLogModal';
 import LeadDetailPanel from './crm/LeadDetailPanel';
@@ -27,9 +27,10 @@ interface GridViewProps {
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   searchQuery?: string;
   onMapView?: (lead: Lead) => void;
+  progressMap?: Map<string, SalesProgress[]>;
 }
 
-export default function GridView({ leads, onStatusChange, searchQuery = '', onMapView }: GridViewProps) {
+export default function GridView({ leads, onStatusChange, searchQuery = '', onMapView, progressMap }: GridViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   return (
@@ -44,6 +45,7 @@ export default function GridView({ leads, onStatusChange, searchQuery = '', onMa
             onSelect={() => setSelectedLeadId(lead.id)}
             searchQuery={searchQuery}
             onMapView={() => onMapView?.(lead)}
+            progress={progressMap?.get(lead.id)}
           />
         ))}
       </div>
@@ -83,9 +85,10 @@ interface LeadCardProps {
   onSelect: () => void;
   searchQuery?: string;
   onMapView?: () => void;
+  progress?: SalesProgress[];
 }
 
-function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onMapView }: LeadCardProps) {
+function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onMapView, progress }: LeadCardProps) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const statusColor = STATUS_METRO_COLORS[lead.status];
@@ -129,7 +132,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               >
                 {STATUS_LABELS[lead.status]}
               </span>
-              <ProgressDots leadId={lead.id} />
+              <ProgressDots leadId={lead.id} progress={progress} />
             </div>
             <div className="relative">
               <button

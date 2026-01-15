@@ -8,60 +8,31 @@ import { AdInventory } from '../lead-manager/types';
 // 기본 타입
 // ============================================
 
-// 지원하는 노선
-export type MetroLine = '1' | '2' | '5' | '7' | '8';
+import { MetroLine, PlanType, FloorPlan as SharedFloorPlan, PLAN_TYPE_LABELS } from '../shared/types';
+import { LINE_COLORS, LINE_NAMES } from '../shared/constants';
 
-// 도면 유형
-export type PlanType = 'station_layout' | 'psd';
+// ============================================
+// 기본 타입
+// ============================================
 
-// 노선 정보
+// Re-exports & Aliases
+export type { MetroLine, PlanType };
+export { PLAN_TYPE_LABELS };
+
 export const METRO_LINES: MetroLine[] = ['1', '2', '5', '7', '8'];
-
-// 노선명 매핑
-export const METRO_LINE_NAMES: Record<MetroLine, string> = {
-  '1': '1호선',
-  '2': '2호선',
-  '5': '5호선',
-  '7': '7호선',
-  '8': '8호선',
-};
-
-// 노선 색상
-export const METRO_LINE_COLORS: Record<MetroLine, string> = {
-  '1': '#0052A4',
-  '2': '#00A84D',
-  '5': '#996CAC',
-  '7': '#747F00',
-  '8': '#E6186C',
-};
-
-// 도면 유형 라벨
-export const PLAN_TYPE_LABELS: Record<PlanType, string> = {
-  'station_layout': '역구내도면',
-  'psd': 'PSD도면',
-};
+export const METRO_LINE_NAMES = LINE_NAMES;
+export const METRO_LINE_COLORS = LINE_COLORS;
 
 // ============================================
 // 도면 관련 타입
 // ============================================
 
 // 도면 데이터
-export interface FloorPlan {
-  id: string;
-  stationName: string;
+// 도면 데이터 (Shared 확장 + 필수 필드 지정)
+export interface FloorPlan extends SharedFloorPlan {
   lineNumber: MetroLine;
   planType: PlanType;
-  floorName: string;
-  imageUrl: string;
-  thumbnailUrl?: string;
-  storagePath?: string;
-  fileName?: string;
-  fileSize?: number;
-  width?: number;
-  height?: number;
   sortOrder: number;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 // 도면 입력 데이터

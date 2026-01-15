@@ -2,7 +2,7 @@
  * 업무/스케줄 관리 서비스
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/utils';
 import {
   Task,
   TaskWithLead,
@@ -13,13 +13,6 @@ import {
   CallLog,
 } from './types';
 import { getOrganizationId } from './auth-service';
-
-/**
- * Supabase 클라이언트 인스턴스 가져오기
- */
-function getSupabase() {
-  return createClient();
-}
 
 // ============================================
 // Task 타입 변환 헬퍼

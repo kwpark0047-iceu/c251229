@@ -4,7 +4,7 @@
  */
 
 import { jsPDF } from 'jspdf';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/utils';
 import {
   Proposal,
   ProposalStatus,
@@ -13,10 +13,6 @@ import {
   EffectAnalysis,
 } from './types';
 import { getOrganizationId } from './auth-service';
-
-function getSupabase() {
-  return createClient();
-}
 
 // 한글 폰트 로드 상태
 let koreanFontLoaded = false;
@@ -47,7 +43,7 @@ async function loadKoreanFont(pdf: jsPDF): Promise<void> {
 
     koreanFontLoaded = true;
   } catch (error) {
-    console.warn('한글 폰트 로드 실패, 기본 폰트 사용:', error);
+    // 한글 폰트 로드 실패 시 기본 폰트 사용 (에러 무시)
   }
 }
 

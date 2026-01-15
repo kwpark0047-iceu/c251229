@@ -4,7 +4,7 @@
  */
 
 import ExcelJS from 'exceljs';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/utils';
 import {
   AdInventory,
   AvailabilityStatus,
@@ -16,10 +16,6 @@ import {
 import { calculateDistance } from './utils';
 import { SUBWAY_STATIONS } from './constants';
 import { getOrganizationId } from './auth-service';
-
-function getSupabase() {
-  return createClient();
-}
 
 // ============================================
 // 엑셀 파싱 및 업로드
@@ -43,9 +39,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
     rawData.push(values.slice(1));
   });
 
-  console.log('=== 엑셀 원본 데이터 ===');
-  console.log('전체 행 수:', rawData.length);
-  console.log('처음 5행:', rawData.slice(0, 5));
+  // 디버그 로그 제거 (필요시 개발 환경에서만 활성화)
 
   // 헤더 행 찾기 (역사, 유형, 위치명 등이 포함된 행)
   let headerRowIndex = -1;
@@ -65,7 +59,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
     if ((hasStation && hasType) || (hasStation && hasLocation) || (hasType && hasLocation) || (hasStation && hasPrice)) {
       headerRowIndex = i;
       headers = row.map(cell => String(cell || '').trim());
-      console.log(`헤더 발견 (행 ${i + 1}):`, headers);
+      // 헤더 발견
       break;
     }
   }
@@ -95,9 +89,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
     }
   }
 
-  console.log('파싱된 데이터 수:', jsonData.length);
-  if (jsonData.length > 0) {
-    console.log('첫 번째 데이터:', jsonData[0]);
+  // 파싱 완료
   }
 
   return jsonData.map((row, index) => {
@@ -160,11 +152,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
     }
 
     // 디버깅: 첫 3개 행
-    if (index < 3) {
-      console.log(`=== 행 ${index + 2} ===`);
-      console.log('원본 데이터:', row);
-      console.log(`파싱 결과: 역명="${stationName}", 위치코드="${locationCode}", 광고유형="${adType}", 상태="${availabilityStatus}" (날짜컬럼계약여부=${hasOccupiedDate})`);
-    }
+    // 파싱 진행 중 (디버그 로그 제거)
 
     // 설명에 호선, 등급, 메모 포함
     const memo = getValueByKey(['메모', '설명', 'description']);

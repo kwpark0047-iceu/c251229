@@ -3,7 +3,7 @@
  * 통화 기록, 진행 상황 관리, 이메일 연동
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/utils';
 import {
   CallLog,
   CallOutcome,
@@ -14,10 +14,6 @@ import {
   Proposal,
 } from './types';
 import { getOrganizationId } from './auth-service';
-
-function getSupabase() {
-  return createClient();
-}
 
 // ============================================
 // 통화 기록
@@ -98,23 +94,158 @@ export async function getCallLogs(leadId: string): Promise<CallLog[]> {
 }
 
 /**
- * 오늘 콜백 예정인 리드 조회
+ * 오늘 콜백 예정 리드 조회
  */
-export async function getTodayCallbacks(): Promise<CallLog[]> {
+export async function getTodayCallbacks(): Promise<Array<{
+  callLog: CallLog;
+  lead: Lead;
+}>> {
   const supabase = getSupabase();
   const today = new Date().toISOString().split('T')[0];
 
   const { data, error } = await supabase
     .from('call_logs')
-    .select('*')
+    .select(`
+      *,
+      leads (
+        id,
+        biz_name,
+        phone,
+        road_address,
+        nearest_station,
+        status
+      )
+    `)
     .eq('next_contact_date', today)
-    .order('called_at', { ascending: false });
+    .not('next_contact_date', 'is', null)
+    .order('next_contact_date', { ascending: true });
 
   if (error || !data) {
     return [];
   }
 
-  return data.map(mapCallLogFromDB);
+  return data
+    .filter(row => row.leads) // leads가 있는 것만
+    .map(row => {
+      const lead = Array.isArray(row.leads) ? row.leads[0] : row.leads;
+      return {
+        callLog: mapCallLogFromDB(row),
+        lead: {
+          id: lead.id as string,
+          bizName: lead.biz_name as string,
+          phone: lead.phone as string | undefined,
+          roadAddress: lead.road_address as string | undefined,
+          nearestStation: lead.nearest_station as string | undefined,
+          status: lead.status as Lead['status'],
+        },
+      };
+    });
+}
+
+/**
+ * 이번 주 콜백 예정 리드 조회
+ */
+export async function getWeekCallbacks(): Promise<Array<{
+  callLog: CallLog;
+  lead: Lead;
+}>> {
+  const supabase = getSupabase();
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+  const startDate = startOfWeek.toISOString().split('T')[0];
+  const endDate = endOfWeek.toISOString().split('T')[0];
+
+  const { data, error } = await supabase
+    .from('call_logs')
+    .select(`
+      *,
+      leads (
+        id,
+        biz_name,
+        phone,
+        road_address,
+        nearest_station,
+        status
+      )
+    `)
+    .gte('next_contact_date', startDate)
+    .lte('next_contact_date', endDate)
+    .not('next_contact_date', 'is', null)
+    .order('next_contact_date', { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data
+    .filter(row => row.leads)
+    .map(row => {
+      const lead = Array.isArray(row.leads) ? row.leads[0] : row.leads;
+      return {
+        callLog: mapCallLogFromDB(row),
+        lead: {
+          id: lead.id as string,
+          bizName: lead.biz_name as string,
+          phone: lead.phone as string | undefined,
+          roadAddress: lead.road_address as string | undefined,
+          nearestStation: lead.nearest_station as string | undefined,
+          status: lead.status as Lead['status'],
+        },
+      };
+    });
+}
+
+/**
+ * 오늘 콜백 예정 리드 조회 (리드 정보 포함)
+ */
+export async function getTodayCallbacks(): Promise<Array<{
+  callLog: CallLog;
+  lead: Lead;
+}>> {
+  const supabase = getSupabase();
+  const today = new Date().toISOString().split('T')[0];
+
+  const { data, error } = await supabase
+    .from('call_logs')
+    .select(`
+      *,
+      leads (
+        id,
+        biz_name,
+        phone,
+        road_address,
+        nearest_station,
+        status
+      )
+    `)
+    .eq('next_contact_date', today)
+    .not('next_contact_date', 'is', null)
+    .order('next_contact_date', { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return data
+    .filter(row => row.leads) // leads가 있는 것만
+    .map(row => {
+      const lead = Array.isArray(row.leads) ? row.leads[0] : row.leads;
+      return {
+        callLog: mapCallLogFromDB(row),
+        lead: {
+          id: lead.id as string,
+          bizName: lead.biz_name as string,
+          phone: lead.phone as string | undefined,
+          roadAddress: lead.road_address as string | undefined,
+          nearestStation: lead.nearest_station as string | undefined,
+          status: lead.status as Lead['status'],
+        },
+      };
+    });
 }
 
 // ============================================
@@ -209,6 +340,47 @@ export async function getProgress(leadId: string): Promise<SalesProgress[]> {
     completedAt: row.completed_at,
     notes: row.notes,
   }));
+}
+
+/**
+ * 여러 리드의 진행 상황 일괄 조회 (API 호출 최적화)
+ */
+export async function getProgressBatch(leadIds: string[]): Promise<Map<string, SalesProgress[]>> {
+  const result = new Map<string, SalesProgress[]>();
+
+  if (leadIds.length === 0) {
+    return result;
+  }
+
+  const supabase = getSupabase();
+
+  const { data, error } = await supabase
+    .from('sales_progress')
+    .select('*')
+    .in('lead_id', leadIds);
+
+  if (error || \!data) {
+    leadIds.forEach(id => result.set(id, []));
+    return result;
+  }
+
+  // leadId별로 그룹화
+  leadIds.forEach(id => result.set(id, []));
+
+  data.forEach(row => {
+    const progress: SalesProgress = {
+      id: row.id,
+      leadId: row.lead_id,
+      step: row.step as ProgressStep,
+      completedAt: row.completed_at,
+      notes: row.notes,
+    };
+    const existing = result.get(row.lead_id) || [];
+    existing.push(progress);
+    result.set(row.lead_id, existing);
+  });
+
+  return result;
 }
 
 /**

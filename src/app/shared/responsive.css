@@ -1,0 +1,660 @@
+/**
+ * 반응형 CSS 유틸리티
+ * Tailwind CSS 커스텀 클래스
+ */
+
+/* 반응형 그리드 시스템 */
+.responsive-grid {
+  @apply grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-grid {
+    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    gap: 2rem;
+  }
+}
+
+/* 반응형 텍스트 */
+.responsive-text-xs {
+  @apply text-xs;
+}
+
+@media (min-width: 768px) {
+  .responsive-text-xs {
+    @apply text-sm;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-text-xs {
+    @apply text-base;
+  }
+}
+
+.responsive-text-sm {
+  @apply text-sm;
+}
+
+@media (min-width: 768px) {
+  .responsive-text-sm {
+    @apply text-base;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-text-sm {
+    @apply text-lg;
+  }
+}
+
+.responsive-text-base {
+  @apply text-base;
+}
+
+@media (min-width: 768px) {
+  .responsive-text-base {
+    @apply text-lg;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-text-base {
+    @apply text-xl;
+  }
+}
+
+/* 반응형 패딩 */
+.responsive-padding-sm {
+  @apply p-2;
+}
+
+@media (min-width: 640px) {
+  .responsive-padding-sm {
+    @apply p-3;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-padding-sm {
+    @apply p-4;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-padding-sm {
+    @apply p-6;
+  }
+}
+
+.responsive-padding-md {
+  @apply p-3;
+}
+
+@media (min-width: 640px) {
+  .responsive-padding-md {
+    @apply p-4;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-padding-md {
+    @apply p-6;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-padding-md {
+    @apply p-8;
+  }
+}
+
+.responsive-padding-lg {
+  @apply p-4;
+}
+
+@media (min-width: 640px) {
+  .responsive-padding-lg {
+    @apply p-6;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-padding-lg {
+    @apply p-8;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-padding-lg {
+    @apply p-10;
+  }
+}
+
+/* 반응형 마진 */
+.responsive-margin-sm {
+  @apply m-2;
+}
+
+@media (min-width: 640px) {
+  .responsive-margin-sm {
+    @apply m-3;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-margin-sm {
+    @apply m-4;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-margin-sm {
+    @apply m-6;
+  }
+}
+
+.responsive-margin-md {
+  @apply m-3;
+}
+
+@media (min-width: 640px) {
+  .responsive-margin-md {
+    @apply m-4;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-margin-md {
+    @apply m-6;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-margin-md {
+    @apply m-8;
+  }
+}
+
+/* 반응형 카드 */
+.responsive-card {
+  @apply bg-white rounded-lg shadow-sm p-4;
+}
+
+@media (min-width: 640px) {
+  .responsive-card {
+    @apply p-6;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-card {
+    @apply p-8;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-card {
+    @apply p-10;
+  }
+}
+
+/* 반응형 버튼 */
+.responsive-btn-sm {
+  @apply px-3 py-1.5 text-sm;
+}
+
+@media (min-width: 640px) {
+  .responsive-btn-sm {
+    @apply px-4 py-2;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-btn-sm {
+    @apply px-5 py-2.5;
+  }
+}
+
+.responsive-btn-md {
+  @apply px-4 py-2 text-base;
+}
+
+@media (min-width: 640px) {
+  .responsive-btn-md {
+    @apply px-6 py-3;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-btn-md {
+    @apply px-8 py-4;
+  }
+}
+
+.responsive-btn-lg {
+  @apply px-6 py-3 text-lg;
+}
+
+@media (min-width: 640px) {
+  .responsive-btn-lg {
+    @apply px-8 py-4;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-btn-lg {
+    @apply px-10 py-5;
+  }
+}
+
+/* 반응형 네비게이션 */
+.responsive-nav {
+  @apply flex flex-col space-y-1;
+}
+
+@media (min-width: 768px) {
+  .responsive-nav {
+    @apply flex-row space-x-1 space-y-0;
+  }
+}
+
+/* 반응형 사이드바 */
+.responsive-sidebar {
+  @apply fixed top-0 left-0 h-full w-64 bg-white shadow-lg transform -translate-x-full transition-transform duration-300 z-50;
+}
+
+@media (min-width: 1024px) {
+  .responsive-sidebar {
+    @apply relative transform translate-x-0 w-64;
+  }
+}
+
+.responsive-sidebar.open {
+  @apply translate-x-0;
+}
+
+/* 반응형 헤더 */
+.responsive-header {
+  @apply bg-white shadow-sm border-b;
+}
+
+.responsive-header .container {
+  @apply px-4 py-3;
+}
+
+@media (min-width: 640px) {
+  .responsive-header .container {
+    @apply px-6 py-4;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-header .container {
+    @apply px-8 py-5;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-header .container {
+    @apply px-12 py-6;
+  }
+}
+
+/* 반응형 테이블 */
+.responsive-table {
+  @apply w-full text-sm;
+}
+
+@media (min-width: 640px) {
+  .responsive-table {
+    @apply text-base;
+  }
+}
+
+.responsive-table th,
+.responsive-table td {
+  @apply px-2 py-1;
+}
+
+@media (min-width: 640px) {
+  .responsive-table th,
+  .responsive-table td {
+    @apply px-4 py-2;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-table th,
+  .responsive-table td {
+    @apply px-6 py-3;
+  }
+}
+
+/* 반응형 폼 */
+.responsive-form {
+  @apply space-y-3;
+}
+
+@media (min-width: 640px) {
+  .responsive-form {
+    @apply space-y-4;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-form {
+    @apply space-y-6;
+  }
+}
+
+.responsive-form input,
+.responsive-form select,
+.responsive-form textarea {
+  @apply text-sm px-3 py-2;
+}
+
+@media (min-width: 640px) {
+  .responsive-form input,
+  .responsive-form select,
+  .responsive-form textarea {
+    @apply text-base px-4 py-3;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-form input,
+  .responsive-form select,
+  .responsive-form textarea {
+    @apply text-lg px-5 py-4;
+  }
+}
+
+/* 반응형 컨테이너 */
+.responsive-container {
+  @apply mx-auto px-4;
+}
+
+@media (min-width: 640px) {
+  .responsive-container {
+    @apply px-6;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-container {
+    @apply px-8;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-container {
+    @apply px-12;
+  }
+}
+
+/* 반응형 그리드 카드 레이아웃 */
+.responsive-card-grid {
+  @apply grid grid-cols-1 gap-4;
+}
+
+@media (min-width: 640px) {
+  .responsive-card-grid {
+    @apply grid-cols-2 gap-6;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-card-grid {
+    @apply grid-cols-3 gap-8;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-card-grid {
+    @apply grid-cols-4 gap-10;
+  }
+}
+
+/* 반응형 통계 카드 */
+.responsive-stats-grid {
+  @apply grid grid-cols-2 gap-3;
+}
+
+@media (min-width: 640px) {
+  .responsive-stats-grid {
+    @apply grid-cols-3 gap-4;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-stats-grid {
+    @apply grid-cols-4 gap-6;
+  }
+}
+
+/* 반응형 플로팅 액션 버튼 */
+.responsive-fab {
+  @apply fixed bottom-4 right-4 w-12 h-12 bg-blue-500 text-white rounded-full shadow-lg flex items-center justify-center;
+}
+
+@media (min-width: 640px) {
+  .responsive-fab {
+    @apply bottom-6 right-6 w-14 h-14;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-fab {
+    @apply bottom-8 right-8 w-16 h-16;
+  }
+}
+
+/* 반응형 모달 */
+.responsive-modal {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50;
+}
+
+.responsive-modal .content {
+  @apply bg-white rounded-lg w-full max-w-md;
+}
+
+@media (min-width: 640px) {
+  .responsive-modal .content {
+    @apply max-w-lg;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-modal .content {
+    @apply max-w-2xl;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-modal .content {
+    @apply max-w-4xl;
+  }
+}
+
+/* 반응형 드롭다운 */
+.responsive-dropdown {
+  @apply relative;
+}
+
+.responsive-dropdown .content {
+  @apply absolute top-full left-0 mt-1 w-48 bg-white rounded-lg shadow-lg z-10;
+}
+
+@media (min-width: 768px) {
+  .responsive-dropdown .content {
+    @apply w-56;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-dropdown .content {
+    @apply w-64;
+  }
+}
+
+/* 반응형 탭 */
+.responsive-tabs {
+  @apply flex flex-col space-y-2;
+}
+
+@media (min-width: 640px) {
+  .responsive-tabs {
+    @apply flex-row space-x-2 space-y-0;
+  }
+}
+
+.responsive-tabs .tab {
+  @apply px-3 py-2 text-sm rounded-lg;
+}
+
+@media (min-width: 640px) {
+  .responsive-tabs .tab {
+    @apply px-4 py-3 text-base;
+  }
+}
+
+/* 반응형 로딩 스피너 */
+.responsive-spinner {
+  @apply w-6 h-6;
+}
+
+@media (min-width: 640px) {
+  .responsive-spinner {
+    @apply w-8 h-8;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-spinner {
+    @apply w-10 h-10;
+  }
+}
+
+/* 반응형 아이콘 */
+.responsive-icon-sm {
+  @apply w-4 h-4;
+}
+
+@media (min-width: 640px) {
+  .responsive-icon-sm {
+    @apply w-5 h-5;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-icon-sm {
+    @apply w-6 h-6;
+  }
+}
+
+.responsive-icon-md {
+  @apply w-5 h-5;
+}
+
+@media (min-width: 640px) {
+  .responsive-icon-md {
+    @apply w-6 h-6;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-icon-md {
+    @apply w-7 h-7;
+  }
+}
+
+.responsive-icon-lg {
+  @apply w-6 h-6;
+}
+
+@media (min-width: 640px) {
+  .responsive-icon-lg {
+    @apply w-8 h-8;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-icon-lg {
+    @apply w-10 h-10;
+  }
+}
+
+/* 반응형 숨김/표시 */
+.hidden-sm {
+  @apply block;
+}
+
+@media (min-width: 640px) {
+  .hidden-sm {
+    @apply hidden;
+  }
+}
+
+.hidden-md {
+  @apply block;
+}
+
+@media (min-width: 768px) {
+  .hidden-md {
+    @apply hidden;
+  }
+}
+
+.hidden-lg {
+  @apply block;
+}
+
+@media (min-width: 1024px) {
+  .hidden-lg {
+    @apply hidden;
+  }
+}
+
+.visible-sm {
+  @apply hidden;
+}
+
+@media (min-width: 640px) {
+  .visible-sm {
+    @apply block;
+  }
+}
+
+.visible-md {
+  @apply hidden;
+}
+
+@media (min-width: 768px) {
+  .visible-md {
+    @apply block;
+  }
+}
+
+.visible-lg {
+  @apply hidden;
+}
+
+@media (min-width: 1024px) {
+  .visible-lg {
+    @apply block;
+  }
+}

@@ -65,21 +65,34 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
   // 광고 유형 목록
   const adTypes = [...new Set(inventory.map(i => i.adType))];
 
-  // 상태 변경
+  // 상태 변경 (로컬 상태 직접 업데이트로 최적화)
   const handleStatusChange = async (id: string, newStatus: AvailabilityStatus) => {
+    // 낙관적 업데이트: UI 먼저 변경
+    setInventory(prev => prev.map(item =>
+      item.id === id ? { ...item, availabilityStatus: newStatus } : item
+    ));
+
     const result = await updateInventoryStatus(id, newStatus);
-    if (result.success) {
+    if (!result.success) {
+      // 실패 시 원복을 위해 재조회
       loadInventory();
     }
   };
 
-  // 삭제
+  // 삭제 (로컬 상태 직접 업데이트로 최적화)
   const handleDelete = async (id: string) => {
     if (!confirm('이 광고매체를 삭제하시겠습니까?')) return;
+
+    // 낙관적 업데이트: UI에서 먼저 제거
+    const previousInventory = inventory;
+    setInventory(prev => prev.filter(item => item.id !== id));
+
     const result = await deleteInventory(id);
     if (result.success) {
-      loadInventory();
       onRefresh?.();
+    } else {
+      // 실패 시 원복
+      setInventory(previousInventory);
     }
   };
 

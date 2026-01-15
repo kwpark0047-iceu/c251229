@@ -86,26 +86,8 @@ export interface SubwayStation {
   lines: string[];
 }
 
-// 노선별 색상
-export const LINE_COLORS: Record<string, string> = {
-  '1': '#0052A4',   // 1호선 - 파랑
-  '2': '#00A84D',   // 2호선 - 녹색
-  '3': '#EF7C1C',   // 3호선 - 주황
-  '4': '#00A5DE',   // 4호선 - 하늘색
-  '5': '#996CAC',   // 5호선 - 보라
-  '6': '#CD7C2F',   // 6호선 - 황토
-  '7': '#747F00',   // 7호선 - 올리브
-  '8': '#E6186C',   // 8호선 - 분홍
-  '9': '#BDB092',   // 9호선 - 금색
-  'S': '#77C4A3',   // 신분당선 - 빨강
-  'K': '#7CA8D5',   // 경의중앙선 - 청록
-  'A': '#0090D2',   // 공항철도 - 파랑
-  'B': '#F5A200',   // 분당선 - 노랑
-  'G': '#6EBE46',   // 경춘선 - 연두
-  'I': '#FA5F2C',   // 인천1호선 - 주황
-  'U': '#B0CE18',   // 우이신설선 - 연두
-  'W': '#76A4D6',   // 서해선 - 파랑
-};
+// 노선별 색상 (Shared에서 가져옴)
+export { LINE_COLORS } from '../shared/constants';
 
 // 뷰 모드 타입
 export type ViewMode = 'grid' | 'list' | 'map';
@@ -281,15 +263,7 @@ export interface AdInventory {
   updatedAt?: string;
 }
 
-export interface FloorPlan {
-  id: string;
-  stationName: string;
-  floorName: string;
-  imageUrl: string;
-  thumbnailUrl?: string;
-  width?: number;
-  height?: number;
-}
+export type { FloorPlan } from '../shared/types';
 
 // ============================================
 // 제안서 타입

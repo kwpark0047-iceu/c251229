@@ -27,6 +27,7 @@ import StationList from './components/StationList';
 import FloorPlanViewer from './components/FloorPlanViewer';
 import BatchDownloadModal from './components/BatchDownloadModal';
 import FloorPlanUploadModal from './components/FloorPlanUploadModal';
+import AdPositionDetailModal from './components/AdPositionDetailModal';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export default function FloorPlansPage() {
@@ -37,6 +38,7 @@ export default function FloorPlansPage() {
   const [plans, setPlans] = useState<FloorPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<FloorPlan | null>(null);
   const [adPositions, setAdPositions] = useState<AdPosition[]>([]);
+  const [selectedPosition, setSelectedPosition] = useState<AdPosition | null>(null);
   const [planCounts, setPlanCounts] = useState<Record<MetroLine, { station_layout: number; psd: number }> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,8 +151,7 @@ export default function FloorPlansPage() {
 
   // 광고 위치 클릭
   const handlePositionClick = (position: AdPosition) => {
-    console.log('광고 위치 클릭:', position);
-    // TODO: 상세 정보 모달 표시
+    setSelectedPosition(position);
   };
 
   const lineColor = METRO_LINE_COLORS[selectedLine];
@@ -323,6 +324,13 @@ export default function FloorPlansPage() {
           loadPlans();
         }}
         defaultLine={selectedLine}
+      />
+
+      {/* 광고 위치 상세 모달 */}
+      <AdPositionDetailModal
+        isOpen={!!selectedPosition}
+        onClose={() => setSelectedPosition(null)}
+        position={selectedPosition}
       />
     </div>
   );

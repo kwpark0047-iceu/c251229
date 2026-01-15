@@ -33,6 +33,8 @@ import {
   Train,
   Zap,
   FileImage,
+  Search,
+  X,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS } from './types';
@@ -41,6 +43,9 @@ import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
 import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings } from './supabase-service';
 import { getCurrentUser, signOut, UserInfo } from './auth-service';
+import { getProgressBatch } from './crm-service';
+import { SalesProgress } from './types';
+import { isAddressInRegions, RegionCode } from './region-utils';
 
 import GridView from './components/GridView';
 import ListView from './components/ListView';
@@ -53,6 +58,7 @@ import BackupButton from './components/BackupButton';
 import ThemeToggle from '@/components/ThemeToggle';
 import { ScheduleCalendar, TaskBoard, TaskFormModal } from './components/schedule';
 import { TaskWithLead } from './types';
+import CallbackNotification from './components/CallbackNotification';
 
 type MainTab = 'leads' | 'inventory' | 'schedule';
 
@@ -86,13 +92,14 @@ export default function LeadManagerPage() {
     return 'HEALTH';
   });
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);  // 선택된 세부 서비스 ID들
-  const [searchQuery] = useState<string>('');  // 검색 기능 (현재 미사용, 추후 구현)
+  const [searchQuery, setSearchQuery] = useState<string>('');  // 검색 기능
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
   const [mainTab, setMainTab] = useState<MainTab>('leads');
   const [showInventoryUpload, setShowInventoryUpload] = useState(false);
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
   const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [mapFocusLead, setMapFocusLead] = useState<Lead | null>(null);  // 지도에서 포커스할 리드
+  const [progressMap, setProgressMap] = useState<Map<string, SalesProgress[]>>(new Map());  // 리드별 진행상황
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);  // 통계 대시보드 확장 상태
 
   // 스케줄 관련 상태
@@ -183,17 +190,45 @@ export default function LeadManagerPage() {
     }
   }, [categoryFilter]);
 
-  // 업종 필터 변경 시 DB에서 다시 로드
+  // 업종/지역 필터 변경 시 DB에서 다시 로드 (초기 로드 후에만)
   useEffect(() => {
     if (!initialLoading) {
-      loadLeadsFromDB(categoryFilter);
+      loadLeadsFromDB(categoryFilter, selectedRegions);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- categoryFilter 변경 시에만 실행
-  }, [categoryFilter]);
+    // initialLoading은 조건으로만 사용 (초기 로드 완료 후 필터 변경 시에만 실행)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryFilter, selectedRegions, loadLeadsFromDB]);
 
-  // 상태 및 세부항목 필터 적용 (클라이언트 사이드)
+  // 상태, 세부항목, 검색 필터 적용 (클라이언트 사이드)
   useEffect(() => {
     let filtered = leads;
+
+    // 지역 필터 적용 (검색 전에 먼저 적용)
+    if (selectedRegions.length > 0) {
+      filtered = filtered.filter(lead => {
+        const address = lead.roadAddress || lead.lotAddress || '';
+        return isAddressInRegions(address, selectedRegions as RegionCode[]);
+      });
+    }
+
+    // 검색 필터 적용
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(lead => {
+        const bizName = (lead.bizName || '').toLowerCase();
+        const roadAddress = (lead.roadAddress || '').toLowerCase();
+        const lotAddress = (lead.lotAddress || '').toLowerCase();
+        const phone = (lead.phone || '').replace(/\D/g, ''); // 숫자만 추출
+        const queryNumbers = query.replace(/\D/g, ''); // 검색어에서 숫자만 추출
+        
+        return (
+          bizName.includes(query) ||
+          roadAddress.includes(query) ||
+          lotAddress.includes(query) ||
+          (queryNumbers && phone.includes(queryNumbers))
+        );
+      });
+    }
 
     // 세부항목 필터 적용 (선택된 serviceIds가 있으면 해당 항목만 표시)
     if (selectedServiceIds.length > 0) {
@@ -206,7 +241,7 @@ export default function LeadManagerPage() {
     }
 
     setFilteredLeads(filtered);
-  }, [leads, statusFilter, selectedServiceIds]);
+  }, [leads, selectedRegions, statusFilter, selectedServiceIds, searchQuery]);
 
   // 설정 로드
   const loadSettings = async () => {
@@ -216,15 +251,22 @@ export default function LeadManagerPage() {
     }
   };
 
-  // DB에서 리드 로드 (선택된 업종 필터 적용)
-  const loadLeadsFromDB = async (category?: BusinessCategory) => {
+  // DB에서 리드 로드 (선택된 업종 및 지역 필터 적용)
+  const loadLeadsFromDB = useCallback(async (category?: BusinessCategory, regions?: string[]) => {
     const result = await getLeads({
       category: category || categoryFilter,
+      regions: regions || selectedRegions,
     });
     if (result.success) {
       setLeads(result.leads);
+      // 진행상황 일괄 조회 (API 호출 최적화)
+      if (result.leads.length > 0) {
+        const leadIds = result.leads.map(l => l.id);
+        const progressData = await getProgressBatch(leadIds);
+        setProgressMap(progressData);
+      }
     }
-  };
+  }, [categoryFilter, selectedRegions]);
 
   // API 연결 테스트
   const checkConnection = useCallback(async () => {
@@ -669,6 +711,14 @@ export default function LeadManagerPage() {
         )}
       </header>
 
+      {/* 콜백 알림 */}
+      <CallbackNotification
+        onLeadClick={(leadId) => {
+          // 리드 상세 패널 열기 (추후 구현)
+          console.log('Lead clicked:', leadId);
+        }}
+      />
+
       {/* 메시지 토스트 */}
       {message && (
         <div
@@ -705,6 +755,28 @@ export default function LeadManagerPage() {
           {/* 필터 바 */}
           <div className="bg-[var(--bg-secondary)]/30 border-b border-[var(--border-subtle)]/50">
             <div className="max-w-[1400px] mx-auto px-6 py-4">
+              {/* 검색 바 */}
+              <div className="mb-4 flex items-center justify-center">
+                <div className="relative w-full max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="사업장명, 주소, 전화번호로 검색..."
+                    className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent transition-all"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* 업종 + 상태 필터 */}
               <div className="flex flex-wrap items-center justify-center gap-3 mb-3">
                 {/* 업종 카테고리 */}
@@ -978,6 +1050,7 @@ export default function LeadManagerPage() {
                     setMapFocusLead(lead);
                     setViewMode('map');
                   }}
+                  progressMap={progressMap}
                 />
               )}
               {viewMode === 'list' && (
@@ -989,6 +1062,7 @@ export default function LeadManagerPage() {
                     setMapFocusLead(lead);
                     setViewMode('map');
                   }}
+                  progressMap={progressMap}
                 />
               )}
               {viewMode === 'map' && (

@@ -11,6 +11,14 @@ import dynamic from 'next/dynamic';
 import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
 import { SUBWAY_STATIONS } from '../constants';
 import { formatDistance, formatPhoneNumber } from '../utils';
+import StationLabels, { StationLayer, StationToggle } from './StationLabels';
+import { 
+  getRealtimeSubwayData, 
+  initializeSubwayData,
+  useSubwayDataRefresh,
+  KRIC_LINE_COLORS,
+  getLineDisplayName 
+} from '../kric-data-manager';
 
 interface MapViewProps {
   leads: Lead[];
@@ -347,11 +355,36 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   const [isClient, setIsClient] = useState(false);
   const [, setSelectedLead] = useState<Lead | null>(null);
   const [visibleLines, setVisibleLines] = useState<string[]>(DEFAULT_VISIBLE_LINES);
+  const [showStationLabels, setShowStationLabels] = useState(true);
+  const [subwayData, setSubwayData] = useState<any>(null);
+  const [isLoadingSubwayData, setIsLoadingSubwayData] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 클라이언트 hydration 감지용
     setIsClient(true);
   }, []);
+
+  // KRIC 지하철 데이터 로드
+  useEffect(() => {
+    const loadSubwayData = async () => {
+      if (!isClient) return;
+      
+      setIsLoadingSubwayData(true);
+      try {
+        const data = await getRealtimeSubwayData();
+        setSubwayData(data);
+        console.log('✅ KRIC subway data loaded successfully');
+      } catch (error) {
+        console.error('❌ Failed to load KRIC subway data:', error);
+        // 기존 SUBWAY_STATIONS로 fallback
+        console.log('📦 Falling back to static subway data');
+      } finally {
+        setIsLoadingSubwayData(false);
+      }
+    };
+
+    loadSubwayData();
+  }, [isClient]);
 
   // 유효한 좌표가 있는 리드만 필터링
   const validLeads = leads.filter(lead => lead.latitude && lead.longitude);
@@ -432,6 +465,39 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
           box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
           white-space: nowrap !important;
         }
+        .station-tooltip {
+          background: rgba(255,255,255,0.95) !important;
+          border: 1px solid #cbd5e1 !important;
+          border-radius: 4px !important;
+          padding: 2px 6px !important;
+          font-size: 11px !important;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+          white-space: nowrap !important;
+        }
+        .station-label {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .station-name-text {
+          font-weight: 600;
+          color: #1e293b;
+        }
+        .station-lines {
+          display: flex;
+          gap: 2px;
+        }
+        .station-line-badge {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 8px;
+          font-weight: bold;
+        }
         .lead-tooltip::before {
           border-top-color: white !important;
         }
@@ -454,37 +520,43 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
 
-          {/* 지하철 노선 */}
-          {Object.entries(SUBWAY_LINE_ROUTES).map(([lineNumber, route]) => (
-            visibleLines.includes(lineNumber) && (
-              <Polyline
-                key={`line-${lineNumber}`}
-                positions={route.coords}
-                pathOptions={{
-                  color: route.color,
-                  weight: 5,
-                  opacity: 0.8,
-                }}
-              />
-            )
-          ))}
+          {/* 지하철역 레이블 */}
+          {showStationLabels && subwayData && (
+            <StationLayer
+              stations={subwayData.stations}
+              routes={subwayData.routes}
+              visibleLines={visibleLines}
+              showLabels={true}
+              size="small"
+              maxVisible={50}
+            />
+          )}
 
-          {/* 지하철역 마커 (심플 원형) */}
-          {SUBWAY_STATIONS.map(station => (
-            <CircleMarker
-              key={station.name}
-              center={[station.lat, station.lng]}
-              radius={5}
-              fillColor={LINE_COLORS[station.lines[0]] || '#888'}
-              fillOpacity={0.9}
-              color="#fff"
-              weight={1}
-            >
-              <Tooltip direction="top" offset={[0, -5]} opacity={0.9}>
-                <span className="font-medium">{station.name}역</span>
-              </Tooltip>
-            </CircleMarker>
-          ))}
+          {/* 지하철 노선 */}
+          {subwayData ? (
+            Object.entries(subwayData.routes)
+              .filter(([lineCode]) => visibleLines.includes(getLineDisplayName(lineCode)))
+              .map(([lineCode, route]) => (
+                <Polyline
+                  key={lineCode}
+                  positions={route.coords}
+                  color={route.color}
+                  weight={5}
+                  opacity={0.8}
+                />
+              ))
+          ) : (
+            // Fallback to existing SUBWAY_LINE_ROUTES
+            visibleLines.map(lineNumber => (
+              <Polyline
+                key={lineNumber}
+                positions={SUBWAY_LINE_ROUTES[lineNumber]?.coords || []}
+                color={SUBWAY_LINE_ROUTES[lineNumber]?.color || '#888'}
+                weight={5}
+                opacity={0.8}
+              />
+            ))
+          )}
 
           {/* 병원 마커 */}
           {validLeads.map(lead => {
@@ -564,11 +636,34 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
         </div>
       </div>
 
-      {/* 통계 */}
+      {/* KRIC 데이터 로딩 상태 표시 */}
+      {isLoadingSubwayData && (
+        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 z-10">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <span className="text-sm text-gray-600">지하철 데이터 로딩 중...</span>
+          </div>
+        </div>
+      )}
+
+      {/* 역사명 토글 */}
       <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 z-10">
+        <StationToggle
+          showLabels={showStationLabels}
+          onToggle={setShowStationLabels}
+        />
+      </div>
+
+      {/* 통계 */}
+      <div className="absolute top-4 right-32 bg-white rounded-lg shadow-lg p-3 z-10">
         <p className="text-sm text-slate-600">
           지도 표시: <strong>{validLeads.length}</strong>건
         </p>
+        {subwayData && (
+          <p className="text-sm text-slate-600">
+            지하철역: <strong>{subwayData.stations.length}</strong>개
+          </p>
+        )}
       </div>
     </div>
   );

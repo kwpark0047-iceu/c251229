@@ -14,6 +14,10 @@ npm run build    # 프로덕션 빌드
 npm run lint     # ESLint 검사
 npm run start    # 프로덕션 서버 시작
 npx tsc --noEmit # 타입 체크 (빌드 없이)
+
+# 유틸리티 스크립트
+node scripts/upload-floor-plans.js  # 도면 일괄 업로드 (1,2,5,7,8호선)
+node scripts/upload-gyeongbu.js     # 경부선/경강선 도면 업로드
 ```
 
 ## 아키텍처

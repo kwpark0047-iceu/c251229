@@ -12,6 +12,8 @@ import {
   formatDateToAPI,
   generateUUID,
 } from './utils';
+import { createLeadKey } from './lead-utils';
+import { removeDuplicateLeads } from './deduplication-utils';
 
 /**
  * API 호출 결과 타입
@@ -55,7 +57,7 @@ export async function fetchLocalDataAPI(
   const region = regionCode || settings.regionCode;
 
   try {
-    console.log(`[API] 서버 요청: ${serviceInfo?.name || '병원'}, 지역=${region}, 페이지=${pageIndex}`);
+    // API 요청 진행 중
 
     const response = await fetch('/api/localdata', {
       method: 'POST',
@@ -75,7 +77,7 @@ export async function fetchLocalDataAPI(
     const result = await response.json();
 
     if (!result.success) {
-      console.error(`[API] 서버 오류:`, result.error || result.message);
+      // API 오류 처리
       return {
         success: false,
         leads: [],
@@ -87,7 +89,7 @@ export async function fetchLocalDataAPI(
     // 원시 데이터를 Lead 객체로 변환 (좌표 변환 + 역 매칭)
     const leads = processRawLeads(result.leads, serviceInfo);
 
-    console.log(`[API] 조회 성공 [${serviceInfo?.name || '병원'}]: ${leads.length}건`);
+    // API 조회 완료
 
     return {
       success: true,
@@ -96,7 +98,7 @@ export async function fetchLocalDataAPI(
     };
 
   } catch (error) {
-    console.error('[API] 요청 오류:', error);
+    // API 요청 오류 처리
     return {
       success: false,
       leads: [],
@@ -176,6 +178,8 @@ export async function fetchAllLeads(
 ): Promise<FetchResult> {
   const pageSize = 100;
   let allLeads: Lead[] = [];
+  const seenKeys = new Set<string>(); // 중복 체크용
+  const seenBizIds = new Set<string>(); // 사업자 ID 중복 체크용
 
   // 카테고리에 해당하는 서비스 ID 목록
   let serviceIds: ServiceIdInfo[] = category
@@ -223,7 +227,20 @@ export async function fetchAllLeads(
         continue;
       }
 
-      allLeads = [...allLeads, ...firstResult.leads];
+      // 중복 제거하며 추가
+      for (const lead of firstResult.leads) {
+        const key = createLeadKey(lead.bizName, lead.roadAddress);
+        const bizId = lead.bizId;
+        
+        // 중복 체크: 상호명+주소 또는 사업자 ID
+        if (!seenKeys.has(key) && (!bizId || !seenBizIds.has(bizId))) {
+          seenKeys.add(key);
+          if (bizId) {
+            seenBizIds.add(bizId);
+          }
+          allLeads.push(lead);
+        }
+      }
       totalProcessed += firstResult.leads.length;
 
       // 총 예상 건수 업데이트
@@ -250,7 +267,20 @@ export async function fetchAllLeads(
         );
 
         if (result.success) {
-          allLeads = [...allLeads, ...result.leads];
+          // 중복 제거하며 추가
+          for (const lead of result.leads) {
+            const key = createLeadKey(lead.bizName, lead.roadAddress);
+            const bizId = lead.bizId;
+            
+            // 중복 체크: 상호명+주소 또는 사업자 ID
+            if (!seenKeys.has(key) && (!bizId || !seenBizIds.has(bizId))) {
+              seenKeys.add(key);
+              if (bizId) {
+                seenBizIds.add(bizId);
+              }
+              allLeads.push(lead);
+            }
+          }
           totalProcessed += result.leads.length;
           onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name}: ${totalProcessed}건`);
         } else {

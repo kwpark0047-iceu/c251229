@@ -3,18 +3,13 @@
  * 리드 데이터 저장/조회/업데이트
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/utils';
 import { Lead, LeadStatus, Settings, BusinessCategory } from './types';
 import { DEFAULT_SETTINGS } from './constants';
 import { getOrganizationId } from './auth-service';
 import { createLeadKey } from './lead-utils';
-
-/**
- * Supabase 클라이언트 인스턴스 가져오기
- */
-function getSupabase() {
-  return createClient();
-}
+import { removeDuplicateLeads } from './deduplication-utils';
+import { isAddressInRegions, RegionCode } from './region-utils';
 
 /**
  * 리드 저장 결과 타입
@@ -40,7 +35,6 @@ export async function saveLeads(
   try {
     const supabase = getSupabase();
 
-
     // 조직 ID 가져오기 (전달되지 않은 경우)
     const orgId = organizationId ?? await getOrganizationId();
 
@@ -49,40 +43,32 @@ export async function saveLeads(
     // 기존 데이터 조회 (상호명 + 주소로 중복 체크)
     const { data: existingData, error: fetchError } = await supabase
       .from('leads')
-      .select('biz_name, road_address');
+      .select('biz_name, road_address, biz_id, service_id, category');
 
     if (fetchError) {
-      console.error('기존 데이터 조회 오류:', fetchError);
-      console.error('오류 상세:', JSON.stringify(fetchError, null, 2));
-      console.error('오류 코드:', fetchError.code, '메시지:', fetchError.message, '힌트:', fetchError.hint);
       const errorMsg = fetchError.message || fetchError.code || '알 수 없는 오류 - 테이블이 존재하는지 확인하세요';
       return { success: false, message: errorMsg, newCount: 0, skippedCount: 0, newLeads: [] };
     }
 
     // 기존 데이터 키 세트 생성 (상호명 + 주소 조합)
     const existingSet = new Set<string>();
+    const existingBizIds = new Set<string>(); // 사업자 ID도 체크
     (existingData || []).forEach(row => {
       const key = createLeadKey(row.biz_name, row.road_address);
       existingSet.add(key);
-    });
-
-    console.log(`기존 데이터: ${existingSet.size}건`);
-
-    // 신규 데이터만 필터링 (상호명 + 주소 기준 중복 체크)
-    const newLeads: Lead[] = [];
-    const skippedLeads: Lead[] = [];
-
-    leads.forEach(lead => {
-      const key = createLeadKey(lead.bizName, lead.roadAddress);
-      if (existingSet.has(key)) {
-        skippedLeads.push(lead);
-      } else {
-        newLeads.push(lead);
-        existingSet.add(key); // 같은 배치 내 중복 방지
+      if (row.biz_id) {
+        existingBizIds.add(row.biz_id);
       }
     });
 
-    console.log(`신규 데이터: ${newLeads.length}건, 중복: ${skippedLeads.length}건`);
+    // 신규 데이터만 필터링 (상호명 + 주소 기준 중복 체크)
+    const deduplicationResult = removeDuplicateLeads(leads, {
+      checkBizId: true,
+      checkSimilarity: false // 유사도 체크는 성능상 비활성화
+    });
+
+    const newLeads = deduplicationResult.uniqueLeads;
+    const skippedLeads = deduplicationResult.duplicates;
 
     if (newLeads.length === 0) {
       return {
@@ -132,8 +118,7 @@ export async function saveLeads(
         .insert(dbLeads);
 
       if (error) {
-        console.error('리드 저장 오류:', error);
-        console.error('오류 상세:', JSON.stringify(error, null, 2));
+        // 에러는 상위에서 처리
 
         // 테이블이 없는 경우 안내 메시지
         if (error.message.includes('relation') || error.code === '42P01') {
@@ -148,7 +133,7 @@ export async function saveLeads(
 
         // UNIQUE 제약조건 위반 시 (중복 데이터) - 개별 삽입 시도
         if (error.code === '23505') {
-          console.warn('중복 데이터 발견, 개별 삽입 시도:', error.message);
+          // 중복 데이터는 스킵
           for (const dbLead of dbLeads) {
             const { error: singleError } = await supabase
               .from('leads')
@@ -181,10 +166,30 @@ export async function saveLeads(
       newLeads,
     };
   } catch (error) {
-    console.error('리드 저장 중 오류:', error);
+    // 에러는 상위에서 처리
     return { success: false, message: (error as Error).message, newCount: 0, skippedCount: 0, newLeads: [] };
   }
 }
+
+/**
+ * 지역 코드를 주소 접두어로 변환 (다양한 형식 지원)
+ * @deprecated region-utils.ts 사용 권장
+ */
+const REGION_CODE_TO_PREFIX: Record<string, string[]> = {
+  '6110000': ['서울특별시', '서울'],
+  '6410000': ['경기도', '경기'],
+};
+
+/**
+ * 주소가 해당 지역에 속하는지 확인
+ * @deprecated region-utils.ts 사용 권장
+ */
+const isAddressInRegion = (address: string, regionCode: string): boolean => {
+  const prefixes = REGION_CODE_TO_PREFIX[regionCode];
+  if (!prefixes) return false;
+  
+  return prefixes.some(prefix => address.includes(prefix));
+};
 
 /**
  * 리드 목록 조회
@@ -196,13 +201,14 @@ export async function getLeads(filters?: {
   nearestStation?: string;
   startDate?: string;
   endDate?: string;
+  regions?: string[];  // 지역 코드 배열 (예: ['6110000', '6410000'])
 }): Promise<{ success: boolean; leads: Lead[]; message?: string }> {
   try {
     const supabase = getSupabase();
 
     // 🔍 디버깅: 세션 및 조직 멤버십 확인
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    console.log('🔍 [DEBUG] 세션:', {
+    // 디버그 로그 제거
       hasSession: !!sessionData?.session,
       userId: sessionData?.session?.user?.id,
       email: sessionData?.session?.user?.email,
@@ -213,7 +219,7 @@ export async function getLeads(filters?: {
         .from('organization_members')
         .select('organization_id, role')
         .eq('user_id', sessionData.session.user.id);
-      console.log('🔍 [DEBUG] 조직 멤버십:', { memberships: memberData, error: memberError?.message });
+      // 디버그 로그 제거
     }
 
 
@@ -247,7 +253,7 @@ export async function getLeads(filters?: {
     }
 
     // DB 데이터를 Lead 객체로 변환
-    const leads: Lead[] = (data || []).map(row => ({
+    let leads: Lead[] = (data || []).map(row => ({
       id: row.id,
       bizName: row.biz_name,
       bizId: row.biz_id,
@@ -275,7 +281,26 @@ export async function getLeads(filters?: {
       updatedAt: row.updated_at,
     }));
 
-    return { success: true, leads };
+    // 지역 필터 적용 (클라이언트 사이드)
+    if (filters?.regions && filters.regions.length > 0) {
+      leads = leads.filter(lead => {
+        const address = lead.roadAddress || lead.lotAddress || '';
+        return isAddressInRegions(address, filters.regions as RegionCode[]);
+      });
+    }
+
+    // 중복 제거 (정규화된 키 기준)
+    const seenKeys = new Set<string>();
+    const uniqueLeads = leads.filter(lead => {
+      const key = createLeadKey(lead.bizName, lead.roadAddress);
+      if (seenKeys.has(key)) {
+        return false;
+      }
+      seenKeys.add(key);
+      return true;
+    });
+
+    return { success: true, leads: uniqueLeads };
   } catch (error) {
     console.error('리드 조회 중 오류:', error);
     return { success: false, leads: [], message: (error as Error).message };
@@ -492,7 +517,7 @@ export async function removeDuplicateLeads(): Promise<{
       return { success: true, message: '중복 데이터가 없습니다.', removedCount: 0 };
     }
 
-    console.log(`중복 리드 ${duplicateIds.length}건 발견, 삭제 시작...`);
+    // 중복 삭제 진행
 
     // 배치로 삭제 (100건씩)
     const BATCH_SIZE = 100;

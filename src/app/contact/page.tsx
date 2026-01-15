@@ -559,7 +559,7 @@ export default function ContactPage() {
       {/* 메인 콘텐츠 */}
       <main className="flex-1 w-full flex flex-row-reverse gap-20 relative z-10">
         {/* 오른쪽: 폼 영역 */}
-        <div className="w-[calc(50%-2.5rem)] px-6 pt-4 pb-12 overflow-y-auto">
+        <div className="w-[calc(50%-2.5rem)] px-6 pt-4 pb-12 overflow-y-auto" style={{ position: 'relative', zIndex: 10 }}>
           <div className="w-full max-w-xl mx-auto">
           {/* 타이틀 */}
           <div className="text-center mb-10">
@@ -1073,13 +1073,16 @@ export default function ContactPage() {
               )}
 
               {/* 액션 버튼 */}
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 relative z-50">
                 <button
+                  type="button"
                   onClick={handleDownloadPDF}
-                  className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02]"
+                  className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] cursor-pointer"
                   style={{
                     background: 'linear-gradient(135deg, #00A84D 0%, #00C853 100%)',
                     boxShadow: '0 8px 24px rgba(0, 168, 77, 0.3)',
+                    position: 'relative',
+                    zIndex: 100,
                   }}
                 >
                   <Download className="w-5 h-5" />
@@ -1199,8 +1202,8 @@ export default function ContactPage() {
           `}</style>
 
           {/* 왼쪽: 서울 지하철 지도 */}
-        <div className="w-[calc(50%-2.5rem)] sticky top-16 h-[calc(100vh-4rem)]">
-          <div className="h-full rounded-r-3xl overflow-hidden border-r border-[var(--border-subtle)] relative">
+        <div className="w-[calc(50%-2.5rem)] sticky top-16 h-[calc(100vh-4rem)]" style={{ zIndex: 1 }}>
+          <div className="h-full rounded-r-3xl overflow-hidden border-r border-[var(--border-subtle)] relative" style={{ zIndex: 1 }}>
             <MapContainer
               center={[37.52, 126.95]}
               zoom={11}

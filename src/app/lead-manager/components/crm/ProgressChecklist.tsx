@@ -158,13 +158,25 @@ export default function ProgressChecklist({
 
 /**
  * 인라인 진행 상태 표시 (카드용)
+ * progress props가 제공되면 API 호출 없이 사용
  */
-export function ProgressDots({ leadId }: { leadId: string }) {
-  const [progress, setProgress] = useState<SalesProgress[]>([]);
+export function ProgressDots({
+  leadId,
+  progress: progressProp
+}: {
+  leadId: string;
+  progress?: SalesProgress[];
+}) {
+  const [localProgress, setLocalProgress] = useState<SalesProgress[]>([]);
 
+  // progress가 props로 제공되지 않은 경우에만 API 호출
   useEffect(() => {
-    getProgress(leadId).then(setProgress);
-  }, [leadId]);
+    if (!progressProp) {
+      getProgress(leadId).then(setLocalProgress);
+    }
+  }, [leadId, progressProp]);
+
+  const progress = progressProp ?? localProgress;
 
   const isCompleted = (step: ProgressStep): boolean => {
     return progress.some(p => p.step === step && p.completedAt);

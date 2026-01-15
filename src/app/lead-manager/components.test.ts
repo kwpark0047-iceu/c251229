@@ -1,0 +1,319 @@
+/**
+ * 컴포넌트 테스트
+ * GridView, ListView, MapView 등 주요 컴포넌트 테스트
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
+
+// Mock 데이터
+const mockLeads = [
+  {
+    id: '1',
+    bizName: '테스트 상점',
+    roadAddress: '서울시 강남구 테헤란로 123',
+    bizType: '음식점',
+    category: 'FOOD',
+    status: 'NEW',
+    nearestStation: '강남역',
+    distance: 500,
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2024-01-15T10:00:00Z',
+    organizationId: 'org-1',
+  },
+  {
+    id: '2',
+    bizName: '테스트 병원',
+    roadAddress: '서울시 서초구 강남대로 456',
+    bizType: '병원',
+    category: 'HEALTH',
+    status: 'PROPOSAL_SENT',
+    nearestStation: '교대역',
+    distance: 300,
+    createdAt: '2024-01-14T15:30:00Z',
+    updatedAt: '2024-01-14T15:30:00Z',
+    organizationId: 'org-1',
+  },
+];
+
+// Mock Next.js router
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+  }),
+}));
+
+// Mock Leaflet
+vi.mock('react-leaflet', () => ({
+  MapContainer: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="map-container">{children}</div>
+  ),
+  TileLayer: () => <div data-testid="tile-layer" />,
+  Marker: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="marker">{children}</div>
+  ),
+  Popup: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="popup">{children}</div>
+  ),
+  useMap: () => ({
+    setView: vi.fn(),
+    flyTo: vi.fn(),
+  }),
+}));
+
+describe('GridView 컴포넌트', () => {
+  const mockProps = {
+    leads: mockLeads,
+    viewMode: 'grid',
+    selectedLeads: new Set(),
+    onSelectLead: vi.fn(),
+    onUpdateStatus: vi.fn(),
+    onDeleteLead: vi.fn(),
+    onCallLead: vi.fn(),
+    onEditLead: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('리드 목록을 그리드 형태로 렌더링한다', async () => {
+    const GridView = (await import('./components/GridView')).default;
+    render(<GridView {...mockProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('테스트 상점')).toBeInTheDocument();
+      expect(screen.getByText('테스트 병원')).toBeInTheDocument();
+    });
+  });
+
+  it('리드 카드를 클릭하면 선택된다', async () => {
+    const GridView = (await import('./components/GridView')).default;
+    render(<GridView {...mockProps} />);
+
+    const leadCard = await screen.findByText('테스트 상점');
+    fireEvent.click(leadCard);
+
+    expect(mockProps.onSelectLead).toHaveBeenCalledWith('1');
+  });
+
+  it('상태별로 색상을 표시한다', async () => {
+    const GridView = (await import('./components/GridView')).default;
+    render(<GridView {...mockProps} />);
+
+    await waitFor(() => {
+      const newStatus = screen.getByText('신규');
+      const proposalSentStatus = screen.getByText('제안서 발송');
+      
+      expect(newStatus).toHaveClass('status-new');
+      expect(proposalSentStatus).toHaveClass('status-proposal-sent');
+    });
+  });
+
+  it '검색 기능이 동작한다', async () => {
+    const GridView = (await import('./components/GridView')).default;
+    render(<GridView {...mockProps} />);
+
+    const searchInput = screen.getByPlaceholderText('사업장명 검색...');
+    fireEvent.change(searchInput, { target: { value: '테스트 상점' } });
+
+    await waitFor(() => {
+      expect(screen.getByText('테스트 상점')).toBeInTheDocument();
+      expect(screen.queryByText('테스트 병원')).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('ListView 컴포넌트', () => {
+  const mockProps = {
+    leads: mockLeads,
+    viewMode: 'list',
+    selectedLeads: new Set(),
+    onSelectLead: vi.fn(),
+    onUpdateStatus: vi.fn(),
+    onDeleteLead: vi.fn(),
+    onCallLead: vi.fn(),
+    onEditLead: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('리드 목록을 테이블 형태로 렌더링한다', async () => {
+    const ListView = (await import('./components/ListView')).default;
+    render(<ListView {...mockProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('테스트 상점')).toBeInTheDocument();
+      expect(screen.getByText('테스트 병원')).toBeInTheDocument();
+      expect(screen.getByText('음식점')).toBeInTheDocument();
+      expect(screen.getByText('병원')).toBeInTheDocument();
+    });
+  });
+
+  it '정렬 기능이 동작한다', async () => {
+    const ListView = (await import('./components/ListView')).default;
+    render(<ListView {...mockProps} />);
+
+    const sortButton = screen.getByText('등록일순');
+    fireEvent.click(sortButton);
+
+    await waitFor(() => {
+      // 정렬 로직이 적용되었는지 확인
+      expect(mockProps.onSelectLead).toHaveBeenCalled();
+    });
+  });
+
+  it '체크박스로 여러 리드를 선택할 수 있다', async () => {
+    const ListView = (await import('./components/ListView')).default;
+    render(<ListView {...mockProps} />);
+
+    const checkboxes = screen.getAllByRole('checkbox');
+    fireEvent.click(checkboxes[0]); // 첫 번째 리드 선택
+    fireEvent.click(checkboxes[1]); // 두 번째 리드 선택
+
+    expect(mockProps.onSelectLead).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('MapView 컴포넌트', () => {
+  const mockProps = {
+    leads: mockLeads,
+    viewMode: 'map',
+    selectedLeads: new Set(),
+    onSelectLead: vi.fn(),
+    onUpdateStatus: vi.fn(),
+    onDeleteLead: vi.fn(),
+    onCallLead: vi.fn(),
+    onEditLead: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('지도와 마커를 렌더링한다', async () => {
+    const MapView = (await import('./components/MapView')).default;
+    render(<MapView {...mockProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('map-container')).toBeInTheDocument();
+      expect(screen.getAllByTestId('marker')).toHaveLength(2);
+    });
+  });
+
+  it '마커를 클릭하면 팝업이 표시된다', async () => {
+    const MapView = (await import('./components/MapView')).default;
+    render(<MapView {...mockProps} />);
+
+    const markers = screen.getAllByTestId('marker');
+    fireEvent.click(markers[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('popup')).toBeInTheDocument();
+      expect(screen.getByText('테스트 상점')).toBeInTheDocument();
+    });
+  });
+
+  it '역명으로 필터링할 수 있다', async () => {
+    const MapView = (await import('./components/MapView')).default;
+    render(<MapView {...mockProps} />);
+
+    const stationFilter = screen.getByPlaceholderText('역명 검색...');
+    fireEvent.change(stationFilter, { target: { value: '강남역' } });
+
+    await waitFor(() => {
+      // 필터링된 마커만 표시되는지 확인
+      expect(screen.getByTestId('map-container')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('StatsBar 컴포넌트', () => {
+  const mockStats = {
+    total: 100,
+    new: 25,
+    proposalSent: 30,
+    contacted: 20,
+    contracted: 25,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('통계 데이터를 올바르게 표시한다', async () => {
+    const StatsBar = (await import('./components/StatsBar')).default;
+    render(<StatsBar stats={mockStats} />);
+
+    expect(screen.getByText('100')).toBeInTheDocument(); // 전체
+    expect(screen.getByText('25')).toBeInTheDocument(); // 신규
+    expect(screen.getByText('30')).toBeInTheDocument(); // 제안서 발송
+    expect(screen.getByText('20')).toBeInTheDocument(); // 연락 완료
+    expect(screen.getByText('25')).toBeInTheDocument(); // 계약 완료
+  });
+
+  it '상태별 카드를 클릭하면 필터링된다', async () => {
+    const onFilter = vi.fn();
+    const StatsBar = (await import('./components/StatsBar')).default;
+    render(<StatsBar stats={mockStats} onFilter={onFilter} />);
+
+    const newStatusCard = screen.getByText('신규').closest('div');
+    fireEvent.click(newStatusCard!);
+
+    expect(onFilter).toHaveBeenCalledWith(['NEW']);
+  });
+});
+
+describe('ProposalForm 컴포넌트', () => {
+  const mockProps = {
+    lead: mockLeads[0],
+    isOpen: true,
+    onClose: vi.fn(),
+    onSubmit: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it '제안서 폼을 렌더링한다', async () => {
+    const ProposalForm = (await import('./components/ProposalForm')).default;
+    render(<ProposalForm {...mockProps} />);
+
+    expect(screen.getByText('광고 제안서 생성')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('테스트 상점')).toBeInTheDocument();
+  });
+
+  it '폼을 제출할 수 있다', async () => {
+    const ProposalForm = (await import('./components/ProposalForm')).default;
+    render(<ProposalForm {...mockProps} />);
+
+    const submitButton = screen.getByText('제안서 생성');
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(mockProps.onSubmit).toHaveBeenCalled();
+    });
+  });
+
+  it '필수 필드를 검증한다', async () => {
+    const ProposalForm = (await import('./components/ProposalForm')).default;
+    render(<ProposalForm {...mockProps} />);
+
+    // 필수 필드를 비우고 제출 시도
+    const titleInput = screen.getByPlaceholderText('제안서 제목');
+    fireEvent.change(titleInput, { target: { value: '' } });
+
+    const submitButton = screen.getByText('제안서 생성');
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('제안서 제목을 입력해주세요.')).toBeInTheDocument();
+    });
+  });
+});

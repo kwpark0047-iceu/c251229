@@ -3,7 +3,7 @@
  * 도면 및 광고 위치 CRUD 작업
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/utils';
 import {
   FloorPlan,
   FloorPlanInput,
@@ -12,13 +12,6 @@ import {
   MetroLine,
   PlanType,
 } from './types';
-
-/**
- * Supabase 클라이언트 가져오기
- */
-function getSupabase() {
-  return createClient();
-}
 
 // ============================================
 // 도면 CRUD

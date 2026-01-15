@@ -8,7 +8,7 @@
 import React, { useState } from 'react';
 import { FileText, ChevronDown, ChevronUp, MessageSquare, User } from 'lucide-react';
 
-import { Lead, LeadStatus, STATUS_LABELS, STATUS_METRO_COLORS, LINE_COLORS } from '../types';
+import { Lead, LeadStatus, STATUS_LABELS, STATUS_METRO_COLORS, LINE_COLORS, SalesProgress } from '../types';
 import { formatDistance, formatPhoneNumber, truncateString, getHighlightParts } from '../utils';
 import { ProgressDots } from './crm/ProgressChecklist';
 import CallLogModal from './crm/CallLogModal';
@@ -19,6 +19,7 @@ interface ListViewProps {
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   searchQuery?: string;
   onMapView?: (lead: Lead) => void;
+  progressMap?: Map<string, SalesProgress[]>;
 }
 
 type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status' | 'createdAt';
@@ -58,7 +59,7 @@ function HighlightText({ text, searchQuery }: { text: string; searchQuery: strin
   );
 }
 
-export default function ListView({ leads, onStatusChange, searchQuery = '', onMapView }: ListViewProps) {
+export default function ListView({ leads, onStatusChange, searchQuery = '', onMapView, progressMap }: ListViewProps) {
   const [sortField, setSortField] = useState<SortField>('licenseDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
@@ -349,7 +350,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
 
       {/* 진행 상태 */}
       <td className="px-5 py-4">
-        <ProgressDots leadId={lead.id} />
+        <ProgressDots leadId={lead.id} progress={progressMap?.get(lead.id)} />
       </td>
 
       {/* 담당자 */}

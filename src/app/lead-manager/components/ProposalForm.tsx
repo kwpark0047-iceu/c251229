@@ -31,7 +31,7 @@ import {
 
 import { Lead, AdInventory, LINE_COLORS } from '../types';
 import { SUBWAY_STATIONS } from '../constants';
-import { createClient } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/utils';
 import { getDefaultGreeting } from '../proposal-service';
 
 interface ProposalFormProps {
@@ -139,7 +139,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
   const loadInventory = async (stationName: string) => {
     setLoadingInventory(true);
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
       const { data, error } = await supabase
         .from('ad_inventory')
         .select('*')
@@ -209,7 +209,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
     setSaving(true);
     try {
-      const supabase = createClient();
+      const supabase = getSupabase();
 
       const { error } = await supabase.from('proposals').insert({
         lead_id: lead.id,

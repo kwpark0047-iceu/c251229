@@ -3,7 +3,7 @@
  * Supabase Storage를 이용한 이미지 업로드/다운로드
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { getSupabase } from '@/lib/supabase/utils';
 import {
   MetroLine,
   PlanType,
@@ -15,13 +15,6 @@ import {
 import { saveFloorPlan } from './floor-plan-service';
 
 const BUCKET_NAME = 'floor-plans';
-
-/**
- * Supabase 클라이언트 가져오기
- */
-function getSupabase() {
-  return createClient();
-}
 
 /**
  * Storage 경로 생성

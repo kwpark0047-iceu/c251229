@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - LOCALDATA_API_KEY=${LOCALDATA_API_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - KRIC_API_KEY=${KRIC_API_KEY}
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev

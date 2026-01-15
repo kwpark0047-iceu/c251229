@@ -1,0 +1,523 @@
+/**
+ * 다크모드 테마 CSS
+ * CSS 변수, 색상 시스템, 테마 전환 애니메이션
+ */
+
+/* CSS 커스텀 속성 (라이트 모드 기본값) */
+:root {
+  /* 색상 시스템 */
+  --color-primary: #2563eb;
+  --color-secondary: #64748b;
+  --color-background: #ffffff;
+  --color-surface: #f9fafb;
+  --color-text: #111827;
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
+  --color-info: #3b82f6;
+
+  /* 지하철 노선 색상 */
+  --color-line1: #1e5aad;
+  --color-line2: #00a84d;
+  --color-line3: #ef7c1c;
+  --color-line4: #00a5de;
+  --color-line5: #996cac;
+  --color-line6: #cd7e2f;
+  --color-line7: #727fb8;
+  --color-line8: #e6186a;
+  --color-line9: #bab135;
+
+  /* 중성 색상 */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  /* 브랜드 색상 */
+  --color-brand-primary: #2563eb;
+  --color-brand-secondary: #7c3aed;
+  --color-brand-accent: #ec4899;
+
+  /* 의미론적 색상 */
+  --color-red-50: #fef2f2;
+  --color-red-500: #ef4444;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+
+  --color-green-50: #f0fdf4;
+  --color-green-500: #10b981;
+  --color-green-600: #059669;
+  --color-green-700: #047857;
+
+  --color-blue-50: #eff6ff;
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
+
+  --color-yellow-50: #fefce8;
+  --color-yellow-500: #eab308;
+  --color-yellow-600: #ca8a04;
+  --color-yellow-700: #a16207;
+
+  /* 그림자 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* 반경 */
+  --radius-sm: 0.125rem;
+  --radius: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+
+  /* 간격 */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  --spacing-2xl: 4rem;
+
+  /* 타이포그래피 */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+
+  /* 애니메이션 */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 투명도 */
+  --opacity-disabled: 0.5;
+  --opacity-hover: 0.8;
+  --opacity-focus: 0.9;
+
+  /* Z-index */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+  --z-toast: 1080;
+}
+
+/* 다크 모드 */
+[data-color-mode="dark"] {
+  /* 색상 시스템 */
+  --color-primary: #3b82f6;
+  --color-secondary: #9ca3af;
+  --color-background: #111827;
+  --color-surface: #1f2937;
+  --color-text: #f9fafb;
+  --color-text-secondary: #9ca3af;
+  --color-border: #374151;
+  --color-error: #f87171;
+  --color-warning: #fbbf24;
+  --color-success: #34d399;
+  --color-info: #60a5fa;
+
+  /* 그림자 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* 테마 전환 애니메이션 */
+* {
+  transition: background-color var(--duration-normal) var(--ease-in-out),
+              color var(--duration-normal) var(--ease-in-out),
+              border-color var(--duration-normal) var(--ease-in-out),
+              box-shadow var(--duration-normal) var(--ease-in-out);
+}
+
+/* 애니메이션 비활성화 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 테마별 스타일 */
+.theme-light {
+  --bg-primary: var(--color-primary);
+  --bg-secondary: var(--color-secondary);
+  --bg-background: var(--color-background);
+  --bg-surface: var(--color-surface);
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  --border-primary: var(--color-border);
+}
+
+.theme-dark {
+  --bg-primary: var(--color-primary);
+  --bg-secondary: var(--color-secondary);
+  --bg-background: var(--color-background);
+  --bg-surface: var(--color-surface);
+  --text-primary: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  --border-primary: var(--color-border);
+}
+
+/* 지하철 노선별 테마 */
+.line-1-theme {
+  --color-accent: var(--color-line1);
+}
+
+.line-2-theme {
+  --color-accent: var(--color-line2);
+}
+
+.line-3-theme {
+  --color-accent: var(--color-line3);
+}
+
+.line-4-theme {
+  --color-accent: var(--color-line4);
+}
+
+.line-5-theme {
+  --color-accent: var(--color-line5);
+}
+
+.line-6-theme {
+  --color-accent: var(--color-line6);
+}
+
+.line-7-theme {
+  --color-accent: var(--color-line7);
+}
+
+.line-8-theme {
+  --color-accent: var(--color-line8);
+}
+
+.line-9-theme {
+  --color-accent: var(--color-line9);
+}
+
+/* 테마 컴포넌트 스타일 */
+.theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-in-out);
+}
+
+.theme-toggle:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.theme-toggle:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.theme-selector {
+  position: relative;
+  display: inline-block;
+}
+
+.theme-selector-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  padding: var(--spacing-sm);
+  background: var(--bg-background);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-dropdown);
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color var(--duration-normal) var(--ease-in-out);
+}
+
+.theme-option:hover {
+  background: var(--bg-surface);
+}
+
+.theme-option.active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.theme-indicator {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.theme-indicator-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  margin-right: var(--spacing-xs);
+}
+
+/* 테마 설정 패널 */
+.theme-settings {
+  background: var(--bg-background);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.theme-settings h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--spacing-lg);
+}
+
+.theme-settings h4 {
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  margin-bottom: var(--spacing);
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing);
+}
+
+.theme-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius);
+  padding: var(--spacing);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-in-out);
+}
+
+.theme-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.theme-card.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: white;
+}
+
+/* 테마 커스터마이저 */
+.color-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing);
+}
+
+.color-picker input[type="color"] {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.color-picker input[type="text"] {
+  flex: 1;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* 테마 전환 효과 */
+.theme-transition {
+  transition: all var(--duration-slow) var(--ease-in-out);
+}
+
+.theme-transition-enter {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.theme-transition-enter-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.theme-transition-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.theme-transition-exit-active {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* 다크 모드 전용 스타일 */
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    --color-primary: #3b82f6;
+    --color-secondary: #9ca3af;
+    --color-background: #111827;
+    --color-surface: #1f2937;
+    --color-text: #f9fafb;
+    --color-text-secondary: #9ca3af;
+    --color-border: #374151;
+  }
+}
+
+/* 고대비 모드 */
+@media (prefers-contrast: high) {
+  :root {
+    --color-primary: #0000ff;
+    --color-text: #000000;
+    --color-background: #ffffff;
+    --color-border: #000000;
+  }
+
+  [data-color-mode="dark"] {
+    --color-primary: #00ffff;
+    --color-text: #ffffff;
+    --color-background: #000000;
+    --color-border: #ffffff;
+  }
+}
+
+/* 색상 인쇄 필터 */
+@media (prefers-contrast: more) {
+  :root {
+    --color-primary: #0066cc;
+    --color-text: #000000;
+    --color-background: #ffffff;
+  }
+
+  [data-color-mode="dark"] {
+    --color-primary: #66ccff;
+    --color-text: #ffffff;
+    --color-background: #000000;
+  }
+}
+
+/* 테마 관련 유틸리티 클래스 */
+.bg-primary {
+  background-color: var(--bg-primary);
+}
+
+.bg-secondary {
+  background-color: var(--bg-secondary);
+}
+
+.bg-background {
+  background-color: var(--bg-background);
+}
+
+.bg-surface {
+  background-color: var(--bg-surface);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.border-primary {
+  border-color: var(--border-primary);
+}
+
+.hover-accent:hover {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+/* 테마 인식 헬퍼 */
+.theme-header {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-primary);
+  padding: var(--spacing) 0;
+}
+
+.theme-footer {
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-primary);
+  padding: var(--spacing-lg) 0;
+  margin-top: auto;
+}
+
+/* 테마 반응형 */
+@media (max-width: 768px) {
+  .theme-selector-dropdown {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-width: none;
+  }
+}
+
+/* 테마 프린트 스타일 */
+@media print {
+  .theme-toggle,
+  .theme-selector {
+    display: none !important;
+  }
+
+  [data-color-mode] {
+    /* 프린트 시에는 항상 라이트 모드 */
+    --color-primary: #000000;
+    --color-text: #000000;
+    --color-background: #ffffff;
+    --color-border: #000000;
+  }
+}
