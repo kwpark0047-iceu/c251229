@@ -5,7 +5,7 @@
  * 메인 대시보드 페이지 - Neo-Seoul Transit Design
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
 
@@ -74,7 +74,6 @@ export default function LeadManagerPage() {
 
   // 상태 관리
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [filteredLeads, setFilteredLeads] = useState<Lead[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -197,51 +196,7 @@ export default function LeadManagerPage() {
     }
     // initialLoading은 조건으로만 사용 (초기 로드 완료 후 필터 변경 시에만 실행)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryFilter, selectedRegions, loadLeadsFromDB]);
-
-  // 상태, 세부항목, 검색 필터 적용 (클라이언트 사이드)
-  useEffect(() => {
-    let filtered = leads;
-
-    // 지역 필터 적용 (검색 전에 먼저 적용)
-    if (selectedRegions.length > 0) {
-      filtered = filtered.filter(lead => {
-        const address = lead.roadAddress || lead.lotAddress || '';
-        return isAddressInRegions(address, selectedRegions as RegionCode[]);
-      });
-    }
-
-    // 검색 필터 적용
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(lead => {
-        const bizName = (lead.bizName || '').toLowerCase();
-        const roadAddress = (lead.roadAddress || '').toLowerCase();
-        const lotAddress = (lead.lotAddress || '').toLowerCase();
-        const phone = (lead.phone || '').replace(/\D/g, ''); // 숫자만 추출
-        const queryNumbers = query.replace(/\D/g, ''); // 검색어에서 숫자만 추출
-        
-        return (
-          bizName.includes(query) ||
-          roadAddress.includes(query) ||
-          lotAddress.includes(query) ||
-          (queryNumbers && phone.includes(queryNumbers))
-        );
-      });
-    }
-
-    // 세부항목 필터 적용 (선택된 serviceIds가 있으면 해당 항목만 표시)
-    if (selectedServiceIds.length > 0) {
-      filtered = filtered.filter(lead => lead.serviceId && selectedServiceIds.includes(lead.serviceId));
-    }
-
-    // 상태 필터 적용
-    if (statusFilter !== 'ALL') {
-      filtered = filtered.filter(lead => lead.status === statusFilter);
-    }
-
-    setFilteredLeads(filtered);
-  }, [leads, selectedRegions, statusFilter, selectedServiceIds, searchQuery]);
+  }, [categoryFilter, selectedRegions]);
 
   // 설정 로드
   const loadSettings = async () => {
@@ -285,6 +240,9 @@ export default function LeadManagerPage() {
       const searchSettings: Settings = {
         ...settings,
         regionCodes: selectedRegions,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
+        searchQuery: searchQuery.trim(),
       };
 
       const result = await fetchAllLeads(
