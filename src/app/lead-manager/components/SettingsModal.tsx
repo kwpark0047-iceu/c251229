@@ -9,6 +9,7 @@
 
 import React, { useState } from 'react';
 import { X, Globe, Search, MapPin, Settings, Shield, Trash2, Loader2 } from 'lucide-react';
+import RoleGuard from '@/components/RoleGuard';
 
 import { Settings as SettingsType, SearchType, REGION_CODES } from '../types';
 import { CORS_PROXIES } from '../constants';
@@ -233,43 +234,45 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
             </select>
           </div>
 
-          {/* 데이터 관리 */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
-              <Trash2 className="w-4 h-4 text-red-400" />
-              데이터 관리
-            </label>
-            <button
-              type="button"
-              onClick={handleRemoveDuplicates}
-              disabled={isRemovingDuplicates}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium transition-all duration-300 hover:bg-red-500/10 disabled:opacity-50"
-              style={{
-                borderColor: 'rgba(239, 68, 68, 0.3)',
-                color: '#ef4444',
-              }}
-            >
-              {isRemovingDuplicates ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  중복 제거 중...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4" />
-                  중복 리드 삭제
-                </>
+          {/* 데이터 관리 - 관리자/오너 전용 */}
+          <RoleGuard allowedRoles={['owner', 'admin']}>
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
+                <Trash2 className="w-4 h-4 text-red-400" />
+                데이터 관리
+              </label>
+              <button
+                type="button"
+                onClick={handleRemoveDuplicates}
+                disabled={isRemovingDuplicates}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium transition-all duration-300 hover:bg-red-500/10 disabled:opacity-50"
+                style={{
+                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                  color: '#ef4444',
+                }}
+              >
+                {isRemovingDuplicates ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    중복 제거 중...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    중복 리드 삭제
+                  </>
+                )}
+              </button>
+              {duplicateResult && (
+                <p className={`mt-2 text-sm ${duplicateResult.includes('오류') ? 'text-red-400' : 'text-[var(--metro-line2)]'}`}>
+                  {duplicateResult}
+                </p>
               )}
-            </button>
-            {duplicateResult && (
-              <p className={`mt-2 text-sm ${duplicateResult.includes('오류') ? 'text-red-400' : 'text-[var(--metro-line2)]'}`}>
-                {duplicateResult}
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                같은 업체명+주소 조합의 중복 데이터를 삭제합니다
               </p>
-            )}
-            <p className="mt-2 text-xs text-[var(--text-muted)]">
-              같은 업체명+주소 조합의 중복 데이터를 삭제합니다
-            </p>
-          </div>
+            </div>
+          </RoleGuard>
 
           {/* 버튼 */}
           <div className="flex gap-3 pt-4">

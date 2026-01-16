@@ -22,13 +22,15 @@ let koreanFontLoaded = false;
  */
 async function loadKoreanFont(pdf: jsPDF): Promise<void> {
   if (koreanFontLoaded) {
-    pdf.setFont('NotoSansKR');
+    pdf.setFont('NanumGothic');
     return;
   }
 
   try {
-    // Google Fonts에서 Noto Sans KR 폰트 로드 (직접 폰트 파일 로드)
-    const response = await fetch('https://fonts.gstatic.com/s/notosanskr/v36/PbyxFmXiEBPT4ITbgNA5Cgms3VYcOA-vvnIzzuoyeLGC5n9iJx9M.woff2');
+    // Google Fonts에서 NanumGothic 폰트 로드 (TTF)
+    const response = await fetch('https://fonts.gstatic.com/s/nanumgothic/v23/PN_3Rfi-oW3hYwmKDpxS7F_z_tLfxno.ttf');
+    if (!response.ok) throw new Error('폰트 다운로드 실패');
+
     const fontBuffer = await response.arrayBuffer();
 
     // ArrayBuffer를 Base64로 변환
@@ -37,13 +39,35 @@ async function loadKoreanFont(pdf: jsPDF): Promise<void> {
     );
 
     // jsPDF에 폰트 등록
-    pdf.addFileToVFS('NotoSansKR-Regular.ttf', base64Font);
-    pdf.addFont('NotoSansKR-Regular.ttf', 'NotoSansKR', 'normal');
-    pdf.setFont('NotoSansKR');
+    pdf.addFileToVFS('NanumGothic.ttf', base64Font);
+    pdf.addFont('NanumGothic.ttf', 'NanumGothic', 'normal');
+    pdf.setFont('NanumGothic');
 
     koreanFontLoaded = true;
+    console.log('✅ 한글 폰트 로드 성공');
   } catch (error) {
-    // 한글 폰트 로드 실패 시 기본 폰트 사용 (에러 무시)
+    console.error('❌ 한글 폰트 로드 실패:', error);
+    // 실패 시 기본 폰트로 폴백되지만 한글은 깨질 수 있음
+  }
+}
+
+/**
+ * 이미지 URL을 Base64로 변환
+ */
+async function fetchImage(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.warn('이미지 로드 실패:', url, error);
+    return null;
   }
 }
 
@@ -82,7 +106,7 @@ export async function createProposal(
 
     // 총 금액 계산
     const totalPrice = (inventoryData || []).reduce(
-      (sum, item) => sum + (item.price_monthly || 0),
+      (sum: number, item: any) => sum + (item.price_monthly || 0),
       0
     );
 
@@ -190,7 +214,7 @@ export async function getProposalWithInventory(
       .select('*')
       .in('id', inventoryIds);
 
-    inventory = (inventoryData || []).map(row => ({
+    inventory = (inventoryData || []).map((row: any) => ({
       id: row.id,
       stationName: row.station_name,
       locationCode: row.location_code,
@@ -403,6 +427,71 @@ export async function generateProposalPDF(
     pdf.setTextColor(30, 64, 175);
     pdf.text(`최종 금액: ${(proposal.finalPrice || 0).toLocaleString()}원/월`, margin + 80, yPos);
 
+    // === 페이지 3: 도면 첨부 (인근역 도면 1개) ===
+    pdf.addPage();
+    yPos = 30;
+
+    // 도면이 있는 첫 번째 인벤토리 찾기
+    const planItem = inventory.find(item => item.floorPlanUrl);
+
+    if (planItem && planItem.floorPlanUrl) {
+      pdf.setFontSize(16);
+      pdf.setTextColor(30, 64, 175);
+      pdf.text(`${planItem.stationName}역 상세 도면`, margin, yPos);
+      yPos += 10;
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`위치: ${planItem.locationCode}`, margin, yPos);
+      yPos += 15;
+
+      // 이미지 로드 및 추가
+      const imgData = await fetchImage(planItem.floorPlanUrl);
+      if (imgData) {
+        try {
+          // 이미지 형식 판별
+          let imgFormat = 'JPEG';
+          if (imgData.startsWith('data:image/png')) {
+            imgFormat = 'PNG';
+          } else if (imgData.startsWith('data:image/jpeg') || imgData.startsWith('data:image/jpg')) {
+            imgFormat = 'JPEG';
+          }
+
+          const imgProps = pdf.getImageProperties(imgData);
+          const pdfWidth = pageWidth - margin * 2;
+          const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+          // 페이지 높이를 초과하면 비율 조정
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const maxHeight = pageHeight - yPos - margin;
+
+          let finalWidth = pdfWidth;
+          let finalHeight = pdfHeight;
+
+          if (pdfHeight > maxHeight) {
+            finalHeight = maxHeight;
+            finalWidth = (imgProps.width * finalHeight) / imgProps.height;
+          }
+
+          pdf.addImage(imgData, imgFormat, margin, yPos, finalWidth, finalHeight);
+        } catch (err) {
+          console.error('도면 추가 중 오류:', err);
+          pdf.setFontSize(10);
+          pdf.setTextColor(150, 150, 150);
+          pdf.text('도면 이미지를 불러올 수 없습니다.', margin, yPos);
+        }
+      } else {
+        pdf.setFontSize(10);
+        pdf.setTextColor(150, 150, 150);
+        pdf.text('도면 이미지를 로드하는데 실패했습니다.', margin, yPos);
+      }
+    } else {
+      // 도면이 없는 경우
+      pdf.setFontSize(11);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text('등록된 도면 정보가 없습니다.', margin, yPos);
+    }
+
     // === 페이지 3: 효과 분석 ===
     if (proposal.effectAnalysis) {
       pdf.addPage();
@@ -543,8 +632,8 @@ export function generateEffectAnalysis(
   const expectedROI = costPerImpression < 1
     ? '높음 (CPM < 1,000원)'
     : costPerImpression < 5
-    ? '보통 (CPM 1,000~5,000원)'
-    : '검토 필요';
+      ? '보통 (CPM 1,000~5,000원)'
+      : '검토 필요';
 
   return {
     dailyImpressions,

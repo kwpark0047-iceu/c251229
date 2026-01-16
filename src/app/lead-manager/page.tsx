@@ -59,6 +59,8 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { ScheduleCalendar, TaskBoard, TaskFormModal } from './components/schedule';
 import { TaskWithLead } from './types';
 import CallbackNotification from './components/CallbackNotification';
+import RoleGuard from '@/components/RoleGuard';
+import MobileNavBar from './components/MobileNavBar';
 
 type MainTab = 'leads' | 'inventory' | 'schedule';
 
@@ -75,6 +77,8 @@ export default function LeadManagerPage() {
   // 상태 관리
   const [leads, setLeads] = useState<Lead[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  // 필드 모드 (현장 영업용 간소화 뷰)
+  const [isFieldMode, setIsFieldMode] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -275,9 +279,9 @@ export default function LeadManagerPage() {
           // 선택된 세부항목 이름 표시
           const serviceNames = selectedServiceIds.length > 0
             ? CATEGORY_SERVICE_IDS[categoryFilter]
-                .filter(s => selectedServiceIds.includes(s.id))
-                .map(s => s.name)
-                .join(', ')
+              .filter(s => selectedServiceIds.includes(s.id))
+              .map(s => s.name)
+              .join(', ')
             : '전체';
           showMessage(
             'success',
@@ -296,6 +300,30 @@ export default function LeadManagerPage() {
       setLoadingStatus('');
     }
   };
+
+
+  // 필터링된 리드 목록
+  const filteredLeads = useMemo(() => {
+    return leads.filter(lead => {
+      // 상태 필터 Check
+      if (statusFilter !== 'ALL' && lead.status !== statusFilter) return false;
+
+      // 검색어 필터 Check
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const searchTarget = [
+          lead.bizName,
+          lead.roadAddress,
+          lead.lotAddress,
+          lead.nearestStation
+        ].filter(Boolean).join(' ').toLowerCase();
+
+        if (!searchTarget.includes(query)) return false;
+      }
+
+      return true;
+    });
+  }, [leads, statusFilter, searchQuery]);
 
   // 리드 상태 변경
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
@@ -436,11 +464,10 @@ export default function LeadManagerPage() {
                 <button
                   key={key}
                   onClick={() => setMainTab(key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
-                    mainTab === key
-                      ? 'text-white shadow-md'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${mainTab === key
+                    ? 'text-white shadow-md'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                    }`}
                   style={mainTab === key ? {
                     background: METRO_TAB_COLORS[key].active,
                     boxShadow: `0 2px 10px ${METRO_TAB_COLORS[key].glow}`,
@@ -590,11 +617,10 @@ export default function LeadManagerPage() {
                             return [...prev, region.code];
                           });
                         }}
-                        className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
-                          selectedRegions.includes(region.code)
-                            ? 'text-white'
-                            : 'text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'
-                        }`}
+                        className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${selectedRegions.includes(region.code)
+                          ? 'text-white'
+                          : 'text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'
+                          }`}
                         style={selectedRegions.includes(region.code) ? { background: region.color } : {}}
                       >
                         {region.name}
@@ -605,6 +631,18 @@ export default function LeadManagerPage() {
 
                 {/* 가운데: 뷰 모드 */}
                 <div className="flex gap-1 p-0.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                  {/* 필드 모드 토글 (모바일에서 유용) */}
+                  <button
+                    onClick={() => setIsFieldMode(!isFieldMode)}
+                    className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all ${isFieldMode
+                      ? 'bg-[var(--metro-line2)] text-white shadow-sm'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                      }`}
+                    title="현장 모드 (간소화 뷰)"
+                  >
+                    <Zap className="w-4 h-4" />
+                  </button>
+                  <div className="w-px bg-[var(--border-subtle)] my-1" />
                   {[
                     { mode: 'grid' as ViewMode, icon: LayoutGrid, color: 'var(--metro-line2)' },
                     { mode: 'list' as ViewMode, icon: List, color: 'var(--metro-line4)' },
@@ -613,9 +651,8 @@ export default function LeadManagerPage() {
                     <button
                       key={mode}
                       onClick={() => setViewMode(mode)}
-                      className={`p-2 rounded-md transition-all ${
-                        viewMode === mode ? 'text-white shadow' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                      }`}
+                      className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                        }`}
                       style={viewMode === mode ? { background: color } : {}}
                     >
                       <Icon className="w-4 h-4" />
@@ -628,13 +665,12 @@ export default function LeadManagerPage() {
                   {/* API 상태 */}
                   <button
                     onClick={checkConnection}
-                    className={`p-2 rounded-lg transition-all ${
-                      isConnected === null
-                        ? 'text-[var(--text-muted)]'
-                        : isConnected
+                    className={`p-2 rounded-lg transition-all ${isConnected === null
+                      ? 'text-[var(--text-muted)]'
+                      : isConnected
                         ? 'text-[var(--metro-line2)] bg-[var(--metro-line2)]/10'
                         : 'text-red-400 bg-red-500/10'
-                    }`}
+                      }`}
                     title="API 연결 상태"
                   >
                     {isConnected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
@@ -660,8 +696,10 @@ export default function LeadManagerPage() {
                     <Download className="w-4 h-4" />
                   </button>
 
-                  {/* 백업 */}
-                  <BackupButton />
+                  {/* 백업 - 관리자/오너 전용 */}
+                  <RoleGuard allowedRoles={['owner', 'admin']}>
+                    <BackupButton />
+                  </RoleGuard>
                 </div>
               </div>
             </div>
@@ -685,8 +723,8 @@ export default function LeadManagerPage() {
             background: message.type === 'success'
               ? 'linear-gradient(135deg, rgba(60, 181, 74, 0.9) 0%, rgba(60, 181, 74, 0.7) 100%)'
               : message.type === 'error'
-              ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(239, 68, 68, 0.7) 100%)'
-              : 'linear-gradient(135deg, rgba(50, 164, 206, 0.9) 0%, rgba(50, 164, 206, 0.7) 100%)',
+                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(239, 68, 68, 0.7) 100%)'
+                : 'linear-gradient(135deg, rgba(50, 164, 206, 0.9) 0%, rgba(50, 164, 206, 0.7) 100%)',
             backdropFilter: 'blur(10px)',
             borderColor: message.type === 'success' ? 'var(--metro-line2)' : message.type === 'error' ? '#ef4444' : 'var(--metro-line4)',
           }}
@@ -713,140 +751,137 @@ export default function LeadManagerPage() {
           {/* 필터 바 */}
           <div className="bg-[var(--bg-secondary)]/30 border-b border-[var(--border-subtle)]/50">
             <div className="max-w-[1400px] mx-auto px-6 py-4">
-              {/* 검색 바 */}
-              <div className="mb-4 flex items-center justify-center">
-                <div className="relative w-full max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+              {/* 우측 액션 버튼들 (모바일에서는 일부 숨김) */}
+              <div className="flex items-center gap-3">
+                {/* 검색바 - 모바일에서는 아이콘만 표시하거나 축소 가능 */}
+                <div className="relative hidden sm:block">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                   <input
                     type="text"
+                    placeholder="병원명, 주소, 역이름 검색..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="사업장명, 주소, 전화번호로 검색..."
-                    className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent transition-all"
+                    className="pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent w-64 transition-all"
                   />
-                  {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
                 </div>
-              </div>
 
-              {/* 업종 + 상태 필터 */}
-              <div className="flex flex-wrap items-center justify-center gap-3 mb-3">
-                {/* 업종 카테고리 */}
-                <div className="flex items-center gap-2 flex-wrap justify-center">
-                  {(['HEALTH', 'ANIMAL', 'FOOD', 'CULTURE', 'LIVING', 'ENVIRONMENT', 'OTHER'] as BusinessCategory[]).map(category => {
-                    const colors = CATEGORY_COLORS[category];
-                    const count = leads.filter(l => l.category === category).length;
-                    const getCategoryColor = () => {
-                      if (colors.bg.includes('red')) return 'var(--metro-line1)';
-                      if (colors.bg.includes('amber')) return 'var(--metro-line3)';
-                      if (colors.bg.includes('orange')) return 'var(--metro-line3)';
-                      if (colors.bg.includes('purple')) return 'var(--metro-line5)';
-                      if (colors.bg.includes('cyan')) return 'var(--metro-line4)';
-                      if (colors.bg.includes('emerald')) return 'var(--metro-line2)';
-                      return 'var(--metro-line9)';
-                    };
-                    return (
-                      <button
-                        key={category}
-                        onClick={() => {
-                          setCategoryFilter(category);
-                          setSelectedServiceIds([]);
-                        }}
-                        className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${
-                          categoryFilter === category
+                {/* 모바일 검색 버튼 (확장형 X) */}
+                <button className="sm:hidden p-2.5 rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors">
+                  <Search className="w-5 h-5" />
+                </button>
+
+                <div className="h-8 w-px bg-[var(--border-subtle)] hidden sm:block" />
+                {/* 업종 + 상태 필터 */}
+                <div className="flex flex-wrap items-center justify-center gap-3 mb-3">
+                  {/* 업종 카테고리 */}
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                    {(['HEALTH', 'ANIMAL', 'FOOD', 'CULTURE', 'LIVING', 'ENVIRONMENT', 'OTHER'] as BusinessCategory[]).map(category => {
+                      const colors = CATEGORY_COLORS[category];
+                      const count = leads.filter(l => l.category === category).length;
+                      const getCategoryColor = () => {
+                        if (colors.bg.includes('red')) return 'var(--metro-line1)';
+                        if (colors.bg.includes('amber')) return 'var(--metro-line3)';
+                        if (colors.bg.includes('orange')) return 'var(--metro-line3)';
+                        if (colors.bg.includes('purple')) return 'var(--metro-line5)';
+                        if (colors.bg.includes('cyan')) return 'var(--metro-line4)';
+                        if (colors.bg.includes('emerald')) return 'var(--metro-line2)';
+                        return 'var(--metro-line9)';
+                      };
+                      return (
+                        <button
+                          key={category}
+                          onClick={() => {
+                            setCategoryFilter(category);
+                            setSelectedServiceIds([]);
+                          }}
+                          className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${categoryFilter === category
                             ? 'text-white shadow-md'
                             : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'
-                        }`}
-                        style={categoryFilter === category ? {
-                          background: getCategoryColor(),
-                        } : {}}
-                      >
-                        {CATEGORY_LABELS[category]}
-                        {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
-                      </button>
-                    );
-                  })}
-                </div>
+                            }`}
+                          style={categoryFilter === category ? {
+                            background: getCategoryColor(),
+                          } : {}}
+                        >
+                          {CATEGORY_LABELS[category]}
+                          {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                <div className="h-6 w-px bg-[var(--border-subtle)]" />
+                  <div className="h-6 w-px bg-[var(--border-subtle)]" />
 
-                {/* 상태 필터 */}
-                <div className="flex items-center gap-2">
-                  {(['ALL', 'NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as const).map((status, idx) => {
-                    const statusColors = ['var(--metro-line9)', 'var(--metro-line2)', 'var(--metro-line4)', 'var(--metro-line5)', 'var(--metro-line3)'];
-                    return (
-                      <button
-                        key={status}
-                        onClick={() => setStatusFilter(status)}
-                        className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${
-                          statusFilter === status
+                  {/* 상태 필터 */}
+                  <div className="flex items-center gap-2">
+                    {(['ALL', 'NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as const).map((status, idx) => {
+                      const statusColors = ['var(--metro-line9)', 'var(--metro-line2)', 'var(--metro-line4)', 'var(--metro-line5)', 'var(--metro-line3)'];
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => setStatusFilter(status)}
+                          className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${statusFilter === status
                             ? 'text-white shadow-md'
                             : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'
-                        }`}
-                        style={statusFilter === status ? { background: statusColors[idx] } : {}}
-                      >
-                        {status === 'ALL' ? '전체' : STATUS_LABELS[status]}
-                        {status !== 'ALL' && <span className="ml-1 opacity-70">({leads.filter(l => l.status === status).length})</span>}
-                      </button>
-                    );
-                  })}
+                            }`}
+                          style={statusFilter === status ? { background: statusColors[idx] } : {}}
+                        >
+                          {status === 'ALL' ? '전체' : STATUS_LABELS[status]}
+                          {status !== 'ALL' && <span className="ml-1 opacity-70">({leads.filter(l => l.status === status).length})</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="h-6 w-px bg-[var(--border-subtle)]" />
+
+                  <span className="text-sm font-semibold text-[var(--metro-line2)]">
+                    {filteredLeads.length}건
+                  </span>
                 </div>
 
-                <div className="h-6 w-px bg-[var(--border-subtle)]" />
-
-                <span className="text-sm font-semibold text-[var(--metro-line2)]">
-                  {filteredLeads.length}건
-                </span>
-              </div>
-
-              {/* 세부항목 선택 */}
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <span className="text-xs font-medium text-[var(--text-muted)]">세부:</span>
-                <button
-                  onClick={() => setSelectedServiceIds([])}
-                  className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${
-                    selectedServiceIds.length === 0
+                {/* 세부항목 선택 */}
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <span className="text-xs font-medium text-[var(--text-muted)]">세부:</span>
+                  <button
+                    onClick={() => setSelectedServiceIds([])}
+                    className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${selectedServiceIds.length === 0
                       ? 'bg-[var(--metro-line2)] text-white'
                       : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                  }`}
-                >
-                  전체
-                </button>
-                {CATEGORY_SERVICE_IDS[categoryFilter].map(service => {
-                  const isSelected = selectedServiceIds.includes(service.id);
-                  const serviceCount = leads.filter(l => l.serviceId === service.id).length;
-                  return (
-                    <button
-                      key={service.id}
-                      onClick={() => {
-                        if (isSelected) {
-                          setSelectedServiceIds(prev => prev.filter(id => id !== service.id));
-                        } else {
-                          setSelectedServiceIds(prev => [...prev, service.id]);
-                        }
-                      }}
-                      className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${
-                        isSelected
+                      }`}
+                  >
+                    전체
+                  </button>
+                  {CATEGORY_SERVICE_IDS[categoryFilter].map(service => {
+                    const isSelected = selectedServiceIds.includes(service.id);
+                    const serviceCount = leads.filter(l => l.serviceId === service.id).length;
+                    return (
+                      <button
+                        key={service.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedServiceIds(prev => prev.filter(id => id !== service.id));
+                          } else {
+                            setSelectedServiceIds(prev => [...prev, service.id]);
+                          }
+                        }}
+                        className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${isSelected
                           ? 'bg-[var(--metro-line4)] text-white'
                           : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                      }`}
-                    >
-                      {service.name}
-                      {serviceCount > 0 && <span className="ml-1 opacity-70">({serviceCount})</span>}
-                    </button>
-                  );
-                })}
+                          }`}
+                      >
+                        {service.name}
+                        {serviceCount > 0 && <span className="ml-1 opacity-70">({serviceCount})</span>}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
         </>
       )}
+
+      {/* 모바일에서 오버레이 필터 또는 간소화된 필터 UI가 필요할 수 있음 (현재는 데스크탑 구조 유지하며 반응형 적용) */}
 
       {/* 인벤토리 탭일 때 업로드 버튼 바 */}
       {mainTab === 'inventory' && (
@@ -877,26 +912,23 @@ export default function LeadManagerPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <h2 className="text-lg font-bold text-[var(--text-primary)]">업무 스케줄</h2>
-                {/* 뷰 전환 */}
                 <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                   <button
                     onClick={() => setScheduleView('calendar')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      scheduleView === 'calendar'
-                        ? 'bg-[var(--metro-line5)] text-white shadow-md'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                    }`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${scheduleView === 'calendar'
+                      ? 'bg-[var(--metro-line5)] text-white shadow-md'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                      }`}
                   >
                     <Calendar className="w-4 h-4" />
                     캘린더
                   </button>
                   <button
                     onClick={() => setScheduleView('board')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      scheduleView === 'board'
-                        ? 'bg-[var(--metro-line5)] text-white shadow-md'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                    }`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${scheduleView === 'board'
+                      ? 'bg-[var(--metro-line5)] text-white shadow-md'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                      }`}
                   >
                     <LayoutGrid className="w-4 h-4" />
                     업무현황
@@ -1009,6 +1041,7 @@ export default function LeadManagerPage() {
                     setViewMode('map');
                   }}
                   progressMap={progressMap}
+                  isFieldMode={isFieldMode}
                 />
               )}
               {viewMode === 'list' && (
@@ -1122,6 +1155,16 @@ export default function LeadManagerPage() {
           }}
         />
       )}
+      {/* 모바일 하단 네비게이션 */}
+      <MobileNavBar
+        activeTab={mainTab}
+        onTabChange={(tab) => {
+          setMainTab(tab);
+          if (viewMode === 'map') setViewMode('list');
+        }}
+        onViewModeChange={(mode) => setViewMode(mode)}
+        onSettingsClick={() => setIsSettingsOpen(true)}
+      />
     </div>
   );
 }

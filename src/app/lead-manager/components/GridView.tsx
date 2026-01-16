@@ -28,9 +28,10 @@ interface GridViewProps {
   searchQuery?: string;
   onMapView?: (lead: Lead) => void;
   progressMap?: Map<string, SalesProgress[]>;
+  isFieldMode?: boolean;
 }
 
-export default function GridView({ leads, onStatusChange, searchQuery = '', onMapView, progressMap }: GridViewProps) {
+export default function GridView({ leads, onStatusChange, searchQuery = '', onMapView, progressMap, isFieldMode = false }: GridViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   return (
@@ -46,6 +47,7 @@ export default function GridView({ leads, onStatusChange, searchQuery = '', onMa
             searchQuery={searchQuery}
             onMapView={() => onMapView?.(lead)}
             progress={progressMap?.get(lead.id)}
+            isFieldMode={isFieldMode}
           />
         ))}
       </div>
@@ -86,9 +88,10 @@ interface LeadCardProps {
   searchQuery?: string;
   onMapView?: () => void;
   progress?: SalesProgress[];
+  isFieldMode?: boolean;
 }
 
-function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onMapView, progress }: LeadCardProps) {
+function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onMapView, progress, isFieldMode = false }: LeadCardProps) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const statusColor = STATUS_METRO_COLORS[lead.status];
@@ -238,11 +241,18 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               </div>
             )}
           </div>
+
+          {/* 필드 모드일 때 추가 여백 및 강조 (선택적) */}
+          {isFieldMode && (
+            <div className="mt-3">
+              {/* 필드 모드에서는 중요 정보만 강조 */}
+            </div>
+          )}
         </div>
 
-        {/* 하단 액션 버튼 */}
+        {/* 하단 액션 버튼 - 필드 모드에서 더 크게 표시 */}
         <div
-          className="relative px-4 py-3 border-t flex gap-2"
+          className={`relative px-4 border-t flex gap-2 ${isFieldMode ? 'py-4' : 'py-3'}`}
           style={{
             background: 'var(--bg-tertiary)',
             borderColor: 'var(--border-subtle)',
@@ -254,14 +264,14 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                 e.stopPropagation();
                 setShowCallModal(true);
               }}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105"
+              className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
               style={{
                 background: 'var(--metro-line2)',
                 boxShadow: '0 2px 10px rgba(60, 181, 74, 0.3)',
               }}
             >
-              <Phone className="w-4 h-4" />
-              통화기록
+              <Phone className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
+              통화
             </button>
           )}
           <button
@@ -269,14 +279,14 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               e.stopPropagation();
               onSelect();
             }}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105"
+            className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
             style={{
               background: 'var(--metro-line4)',
               boxShadow: '0 2px 10px rgba(50, 164, 206, 0.3)',
             }}
           >
-            <FileText className="w-4 h-4" />
-            제안서
+            <FileText className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
+            제안
           </button>
         </div>
       </div>
@@ -288,7 +298,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
           leadName={lead.bizName}
           phone={lead.phone}
           onClose={() => setShowCallModal(false)}
-          onSuccess={() => {}}
+          onSuccess={() => { }}
         />
       )}
     </>
@@ -325,11 +335,10 @@ function StatusDropdown({ currentStatus, onSelect, onClose }: StatusDropdownProp
             <button
               key={status}
               onClick={() => onSelect(status)}
-              className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors ${
-                status === currentStatus
+              className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors ${status === currentStatus
                   ? 'bg-[var(--bg-secondary)]'
                   : 'hover:bg-[var(--bg-secondary)]'
-              }`}
+                }`}
             >
               <span
                 className="w-3 h-3 rounded-full border-2"

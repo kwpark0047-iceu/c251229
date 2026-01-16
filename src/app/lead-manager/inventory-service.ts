@@ -90,7 +90,6 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
   }
 
   // 파싱 완료
-  }
 
   return jsonData.map((row, index) => {
     const keys = Object.keys(row);
@@ -603,6 +602,65 @@ export async function getFloorPlan(
     };
   } catch {
     return { success: false };
+  }
+}
+
+/**
+ * 특정 역의 모든 배치도 조회 (floor_plans 테이블 + ad_inventory 테이블 통합)
+ */
+export async function getFloorPlansForStation(
+  stationName: string
+): Promise<FloorPlan[]> {
+  try {
+    const supabase = getSupabase();
+    const cleanStationName = stationName.replace(/역$/, '');
+
+    // 1. floor_plans 테이블 조회 및 ad_inventory 조회 병렬 처리
+    const [plansResult, inventoryResult] = await Promise.all([
+      supabase
+        .from('floor_plans')
+        .select('*')
+        .eq('station_name', cleanStationName)
+        .order('floor_name'),
+      supabase
+        .from('ad_inventory')
+        .select('floor_plan_url, station_name, location_code')
+        .eq('station_name', cleanStationName)
+        .not('floor_plan_url', 'is', null)
+    ]);
+
+    const plansData = plansResult.data;
+    const inventoryData = inventoryResult.data;
+
+    const dedicatedPlans: FloorPlan[] = (plansData || []).map(row => ({
+      id: row.id,
+      stationName: row.station_name,
+      floorName: row.floor_name,
+      imageUrl: row.image_url,
+      thumbnailUrl: row.thumbnail_url,
+      width: row.width,
+      height: row.height,
+    }));
+
+    const inventoryPlans: FloorPlan[] = [];
+    const usedUrls = new Set(dedicatedPlans.map(p => p.imageUrl));
+
+    (inventoryData || []).forEach(item => {
+      if (item.floor_plan_url && !usedUrls.has(item.floor_plan_url)) {
+        usedUrls.add(item.floor_plan_url);
+        inventoryPlans.push({
+          id: `inv-${item.location_code}`,
+          stationName: item.station_name,
+          floorName: '기타 도면', // 층 정보가 없으므로 기본값
+          imageUrl: item.floor_plan_url,
+        });
+      }
+    });
+
+    return [...dedicatedPlans, ...inventoryPlans];
+  } catch (error) {
+    console.error('Error fetching floor plans:', error);
+    return [];
   }
 }
 

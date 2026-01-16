@@ -41,6 +41,8 @@ import ProgressChecklist from './ProgressChecklist';
 import CallLogModal from './CallLogModal';
 import ProposalForm from '../ProposalForm';
 import StationInfoModal from '../StationInfoModal';
+import { getFloorPlansForStation } from '../../inventory-service';
+import { FloorPlan } from '../../types';
 
 interface LeadDetailPanelProps {
   leadId: string;
@@ -60,16 +62,25 @@ export default function LeadDetailPanel({
   const [showProposalForm, setShowProposalForm] = useState(false);
   const [showStationInfo, setShowStationInfo] = useState(false);
   const [inventoryCount, setInventoryCount] = useState(0);
+  const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
+  const [selectedFloorPlan, setSelectedFloorPlan] = useState<FloorPlan | null>(null);
 
   const loadLead = useCallback(async () => {
     setLoading(true);
     const data = await getLeadWithCRM(leadId);
     setLead(data);
 
-    // 인근 광고매체 수 조회
+    // 인근 광고매체 수 및 도면 조회 병렬 처리
     if (data) {
-      const inventory = await findInventoryForLead(data);
+      const inventoryPromise = findInventoryForLead(data);
+      const plansPromise = data.nearestStation
+        ? getFloorPlansForStation(data.nearestStation)
+        : Promise.resolve([]);
+
+      const [inventory, plans] = await Promise.all([inventoryPromise, plansPromise]);
+
       setInventoryCount(inventory.length);
+      setFloorPlans(plans);
     }
 
     setLoading(false);
@@ -153,11 +164,10 @@ export default function LeadDetailPanel({
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as typeof activeTab)}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab.key
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === tab.key
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-slate-500 hover:text-slate-700'
+                }`}
             >
               {tab.label}
             </button>
@@ -275,6 +285,34 @@ export default function LeadDetailPanel({
                   </p>
                 </section>
               )}
+
+              {/* 역사 도면 - 맨 아래에 추가 */}
+              {floorPlans.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                    역사 도면 ({floorPlans.length})
+                  </h3>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {floorPlans.map((plan) => (
+                      <div
+                        key={plan.id}
+                        className="flex-shrink-0 w-40 h-40 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:border-blue-500 transition-all relative group"
+                        onClick={() => setSelectedFloorPlan(plan)}
+                      >
+                        <img
+                          src={plan.thumbnailUrl || plan.imageUrl}
+                          alt={`${plan.stationName} ${plan.floorName || ''}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent text-white text-xs font-medium truncate">
+                          {plan.floorName || '도면'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           )}
 
@@ -364,6 +402,26 @@ export default function LeadDetailPanel({
           stationName={lead.nearestStation.replace(/역$/, '')}
           stationLines={lead.stationLines || ['1']}
         />
+      )}
+      {/* 도면 확대 모달 */}
+      {selectedFloorPlan && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4" onClick={() => setSelectedFloorPlan(null)}>
+          <div className="relative max-w-4xl w-full max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <h3 className="font-semibold text-lg">{selectedFloorPlan.stationName} {selectedFloorPlan.floorName}</h3>
+              <button onClick={() => setSelectedFloorPlan(null)} className="p-1 hover:bg-slate-100 rounded-full">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-1 bg-slate-100 overflow-auto max-h-[calc(90vh-60px)] flex items-center justify-center">
+              <img
+                src={selectedFloorPlan.imageUrl}
+                alt={`${selectedFloorPlan.stationName} ${selectedFloorPlan.floorName}`}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
@@ -469,9 +527,8 @@ function ProposalCard({
                       onStatusChange(status);
                       setShowMenu(false);
                     }}
-                    className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${
-                      proposal.status === status ? 'bg-slate-100 font-medium' : ''
-                    }`}
+                    className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${proposal.status === status ? 'bg-slate-100 font-medium' : ''
+                      }`}
                   >
                     {PROPOSAL_STATUS_LABELS[status]}
                   </button>

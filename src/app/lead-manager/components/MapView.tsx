@@ -12,12 +12,12 @@ import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
 import { SUBWAY_STATIONS } from '../constants';
 import { formatDistance, formatPhoneNumber } from '../utils';
 import StationLabels, { StationLayer, StationToggle } from './StationLabels';
-import { 
-  getRealtimeSubwayData, 
+import {
+  getRealtimeSubwayData,
   initializeSubwayData,
   useSubwayDataRefresh,
   KRIC_LINE_COLORS,
-  getLineDisplayName 
+  getLineDisplayName
 } from '../kric-data-manager';
 
 interface MapViewProps {
@@ -368,7 +368,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   useEffect(() => {
     const loadSubwayData = async () => {
       if (!isClient) return;
-      
+
       setIsLoadingSubwayData(true);
       try {
         const data = await getRealtimeSubwayData();
@@ -378,6 +378,10 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
         console.error('❌ Failed to load KRIC subway data:', error);
         // 기존 SUBWAY_STATIONS로 fallback
         console.log('📦 Falling back to static subway data');
+        setSubwayData({
+          stations: SUBWAY_STATIONS,
+          routes: SUBWAY_LINE_ROUTES
+        });
       } finally {
         setIsLoadingSubwayData(false);
       }
@@ -394,9 +398,9 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
     ? { lat: focusLead.latitude, lng: focusLead.longitude }
     : validLeads.length > 0
       ? {
-          lat: validLeads.reduce((sum, l) => sum + (l.latitude || 0), 0) / validLeads.length,
-          lng: validLeads.reduce((sum, l) => sum + (l.longitude || 0), 0) / validLeads.length,
-        }
+        lat: validLeads.reduce((sum, l) => sum + (l.latitude || 0), 0) / validLeads.length,
+        lng: validLeads.reduce((sum, l) => sum + (l.longitude || 0), 0) / validLeads.length,
+      }
       : { lat: 37.5012, lng: 127.0396 }; // 강남역
 
   // 줌 레벨 (focusLead가 있으면 더 높은 줌)
@@ -621,11 +625,10 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                     : [...prev, lineNumber]
                 );
               }}
-              className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
-                visibleLines.includes(lineNumber)
+              className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${visibleLines.includes(lineNumber)
                   ? 'text-white shadow-md'
                   : 'bg-gray-200 text-gray-500'
-              }`}
+                }`}
               style={{
                 backgroundColor: visibleLines.includes(lineNumber) ? route.color : undefined,
               }}
