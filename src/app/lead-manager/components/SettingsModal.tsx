@@ -13,7 +13,7 @@ import RoleGuard from '@/components/RoleGuard';
 
 import { Settings as SettingsType, SearchType, REGION_CODES } from '../types';
 import { CORS_PROXIES } from '../constants';
-import { removeDuplicateLeads } from '../supabase-service';
+import { deleteDuplicateLeadsFromDB } from '../supabase-service';
 
 interface SettingsModalProps {
   settings: SettingsType;
@@ -53,7 +53,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
     setDuplicateResult(null);
 
     try {
-      const result = await removeDuplicateLeads();
+      const result = await deleteDuplicateLeadsFromDB();
       setDuplicateResult(result.message);
       if (result.success && result.removedCount > 0) {
         onDataChanged?.();

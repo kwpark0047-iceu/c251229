@@ -223,102 +223,85 @@ export async function getLeads(filters?: {
     // 🔍 디버깅: 세션 및 조직 멤버십 확인
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     // 디버그 로그 제거
-    hasSession: !!sessionData?.session,
-      userId: sessionData?.session?.user?.id,
-        email: sessionData?.session?.user?.email,
-          error: sessionError?.message,
-    });
-  if (sessionData?.session?.user?.id) {
-    const { data: memberData, error: memberError } = await supabase
-      .from('organization_members')
-      .select('organization_id, role')
-      .eq('user_id', sessionData.session.user.id);
-    // 디버그 로그 제거
-  }
 
 
-  let query = supabase
-    .from('leads')
-    .select('*')
-    .order('license_date', { ascending: false, nullsFirst: false });
+    let query = supabase
+      .from('leads')
+      .select('*')
+      .order('license_date', { ascending: false, nullsFirst: false });
 
-  // 필터 적용
-  if (filters?.status) {
-    query = query.eq('status', filters.status);
-  }
-  if (filters?.category) {
-    query = query.eq('category', filters.category);
-  }
-  if (filters?.nearestStation) {
-    query = query.eq('nearest_station', filters.nearestStation);
-  }
-  if (filters?.startDate) {
-    query = query.gte('license_date', filters.startDate);
-  }
-  if (filters?.endDate) {
-    query = query.lte('license_date', filters.endDate);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error('리드 조회 오류:', error);
-    return { success: false, leads: [], message: error.message };
-  }
-
-  // DB 데이터를 Lead 객체로 변환
-  let leads: Lead[] = (data || []).map(row => ({
-    id: row.id,
-    bizName: row.biz_name,
-    bizId: row.biz_id,
-    licenseDate: row.license_date,
-    roadAddress: row.road_address,
-    lotAddress: row.lot_address,
-    coordX: row.coord_x,
-    coordY: row.coord_y,
-    latitude: row.latitude,
-    longitude: row.longitude,
-    phone: row.phone,
-    medicalSubject: row.medical_subject,
-    category: (row.category as BusinessCategory) || 'HEALTH',
-    serviceId: row.service_id,
-    serviceName: row.service_name,
-    nearestStation: row.nearest_station,
-    stationDistance: row.station_distance,
-    stationLines: row.station_lines,
-    status: row.status as LeadStatus,
-    notes: row.notes,
-    assignedTo: row.assigned_to,
-    assignedToName: row.assigned_to_name,
-    assignedAt: row.assigned_at,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }));
-
-  // 지역 필터 적용 (클라이언트 사이드)
-  if (filters?.regions && filters.regions.length > 0) {
-    leads = leads.filter(lead => {
-      const address = lead.roadAddress || lead.lotAddress || '';
-      return isAddressInRegions(address, filters.regions as RegionCode[]);
-    });
-  }
-
-  // 중복 제거 (정규화된 키 기준)
-  const seenKeys = new Set<string>();
-  const uniqueLeads = leads.filter(lead => {
-    const key = createLeadKey(lead.bizName, lead.roadAddress);
-    if (seenKeys.has(key)) {
-      return false;
+    // 필터 적용
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
     }
-    seenKeys.add(key);
-    return true;
-  });
+    if (filters?.category) {
+      query = query.eq('category', filters.category);
+    }
+    if (filters?.nearestStation) {
+      query = query.eq('nearest_station', filters.nearestStation);
+    }
+    if (filters?.startDate) {
+      query = query.gte('license_date', filters.startDate);
+    }
+    if (filters?.endDate) {
+      query = query.lte('license_date', filters.endDate);
+    }
 
-  return { success: true, leads: uniqueLeads };
-} catch (error) {
-  console.error('리드 조회 중 오류:', error);
-  return { success: false, leads: [], message: (error as Error).message };
-}
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('리드 조회 오류:', error);
+      return { success: false, leads: [], message: error.message };
+    }
+
+    // DB 데이터를 Lead 객체로 변환
+    let leads: Lead[] = (data || []).map(row => ({
+      id: row.id,
+      bizName: row.biz_name,
+      bizId: row.biz_id,
+      licenseDate: row.license_date,
+      roadAddress: row.road_address,
+      lotAddress: row.lot_address,
+      coordX: row.coord_x,
+      coordY: row.coord_y,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      phone: row.phone,
+      medicalSubject: row.medical_subject,
+      category: (row.category as BusinessCategory) || 'HEALTH',
+      serviceId: row.service_id,
+      serviceName: row.service_name,
+      nearestStation: row.nearest_station,
+      stationDistance: row.station_distance,
+      stationLines: row.station_lines,
+      status: row.status as LeadStatus,
+      notes: row.notes,
+      assignedTo: row.assigned_to,
+      assignedToName: row.assigned_to_name,
+      assignedAt: row.assigned_at,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+
+    // 지역 필터 적용 (클라이언트 사이드)
+    if (filters?.regions && filters.regions.length > 0) {
+      leads = leads.filter(lead => {
+        const address = lead.roadAddress || lead.lotAddress || '';
+        return isAddressInRegions(address, filters.regions as RegionCode[]);
+      });
+    }
+
+    // 중복 제거 (deduplication-utils 사용)
+    const { uniqueLeads } = removeDuplicateLeads(leads, {
+      checkBizId: true,
+      checkSimilarity: false // 성능을 위해 단순 키 비교만 수행
+    });
+
+    return { success: true, leads: uniqueLeads };
+  } catch (error) {
+    console.error('리드 조회 중 오류:', error);
+    return { success: false, leads: [], message: (error as Error).message };
+  }
 }
 
 /**
@@ -489,7 +472,7 @@ export async function getSettings(): Promise<{ success: boolean; settings: Setti
  * 중복 리드 삭제 (상호명 + 주소 기준)
  * 같은 상호명+주소 조합의 데이터 중 가장 오래된 것만 남기고 삭제
  */
-export async function removeDuplicateLeads(): Promise<{
+export async function deleteDuplicateLeadsFromDB(): Promise<{
   success: boolean;
   message: string;
   removedCount: number;
