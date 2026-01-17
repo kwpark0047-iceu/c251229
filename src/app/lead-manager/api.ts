@@ -229,9 +229,9 @@ export async function fetchAllLeads(
 
       // 중복 제거하며 추가
       for (const lead of firstResult.leads) {
-        const key = createLeadKey(lead.bizName, lead.roadAddress);
+        const key = createLeadKey(lead.bizName, lead.roadAddress, lead.bizId);
         const bizId = lead.bizId;
-        
+
         // 중복 체크: 상호명+주소 또는 사업자 ID
         if (!seenKeys.has(key) && (!bizId || !seenBizIds.has(bizId))) {
           seenKeys.add(key);
@@ -271,7 +271,7 @@ export async function fetchAllLeads(
           for (const lead of result.leads) {
             const key = createLeadKey(lead.bizName, lead.roadAddress);
             const bizId = lead.bizId;
-            
+
             // 중복 체크: 상호명+주소 또는 사업자 ID
             if (!seenKeys.has(key) && (!bizId || !seenBizIds.has(bizId))) {
               seenKeys.add(key);

@@ -46,6 +46,7 @@ import { getCurrentUser, signOut, UserInfo } from './auth-service';
 import { getProgressBatch } from './crm-service';
 import { SalesProgress } from './types';
 import { isAddressInRegions, RegionCode } from './region-utils';
+import { removeDuplicateLeads } from './deduplication-utils';
 
 import GridView from './components/GridView';
 import ListView from './components/ListView';
@@ -336,17 +337,14 @@ export default function LeadManagerPage() {
   };
 
 
-  // 필터링된 리드 목록 (서버 사이드 필터링이므로 그대로 반환)
   // 필터링된 리드 목록 (화면 표시용 중복 제거 적용)
   const filteredLeads = useMemo(() => {
-    // ID 기준으로 중복 제거
-    const uniqueLeadsMap = new Map<string, Lead>();
-    leads.forEach(lead => {
-      if (!uniqueLeadsMap.has(lead.id)) {
-        uniqueLeadsMap.set(lead.id, lead);
-      }
-    });
-    return Array.from(uniqueLeadsMap.values());
+    // 강력한 중복 제거 로직 적용 (상호명, 주소, 사업자 ID 기준)
+    return removeDuplicateLeads(leads, {
+      checkBizId: true,
+      checkSimilarity: true,
+      similarityThreshold: 0.8
+    }).uniqueLeads;
   }, [leads]);
 
   // 리드 상태 변경
@@ -954,212 +952,209 @@ export default function LeadManagerPage() {
       {/* 메인 컨텐츠 */}
       <main className="max-w-[1400px] mx-auto px-6 py-8 pb-24 md:pb-8 relative z-10">
         {mainTab === 'leads' ? (
-          // 리드 뷰
-          initialLoading ? (
-            <div className="flex flex-col items-center justify-center py-24">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
-                style={{
-                  background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                  boxShadow: '0 8px 30px rgba(60, 181, 74, 0.3)',
-                }}
-              >
-                <RefreshCw className="w-8 h-8 text-white animate-spin" />
-              </div>
-              <p className="text-[var(--text-secondary)] font-medium">Supabase에서 데이터를 불러오는 중...</p>
-            </div>
-          ) : isLoading ? (
-            <div className="flex flex-col items-center justify-center py-24">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative"
-                style={{
-                  background: 'linear-gradient(135deg, var(--metro-line4) 0%, var(--metro-line2) 100%)',
-                  boxShadow: '0 8px 30px rgba(50, 164, 206, 0.3)',
-                }}
-              >
-                <RefreshCw className="w-8 h-8 text-white animate-spin" />
-              </div>
-              <p className="text-[var(--text-secondary)] font-medium mb-2">
-                [{CATEGORY_LABELS[categoryFilter]}] LocalData API에서 데이터를 가져오는 중...
-              </p>
-              {loadingStatus && (
-                <p className="text-sm text-[var(--metro-line2)] font-semibold">{loadingStatus}</p>
-              )}
-              {loadingProgress.total > 0 && (
-                <div className="mt-4 w-64">
-                  <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{
-                        width: `${(loadingProgress.current / loadingProgress.total) * 100}%`,
-                        background: 'linear-gradient(90deg, var(--metro-line2), var(--metro-line4))',
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-[var(--text-muted)] mt-2 text-center">
-                    {loadingProgress.current} / {loadingProgress.total}
-                  </p>
+          <>
+            {initialLoading ? (
+              <div className="flex flex-col items-center justify-center py-24">
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
+                    boxShadow: '0 8px 30px rgba(60, 181, 74, 0.3)',
+                  }}
+                >
+                  <RefreshCw className="w-8 h-8 text-white animate-spin" />
                 </div>
-              )}
-            </div>
-          ) : filteredLeads.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
-                style={{
-                  background: 'var(--bg-tertiary)',
-                  border: '2px dashed var(--border-subtle)',
-                }}
-              >
-                <List className="w-10 h-10 text-[var(--text-muted)]" />
+                <p className="text-[var(--text-secondary)] font-medium">Supabase에서 데이터를 불러오는 중...</p>
               </div>
-              <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3">저장된 데이터가 없습니다</h3>
-              <p className="text-[var(--text-muted)] mb-6 max-w-md">
-                새로고침 버튼을 눌러 LocalData API에서 데이터를 가져오세요.
-              </p>
-              <button
-                onClick={refreshData}
-                className="metro-btn-primary flex items-center gap-2.5"
-              >
-                <RefreshCw className="w-4 h-4" />
-                API에서 데이터 가져오기
-              </button>
-            </div>
-          ) : (
-            <>
-              {viewMode === 'grid' && (
-                <GridView
-                  leads={filteredLeads}
-                  onStatusChange={handleStatusChange}
-                  searchQuery={searchQuery}
-                  onMapView={(lead) => {
-                    setMapFocusLead(lead);
-                    setViewMode('map');
+            ) : isLoading ? (
+              <div className="flex flex-col items-center justify-center py-24">
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--metro-line4) 0%, var(--metro-line2) 100%)',
+                    boxShadow: '0 8px 30px rgba(50, 164, 206, 0.3)',
                   }}
-                  progressMap={progressMap}
-                  isFieldMode={isFieldMode}
-                />
-              )}
-              {viewMode === 'list' && (
-                <ListView
-                  leads={filteredLeads}
-                  onStatusChange={handleStatusChange}
-                  searchQuery={searchQuery}
-                  onMapView={(lead) => {
-                    setMapFocusLead(lead);
-                    setViewMode('map');
+                >
+                  <RefreshCw className="w-8 h-8 text-white animate-spin" />
+                </div>
+                <p className="text-[var(--text-secondary)] font-medium mb-2">
+                  [{CATEGORY_LABELS[categoryFilter]}] LocalData API에서 데이터를 가져오는 중...
+                </p>
+                {loadingStatus && (
+                  <p className="text-sm text-[var(--metro-line2)] font-semibold">{loadingStatus}</p>
+                )}
+                {loadingProgress.total > 0 && (
+                  <div className="mt-4 w-64">
+                    <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${(loadingProgress.current / loadingProgress.total) * 100}%`,
+                          background: 'linear-gradient(90deg, var(--metro-line2), var(--metro-line4))',
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-[var(--text-muted)] mt-2 text-center">
+                      {loadingProgress.current} / {loadingProgress.total}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : filteredLeads.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
+                  style={{
+                    background: 'var(--bg-tertiary)',
+                    border: '2px dashed var(--border-subtle)',
                   }}
-                  progressMap={progressMap}
-                />
-              )}
-              {viewMode === 'map' && (
-                <MapView
-                  leads={filteredLeads}
-                  onStatusChange={handleStatusChange}
-                  onListView={() => setViewMode('list')}
-                  focusLead={mapFocusLead}
-                  onFocusClear={() => setMapFocusLead(null)}
-                />
-              )}
-            </>
-          )}
+                >
+                  <List className="w-10 h-10 text-[var(--text-muted)]" />
+                </div>
+                <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3">저장된 데이터가 없습니다</h3>
+                <p className="text-[var(--text-muted)] mb-6 max-w-md">
+                  새로고침 버튼을 눌러 LocalData API에서 데이터를 가져오세요.
+                </p>
+                <button
+                  onClick={refreshData}
+                  className="metro-btn-primary flex items-center gap-2.5"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  API에서 데이터 가져오기
+                </button>
+              </div>
+            ) : (
+              <>
+                {viewMode === 'grid' && (
+                  <GridView
+                    leads={filteredLeads}
+                    onStatusChange={handleStatusChange}
+                    searchQuery={searchQuery}
+                    onMapView={(lead) => {
+                      setMapFocusLead(lead);
+                      setViewMode('map');
+                    }}
+                    progressMap={progressMap}
+                    isFieldMode={isFieldMode}
+                  />
+                )}
+                {viewMode === 'list' && (
+                  <ListView
+                    leads={filteredLeads}
+                    onStatusChange={handleStatusChange}
+                    searchQuery={searchQuery}
+                    onMapView={(lead) => {
+                      setMapFocusLead(lead);
+                      setViewMode('map');
+                    }}
+                    progressMap={progressMap}
+                  />
+                )}
+                {viewMode === 'map' && (
+                  <MapView
+                    leads={filteredLeads}
+                    onStatusChange={handleStatusChange}
+                    onListView={() => setViewMode('list')}
+                    focusLead={mapFocusLead}
+                    onFocusClear={() => setMapFocusLead(null)}
+                  />
+                )}
+              </>
+            )}
+            {/* 페이지네이션 (리드 탭) */}
+            {totalCount > 0 && (
+              <div className="flex justify-center items-center gap-2 mt-6 pb-10">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] disabled:opacity-30 transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5 text-[var(--text-secondary)]" />
+                </button>
 
-        {/* 페이지네이션 (리드 탭) */}
-        {mainTab === 'leads' && totalCount > 0 && (
-          <div className="flex justify-center items-center gap-2 mt-6 pb-10">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] disabled:opacity-30 transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5 text-[var(--text-secondary)]" />
-            </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, Math.ceil(totalCount / PAGE_SIZE)) }, (_, i) => {
+                    let p = currentPage - 2 + i;
+                    if (currentPage < 3) p = 1 + i;
+                    const maxPage = Math.ceil(totalCount / PAGE_SIZE);
+                    if (p > maxPage) return null;
+                    if (p < 1) return null;
 
-            <div className="flex items-center gap-1">
-              {Array.from({ length: Math.min(5, Math.ceil(totalCount / PAGE_SIZE)) }, (_, i) => {
-                // 현재 페이지 주변으로 5개 표시 계산 로직 간소화 (필요시 개선)
-                let p = currentPage - 2 + i;
-                if (currentPage < 3) p = 1 + i;
-                const maxPage = Math.ceil(totalCount / PAGE_SIZE);
-                if (p > maxPage) return null;
-                if (p < 1) return null;
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p)}
+                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentPage === p
+                          ? 'bg-[var(--metro-line2)] text-white shadow-md'
+                          : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]'
+                          }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+                </div>
 
-                return (
-                  <button
-                    key={p}
-                    onClick={() => setCurrentPage(p)}
-                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentPage === p
-                      ? 'bg-[var(--metro-line2)] text-white shadow-md'
-                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]'
-                      }`}
-                  >
-                    {p}
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => setCurrentPage(p => p + 1)}
-              disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
-              className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] disabled:opacity-30 transition-colors"
-            >
-              <ChevronRight className="w-5 h-5 text-[var(--text-secondary)]" />
-            </button>
-          </div>
-        )}
-
-        : mainTab === 'inventory' ? (
-        // 인벤토리 뷰
-        <InventoryTable
-          key={inventoryRefreshKey}
-          onRefresh={() => setInventoryRefreshKey(k => k + 1)}
-        />
+                <button
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
+                  className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] disabled:opacity-30 transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5 text-[var(--text-secondary)]" />
+                </button>
+              </div>
+            )}
+          </>
+        ) : mainTab === 'inventory' ? (
+          // 인벤토리 뷰
+          <InventoryTable
+            key={inventoryRefreshKey}
+            onRefresh={() => setInventoryRefreshKey(k => k + 1)}
+          />
         ) : (
-        // 스케줄 뷰
-        <div key={scheduleRefreshKey}>
-          {scheduleView === 'calendar' ? (
-            <ScheduleCalendar
-              onDateSelect={(date) => {
-                setTaskFormDefaultDate(date);
-              }}
-              onEventClick={(event) => {
-                if (event.type === 'task') {
-                  // 업무 상세로 이동 또는 편집
-                  const taskId = event.id.replace('task-', '');
-                  // 여기서 task를 로드해서 편집
-                  setSelectedTask({
-                    id: taskId,
-                    taskType: event.taskType || 'OTHER',
-                    title: event.title,
-                    dueDate: event.date,
-                    dueTime: event.time,
-                    status: event.status || 'PENDING',
-                    priority: event.priority || 'MEDIUM',
-                    leadId: event.leadId,
-                  } as TaskWithLead);
+          // 스케줄 뷰
+          <div key={scheduleRefreshKey}>
+            {scheduleView === 'calendar' ? (
+              <ScheduleCalendar
+                onDateSelect={(date) => {
+                  setTaskFormDefaultDate(date);
+                }}
+                onEventClick={(event) => {
+                  if (event.type === 'task') {
+                    // 업무 상세로 이동 또는 편집
+                    const taskId = event.id.replace('task-', '');
+                    // 여기서 task를 로드해서 편집
+                    setSelectedTask({
+                      id: taskId,
+                      taskType: event.taskType || 'OTHER',
+                      title: event.title,
+                      dueDate: event.date,
+                      dueTime: event.time,
+                      status: event.status || 'PENDING',
+                      priority: event.priority || 'MEDIUM',
+                      leadId: event.leadId,
+                    } as TaskWithLead);
+                    setShowTaskForm(true);
+                  }
+                }}
+                onAddTask={(date) => {
+                  setSelectedTask(null);
+                  setTaskFormDefaultDate(date);
                   setShowTaskForm(true);
-                }
-              }}
-              onAddTask={(date) => {
-                setSelectedTask(null);
-                setTaskFormDefaultDate(date);
-                setShowTaskForm(true);
-              }}
-            />
-          ) : (
-            <TaskBoard
-              onTaskClick={(task) => {
-                setSelectedTask(task);
-                setShowTaskForm(true);
-              }}
-            />
-          )}
-        </div>
+                }}
+              />
+            ) : (
+              <TaskBoard
+                onTaskClick={(task) => {
+                  setSelectedTask(task);
+                  setShowTaskForm(true);
+                }}
+              />
+            )}
+          </div>
         )}
       </main>
 
-      {/* 인벤토리 업로드 모달 */}
       {showInventoryUpload && (
         <InventoryUploadModal
           onClose={() => setShowInventoryUpload(false)}
@@ -1170,7 +1165,6 @@ export default function LeadManagerPage() {
         />
       )}
 
-      {/* 설정 모달 */}
       {isSettingsOpen && (
         <SettingsModal
           settings={settings}
@@ -1180,7 +1174,6 @@ export default function LeadManagerPage() {
         />
       )}
 
-      {/* 업무 생성/편집 모달 */}
       {showTaskForm && (
         <TaskFormModal
           task={selectedTask}
@@ -1207,6 +1200,6 @@ export default function LeadManagerPage() {
         onViewModeChange={(mode) => setViewMode(mode)}
         onSettingsClick={() => setIsSettingsOpen(true)}
       />
-    </div>
+    </div >
   );
 }

@@ -24,11 +24,17 @@ export function normalizeLeadKey(input: string | null | undefined): string {
  * 리드 중복 체크용 키 생성
  * @param bizName - 상호명
  * @param roadAddress - 도로명 주소
+ * @param bizId - 사업자등록번호 (선택)
  * @returns 정규화된 키 문자열
  */
 export function createLeadKey(
   bizName: string | null | undefined,
-  roadAddress: string | null | undefined
+  roadAddress: string | null | undefined,
+  bizId?: string | null | undefined
 ): string {
-  return `${normalizeLeadKey(bizName)}||${normalizeLeadKey(roadAddress)}`;
+  const baseKey = `${normalizeLeadKey(bizName)}||${normalizeLeadKey(roadAddress)}`;
+  if (bizId) {
+    return `${baseKey}||${normalizeLeadKey(bizId)}`;
+  }
+  return baseKey;
 }

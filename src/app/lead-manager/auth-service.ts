@@ -4,14 +4,14 @@
  */
 
 import { createClient } from '@/lib/supabase/client'
-
-id: string
-email: string
-organizationId: string | null
-organizationName: string | null
-role: 'owner' | 'admin' | 'member' | null
-inviteCode: string | null
-permissions: UserPermissions
+export interface UserInfo {
+  id: string;
+  email: string;
+  organizationId: string | null;
+  organizationName: string | null;
+  role: 'owner' | 'admin' | 'member' | null;
+  inviteCode: string | null;
+  permissions: UserPermissions;
 }
 
 export interface UserPermissions {

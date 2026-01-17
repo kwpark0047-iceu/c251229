@@ -9,7 +9,7 @@ import { DEFAULT_SETTINGS } from './constants';
 import { getOrganizationId } from './auth-service';
 import { createLeadKey } from './lead-utils';
 import { removeDuplicateLeads } from './deduplication-utils';
-import { isAddressInRegions, RegionCode } from './region-utils';
+import { isAddressInRegions, RegionCode, getRegionPrefixes } from './region-utils';
 
 /**
  * 리드 저장 결과 타입
@@ -54,7 +54,7 @@ export async function saveLeads(
     const existingSet = new Set<string>();
     const existingBizIds = new Set<string>(); // 사업자 ID도 체크
     (existingData || []).forEach(row => {
-      const key = createLeadKey(row.biz_name, row.road_address);
+      const key = createLeadKey(row.biz_name, row.road_address, row.biz_id);
       existingSet.add(key);
       if (row.biz_id) {
         existingBizIds.add(row.biz_id);
@@ -72,7 +72,7 @@ export async function saveLeads(
     const dbDuplicates: Lead[] = [];
 
     deduplicationResult.uniqueLeads.forEach(lead => {
-      const key = createLeadKey(lead.bizName, lead.roadAddress);
+      const key = createLeadKey(lead.bizName, lead.roadAddress, lead.bizId);
       // 키 또는 사업자등록번호로 중복 확인 (기존 데이터와 비교)
       if (existingSet.has(key) || (lead.bizId && existingBizIds.has(lead.bizId))) {
         dbDuplicates.push(lead);
@@ -264,7 +264,7 @@ export async function getLeads(filters?: {
       // 지역 코드에 해당하는 주소 접두어 가져오기
       // 예: '6110000' -> ['서울특별시', '서울']
       const prefixes: string[] = [];
-      const { getRegionPrefixes } = require('./region-utils'); // 동적 임포트로 순환 참조 방지 가능성
+      // region-utils의 getRegionPrefixes 사용
 
       // region-utils의 getRegionPrefixes 사용
       // filters.regions는 string[]이지만 RegionCode[]로 캐스팅 필요할 수 있음
