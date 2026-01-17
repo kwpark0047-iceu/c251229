@@ -44,6 +44,8 @@ import StationInfoModal from '../StationInfoModal';
 import { getFloorPlansForStation } from '../../inventory-service';
 import { FloorPlan } from '../../types';
 import StationFloorPlans from './StationFloorPlans';
+import SendEmailModal from './SendEmailModal';
+import { sendProposalEmail } from '../../proposal-service';
 
 interface LeadDetailPanelProps {
   leadId: string;
@@ -64,6 +66,8 @@ export default function LeadDetailPanel({
   const [showStationInfo, setShowStationInfo] = useState(false);
   const [inventoryCount, setInventoryCount] = useState(0);
   const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
 
   const loadLead = useCallback(async () => {
     setLoading(true);
@@ -103,7 +107,7 @@ export default function LeadDetailPanel({
 
   return (
     <>
-      <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex flex-col">
+      <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[60] flex flex-col pb-[env(safe-area-inset-bottom)]">
         {/* 헤더 */}
         <div className={`${statusColor.bg} px-6 py-4 border-b ${statusColor.border}`}>
           <div className="flex items-start justify-between">
@@ -329,6 +333,10 @@ export default function LeadDetailPanel({
                       onStatusChange?.();
                     }}
                     onDownloadPDF={() => downloadProposalPDF(proposal.id)}
+                    onSendEmail={() => {
+                      setSelectedProposal(proposal);
+                      setShowEmailModal(true);
+                    }}
                   />
                 ))
               ) : (
@@ -342,6 +350,29 @@ export default function LeadDetailPanel({
           )}
         </div>
       </div>
+
+      {/* 이메일 발송 모달 */}
+      <SendEmailModal
+        isOpen={showEmailModal}
+        onClose={() => {
+          setShowEmailModal(false);
+          setSelectedProposal(null);
+        }}
+        defaultEmail={selectedProposal?.emailRecipient || ''}
+        defaultSubject={selectedProposal ? `[제안서] ${selectedProposal.title}` : ''}
+        defaultBody={selectedProposal && lead ? `${lead.bizName} 원장님, 요청하신 제안서를 송부드립니다.\n\n확인 부탁드립니다.\n\n감사합니다.` : ''}
+        onSend={async (data) => {
+          if (!selectedProposal) return;
+          const result = await sendProposalEmail(selectedProposal.id, data);
+          if (result.success) {
+            alert('이메일이 발송되었습니다.'); // 또는 toast 사용
+            loadLead();
+            onStatusChange?.();
+          } else {
+            alert(`발송 실패: ${result.message}`);
+          }
+        }}
+      />
 
       {/* 통화 기록 모달 */}
       {showCallModal && (
@@ -438,10 +469,12 @@ function ProposalCard({
   proposal,
   onStatusChange,
   onDownloadPDF,
+  onSendEmail,
 }: {
   proposal: Proposal;
   onStatusChange: (status: ProposalStatus) => void;
   onDownloadPDF: () => void;
+  onSendEmail: () => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const statusColor = PROPOSAL_STATUS_COLORS[proposal.status];
@@ -530,15 +563,13 @@ function ProposalCard({
           <Download className="w-4 h-4" />
           PDF
         </button>
-        {proposal.emailRecipient && (
-          <a
-            href={`mailto:${proposal.emailRecipient}`}
-            className="flex-1 flex items-center justify-center gap-1 py-2 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-          >
-            <Mail className="w-4 h-4" />
-            재발송
-          </a>
-        )}
+        <button
+          onClick={onSendEmail}
+          className="flex-1 flex items-center justify-center gap-1 py-2 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+        >
+          <Mail className="w-4 h-4" />
+          {proposal.status === 'SENT' ? '재발송' : '이메일 발송'}
+        </button>
       </div>
     </div>
   );

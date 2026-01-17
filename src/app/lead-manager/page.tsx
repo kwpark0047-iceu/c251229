@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 
 import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS } from './types';
-import { DEFAULT_SETTINGS } from './constants';
+import { DEFAULT_SETTINGS, METRO_TAB_COLORS } from './constants';
 import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
 import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings } from './supabase-service';
@@ -61,15 +61,11 @@ import { TaskWithLead } from './types';
 import CallbackNotification from './components/CallbackNotification';
 import RoleGuard from '@/components/RoleGuard';
 import MobileNavBar from './components/MobileNavBar';
+import BackgroundEffect from './components/BackgroundEffect';
 
 type MainTab = 'leads' | 'inventory' | 'schedule';
 
-// 메트로 라인 색상 (탭용)
-const METRO_TAB_COLORS = {
-  leads: { active: 'var(--metro-line2)', glow: 'rgba(60, 181, 74, 0.3)' },
-  inventory: { active: 'var(--metro-line4)', glow: 'rgba(50, 164, 206, 0.3)' },
-  schedule: { active: 'var(--metro-line5)', glow: 'rgba(153, 108, 172, 0.3)' },
-};
+
 
 export default function LeadManagerPage() {
   const router = useRouter();
@@ -144,6 +140,11 @@ export default function LeadManagerPage() {
     { code: '6410000', name: '경기', color: 'var(--metro-line3)' },
   ];
 
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const PAGE_SIZE = 50;
+
   // 초기 로딩 상태
   const [initialLoading, setInitialLoading] = useState(true);
 
@@ -193,14 +194,32 @@ export default function LeadManagerPage() {
     }
   }, [categoryFilter]);
 
-  // 업종/지역 필터 변경 시 DB에서 다시 로드 (초기 로드 후에만)
+  // 필터 변경 시 DB에서 다시 로드 (페이지 1로 초기화)
   useEffect(() => {
     if (!initialLoading) {
-      loadLeadsFromDB(categoryFilter, selectedRegions);
+      // 검색어 변경 시에는 디바운스 적용을 위해 여기서 호출하지 않거나, 별도 처리
+      // 여기서는 카테고리/지역/상태 변경 시 즉시 로드
+      loadLeadsFromDB(categoryFilter, selectedRegions, 1, searchQuery);
     }
-    // initialLoading은 조건으로만 사용 (초기 로드 완료 후 필터 변경 시에만 실행)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryFilter, selectedRegions]);
+  }, [categoryFilter, selectedRegions, statusFilter]);
+
+  // 검색어 디바운스 처리
+  useEffect(() => {
+    if (!initialLoading) {
+      const timer = setTimeout(() => {
+        loadLeadsFromDB(categoryFilter, selectedRegions, 1, searchQuery);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [searchQuery]);
+
+  // 페이지 변경 시 로드
+  useEffect(() => {
+    if (!initialLoading) {
+      loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery);
+    }
+  }, [currentPage]);
 
   // 설정 로드
   const loadSettings = async () => {
@@ -211,13 +230,27 @@ export default function LeadManagerPage() {
   };
 
   // DB에서 리드 로드 (선택된 업종 및 지역 필터 적용)
-  const loadLeadsFromDB = useCallback(async (category?: BusinessCategory, regions?: string[]) => {
+  const loadLeadsFromDB = useCallback(async (
+    category?: BusinessCategory,
+    regions?: string[],
+    page: number = 1,
+    search: string = ''
+  ) => {
+    setIsLoading(true);
     const result = await getLeads({
       category: category || categoryFilter,
       regions: regions || selectedRegions,
+      status: statusFilter === 'ALL' ? undefined : statusFilter,
+      searchQuery: search || searchQuery,
+      page: page,
+      pageSize: PAGE_SIZE
     });
+
     if (result.success) {
       setLeads(result.leads);
+      setTotalCount(result.count || 0);
+      setCurrentPage(page);
+
       // 진행상황 일괄 조회 (API 호출 최적화)
       if (result.leads.length > 0) {
         const leadIds = result.leads.map(l => l.id);
@@ -225,7 +258,8 @@ export default function LeadManagerPage() {
         setProgressMap(progressData);
       }
     }
-  }, [categoryFilter, selectedRegions]);
+    setIsLoading(false);
+  }, [categoryFilter, selectedRegions, statusFilter, searchQuery]);
 
   // API 연결 테스트
   const checkConnection = useCallback(async () => {
@@ -302,28 +336,18 @@ export default function LeadManagerPage() {
   };
 
 
-  // 필터링된 리드 목록
+  // 필터링된 리드 목록 (서버 사이드 필터링이므로 그대로 반환)
+  // 필터링된 리드 목록 (화면 표시용 중복 제거 적용)
   const filteredLeads = useMemo(() => {
-    return leads.filter(lead => {
-      // 상태 필터 Check
-      if (statusFilter !== 'ALL' && lead.status !== statusFilter) return false;
-
-      // 검색어 필터 Check
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const searchTarget = [
-          lead.bizName,
-          lead.roadAddress,
-          lead.lotAddress,
-          lead.nearestStation
-        ].filter(Boolean).join(' ').toLowerCase();
-
-        if (!searchTarget.includes(query)) return false;
+    // ID 기준으로 중복 제거
+    const uniqueLeadsMap = new Map<string, Lead>();
+    leads.forEach(lead => {
+      if (!uniqueLeadsMap.has(lead.id)) {
+        uniqueLeadsMap.set(lead.id, lead);
       }
-
-      return true;
     });
-  }, [leads, statusFilter, searchQuery]);
+    return Array.from(uniqueLeadsMap.values());
+  }, [leads]);
 
   // 리드 상태 변경
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
@@ -400,40 +424,12 @@ export default function LeadManagerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)] relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--bg-primary)] relative overflow-x-hidden">
       {/* 배경 효과 */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden bg-gradient-overlay">
-        {/* 그라디언트 오브 */}
-        <div
-          className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-effect-green"
-          style={{
-            background: 'radial-gradient(circle, var(--metro-line2) 0%, transparent 70%)',
-            filter: 'blur(80px)',
-          }}
-        />
-        <div
-          className="absolute bottom-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full bg-effect-blue"
-          style={{
-            background: 'radial-gradient(circle, var(--metro-line4) 0%, transparent 70%)',
-            filter: 'blur(100px)',
-          }}
-        />
-
-        {/* 메트로 패턴 */}
-        <div
-          className="absolute inset-0 bg-pattern"
-          style={{
-            backgroundImage: `
-              linear-gradient(var(--border-subtle) 1px, transparent 1px),
-              linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px)
-            `,
-            backgroundSize: '60px 60px',
-          }}
-        />
-      </div>
+      <BackgroundEffect />
 
       {/* 헤더 */}
-      <header className="glass-card border-b border-[var(--glass-border)] sticky top-0 z-40 backdrop-blur-xl">
+      <header className="glass-card border-b border-[var(--glass-border)] sticky top-0 z-40 backdrop-blur-xl bg-[var(--bg-primary)]/80">
         {/* 상단 헤더: 로고 + 탭 + 사용자 */}
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="flex items-center justify-between h-16">
@@ -956,7 +952,7 @@ export default function LeadManagerPage() {
       )}
 
       {/* 메인 컨텐츠 */}
-      <main className="max-w-[1400px] mx-auto px-6 py-8 relative z-10">
+      <main className="max-w-[1400px] mx-auto px-6 py-8 pb-24 md:pb-8 relative z-10">
         {mainTab === 'leads' ? (
           // 리드 뷰
           initialLoading ? (
@@ -1066,54 +1062,100 @@ export default function LeadManagerPage() {
                 />
               )}
             </>
-          )
-        ) : mainTab === 'inventory' ? (
-          // 인벤토리 뷰
-          <InventoryTable
-            key={inventoryRefreshKey}
-            onRefresh={() => setInventoryRefreshKey(k => k + 1)}
-          />
-        ) : (
-          // 스케줄 뷰
-          <div key={scheduleRefreshKey}>
-            {scheduleView === 'calendar' ? (
-              <ScheduleCalendar
-                onDateSelect={(date) => {
-                  setTaskFormDefaultDate(date);
-                }}
-                onEventClick={(event) => {
-                  if (event.type === 'task') {
-                    // 업무 상세로 이동 또는 편집
-                    const taskId = event.id.replace('task-', '');
-                    // 여기서 task를 로드해서 편집
-                    setSelectedTask({
-                      id: taskId,
-                      taskType: event.taskType || 'OTHER',
-                      title: event.title,
-                      dueDate: event.date,
-                      dueTime: event.time,
-                      status: event.status || 'PENDING',
-                      priority: event.priority || 'MEDIUM',
-                      leadId: event.leadId,
-                    } as TaskWithLead);
-                    setShowTaskForm(true);
-                  }
-                }}
-                onAddTask={(date) => {
-                  setSelectedTask(null);
-                  setTaskFormDefaultDate(date);
-                  setShowTaskForm(true);
-                }}
-              />
-            ) : (
-              <TaskBoard
-                onTaskClick={(task) => {
-                  setSelectedTask(task);
-                  setShowTaskForm(true);
-                }}
-              />
-            )}
+          )}
+
+        {/* 페이지네이션 (리드 탭) */}
+        {mainTab === 'leads' && totalCount > 0 && (
+          <div className="flex justify-center items-center gap-2 mt-6 pb-10">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] disabled:opacity-30 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 text-[var(--text-secondary)]" />
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, Math.ceil(totalCount / PAGE_SIZE)) }, (_, i) => {
+                // 현재 페이지 주변으로 5개 표시 계산 로직 간소화 (필요시 개선)
+                let p = currentPage - 2 + i;
+                if (currentPage < 3) p = 1 + i;
+                const maxPage = Math.ceil(totalCount / PAGE_SIZE);
+                if (p > maxPage) return null;
+                if (p < 1) return null;
+
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setCurrentPage(p)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentPage === p
+                      ? 'bg-[var(--metro-line2)] text-white shadow-md'
+                      : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]'
+                      }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
+              className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] disabled:opacity-30 transition-colors"
+            >
+              <ChevronRight className="w-5 h-5 text-[var(--text-secondary)]" />
+            </button>
           </div>
+        )}
+
+        : mainTab === 'inventory' ? (
+        // 인벤토리 뷰
+        <InventoryTable
+          key={inventoryRefreshKey}
+          onRefresh={() => setInventoryRefreshKey(k => k + 1)}
+        />
+        ) : (
+        // 스케줄 뷰
+        <div key={scheduleRefreshKey}>
+          {scheduleView === 'calendar' ? (
+            <ScheduleCalendar
+              onDateSelect={(date) => {
+                setTaskFormDefaultDate(date);
+              }}
+              onEventClick={(event) => {
+                if (event.type === 'task') {
+                  // 업무 상세로 이동 또는 편집
+                  const taskId = event.id.replace('task-', '');
+                  // 여기서 task를 로드해서 편집
+                  setSelectedTask({
+                    id: taskId,
+                    taskType: event.taskType || 'OTHER',
+                    title: event.title,
+                    dueDate: event.date,
+                    dueTime: event.time,
+                    status: event.status || 'PENDING',
+                    priority: event.priority || 'MEDIUM',
+                    leadId: event.leadId,
+                  } as TaskWithLead);
+                  setShowTaskForm(true);
+                }
+              }}
+              onAddTask={(date) => {
+                setSelectedTask(null);
+                setTaskFormDefaultDate(date);
+                setShowTaskForm(true);
+              }}
+            />
+          ) : (
+            <TaskBoard
+              onTaskClick={(task) => {
+                setSelectedTask(task);
+                setShowTaskForm(true);
+              }}
+            />
+          )}
+        </div>
         )}
       </main>
 
@@ -1160,7 +1202,7 @@ export default function LeadManagerPage() {
         activeTab={mainTab}
         onTabChange={(tab) => {
           setMainTab(tab);
-          if (viewMode === 'map') setViewMode('list');
+          if (viewMode === 'map') setViewMode('grid');
         }}
         onViewModeChange={(mode) => setViewMode(mode)}
         onSettingsClick={() => setIsSettingsOpen(true)}

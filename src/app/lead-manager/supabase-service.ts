@@ -216,18 +216,22 @@ export async function getLeads(filters?: {
   startDate?: string;
   endDate?: string;
   regions?: string[];  // 지역 코드 배열 (예: ['6110000', '6410000'])
-}): Promise<{ success: boolean; leads: Lead[]; message?: string }> {
+  searchQuery?: string; // 검색어
+  page?: number;       // 페이지 번호 (1부터 시작)
+  pageSize?: number;   // 페이지 크기 (기본값: 50)
+}): Promise<{ success: boolean; leads: Lead[]; count: number; message?: string }> {
   try {
     const supabase = getSupabase();
 
-    // 🔍 디버깅: 세션 및 조직 멤버십 확인
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    // 디버그 로그 제거
-
+    // 페이지네이션 기본값
+    const page = filters?.page || 1;
+    const pageSize = filters?.pageSize || 50;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
 
     let query = supabase
       .from('leads')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('license_date', { ascending: false, nullsFirst: false });
 
     // 필터 적용
@@ -247,11 +251,42 @@ export async function getLeads(filters?: {
       query = query.lte('license_date', filters.endDate);
     }
 
-    const { data, error } = await query;
+    // 검색어 필터 (서버 사이드)
+    if (filters?.searchQuery) {
+      const q = filters.searchQuery;
+      // 상호명, 주소, 가까운 역, 지번 주소 검색
+      // 참고: road_address 등은 null일 수 있으므로 검색 시 주의 필요하지만 ilike는 null 무시
+      query = query.or(`biz_name.ilike.%${q}%,road_address.ilike.%${q}%,lot_address.ilike.%${q}%,nearest_station.ilike.%${q}%`);
+    }
+
+    // 지역 필터 적용 (서버 사이드)
+    if (filters?.regions && filters.regions.length > 0) {
+      // 지역 코드에 해당하는 주소 접두어 가져오기
+      // 예: '6110000' -> ['서울특별시', '서울']
+      const prefixes: string[] = [];
+      const { getRegionPrefixes } = require('./region-utils'); // 동적 임포트로 순환 참조 방지 가능성
+
+      // region-utils의 getRegionPrefixes 사용
+      // filters.regions는 string[]이지만 RegionCode[]로 캐스팅 필요할 수 있음
+      const regionPrefixes = getRegionPrefixes(filters.regions as RegionCode[]);
+
+      if (regionPrefixes.length > 0) {
+        // OR 조건 생성: road_address.ilike.접두어%
+        // lot_address도 체크하고 싶다면 복잡해지지만, 보통 road_address가 메인
+        const orConditions = regionPrefixes
+          .map(prefix => `road_address.ilike.${prefix}%`)
+          .join(',');
+
+        query = query.or(orConditions);
+      }
+    }
+
+    // 페이지네이션 적용
+    const { data, count, error } = await query.range(from, to);
 
     if (error) {
       console.error('리드 조회 오류:', error);
-      return { success: false, leads: [], message: error.message };
+      return { success: false, leads: [], count: 0, message: error.message };
     }
 
     // DB 데이터를 Lead 객체로 변환
@@ -283,24 +318,22 @@ export async function getLeads(filters?: {
       updatedAt: row.updated_at,
     }));
 
-    // 지역 필터 적용 (클라이언트 사이드)
-    if (filters?.regions && filters.regions.length > 0) {
-      leads = leads.filter(lead => {
-        const address = lead.roadAddress || lead.lotAddress || '';
-        return isAddressInRegions(address, filters.regions as RegionCode[]);
-      });
-    }
-
-    // 중복 제거 (deduplication-utils 사용)
+    // 현재 페이지 내 중복 제거 (global 중복 제거는 페이지네이션과 호환되지 않음)
+    // 필요 시 removeDuplicateLeads 호출. 여기서는 페이지 내 중복만 제거하거나
+    // DB 차원에서 중복이 없다고 가정 (deleteDuplicateLeadsFromDB 사용 권장)
     const { uniqueLeads } = removeDuplicateLeads(leads, {
       checkBizId: true,
-      checkSimilarity: false // 성능을 위해 단순 키 비교만 수행
+      checkSimilarity: false
     });
 
-    return { success: true, leads: uniqueLeads };
+    return {
+      success: true,
+      leads: uniqueLeads,
+      count: count || 0
+    };
   } catch (error) {
     console.error('리드 조회 중 오류:', error);
-    return { success: false, leads: [], message: (error as Error).message };
+    return { success: false, leads: [], count: 0, message: (error as Error).message };
   }
 }
 

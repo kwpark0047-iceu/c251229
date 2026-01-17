@@ -150,7 +150,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                     <SortIcon field="bizName" sortField={sortField} sortOrder={sortOrder} />
                   </div>
                 </th>
-                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)]">
+                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
                   주소
                 </th>
                 <th
@@ -163,7 +163,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                   </div>
                 </th>
                 <th
-                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors whitespace-nowrap"
+                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors whitespace-nowrap hidden md:table-cell"
                   onClick={() => handleSort('stationDistance')}
                 >
                   <div className="flex items-center gap-1.5">
@@ -171,7 +171,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                     <SortIcon field="stationDistance" sortField={sortField} sortOrder={sortOrder} />
                   </div>
                 </th>
-                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)]">
+                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
                   전화번호
                 </th>
                 <th
@@ -183,10 +183,10 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                     <SortIcon field="licenseDate" sortField={sortField} sortOrder={sortOrder} />
                   </div>
                 </th>
-                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)]">
+                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
                   진행
                 </th>
-                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)]">
+                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
                   담당자
                 </th>
                 <th
@@ -237,7 +237,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
           leadName={callModalLead.bizName}
           phone={callModalLead.phone}
           onClose={() => setCallModalLeadId(null)}
-          onSuccess={() => {}}
+          onSuccess={() => { }}
         />
       )}
     </>
@@ -290,7 +290,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       </td>
 
       {/* 주소 */}
-      <td className="px-5 py-4">
+      <td className="px-5 py-4 hidden md:table-cell">
         <span className="text-sm text-[var(--text-secondary)] line-clamp-1" title={lead.roadAddress || lead.lotAddress}>
           <HighlightText text={truncateString(lead.roadAddress || lead.lotAddress || '-', 30)} searchQuery={searchQuery} />
         </span>
@@ -321,14 +321,14 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       </td>
 
       {/* 거리 */}
-      <td className="px-5 py-4">
+      <td className="px-5 py-4 hidden md:table-cell">
         <span className="text-sm text-[var(--text-secondary)]">
           {lead.stationDistance ? formatDistance(lead.stationDistance) : '-'}
         </span>
       </td>
 
       {/* 전화번호 */}
-      <td className="px-5 py-4">
+      <td className="px-5 py-4 hidden md:table-cell">
         {lead.phone ? (
           <a
             href={`tel:${lead.phone}`}
@@ -344,17 +344,17 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       </td>
 
       {/* 인허가일 */}
-      <td className="px-5 py-4">
+      <td className="px-5 py-4 hidden md:table-cell">
         <span className="text-sm text-[var(--text-secondary)]">{lead.licenseDate || '-'}</span>
       </td>
 
       {/* 진행 상태 */}
-      <td className="px-5 py-4">
+      <td className="px-5 py-4 hidden md:table-cell">
         <ProgressDots leadId={lead.id} progress={progressMap?.get(lead.id)} />
       </td>
 
       {/* 담당자 */}
-      <td className="px-5 py-4">
+      <td className="px-5 py-4 hidden md:table-cell">
         {lead.assignedToName ? (
           <div className="flex items-center gap-1.5">
             <User className="w-3.5 h-3.5 text-[var(--metro-line9)]" />

@@ -3,8 +3,8 @@
  * 실시간 노선 정보 업데이트 및 캐싱
  */
 
-import { 
-  fetchAllSeoulSubwayRoutes, 
+import {
+  fetchAllSeoulSubwayRoutes,
   fetchAllSeoulStationInfo,
   convertKRICToSubwayStation,
   convertKRICStationInfoToSubwayStation,
@@ -26,7 +26,7 @@ interface CacheData {
 
 class DataCache {
   private cache = new Map<string, CacheData>();
-  
+
   set(key: string, data: any, ttl: number = 3600000) { // 1시간 기본
     this.cache.set(key, {
       data,
@@ -34,19 +34,19 @@ class DataCache {
       ttl,
     });
   }
-  
+
   get(key: string): any | null {
     const cached = this.cache.get(key);
     if (!cached) return null;
-    
+
     if (Date.now() - cached.timestamp > cached.ttl) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return cached.data;
   }
-  
+
   clear() {
     this.cache.clear();
   }
@@ -60,31 +60,31 @@ export class KRICSubwayDataManager {
   private isInitialized = false;
   private lastUpdateTime = 0;
   private serviceKey: string | null = null;
-  
+
   static getInstance(): KRICSubwayDataManager {
     if (!KRICSubwayDataManager.instance) {
       KRICSubwayDataManager.instance = new KRICSubwayDataManager();
     }
     return KRICSubwayDataManager.instance;
   }
-  
-  private constructor() {}
-  
+
+  private constructor() { }
+
   /**
    * 데이터 매니저 초기화
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
-    
+
     try {
       this.serviceKey = getKRICServiceKey();
-      
+
       // API 키 유효성 검증
       const isValid = await validateServiceKey(this.serviceKey);
       if (!isValid) {
         throw new Error('Invalid KRIC API service key');
       }
-      
+
       this.isInitialized = true;
       console.log('✅ KRIC Subway Data Manager initialized successfully');
     } catch (error) {
@@ -92,7 +92,7 @@ export class KRICSubwayDataManager {
       throw error;
     }
   }
-  
+
   /**
    * 전체 노선 데이터 가져오기 (캐시 활용)
    */
@@ -101,7 +101,7 @@ export class KRICSubwayDataManager {
     routes: Record<string, { color: string; coords: [number, number][] }>;
   }> {
     const cacheKey = 'kric_all_subway_data';
-    
+
     if (!forceRefresh) {
       const cached = cache.get(cacheKey);
       if (cached) {
@@ -109,52 +109,52 @@ export class KRICSubwayDataManager {
         return cached;
       }
     }
-    
+
     try {
       console.log('🔄 Fetching fresh subway data from KRIC API...');
-      
+
       // 노선 정보와 역사 정보를 병렬로 가져오기
       const [kricStations, kricStationInfos] = await Promise.all([
         fetchAllSeoulSubwayRoutes(this.serviceKey!),
         fetchAllSeoulStationInfo(this.serviceKey!)
       ]);
-      
+
       // 노선 정보로 기본 역 데이터 생성
       const basicStations = convertKRICToSubwayStation(
         Object.values(kricStations).flat()
       );
-      
+
       // 상세 역사 정보로 추가 데이터 병합
       const detailedStations = convertKRICStationInfoToSubwayStation(kricStationInfos);
-      
+
       // 두 데이터를 병합하여 최종 역 정보 생성
       const mergedStations = this.mergeStationData(basicStations, detailedStations);
-      
+
       const routes = generateLineRoutes(kricStations);
-      
+
       const result = { stations: mergedStations, routes };
-      
+
       // 30분 캐시
       cache.set(cacheKey, result, 1800000);
       this.lastUpdateTime = Date.now();
-      
+
       console.log(`✅ Loaded ${mergedStations.length} stations and ${Object.keys(routes).length} lines`);
       return result;
-      
+
     } catch (error) {
       console.error('❌ Failed to fetch subway data:', error);
-      
+
       // 캐시된 데이터가 있으면 반환
       const cached = cache.get(cacheKey);
       if (cached) {
         console.log('📦 Falling back to cached data');
         return cached;
       }
-      
+
       throw error;
     }
   }
-  
+
   /**
    * 기본 역 정보와 상세 역 정보 병합
    */
@@ -163,12 +163,12 @@ export class KRICSubwayDataManager {
     detailedStations: Array<{ name: string; lat: number; lng: number; lines: string[]; address?: string; phone?: string; facilities?: string }>
   ): Array<{ name: string; lat: number; lng: number; lines: string[]; address?: string; phone?: string; facilities?: string }> {
     const stationMap = new Map();
-    
+
     // 기본 정보로 맵 초기화
     basicStations.forEach(station => {
       stationMap.set(station.name, { ...station });
     });
-    
+
     // 상세 정보로 병합
     detailedStations.forEach(detailed => {
       const existing = stationMap.get(detailed.name);
@@ -182,7 +182,7 @@ export class KRICSubwayDataManager {
         existing.address = detailed.address || existing.address;
         existing.phone = detailed.phone || existing.phone;
         existing.facilities = detailed.facilities || existing.facilities;
-        
+
         // 노선 정보 병합
         const existingLines = new Set(existing.lines);
         detailed.lines.forEach(line => existingLines.add(line));
@@ -192,10 +192,10 @@ export class KRICSubwayDataManager {
         stationMap.set(detailed.name, { ...detailed });
       }
     });
-    
+
     return Array.from(stationMap.values());
   }
-  
+
   /**
    * 특정 노선 데이터만 가져오기
    */
@@ -204,41 +204,41 @@ export class KRICSubwayDataManager {
     route: { color: string; coords: [number, number][] };
   }> {
     const cacheKey = `kric_line_${lineCode}`;
-    
+
     const cached = cache.get(cacheKey);
     if (cached) {
       return cached;
     }
-    
+
     try {
       const { fetchSubwayRouteInfo, AREA_CODES } = await import('./kric-api');
       const stations = await fetchSubwayRouteInfo(
-        this.serviceKey!, 
-        AREA_CODES.SEOUL, 
+        this.serviceKey!,
+        AREA_CODES.SEOUL,
         lineCode
       );
-      
+
       const { generateLineRoutes } = await import('./kric-api');
       const routes = generateLineRoutes({ [lineCode]: stations });
       const route = routes[lineCode];
-      
+
       const result = { stations, route };
       cache.set(cacheKey, result, 3600000); // 1시간 캐시
-      
+
       return result;
     } catch (error) {
       console.error(`❌ Failed to fetch line ${lineCode} data:`, error);
       throw error;
     }
   }
-  
+
   /**
    * 마지막 업데이트 시간
    */
   getLastUpdateTime(): number {
     return this.lastUpdateTime;
   }
-  
+
   /**
    * 캐시 초기화
    */
@@ -246,7 +246,7 @@ export class KRICSubwayDataManager {
     cache.clear();
     console.log('🗑️ KRIC Subway Data cache cleared');
   }
-  
+
   /**
    * 데이터 상태 정보
    */
@@ -307,7 +307,12 @@ export const KRIC_LINE_COLORS = {
   '1099': '#FDA600', // 의정부경전철
   '1086': '#6FB245', // 에버라인
   '1087': '#A17800', // 김포골드라인
-  '1090': '#0079C2', // 서해선
+  '1090': '#81A914', // 서해선
+  '1061': '#7CA8D5', // 인천 1호선
+  '1069': '#ED8B00', // 인천 2호선
+  '1092': '#B0CE18', // 우이신설선
+  '1093': '#6789CA', // 신림선
+  '1081': '#003DA5', // 경강선
 } as const;
 
 /**
@@ -333,8 +338,13 @@ export function getLineDisplayName(lineCode: string): string {
     '1086': 'E',      // 에버라인
     '1087': 'G',      // 김포골드라인
     '1090': 'W',      // 서해선
+    '1061': 'I1',     // 인천 1호선
+    '1069': 'I2',     // 인천 2호선
+    '1092': 'Ui',     // 우이신설선
+    '1093': 'Si',     // 신림선
+    '1081': 'Kg',     // 경강선
   };
-  
+
   return lineNames[lineCode] || lineCode;
 }
 
@@ -344,7 +354,7 @@ export function getLineDisplayName(lineCode: string): string {
 export function useSubwayDataRefresh() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  
+
   const refresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -356,16 +366,16 @@ export function useSubwayDataRefresh() {
       setIsRefreshing(false);
     }
   }, []);
-  
+
   useEffect(() => {
     // 초기 로드
     refresh();
-    
+
     // 30분마다 자동 새로고침
     const interval = setInterval(refresh, 30 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
   }, [refresh]);
-  
+
   return { isRefreshing, lastUpdate, refresh };
 }

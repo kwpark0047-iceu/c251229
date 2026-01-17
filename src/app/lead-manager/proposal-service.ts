@@ -583,6 +583,76 @@ export async function downloadProposalPDF(proposalId: string): Promise<boolean> 
   return true;
 }
 
+/**
+ * 제안서 이메일 발송
+ */
+export async function sendProposalEmail(
+  proposalId: string,
+  emailData: {
+    to: string;
+    subject: string;
+    body: string;
+  }
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // 1. PDF 생성
+    const pdfResult = await generateProposalPDF(proposalId);
+    if (!pdfResult.success || !pdfResult.pdfBlob) {
+      return { success: false, message: pdfResult.message || 'PDF 생성 실패' };
+    }
+
+    // 2. Blob -> Base64 변환
+    const buffer = await pdfResult.pdfBlob.arrayBuffer();
+    const base64Pdf = Buffer.from(buffer).toString('base64');
+
+    // 파일명 생성
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const bizName = pdfResult.bizName || '제안서';
+    const filename = `${bizName}_${dateStr}.pdf`;
+
+    // 3. API 호출하여 이메일 발송
+    const response = await fetch('/api/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: emailData.to,
+        subject: emailData.subject,
+        html: emailData.body.replace(/\n/g, '<br>'), // 줄바꿈 처리
+        attachments: [
+          {
+            filename: filename,
+            content: base64Pdf,
+          },
+        ],
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+      return { success: false, message: result.message };
+    }
+
+    // 4. 발송 상태 업데이트
+    await markProposalSent(proposalId);
+
+    // 수신자 이메일 저장 업데이트 (선택 사항)
+    const supabase = getSupabase();
+    await supabase
+      .from('proposals')
+      .update({ email_recipient: emailData.to })
+      .eq('id', proposalId);
+
+    return { success: true, message: '이메일이 발송되었습니다.' };
+  } catch (error) {
+    console.error('이메일 발송 오류:', error);
+    return { success: false, message: '이메일 발송 중 오류가 발생했습니다.' };
+  }
+}
+
 // ============================================
 // 효과 분석
 // ============================================

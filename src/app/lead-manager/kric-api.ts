@@ -33,23 +33,32 @@ export const LINE_CODES = {
   LINE_7: '1007',      // 7호선
   LINE_8: '1008',      // 8호선
   LINE_9: '1009',      // 9호선
-  
+
   // 신분당선
   SUIN_BUNDANG: '1085', // 수인분당선
   SHINBUNDANG: '1077',  // 신분당선
-  
+
   // 경의중앙선
   GYEONGUI_JUNGANG: '1063', // 경의중앙선
   GYEONGCHUN: '1067',      // 경춘선
-  
+
   // 공항철도
   AIRPORT_RAILROAD: '1065',  // 공항철도
-  
+
   // 기타
   UIJEONGBU: '1099',    // 의정부경전철
   EVERLINE: '1086',     // 에버라인
   GIMPO_GOLD: '1087',   // 김포골드라인
   SEOIL: '1090',        // 서해선
+
+  // 인천
+  INCHEON_1: '1061',    // 인천 1호선
+  INCHEON_2: '1069',    // 인천 2호선
+
+  // 경전철
+  UI_SINSEOL: '1092',   // 우이신설선
+  SILLIM: '1093',       // 신림선
+  GYEONGGANG: '1081',   // 경강선
 } as const;
 
 // 노선 색상 (실제 운영기관 표준 색상)
@@ -63,17 +72,24 @@ export const LINE_COLORS = {
   [LINE_CODES.LINE_7]: '#727FB8',      // 7호선: 올리브색
   [LINE_CODES.LINE_8]: '#E6186A',      // 8호선: 분홍색
   [LINE_CODES.LINE_9]: '#BAB135',      // 9호선: 금색
-  
+
   [LINE_CODES.SUIN_BUNDANG]: '#F5A200', // 수인분당선: 노란색
   [LINE_CODES.SHINBUNDANG]: '#D4003A',  // 신분당선: 빨간색
   [LINE_CODES.GYEONGUI_JUNGANG]: '#77BB4A', // 경의중앙선: 연두색
   [LINE_CODES.GYEONGCHUN]: '#807DB8',      // 경춘선: 보라색
   [LINE_CODES.AIRPORT_RAILROAD]: '#009D3E',  // 공항철도: 초록색
-  
+
   [LINE_CODES.UIJEONGBU]: '#FDA600',     // 의정부경전철: 주황색
   [LINE_CODES.EVERLINE]: '#6FB245',      // 에버라인: 녹색
   [LINE_CODES.GIMPO_GOLD]: '#A17800',   // 김포골드라인: 금색
-  [LINE_CODES.SEOIL]: '#0079C2',        // 서해선: 파란색
+  [LINE_CODES.SEOIL]: '#81A914',        // 서해선: 연두색
+
+  [LINE_CODES.INCHEON_1]: '#7CA8D5',    // 인천 1호선: 하늘색
+  [LINE_CODES.INCHEON_2]: '#ED8B00',    // 인천 2호선: 주황색
+
+  [LINE_CODES.UI_SINSEOL]: '#B0CE18',   // 우이신설선: 라임색
+  [LINE_CODES.SILLIM]: '#6789CA',       // 신림선: 파란색
+  [LINE_CODES.GYEONGGANG]: '#003DA5',   // 경강선: 파란색
 } as const;
 
 // 역 정보 타입 (노선 정보 API)
@@ -234,6 +250,12 @@ export async function fetchAllSeoulSubwayRoutes(
     LINE_CODES.UIJEONGBU,
     LINE_CODES.EVERLINE,
     LINE_CODES.GIMPO_GOLD,
+    LINE_CODES.SEOIL,
+    LINE_CODES.INCHEON_1,
+    LINE_CODES.INCHEON_2,
+    LINE_CODES.UI_SINSEOL,
+    LINE_CODES.SILLIM,
+    LINE_CODES.GYEONGGANG,
   ];
 
   const results: Record<string, KRICStation[]> = {};
@@ -264,9 +286,9 @@ export async function fetchAllSeoulStationInfo(
 ): Promise<KRICStationInfo[]> {
   try {
     console.log('🔄 Fetching all Seoul station info from KRIC API...');
-    
+
     const stations = await fetchStationInfo(serviceKey, AREA_CODES.SEOUL);
-    
+
     console.log(`✅ Loaded ${stations.length} station details`);
     return stations;
   } catch (error) {
@@ -287,12 +309,12 @@ export function convertKRICToWGS84(xcrd: string, ycrd: string): [number, number]
   // 실제 프로젝트에서는 proj4 라이브러리 사용 권장
   const x = parseFloat(xcrd);
   const y = parseFloat(ycrd);
-  
+
   // 임시 변환 (실제로는 정확한 좌표 변환 필요)
   // 이 부분은 실제 테스트 후 정확한 변환 공식으로 교체 필요
   const lat = y * 0.000089 - 0.0003;
   const lng = x * 0.000089 + 0.0003;
-  
+
   return [lat, lng];
 }
 
@@ -311,7 +333,7 @@ export function convertKRICToSubwayStation(kricStations: KRICStation[]): Array<{
 
   kricStations.forEach(station => {
     const [lat, lng] = convertKRICToWGS84(station.xcrd, station.ycrd);
-    
+
     if (!stationMap.has(station.stinNm)) {
       stationMap.set(station.stinNm, {
         lat,
@@ -319,7 +341,7 @@ export function convertKRICToSubwayStation(kricStations: KRICStation[]): Array<{
         lines: new Set(),
       });
     }
-    
+
     stationMap.get(station.stinNm)!.lines.add(getLineName(station.lnCd));
   });
 
@@ -345,10 +367,10 @@ export function convertKRICStationInfoToSubwayStation(kricStationInfos: KRICStat
   phone?: string;
   facilities?: string;
 }> {
-  const stationMap = new Map<string, { 
-    lat: number; 
-    lng: number; 
-    lines: Set<string>; 
+  const stationMap = new Map<string, {
+    lat: number;
+    lng: number;
+    lines: Set<string>;
     address?: string;
     phone?: string;
     facilities?: string;
@@ -356,7 +378,7 @@ export function convertKRICStationInfoToSubwayStation(kricStationInfos: KRICStat
 
   kricStationInfos.forEach(station => {
     const [lat, lng] = convertKRICToWGS84(station.xcrd, station.ycrd);
-    
+
     if (!stationMap.has(station.stinNm)) {
       stationMap.set(station.stinNm, {
         lat,
@@ -367,7 +389,7 @@ export function convertKRICStationInfoToSubwayStation(kricStationInfos: KRICStat
         facilities: station.stinFcty,
       });
     }
-    
+
     stationMap.get(station.stinNm)!.lines.add(getLineName(station.lnCd));
   });
 
@@ -406,8 +428,14 @@ function getLineName(lineCode: string): string {
     [LINE_CODES.UIJEONGBU]: 'U',
     [LINE_CODES.EVERLINE]: 'E',
     [LINE_CODES.GIMPO_GOLD]: 'G',
+    [LINE_CODES.SEOIL]: 'Seo',
+    [LINE_CODES.INCHEON_1]: 'I1',
+    [LINE_CODES.INCHEON_2]: 'I2',
+    [LINE_CODES.UI_SINSEOL]: 'Ui',
+    [LINE_CODES.SILLIM]: 'Si',
+    [LINE_CODES.GYEONGGANG]: 'Kg',
   };
-  
+
   return lineNames[lineCode] || lineCode;
 }
 
@@ -425,7 +453,7 @@ export function generateLineRoutes(
     if (stations.length === 0) return;
 
     // 순번으로 정렬
-    const sortedStations = stations.sort((a, b) => 
+    const sortedStations = stations.sort((a, b) =>
       parseInt(a.ordrNo) - parseInt(b.ordrNo)
     );
 
@@ -467,13 +495,13 @@ export function getKRICServiceKey(): string {
   if (providedKey) {
     return providedKey;
   }
-  
+
   // 환경변수에서 API 키 찾기
   const key = process.env.KRIC_API_KEY || process.env.NEXT_PUBLIC_KRIC_API_KEY;
-  
+
   if (!key) {
     throw new Error('KRIC API key not found. Please set KRIC_API_KEY or NEXT_PUBLIC_KRIC_API_KEY environment variable.');
   }
-  
+
   return key;
 }
