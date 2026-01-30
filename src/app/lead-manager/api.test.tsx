@@ -36,7 +36,7 @@ describe('API 함수', () => {
 
       const { fetchBusinessData } = await import('./api');
       const result = await fetchBusinessData('음식점', '서울', 1, 10);
-      
+
       expect(result.data).toHaveLength(1);
       expect(result.data[0].bizName).toBe('테스트 상점');
       expect(fetch).toHaveBeenCalledWith(
@@ -57,11 +57,11 @@ describe('API 함수', () => {
       });
 
       const { fetchBusinessData } = await import('./api');
-      
+
       await expect(fetchBusinessData('음식점', '서울')).rejects.toThrow();
     });
 
-    it 'Rate limiting을 위해 200ms 지연이 적용된다', async () => {
+    it('Rate limiting을 위해 200ms 지연이 적용된다', async () => {
       const mockResponse = { data: [], totalCount: 0 };
       (fetch as any).mockResolvedValueOnce({
         ok: true,
@@ -97,7 +97,7 @@ describe('API 함수', () => {
 
       const { fetchStationInfo } = await import('./api');
       const result = await fetchStationInfo('강남역');
-      
+
       expect(result.data).toHaveLength(1);
       expect(result.data[0].stationName).toBe('강남역');
       expect(result.data[0].facilities).toContain('엘리베이터');
@@ -144,7 +144,7 @@ describe('API 함수', () => {
         targetAudience: '20-30대',
         budget: 5000000,
       });
-      
+
       expect(result.proposal.title).toBe('강남역 광고 제안서');
       expect(result.proposal.price).toBe(5000000);
       expect(fetch).toHaveBeenCalledWith(
@@ -176,7 +176,7 @@ describe('API 함수', () => {
         proposalId: 'proposal-1',
         template: 'standard',
       });
-      
+
       expect(result.success).toBe(true);
       expect(result.messageId).toBe('msg-12345');
       expect(fetch).toHaveBeenCalledWith(
@@ -196,7 +196,7 @@ describe('API 함수', () => {
       });
 
       const { sendProposalEmail } = await import('./api');
-      
+
       await expect(sendProposalEmail({
         to: 'invalid-email',
         subject: '테스트',
@@ -224,13 +224,13 @@ describe('API 함수', () => {
         includeLeads: true,
         includeInventory: true,
       });
-      
+
       expect(result.success).toBe(true);
       expect(result.backupId).toBe('backup-12345');
       expect(result.downloadUrl).toContain('backup.zip');
     });
 
-    it '백업 데이터를 복원할 수 있다', async () => {
+    it('백업 데이터를 복원할 수 있다', async () => {
       const mockResponse = {
         success: true,
         restoredItems: {
@@ -250,7 +250,7 @@ describe('API 함수', () => {
         backupId: 'backup-12345',
         organizationId: 'org-1',
       });
-      
+
       expect(result.success).toBe(true);
       expect(result.restoredItems.leads).toBe(150);
       expect(result.restoredItems.inventory).toBe(45);

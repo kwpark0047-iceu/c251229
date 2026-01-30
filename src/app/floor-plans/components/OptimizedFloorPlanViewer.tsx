@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { OptimizedImage } from '@/app/shared/OptimizedImage';
+import OptimizedImage from '@/app/shared/OptimizedImage';
 import { cn } from '@/lib/utils';
 
 interface FloorPlanViewerProps {
@@ -35,8 +35,7 @@ class TileCache {
 
   set(key: string, image: HTMLImageElement): void {
     if (this.cache.size >= this.maxCacheSize) {
-      const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      this.cache.delete(this.cache.keys().next().value as string);
     }
     this.cache.set(key, image);
   }
@@ -67,7 +66,7 @@ export default function FloorPlanViewer({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [tiles, setTiles] = useState<TileInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tileCache = useRef(new TileCache());
@@ -89,7 +88,7 @@ export default function FloorPlanViewer({
       f: 'webp',
       crop: `${x * TILE_SIZE},${y * TILE_SIZE},${TILE_SIZE},${TILE_SIZE}`,
     });
-    
+
     return `${baseUrl}?${params.toString()}`;
   }, [floorPlanUrl]);
 
@@ -99,7 +98,7 @@ export default function FloorPlanViewer({
 
     const container = containerRef.current;
     const rect = container.getBoundingClientRect();
-    
+
     const startX = Math.floor(-pan.x / (TILE_SIZE * zoom));
     const startY = Math.floor(-pan.y / (TILE_SIZE * zoom));
     const endX = Math.ceil((rect.width - pan.x) / (TILE_SIZE * zoom));
@@ -111,7 +110,7 @@ export default function FloorPlanViewer({
       for (let y = startY; y <= endY; y++) {
         const key = `${x}-${y}-${zoom}`;
         const url = getTileUrl(x, y, zoom);
-        
+
         visibleTiles.push({
           x,
           y,
@@ -131,7 +130,7 @@ export default function FloorPlanViewer({
   const loadTiles = useCallback(async (tilesToLoad: TileInfo[]) => {
     const loadPromises = tilesToLoad.map(async (tile) => {
       const key = `${tile.x}-${tile.y}-${tile.zoom}`;
-      
+
       if (tileCache.current.has(key)) {
         return { ...tile, loaded: true };
       }
@@ -139,7 +138,7 @@ export default function FloorPlanViewer({
       try {
         const img = new Image();
         img.src = tile.url;
-        
+
         await new Promise((resolve, reject) => {
           img.onload = resolve;
           img.onerror = reject;
@@ -154,7 +153,7 @@ export default function FloorPlanViewer({
     });
 
     const results = await Promise.allSettled(loadPromises);
-    return results.map((result, index) => 
+    return results.map((result, index) =>
       result.status === 'fulfilled' ? result.value : tilesToLoad[index]
     );
   }, []);
@@ -163,7 +162,7 @@ export default function FloorPlanViewer({
   const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    
+
     if (!canvas || !ctx) return;
 
     const container = containerRef.current;
@@ -184,11 +183,11 @@ export default function FloorPlanViewer({
     tiles.forEach(tile => {
       const key = `${tile.x}-${tile.y}-${tile.zoom}`;
       const img = tileCache.current.get(key);
-      
+
       if (img) {
         const x = tile.x * TILE_SIZE * zoom + pan.x;
         const y = tile.y * TILE_SIZE * zoom + pan.y;
-        
+
         ctx.drawImage(
           img,
           x,
@@ -234,9 +233,9 @@ export default function FloorPlanViewer({
       renderCanvas();
       animationFrameRef.current = requestAnimationFrame(animate);
     };
-    
+
     animate();
-    
+
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -269,24 +268,24 @@ export default function FloorPlanViewer({
   // 휠 이벤트 핸들러 (확대/축소)
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    
+
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * delta));
-    
+
     // 마우스 위치 기준 확대/축소
     const rect = containerRef.current?.getBoundingClientRect();
     if (rect) {
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
-      
+
       const scale = newZoom / zoom;
-      
+
       setPan({
         x: mouseX - (mouseX - pan.x) * scale,
         y: mouseY - (mouseY - pan.y) * scale,
       });
     }
-    
+
     setZoom(newZoom);
   }, [zoom, pan]);
 
@@ -322,7 +321,7 @@ export default function FloorPlanViewer({
           ref={canvasRef}
           className="absolute inset-0 w-full h-full"
         />
-        
+
         {/* 로딩 오버레이 */}
         {isLoading && (
           <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center">
@@ -345,7 +344,7 @@ export default function FloorPlanViewer({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
           </svg>
         </button>
-        
+
         <button
           onClick={handleZoomOut}
           className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
@@ -355,7 +354,7 @@ export default function FloorPlanViewer({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
           </svg>
         </button>
-        
+
         <button
           onClick={handleReset}
           className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
@@ -386,7 +385,7 @@ export default function FloorPlanViewer({
           height={128}
           quality={60}
         />
-        
+
         {/* 현재 보이는 영역 표시 */}
         <div
           className="absolute border-2 border-blue-500 bg-blue-500 bg-opacity-20"

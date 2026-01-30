@@ -1,0 +1,40 @@
+﻿
+> c251229@0.1.0 build
+> next build
+
+   ??Next.js 15.1.0
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ??Compiled successfully
+   Linting and checking validity of types ...
+node.exe : Failed to compile.
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/n
+ode_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to compile.: 
+   String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/app/lead-manager/components/DuplicateManager.tsx:111:23
+Type error: Property 'duplicateCount' does not exist on type '{ t
+otal: number; unique: number; duplicates: number; duplicateRate: 
+number; duplicateGroups: { leads: Lead[]; count: number; represen
+tative: string; }[]; }'.
+
+[0m [90m 109 |[39m   }[0m
+[0m [90m 110 |[39m[0m
+[0m[31m[1m>[22m[39m[90m 111 |[39m   [36mif[39m ([33m![
+39mstats [33m||[39m stats[33m.[39mduplicateCount [33m===[39
+m [35m0[39m) {[0m
+[0m [90m     |[39m                       [31m[1m^[22m[39m
+[0m
+[0m [90m 112 |[39m     [36mreturn[39m ([0m
+[0m [90m 113 |[39m       [33m<[39m[33mdiv[39m className[3
+3m=[39m[32m"p-6 text-center"[39m[33m>[39m[0m
+[0m [90m 114 |[39m         [33m<[39m[33mCheckCircle[39m cl
+assName[33m=[39m[32m"w-12 h-12 text-green-500 mx-auto mb-4"[3
+9m [33m/[39m[33m>[39m[0m

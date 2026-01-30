@@ -1,0 +1,39 @@
+﻿
+> c251229@0.1.0 build
+> next build
+
+   ??Next.js 15.1.0
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ??Compiled successfully
+   Linting and checking validity of types ...
+node.exe : Failed to compile.
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/n
+ode_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to compile.: 
+   String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/app/api/cron/sales-sequence/route.ts:109:51
+Type error: Property 'reminder_count' does not exist on type '{ i
+d: any; title: any; email_recipient: any; leads: { biz_name: any;
+ contact_person: any; }[]; }'.
+
+[0m [90m 107 |[39m                     [33m.[39mupdate({[0m
+[0m [90m 108 |[39m                         last_reminded_at[3
+3m:[39m [36mnew[39m [33mDate[39m()[33m.[39mtoISOString()[
+33m,[39m[0m
+[0m[31m[1m>[22m[39m[90m 109 |[39m                         
+reminder_count[33m:[39m (proposal[33m.[39mreminder_count [33
+m||[39m [35m0[39m) [33m+[39m [35m1[39m[0m
+[0m [90m     |[39m                                            
+       [31m[1m^[22m[39m[0m
+[0m [90m 110 |[39m                     })[0m
+[0m [90m 111 |[39m                     [33m.[39meq([32m'id'
+[39m[33m,[39m proposal[33m.[39mid)[33m;[39m[0m
+[0m [90m 112 |[39m[0m

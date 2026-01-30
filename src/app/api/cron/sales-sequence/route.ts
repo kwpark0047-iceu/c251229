@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
         id,
         title,
         email_recipient,
+        reminder_count,
         leads (
           biz_name,
           contact_person

@@ -44,8 +44,6 @@ export default function FloorPlansPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 상세 보기 상태
-  const [selectedPosition, setSelectedPosition] = useState<AdPosition | null>(null);
 
   // 다운로드 모달
   const [showDownloadModal, setShowDownloadModal] = useState(false);

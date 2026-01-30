@@ -1,0 +1,51 @@
+﻿
+> c251229@0.1.0 build
+> next build
+
+   ??Next.js 15.1.0
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ??Compiled successfully
+   Linting and checking validity of types ...
+
+   We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+   The following mandatory changes were made to your tsconfig.json:
+
+   	- jsx was set to preserve (next.js implements its own optimized jsx transform)
+
+node.exe :  殊?ESLint: Cannot find module 'C:\Users\user\c251229\n
+ode_modules\eslint-config-next\core-web-vitals' imported from C:\
+Users\user\c251229\eslint.config.mjs Did you mean to import "esli
+nt-config-next/core-web-vitals.js"?
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/n
+ode_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo          : NotSpecified: ( 殊?ESLint: Cann...w 
+   eb-vitals.js"?:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Failed to compile.
+
+.next/types/app/auth/page.ts:12:13
+Type error: Type 'OmitWithTag<typeof import("C:/Users/user/c25122
+9/src/app/auth/page"), "viewport" | "default" | "metadata" | "con
+fig" | "generateStaticParams" | "revalidate" | "dynamic" | "dynam
+icParams" | ... 6 more ... | "experimental_ppr", "">' does not sa
+tisfy the constraint '{ [x: string]: never; }'.
+  Property 'AuthContent' is incompatible with index signature.
+    Type '() => Element' is not assignable to type 'never'.
+
+[0m [90m 10 |[39m[0m
+[0m [90m 11 |[39m [90m// Check that the entry is a valid entr
+y[39m[0m
+[0m[31m[1m>[22m[39m[90m 12 |[39m checkFields[33m<[39m[3
+3mDiff[39m[33m<[39m{[0m
+[0m [90m    |[39m             [31m[1m^[22m[39m[0m
+[0m [90m 13 |[39m   [36mdefault[39m[33m:[39m [33mFunction
+[39m[0m
+[0m [90m 14 |[39m   config[33m?[39m[33m:[39m {}[0m
+[0m [90m 15 |[39m   generateStaticParams[33m?[39m[33m:[39m
+ [33mFunction[39m[0m

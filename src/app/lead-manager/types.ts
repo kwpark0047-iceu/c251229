@@ -83,8 +83,9 @@ export interface Lead {
 }
 
 
-// 뷰 모드 타입
+// 뷰 모드 및 탭 타입
 export type ViewMode = 'grid' | 'list' | 'map';
+export type MainTab = 'leads' | 'inventory' | 'schedule';
 
 // 검색 기준 타입
 export type SearchType = 'license_date' | 'modified_date';

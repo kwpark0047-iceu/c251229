@@ -199,54 +199,6 @@ export async function getWeekCallbacks(): Promise<Array<{
     });
 }
 
-/**
- * 오늘 콜백 예정 리드 조회 (리드 정보 포함)
- */
-export async function getTodayCallbacks(): Promise<Array<{
-  callLog: CallLog;
-  lead: Lead;
-}>> {
-  const supabase = getSupabase();
-  const today = new Date().toISOString().split('T')[0];
-
-  const { data, error } = await supabase
-    .from('call_logs')
-    .select(`
-      *,
-      leads (
-        id,
-        biz_name,
-        phone,
-        road_address,
-        nearest_station,
-        status
-      )
-    `)
-    .eq('next_contact_date', today)
-    .not('next_contact_date', 'is', null)
-    .order('next_contact_date', { ascending: true });
-
-  if (error || !data) {
-    return [];
-  }
-
-  return data
-    .filter(row => row.leads) // leads가 있는 것만
-    .map(row => {
-      const lead = Array.isArray(row.leads) ? row.leads[0] : row.leads;
-      return {
-        callLog: mapCallLogFromDB(row),
-        lead: {
-          id: lead.id as string,
-          bizName: lead.biz_name as string,
-          phone: lead.phone as string | undefined,
-          roadAddress: lead.road_address as string | undefined,
-          nearestStation: lead.nearest_station as string | undefined,
-          status: lead.status as Lead['status'],
-        },
-      };
-    });
-}
 
 // ============================================
 // 진행 상황 관리
@@ -359,7 +311,7 @@ export async function getProgressBatch(leadIds: string[]): Promise<Map<string, S
     .select('*')
     .in('lead_id', leadIds);
 
-  if (error || \!data) {
+  if (error || !data) {
     leadIds.forEach(id => result.set(id, []));
     return result;
   }

@@ -1,0 +1,40 @@
+﻿
+> c251229@0.1.0 build
+> next build
+
+   ??Next.js 15.1.0
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ??Compiled successfully
+   Linting and checking validity of types ...
+node.exe : Failed to compile.
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/n
+ode_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to compile.: 
+   String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/app/floor-plans/components/OptimizedFloorPlanViewer.tsx:10:
+20
+Type error: Cannot find module '@/lib/utils' or its corresponding
+ type declarations.
+
+[0m [90m  8 |[39m [36mimport[39m [33mReact[39m[33m,[39m 
+{ useState[33m,[39m useRef[33m,[39m useEffect[33m,[39m useC
+allback } [36mfrom[39m [32m'react'[39m[33m;[39m[0m
+[0m [90m  9 |[39m [36mimport[39m [33mOptimizedImage[39m [
+36mfrom[39m [32m'@/app/shared/OptimizedImage'[39m[33m;[39m[
+0m
+[0m[31m[1m>[22m[39m[90m 10 |[39m [36mimport[39m { cn } 
+[36mfrom[39m [32m'@/lib/utils'[39m[33m;[39m[0m
+[0m [90m    |[39m                    [31m[1m^[22m[39m[0m
+[0m [90m 11 |[39m[0m
+[0m [90m 12 |[39m [36minterface[39m [33mFloorPlanViewerProp
+s[39m {[0m
+[0m [90m 13 |[39m   floorPlanUrl[33m:[39m string[33m;[39m
+[0m

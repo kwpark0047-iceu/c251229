@@ -16,10 +16,10 @@ interface DuplicateManagerProps {
   onRemoveDuplicates?: (duplicateIds: string[]) => void;
 }
 
-export default function DuplicateManager({ 
-  leads, 
-  onMergeDuplicates, 
-  onRemoveDuplicates 
+export default function DuplicateManager({
+  leads,
+  onMergeDuplicates,
+  onRemoveDuplicates
 }: DuplicateManagerProps) {
   const [stats, setStats] = useState<ReturnType<typeof generateDuplicateStats> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,17 +38,17 @@ export default function DuplicateManager({
     if (!stats || !onMergeDuplicates) return;
 
     setIsLoading(true);
-    const mergedLeads = stats.duplicateGroups.map(group => 
+    const mergedLeads = stats.duplicateGroups.map(group =>
       mergeDuplicateLeads(group.leads)
     );
-    
+
     // 중복되지 않은 리드들과 병합된 리드들 합치기
-    const uniqueNonDuplicateLeads = leads.filter(lead => 
-      !stats.duplicateGroups.some(group => 
+    const uniqueNonDuplicateLeads = leads.filter(lead =>
+      !stats.duplicateGroups.some(group =>
         group.leads.some(duplicate => duplicate.id === lead.id)
       )
     );
-    
+
     const finalLeads = [...uniqueNonDuplicateLeads, ...mergedLeads];
     onMergeDuplicates(finalLeads);
     setIsLoading(false);
@@ -58,10 +58,10 @@ export default function DuplicateManager({
     if (!stats || !onRemoveDuplicates) return;
 
     setIsLoading(true);
-    const duplicateIds = stats.duplicateGroups.flatMap(group => 
+    const duplicateIds = stats.duplicateGroups.flatMap(group =>
       group.leads.slice(1).map(lead => lead.id) // 각 그룹에서 첫 번째를 제외한 나머지 제거
     );
-    
+
     onRemoveDuplicates(duplicateIds);
     setIsLoading(false);
   };
@@ -79,21 +79,21 @@ export default function DuplicateManager({
   const handleMergeSelected = async () => {
     if (!stats || !onMergeDuplicates) return;
 
-    const selectedGroupsData = stats.duplicateGroups.filter((_, index) => 
+    const selectedGroupsData = stats.duplicateGroups.filter((_, index) =>
       selectedGroups.has(index)
     );
 
-    const mergedLeads = selectedGroupsData.map(group => 
+    const mergedLeads = selectedGroupsData.map(group =>
       mergeDuplicateLeads(group.leads)
     );
-    
+
     // 선택된 그룹의 중복 리드들 제외
-    const remainingLeads = leads.filter(lead => 
-      !selectedGroupsData.some(group => 
+    const remainingLeads = leads.filter(lead =>
+      !selectedGroupsData.some(group =>
         group.leads.some(duplicate => duplicate.id === lead.id)
       )
     );
-    
+
     const finalLeads = [...remainingLeads, ...mergedLeads];
     onMergeDuplicates(finalLeads);
     setSelectedGroups(new Set());
@@ -108,7 +108,9 @@ export default function DuplicateManager({
     );
   }
 
-  if (!stats || stats.duplicateCount === 0) {
+  if (!stats) return null;
+
+  if (stats.duplicates === 0) {
     return (
       <div className="p-6 text-center">
         <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
@@ -126,7 +128,7 @@ export default function DuplicateManager({
           <h3 className="text-lg font-semibold text-blue-900">중복 데이터 통계</h3>
           <BarChart3 className="w-6 h-6 text-blue-600" />
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-900">{stats.total.toLocaleString()}</div>
@@ -156,7 +158,7 @@ export default function DuplicateManager({
           <CheckCircle className="w-4 h-4" />
           전체 병합
         </button>
-        
+
         <button
           onClick={handleRemoveAll}
           className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-2"
@@ -178,15 +180,15 @@ export default function DuplicateManager({
       {/* 중복 그룹 목록 */}
       <div className="space-y-4">
         <h4 className="text-lg font-semibold text-gray-900">중복 그룹 목록</h4>
-        
+
         <div className="space-y-3">
           {stats.duplicateGroups.map((group, index) => (
             <div
               key={index}
               className={`
                 border rounded-lg p-4 cursor-pointer transition-colors
-                ${selectedGroups.has(index) 
-                  ? 'border-blue-500 bg-blue-50' 
+                ${selectedGroups.has(index)
+                  ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300'
                 }
               `}
@@ -197,11 +199,11 @@ export default function DuplicateManager({
                   <input
                     type="checkbox"
                     checked={selectedGroups.has(index)}
-                    onChange={() => {}}
+                    onChange={() => { }}
                     className="w-4 h-4 text-blue-600 rounded"
                     onClick={(e) => e.stopPropagation()}
                   />
-                  
+
                   <div>
                     <div className="font-medium text-gray-900">
                       {group.representative}
@@ -211,7 +213,7 @@ export default function DuplicateManager({
                     </div>
                   </div>
                 </div>
-                
+
                 <AlertTriangle className="w-5 h-5 text-orange-500" />
               </div>
 
@@ -224,8 +226,8 @@ export default function DuplicateManager({
                         key={lead.id}
                         className={`
                           p-3 rounded border
-                          ${leadIndex === 0 
-                            ? 'border-green-300 bg-green-50' 
+                          ${leadIndex === 0
+                            ? 'border-green-300 bg-green-50'
                             : 'border-orange-300 bg-orange-50'
                           }
                         `}
@@ -244,7 +246,7 @@ export default function DuplicateManager({
                               </div>
                             )}
                           </div>
-                          
+
                           {leadIndex === 0 && (
                             <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
                               대표

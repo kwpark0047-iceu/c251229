@@ -13,6 +13,12 @@ export const METRO_TAB_COLORS = {
   schedule: { active: 'var(--metro-line5)', glow: 'rgba(153, 108, 172, 0.3)' },
 };
 
+// 지역 선택 옵션
+export const REGION_OPTIONS = [
+  { code: '6110000', name: '서울', color: 'var(--metro-line1)' },
+  { code: '6410000', name: '경기', color: 'var(--metro-line3)' },
+];
+
 // 기본 API 키 (deprecated - 서버에서 환경변수로 관리됨)
 // 환경변수 LOCALDATA_API_KEY에 설정하세요
 export const DEFAULT_API_KEY = 'hxOJfL8Q8p70CnIkVXfHy5UFw3yVBh7MPRQwQy0l2QI=';

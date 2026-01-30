@@ -86,7 +86,7 @@ function StationDot({ color, delay, size = 8 }: { color: string; delay: number; 
   )
 }
 
-export function AuthContent() {
+function AuthContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/lead-manager'
@@ -314,7 +314,7 @@ export function AuthContent() {
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4"
-         style={{ background: 'var(--bg-primary)' }}>
+      style={{ background: 'var(--bg-primary)' }}>
 
       {/* Background Elements */}
       <div className="absolute inset-0 metro-grid-bg" />
@@ -354,7 +354,7 @@ export function AuthContent() {
           <div className="inline-flex items-center justify-center mb-6">
             <div className="relative">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#00A5DE] to-[#0088CC] flex items-center justify-center shadow-lg"
-                   style={{ boxShadow: '0 8px 32px rgba(0, 165, 222, 0.3)' }}>
+                style={{ boxShadow: '0 8px 32px rgba(0, 165, 222, 0.3)' }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 6v6l4 2" />
@@ -362,7 +362,7 @@ export function AuthContent() {
               </div>
               {/* Pulse Ring */}
               <div className="absolute inset-0 rounded-2xl animate-ping opacity-20"
-                   style={{ background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)' }} />
+                style={{ background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)' }} />
             </div>
           </div>
 
@@ -399,10 +399,10 @@ export function AuthContent() {
           {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 rounded-xl animate-scale-in"
-                 style={{
-                   background: 'rgba(230, 24, 108, 0.1)',
-                   border: '1px solid rgba(230, 24, 108, 0.3)'
-                 }}>
+              style={{
+                background: 'rgba(230, 24, 108, 0.1)',
+                border: '1px solid rgba(230, 24, 108, 0.3)'
+              }}>
               <p className="text-sm font-medium" style={{ color: '#E6186C' }}>{error}</p>
             </div>
           )}
@@ -410,10 +410,10 @@ export function AuthContent() {
           {/* Success Message */}
           {message && (
             <div className="mb-6 p-4 rounded-xl animate-scale-in"
-                 style={{
-                   background: 'rgba(0, 168, 77, 0.1)',
-                   border: '1px solid rgba(0, 168, 77, 0.3)'
-                 }}>
+              style={{
+                background: 'rgba(0, 168, 77, 0.1)',
+                border: '1px solid rgba(0, 168, 77, 0.3)'
+              }}>
               <p className="text-sm font-medium" style={{ color: '#00A84D' }}>{message}</p>
             </div>
           )}
@@ -618,7 +618,7 @@ export function AuthContent() {
 }
 
 // Loading Fallback
-export function AuthLoading() {
+function AuthLoading() {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
       <div className="text-center">

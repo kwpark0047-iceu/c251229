@@ -1,0 +1,463 @@
+﻿
+> c251229@0.1.0 build
+> next build
+
+   ??Next.js 15.1.0
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ ??Compiled successfully
+   Linting and checking validity of types ...
+node.exe : 
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/n
+ode_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], Remote 
+   Exception
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Failed to compile.
+
+./src/app/api/ai-proposal/route.ts
+445:10  Error: 'getStationLine' is defined but never used.  @type
+script-eslint/no-unused-vars
+
+./src/app/auth/page.tsx
+113:7  Error: Definition for rule 'react-hooks/set-state-in-effec
+t' was not found.  react-hooks/set-state-in-effect
+
+./src/app/floor-plans/components/LineSelector.test.tsx
+4:10  Error: 'METRO_LINE_NAMES' is defined but never used.  @type
+script-eslint/no-unused-vars
+
+./src/app/floor-plans/components/OptimizedFloorPlanViewer.tsx
+81:57  Error: 'zoomLevel' is defined but never used.  @typescript
+-eslint/no-unused-vars
+
+./src/app/lead-manager/admin/page.tsx
+8:5  Error: 'getOrganizationMembers' is defined but never used.  
+@typescript-eslint/no-unused-vars
+20:14  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+34:12  Error: 'currentUser' is assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+37:12  Error: 'isLoading' is assigned a value but never used.  @t
+ypescript-eslint/no-unused-vars
+72:51  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+107:18  Error: 'e' is defined but never used.  @typescript-eslint
+/no-unused-vars
+
+./src/app/lead-manager/api.test.ts
+64:4  Error: Parsing error: Unexpected keyword or identifier.
+
+./src/app/lead-manager/api.ts
+16:10  Error: 'removeDuplicateLeads' is defined but never used.  
+@typescript-eslint/no-unused-vars
+180:7  Error: 'allLeads' is never reassigned. Use 'const' instead
+.  prefer-const
+
+./src/app/lead-manager/auth-service.ts
+68:63  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+209:28  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+
+./src/app/lead-manager/components/CallbackNotification.tsx
+24:10  Error: 'loading' is assigned a value but never used.  @typ
+escript-eslint/no-unused-vars
+
+./src/app/lead-manager/components/crm/LeadDetailPanel.tsx
+94:5  Error: Definition for rule 'react-hooks/set-state-in-effect
+' was not found.  react-hooks/set-state-in-effect
+
+./src/app/lead-manager/components/crm/ProgressChecklist.tsx
+40:5  Error: Definition for rule 'react-hooks/set-state-in-effect
+' was not found.  react-hooks/set-state-in-effect
+
+./src/app/lead-manager/components/crm/StationFloorPlans.tsx
+27:29  Warning: Using `<img>` could result in slower LCP and high
+er bandwidth. Consider using `<Image />` from `next/image` or a c
+ustom image loader to automatically optimize images. This may inc
+ur additional usage or cost from your provider. See: https://next
+js.org/docs/messages/no-img-element  @next/next/no-img-element
+52:29  Warning: Using `<img>` could result in slower LCP and high
+er bandwidth. Consider using `<Image />` from `next/image` or a c
+ustom image loader to automatically optimize images. This may inc
+ur additional usage or cost from your provider. See: https://next
+js.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/lead-manager/components/DuplicateManager.tsx
+10:34  Error: 'groupDuplicateLeads' is defined but never used.  @
+typescript-eslint/no-unused-vars
+11:60  Error: 'Download' is defined but never used.  @typescript-
+eslint/no-unused-vars
+
+./src/app/lead-manager/components/InfiniteList.tsx
+272:38  Error: 'index' is defined but never used.  @typescript-es
+lint/no-unused-vars
+
+./src/app/lead-manager/components/inventory/InventoryTable.tsx
+45:5  Error: Definition for rule 'react-hooks/set-state-in-effect
+' was not found.  react-hooks/set-state-in-effect
+
+./src/app/lead-manager/components/ListView.tsx
+62:88  Error: 'progressMap' is defined but never used.  @typescri
+pt-eslint/no-unused-vars
+
+./src/app/lead-manager/components/MapView.tsx
+11:43  Error: 'LINE_COLORS' is defined but never used.  @typescri
+pt-eslint/no-unused-vars
+14:8  Error: 'StationLabels' is defined but never used.  @typescr
+ipt-eslint/no-unused-vars
+17:3  Error: 'initializeSubwayData' is defined but never used.  @
+typescript-eslint/no-unused-vars
+18:3  Error: 'useSubwayDataRefresh' is defined but never used.  @
+typescript-eslint/no-unused-vars
+19:3  Error: 'KRIC_LINE_COLORS' is defined but never used.  @type
+script-eslint/no-unused-vars
+66:7  Error: 'SUBWAY_LINE_ROUTES' is assigned a value but never u
+sed.  @typescript-eslint/no-unused-vars
+77:48  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+81:5  Error: Definition for rule 'react-hooks/set-state-in-effect
+' was not found.  react-hooks/set-state-in-effect
+255:13  Error: Comments inside children section of tag should be 
+placed inside braces  react/jsx-no-comment-textnodes
+262:49  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+326:101  Error: Unexpected any. Specify a different type.  @types
+cript-eslint/no-explicit-any
+
+./src/app/lead-manager/components/OptimizedMap.tsx
+85:28  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+131:9  Error: 'size' is assigned a value but never used.  @typesc
+ript-eslint/no-unused-vars
+146:51  Error: 'index' is defined but never used.  @typescript-es
+lint/no-unused-vars
+177:34  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+180:40  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+182:25  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+204:48  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+220:53  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+252:49  Error: 'key' is defined but never used.  @typescript-esli
+nt/no-unused-vars
+286:36  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+288:22  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+
+./src/app/lead-manager/components/ProposalForm.tsx
+14:3  Error: 'Check' is defined but never used.  @typescript-esli
+nt/no-unused-vars
+15:3  Error: 'Plus' is defined but never used.  @typescript-eslin
+t/no-unused-vars
+16:3  Error: 'Minus' is defined but never used.  @typescript-esli
+nt/no-unused-vars
+17:3  Error: 'Eye' is defined but never used.  @typescript-eslint
+/no-unused-vars
+20:3  Error: 'XCircle' is defined but never used.  @typescript-es
+lint/no-unused-vars
+25:101  Error: 'MetroLine' is defined but never used.  @typescrip
+t-eslint/no-unused-vars
+57:24  Error: 'setDiscountRate' is assigned a value but never use
+d.  @typescript-eslint/no-unused-vars
+61:10  Error: 'availableInventory' is assigned a value but never 
+used.  @typescript-eslint/no-unused-vars
+62:10  Error: 'loadingInventory' is assigned a value but never us
+ed.  @typescript-eslint/no-unused-vars
+65:10  Error: 'showPreview' is assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+65:23  Error: 'setShowPreview' is assigned a value but never used
+.  @typescript-eslint/no-unused-vars
+137:9  Error: 'toggleInventory' is assigned a value but never use
+d.  @typescript-eslint/no-unused-vars
+
+./src/app/lead-manager/components/ResponsiveLeadManager.tsx
+14:3  Error: 'ResponsiveNav' is defined but never used.  @typescr
+ipt-eslint/no-unused-vars
+32:3  Error: 'Settings' is defined but never used.  @typescript-e
+slint/no-unused-vars
+53:3  Error: 'selectedLeads' is defined but never used.  @typescr
+ipt-eslint/no-unused-vars
+56:3  Error: 'onDeleteLead' is defined but never used.  @typescri
+pt-eslint/no-unused-vars
+69:9  Error: 'breakpoint' is assigned a value but never used.  @t
+ypescript-eslint/no-unused-vars
+71:9  Error: 'isTablet' is assigned a value but never used.  @typ
+escript-eslint/no-unused-vars
+
+./src/app/lead-manager/components/schedule/ScheduleCalendar.tsx
+66:5  Error: Definition for rule 'react-hooks/set-state-in-effect
+' was not found.  react-hooks/set-state-in-effect
+
+./src/app/lead-manager/components/schedule/TaskBoard.tsx
+229:5  Error: Definition for rule 'react-hooks/set-state-in-effec
+t' was not found.  react-hooks/set-state-in-effect
+
+./src/app/lead-manager/components/StationLabels.tsx
+10:10  Error: 'SubwayStation' is defined but never used.  @typesc
+ript-eslint/no-unused-vars
+140:3  Error: 'routes' is assigned a value but never used.  @type
+script-eslint/no-unused-vars
+145:3  Error: 'clusterThreshold' is assigned a value but never us
+ed.  @typescript-eslint/no-unused-vars
+
+./src/app/lead-manager/components/VirtualizedGrid.tsx
+8:55  Error: 'useCallback' is defined but never used.  @typescrip
+t-eslint/no-unused-vars
+156:9  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+
+./src/app/lead-manager/components.test.ts
+52:9  Error: Parsing error: '>' expected.
+
+./src/app/lead-manager/constants.ts
+5:10  Error: 'SubwayStation' is defined but never used.  @typescr
+ipt-eslint/no-unused-vars
+
+./src/app/lead-manager/crm-service.test.ts
+191:4  Error: Parsing error: Unexpected keyword or identifier.
+
+./src/app/lead-manager/deduplication-utils.test.ts
+3:32  Error: 'createLeadKey' is defined but never used.  @typescr
+ipt-eslint/no-unused-vars
+
+./src/app/lead-manager/hooks/useMapPerformance.ts
+6:52  Error: 'useMemo' is defined but never used.  @typescript-es
+lint/no-unused-vars
+11:35  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+14:28  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+22:21  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+214:49  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+251:40  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+251:45  Error: 'zoomLevels' is assigned a value but never used.  
+@typescript-eslint/no-unused-vars
+364:40  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+391:21  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+404:45  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+440:35  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+441:44  Error: The `Function` type accepts any function-like valu
+e.
+Prefer explicitly defining any function parameters and return typ
+e.  @typescript-eslint/no-unsafe-function-type
+443:64  Error: The `Function` type accepts any function-like valu
+e.
+Prefer explicitly defining any function parameters and return typ
+e.  @typescript-eslint/no-unsafe-function-type
+
+./src/app/lead-manager/hooks/usePerformance.ts
+29:49  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+29:59  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+63:48  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+63:58  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+145:17  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+179:6  Warning: React Hook useEffect was passed a dependency list
+ that is not an array literal. This means we can't statically ver
+ify whether you've passed the correct dependencies.  react-hooks/
+exhaustive-deps
+179:6  Warning: React Hook useEffect has a missing dependency: 'f
+etcher'. Either include it or remove the dependency array. If 'fe
+tcher' changes too often, find the parent component that defines 
+it and wrap that definition in useCallback.  react-hooks/exhausti
+ve-deps
+
+./src/app/lead-manager/inventory-service.ts
+94:29  Error: 'index' is defined but never used.  @typescript-esl
+int/no-unused-vars
+
+./src/app/lead-manager/kric-api.ts
+197:19  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+483:12  Error: 'error' is defined but never used.  @typescript-es
+lint/no-unused-vars
+
+./src/app/lead-manager/kric-data-manager.ts
+15:3  Error: 'KRICStationInfo' is defined but never used.  @types
+cript-eslint/no-unused-vars
+16:3  Error: 'LINE_COLORS' is defined but never used.  @typescrip
+t-eslint/no-unused-vars
+17:3  Error: 'LINE_CODES' is defined but never used.  @typescript
+-eslint/no-unused-vars
+22:9  Error: Unexpected any. Specify a different type.  @typescri
+pt-eslint/no-explicit-any
+30:26  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+38:21  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+261:28  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+
+./src/app/lead-manager/map-data-service.ts
+176:11  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+183:26  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+199:21  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+
+./src/app/lead-manager/optimized-filtering-demo.tsx
+Error: Parsing error: '}' expected.
+
+./src/app/lead-manager/optimized-service.ts
+15:43  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+17:26  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+21:21  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+97:114  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+99:17  Error: Unexpected any. Specify a different type.  @typescr
+ipt-eslint/no-explicit-any
+199:57  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+201:17  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+230:30  Error: 'index' is defined but never used.  @typescript-es
+lint/no-unused-vars
+383:36  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+393:21  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+
+./src/app/lead-manager/page.tsx
+37:3  Error: 'X' is defined but never used.  @typescript-eslint/n
+o-unused-vars
+48:10  Error: 'isAddressInRegions' is defined but never used.  @t
+ypescript-eslint/no-unused-vars
+48:30  Error: 'RegionCode' is defined but never used.  @typescrip
+t-eslint/no-unused-vars
+216:6  Warning: React Hook useEffect has missing dependencies: 'c
+ategoryFilter', 'initialLoading', 'loadLeadsFromDB', and 'selecte
+dRegions'. Either include them or remove the dependency array.  r
+eact-hooks/exhaustive-deps
+223:6  Warning: React Hook useEffect has missing dependencies: 'c
+ategoryFilter', 'initialLoading', 'loadLeadsFromDB', 'searchQuery
+', and 'selectedRegions'. Either include them or remove the depen
+dency array.  react-hooks/exhaustive-deps
+279:29  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+282:72  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+
+./src/app/lead-manager/proposal-service.test.ts
+14:25  Error: 'table' is defined but never used.  @typescript-esl
+int/no-unused-vars
+
+./src/app/lead-manager/proposal-service.ts
+108:27  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+216:49  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+
+./src/app/lead-manager/region-utils.ts
+61:21  Error: 'region' is assigned a value but never used.  @type
+script-eslint/no-unused-vars
+
+./src/app/lead-manager/supabase-service.ts
+12:10  Error: 'isAddressInRegions' is defined but never used.  @t
+ypescript-eslint/no-unused-vars
+201:7  Error: 'isAddressInRegion' is assigned a value but never u
+sed.  @typescript-eslint/no-unused-vars
+266:13  Error: 'prefixes' is assigned a value but never used.  @t
+ypescript-eslint/no-unused-vars
+293:9  Error: 'leads' is never reassigned. Use 'const' instead.  
+prefer-const
+
+./src/app/lead-manager/utils/subway-utils.ts
+1:10  Error: 'SubwayStation' is defined but never used.  @typescr
+ipt-eslint/no-unused-vars
+
+./src/app/shared/components/AccessibilityComponents.tsx
+9:30  Error: 'useKeyboardNavigation' is defined but never used.  
+@typescript-eslint/no-unused-vars
+93:25  Error: 'focusFirstElement' is assigned a value but never u
+sed.  @typescript-eslint/no-unused-vars
+505:15  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+506:23  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+
+./src/app/shared/components/ThemeComponents.tsx
+14:11  Error: 'theme' is assigned a value but never used.  @types
+cript-eslint/no-unused-vars
+140:18  Error: 'isDark' is assigned a value but never used.  @typ
+escript-eslint/no-unused-vars
+210:51  Error: Unexpected any. Specify a different type.  @typesc
+ript-eslint/no-explicit-any
+295:11  Error: 'isDark' is assigned a value but never used.  @typ
+escript-eslint/no-unused-vars
+298:9  Error: 'handleThemeChange' is assigned a value but never u
+sed.  @typescript-eslint/no-unused-vars
+
+./src/app/shared/hooks/useAccessibility.ts
+184:6  Error: Parsing error: '>' expected.
+
+./src/app/shared/hooks/useTheme.ts
+157:27  Error: Parsing error: '>' expected.
+
+./src/app/shared/OptimizedImage.tsx
+193:9  Warning: Using `<img>` could result in slower LCP and high
+er bandwidth. Consider using `<Image />` from `next/image` or a c
+ustom image loader to automatically optimize images. This may inc
+ur additional usage or cost from your provider. See: https://next
+js.org/docs/messages/no-img-element  @next/next/no-img-element
+206:7  Warning: Using `<img>` could result in slower LCP and high
+er bandwidth. Consider using `<Image />` from `next/image` or a c
+ustom image loader to automatically optimize images. This may inc
+ur additional usage or cost from your provider. See: https://next
+js.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/shared/responsive.tsx
+108:3  Error: 'breakpoint' is defined but never used.  @typescrip
+t-eslint/no-unused-vars
+387:24  Error: React Hook "useBreakpoint" is called in function "
+style" that is neither a React function component nor a custom Re
+act Hook function. React component names must start with an upper
+case letter. React Hook names must start with the word "use".  re
+act-hooks/rules-of-hooks
+405:21  Error: React Hook "useBreakpoint" is called in function "
+is" that is neither a React function component nor a custom React
+ Hook function. React component names must start with an uppercas
+e letter. React Hook names must start with the word "use".  react
+-hooks/rules-of-hooks
+412:21  Error: React Hook "useBreakpoint" is called in function "
+between" that is neither a React function component nor a custom 
+React Hook function. React component names must start with an upp
+ercase letter. React Hook names must start with the word "use".  
+react-hooks/rules-of-hooks
+
+./src/components/ThemeProvider.tsx
+21:7  Error: Definition for rule 'react-hooks/set-state-in-effect
+' was not found.  react-hooks/set-state-in-effect
+
+./src/context/NotificationContext.tsx
+4:44  Error: 'Info' is defined but never used.  @typescript-eslin
+t/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https
+://nextjs.org/docs/app/api-reference/config/eslint#disabling-rule
+s
