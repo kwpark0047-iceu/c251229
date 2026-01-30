@@ -15,7 +15,7 @@ import {
   ChevronRight,
   LayoutGrid,
   List,
-  Map,
+  Map as MapIcon,
   Wifi,
   WifiOff,
   Download,
@@ -276,10 +276,10 @@ export default function LeadManagerPage() {
     setLoadingStatus('');
 
     try {
-      const searchSettings: Settings = {
+      const searchSettings: any = {
         ...settings,
         regionCodes: selectedRegions,
-        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        status: (statusFilter === 'ALL' ? undefined : statusFilter) as any,
         serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
         searchQuery: searchQuery.trim(),
       };
@@ -640,7 +640,7 @@ export default function LeadManagerPage() {
                   {[
                     { mode: 'grid' as ViewMode, icon: LayoutGrid, color: 'var(--metro-line2)' },
                     { mode: 'list' as ViewMode, icon: List, color: 'var(--metro-line4)' },
-                    { mode: 'map' as ViewMode, icon: Map, color: 'var(--metro-line3)' },
+                    { mode: 'map' as ViewMode, icon: MapIcon, color: 'var(--metro-line3)' },
                   ].map(({ mode, icon: Icon, color }) => (
                     <button
                       key={mode}
@@ -712,20 +712,21 @@ export default function LeadManagerPage() {
       {/* 메시지 토스트 */}
       {message && (
         <div
-          className="fixed top-24 right-6 z-50 px-5 py-4 rounded-xl shadow-2xl animate-in slide-in-from-right duration-300 border"
+          className="fixed top-24 right-6 z-50 px-5 py-4 rounded-xl shadow-2xl animate-float border"
           style={{
             background: message.type === 'success'
-              ? 'linear-gradient(135deg, rgba(60, 181, 74, 0.9) 0%, rgba(60, 181, 74, 0.7) 100%)'
+              ? 'linear-gradient(135deg, rgba(60, 181, 74, 0.95) 0%, rgba(60, 181, 74, 0.8) 100%)'
               : message.type === 'error'
                 ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(239, 68, 68, 0.7) 100%)'
                 : 'linear-gradient(135deg, rgba(50, 164, 206, 0.9) 0%, rgba(50, 164, 206, 0.7) 100%)',
             backdropFilter: 'blur(10px)',
             borderColor: message.type === 'success' ? 'var(--metro-line2)' : message.type === 'error' ? '#ef4444' : 'var(--metro-line4)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.1)',
           }}
         >
           <div className="flex items-center gap-3">
             <Zap className="w-5 h-5 text-white" />
-            <span className="text-white font-medium">{message.text}</span>
+            <span className="text-white font-bold tracking-tight">{message.text}</span>
           </div>
         </div>
       )}
@@ -745,30 +746,30 @@ export default function LeadManagerPage() {
           {/* 필터 바 */}
           <div className="bg-[var(--bg-secondary)]/30 border-b border-[var(--border-subtle)]/50">
             <div className="max-w-[1400px] mx-auto px-6 py-4">
-              {/* 우측 액션 버튼들 (모바일에서는 일부 숨김) */}
-              <div className="flex items-center gap-3">
-                {/* 검색바 - 모바일에서는 아이콘만 표시하거나 축소 가능 */}
-                <div className="relative hidden sm:block">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-                  <input
-                    type="text"
-                    placeholder="병원명, 주소, 역이름 검색..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent w-64 transition-all"
-                  />
-                </div>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                {/* 왼쪽: 검색 + 필터 */}
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* 검색바 */}
+                  <div className="relative hidden sm:block">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                    <input
+                      type="text"
+                      placeholder="병원명, 주소, 역이름 검색..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent w-64 transition-all"
+                    />
+                  </div>
 
-                {/* 모바일 검색 버튼 (확장형 X) */}
-                <button className="sm:hidden p-2.5 rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors">
-                  <Search className="w-5 h-5" />
-                </button>
+                  {/* 모바일 검색 버튼 */}
+                  <button className="sm:hidden p-2.5 rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors">
+                    <Search className="w-5 h-5" />
+                  </button>
 
-                <div className="h-8 w-px bg-[var(--border-subtle)] hidden sm:block" />
-                {/* 업종 + 상태 필터 */}
-                <div className="flex flex-wrap items-center justify-center gap-3 mb-3">
+                  <div className="h-8 w-px bg-[var(--border-subtle)] hidden sm:block" />
+
                   {/* 업종 카테고리 */}
-                  <div className="flex items-center gap-2 flex-wrap justify-center">
+                  <div className="flex items-center gap-2 flex-wrap">
                     {(['HEALTH', 'ANIMAL', 'FOOD', 'CULTURE', 'LIVING', 'ENVIRONMENT', 'OTHER'] as BusinessCategory[]).map(category => {
                       const colors = CATEGORY_COLORS[category];
                       const count = leads.filter(l => l.category === category).length;
@@ -834,7 +835,7 @@ export default function LeadManagerPage() {
                 </div>
 
                 {/* 세부항목 선택 */}
-                <div className="flex items-center justify-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-[var(--text-muted)]">세부:</span>
                   <button
                     onClick={() => setSelectedServiceIds([])}
@@ -878,76 +879,80 @@ export default function LeadManagerPage() {
       {/* 모바일에서 오버레이 필터 또는 간소화된 필터 UI가 필요할 수 있음 (현재는 데스크탑 구조 유지하며 반응형 적용) */}
 
       {/* 인벤토리 탭일 때 업로드 버튼 바 */}
-      {mainTab === 'inventory' && (
-        <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50 backdrop-blur-sm">
-          <div className="max-w-[1400px] mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">광고매체 인벤토리</h2>
-              <button
-                onClick={() => setShowInventoryUpload(true)}
-                className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105"
-                style={{
-                  background: 'var(--metro-line2)',
-                  boxShadow: '0 4px 15px rgba(60, 181, 74, 0.3)',
-                }}
-              >
-                <Upload className="w-4 h-4" />
-                엑셀 업로드
-              </button>
+      {
+        mainTab === 'inventory' && (
+          <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50 backdrop-blur-sm">
+            <div className="max-w-[1400px] mx-auto px-6 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-[var(--text-primary)]">광고매체 인벤토리</h2>
+                <button
+                  onClick={() => setShowInventoryUpload(true)}
+                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105"
+                  style={{
+                    background: 'var(--metro-line2)',
+                    boxShadow: '0 4px 15px rgba(60, 181, 74, 0.3)',
+                  }}
+                >
+                  <Upload className="w-4 h-4" />
+                  엑셀 업로드
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* 스케줄 탭일 때 헤더 바 */}
-      {mainTab === 'schedule' && (
-        <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50 backdrop-blur-sm">
-          <div className="max-w-[1400px] mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <h2 className="text-lg font-bold text-[var(--text-primary)]">업무 스케줄</h2>
-                <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
-                  <button
-                    onClick={() => setScheduleView('calendar')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${scheduleView === 'calendar'
-                      ? 'bg-[var(--metro-line5)] text-white shadow-md'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                      }`}
-                  >
-                    <Calendar className="w-4 h-4" />
-                    캘린더
-                  </button>
-                  <button
-                    onClick={() => setScheduleView('board')}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${scheduleView === 'board'
-                      ? 'bg-[var(--metro-line5)] text-white shadow-md'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                      }`}
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                    업무현황
-                  </button>
+      {
+        mainTab === 'schedule' && (
+          <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50 backdrop-blur-sm">
+            <div className="max-w-[1400px] mx-auto px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-lg font-bold text-[var(--text-primary)]">업무 스케줄</h2>
+                  <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                    <button
+                      onClick={() => setScheduleView('calendar')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${scheduleView === 'calendar'
+                        ? 'bg-[var(--metro-line5)] text-white shadow-md'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                        }`}
+                    >
+                      <Calendar className="w-4 h-4" />
+                      캘린더
+                    </button>
+                    <button
+                      onClick={() => setScheduleView('board')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${scheduleView === 'board'
+                        ? 'bg-[var(--metro-line5)] text-white shadow-md'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                        }`}
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                      업무현황
+                    </button>
+                  </div>
                 </div>
+                <button
+                  onClick={() => {
+                    setSelectedTask(null);
+                    setTaskFormDefaultDate(undefined);
+                    setShowTaskForm(true);
+                  }}
+                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105"
+                  style={{
+                    background: 'var(--metro-line5)',
+                    boxShadow: '0 4px 15px rgba(153, 108, 172, 0.3)',
+                  }}
+                >
+                  <Calendar className="w-4 h-4" />
+                  새 업무
+                </button>
               </div>
-              <button
-                onClick={() => {
-                  setSelectedTask(null);
-                  setTaskFormDefaultDate(undefined);
-                  setShowTaskForm(true);
-                }}
-                className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105"
-                style={{
-                  background: 'var(--metro-line5)',
-                  boxShadow: '0 4px 15px rgba(153, 108, 172, 0.3)',
-                }}
-              >
-                <Calendar className="w-4 h-4" />
-                새 업무
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* 메인 컨텐츠 */}
       <main className="max-w-[1400px] mx-auto px-6 py-8 pb-24 md:pb-8 relative z-10">
@@ -1155,41 +1160,47 @@ export default function LeadManagerPage() {
         )}
       </main>
 
-      {showInventoryUpload && (
-        <InventoryUploadModal
-          onClose={() => setShowInventoryUpload(false)}
-          onSuccess={() => {
-            setInventoryRefreshKey(k => k + 1);
-            showMessage('success', '인벤토리가 업로드되었습니다.');
-          }}
-        />
-      )}
+      {
+        showInventoryUpload && (
+          <InventoryUploadModal
+            onClose={() => setShowInventoryUpload(false)}
+            onSuccess={() => {
+              setInventoryRefreshKey(k => k + 1);
+              showMessage('success', '인벤토리가 업로드되었습니다.');
+            }}
+          />
+        )
+      }
 
-      {isSettingsOpen && (
-        <SettingsModal
-          settings={settings}
-          onSave={handleSaveSettings}
-          onClose={() => setIsSettingsOpen(false)}
-          onDataChanged={() => loadLeadsFromDB()}
-        />
-      )}
+      {
+        isSettingsOpen && (
+          <SettingsModal
+            settings={settings}
+            onSave={handleSaveSettings}
+            onClose={() => setIsSettingsOpen(false)}
+            onDataChanged={() => loadLeadsFromDB()}
+          />
+        )
+      }
 
-      {showTaskForm && (
-        <TaskFormModal
-          task={selectedTask}
-          defaultDate={taskFormDefaultDate}
-          onSave={() => {
-            setShowTaskForm(false);
-            setSelectedTask(null);
-            setScheduleRefreshKey(k => k + 1);
-            showMessage('success', selectedTask ? '업무가 수정되었습니다.' : '업무가 생성되었습니다.');
-          }}
-          onClose={() => {
-            setShowTaskForm(false);
-            setSelectedTask(null);
-          }}
-        />
-      )}
+      {
+        showTaskForm && (
+          <TaskFormModal
+            task={selectedTask}
+            defaultDate={taskFormDefaultDate}
+            onSave={() => {
+              setShowTaskForm(false);
+              setSelectedTask(null);
+              setScheduleRefreshKey(k => k + 1);
+              showMessage('success', selectedTask ? '업무가 수정되었습니다.' : '업무가 생성되었습니다.');
+            }}
+            onClose={() => {
+              setShowTaskForm(false);
+              setSelectedTask(null);
+            }}
+          />
+        )
+      }
       {/* 모바일 하단 네비게이션 */}
       <MobileNavBar
         activeTab={mainTab}
@@ -1200,6 +1211,6 @@ export default function LeadManagerPage() {
         onViewModeChange={(mode) => setViewMode(mode)}
         onSettingsClick={() => setIsSettingsOpen(true)}
       />
-    </div >
+    </div>
   );
 }

@@ -132,11 +132,11 @@ export default function LeadDetailPanel({
         </div>
 
         {/* 빠른 액션 */}
-        <div className="flex gap-2 px-4 py-3 border-b border-slate-200">
+        <div className="flex gap-2 px-4 py-3 border-b border-slate-200 bg-slate-50/50">
           {lead.phone && (
             <a
               href={generateTelLink(lead.phone)}
-              className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-all hover:scale-105 active:scale-95 animate-float-subtle"
             >
               <Phone className="w-4 h-4" />
               <span className="text-sm">전화</span>
@@ -144,14 +144,14 @@ export default function LeadDetailPanel({
           )}
           <button
             onClick={() => setShowCallModal(true)}
-            className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all hover:scale-105 active:scale-95 animate-float-subtle delay-100"
           >
             <FileText className="w-4 h-4" />
             <span className="text-sm">통화기록</span>
           </button>
           <button
             onClick={() => setShowProposalForm(true)}
-            className="flex-1 flex items-center justify-center gap-2 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-all hover:scale-105 active:scale-95 animate-float-subtle delay-200"
           >
             <Mail className="w-4 h-4" />
             <span className="text-sm">제안서</span>

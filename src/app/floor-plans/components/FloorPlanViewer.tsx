@@ -248,28 +248,39 @@ export default function FloorPlanViewer({
                   e.stopPropagation();
                   onPositionClick?.(pos);
                 }}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-125"
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all hover:scale-125 focus:outline-none z-20 group"
                 style={{
                   left: `${pos.positionX}%`,
                   top: `${pos.positionY}%`,
                 }}
-                title={pos.label || pos.adCode || '광고 위치'}
               >
+                {/* 링 펄스 효과 */}
                 <div
-                  className="flex items-center justify-center rounded-full shadow-lg border-2 border-white"
+                  className="absolute inset-0 rounded-full animate-ping opacity-20"
+                  style={{ background: pos.markerColor }}
+                />
+
+                <div
+                  className="relative flex items-center justify-center rounded-full shadow-2xl border-2 border-white/80 animate-float-subtle group-hover:animate-none group-active:scale-95 transition-transform"
                   style={{
                     width: pos.markerSize,
                     height: pos.markerSize,
                     background: pos.markerColor,
+                    boxShadow: `0 0 15px ${pos.markerColor}66`,
                   }}
                 >
                   <MapPin className="w-3 h-3 text-white" />
                 </div>
-                {pos.label && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 rounded bg-black/75 text-white text-xs whitespace-nowrap">
-                    {pos.label}
+
+                {/* 개선된 툴팁 */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg bg-black/80 backdrop-blur-md text-white text-[10px] font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-xl pointer-events-none">
+                  {pos.label || pos.adCode || '광고 위치'}
+                  <div className="text-[8px] font-medium text-white/60 mt-0.5">
+                    {pos.inventory?.adType || '광고 매체'} • {(pos.inventory?.priceMonthly || 0).toLocaleString()}원
                   </div>
-                )}
+                  {/* 화살표 */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[4px] border-transparent border-b-black/80" />
+                </div>
               </button>
             ))}
           </div>

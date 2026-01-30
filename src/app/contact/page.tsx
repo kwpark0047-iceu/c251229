@@ -18,7 +18,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
-import { SUBWAY_STATIONS } from '@/app/lead-manager/constants';
+import { SUBWAY_STATIONS, METRO_LINE_COLORS as LINE_COLORS } from '@/lib/constants';
 
 // Leaflet 동적 임포트 (SSR 비활성화)
 const MapContainer = dynamic(
@@ -112,17 +112,7 @@ interface Proposal {
   };
 }
 
-const LINE_COLORS: Record<string, string> = {
-  '1': '#0052A4',
-  '2': '#00A84D',
-  '3': '#EF7C1C',
-  '4': '#00A5DE',
-  '5': '#996CAC',
-  '6': '#CD7C2F',
-  '7': '#747F00',
-  '8': '#E6186C',
-  '9': '#BDB092',
-};
+
 
 // 서울 지하철 노선 좌표 (공공데이터포털 서울교통공사 역 좌표 기준)
 const SUBWAY_LINE_ROUTES: Record<string, { color: string; coords: [number, number][] }> = {

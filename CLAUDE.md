@@ -68,12 +68,9 @@ src/lib/
 │   ├── client.ts           # 브라우저용 Supabase 클라이언트 (동기 createClient)
 │   └── server.ts           # 서버용 Supabase 클라이언트 (비동기 await createClient)
 └── kric-api.ts             # KRIC 역사 정보 API 래퍼
+└── constants.ts            # 전역 공통 상수 (노선 색상, 역 정보 등)
 supabase/migrations/        # DB 마이그레이션 (YYYYMMDDHHMMSS_description.sql)
 ```
-
-### Supabase 클라이언트 사용법
-- **클라이언트 컴포넌트** (`'use client'`): `import { createClient } from '@/lib/supabase/client'` (동기 호출)
-- **서버 컴포넌트/API 라우트**: `import { createClient } from '@/lib/supabase/server'` (비동기 `await createClient()`)
 
 ### 서비스 레이어 패턴
 각 기능별 `*-service.ts` 파일이 Supabase CRUD 로직을 캡슐화:
@@ -125,6 +122,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 LOCALDATA_API_KEY=           # LocalData.go.kr (서버사이드)
 RESEND_API_KEY=              # 이메일 제안서 발송용
 KRIC_API_KEY=                # KRIC 역사 정보 API (서버사이드)
+STATION_INFO_API_KEY=        # KRIC 역사 정보 (서버사이드)
 ```
 
 ## 컨벤션
@@ -132,7 +130,7 @@ KRIC_API_KEY=                # KRIC 역사 정보 API (서버사이드)
 - 한글 주석 사용
 - DB: snake_case / TypeScript: camelCase
 - 타입은 각 기능 폴더의 `types.ts`에 정의
-- 서비스 레이어: DB 스키마(snake_case) ↔ TS 인터페이스(camelCase) 변환을 인라인으로 처리 (예: `row.biz_name` → `bizName`)
+- 서비스 레이어: DB 스키마(snake_case) ↔ TS 인터페이스(camelCase) 변환을 인라인으로 처리
 - 지하철 노선 색상: CSS 변수 `--metro-line1` ~ `--metro-line9`
 - 글래스모피즘: `glass-card` 클래스
 - 다크모드: ThemeProvider 지원

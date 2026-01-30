@@ -3,36 +3,44 @@
  */
 
 import { AdInventory } from '../lead-manager/types';
+import { METRO_LINES, METRO_LINE_NAMES, METRO_LINE_COLORS, MetroLine } from '@/lib/constants';
+export type { MetroLine };
+export { METRO_LINES, METRO_LINE_NAMES, METRO_LINE_COLORS };
 
 // ============================================
 // 기본 타입
 // ============================================
 
-import { MetroLine, PlanType, FloorPlan as SharedFloorPlan, PLAN_TYPE_LABELS } from '../shared/types';
-import { LINE_COLORS, LINE_NAMES } from '../shared/constants';
+// 도면 유형
+export type PlanType = 'station_layout' | 'psd';
 
-// ============================================
-// 기본 타입
-// ============================================
-
-// Re-exports & Aliases
-export type { MetroLine, PlanType };
-export { PLAN_TYPE_LABELS };
-
-export const METRO_LINES: MetroLine[] = ['1', '2', '5', '7', '8'];
-export const METRO_LINE_NAMES = LINE_NAMES;
-export const METRO_LINE_COLORS = LINE_COLORS;
+// 도면 유형 라벨
+export const PLAN_TYPE_LABELS: Record<PlanType, string> = {
+  'station_layout': '역구내도면',
+  'psd': 'PSD도면',
+};
 
 // ============================================
 // 도면 관련 타입
 // ============================================
 
 // 도면 데이터
-// 도면 데이터 (Shared 확장 + 필수 필드 지정)
-export interface FloorPlan extends SharedFloorPlan {
+export interface FloorPlan {
+  id: string;
+  stationName: string;
   lineNumber: MetroLine;
   planType: PlanType;
+  floorName: string;
+  imageUrl: string;
+  thumbnailUrl?: string;
+  storagePath?: string;
+  fileName?: string;
+  fileSize?: number;
+  width?: number;
+  height?: number;
   sortOrder: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // 도면 입력 데이터

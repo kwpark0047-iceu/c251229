@@ -2,8 +2,9 @@
  * 서울 지하철 광고 영업 시스템 - 상수 정의
  */
 
-import { SubwayStation, Settings } from './types';
-import { TOTAL_SUBWAY_STATIONS } from './data/stations';
+import { SubwayStation, SUBWAY_STATIONS } from '@/lib/constants';
+import { Settings } from './types';
+export { SUBWAY_STATIONS };
 
 // 메트로 라인 색상 (탭용)
 export const METRO_TAB_COLORS = {
@@ -35,9 +36,6 @@ export const DEFAULT_SETTINGS: Settings = {
 // LocalData API 엔드포인트 (TO0 = 통합조회)
 export const API_ENDPOINT = 'http://www.localdata.go.kr/platform/rest/TO0/openDataApi';
 
-// 주요 서울 지하철역 데이터 (공공데이터포털 서울교통공사 좌표 기준)
-// 주요 서울 지하철역 데이터 (공공데이터포털 서울교통공사 좌표 기준)
-export const SUBWAY_STATIONS: SubwayStation[] = TOTAL_SUBWAY_STATIONS;
 
 // 좌표 변환을 위한 proj4 정의
 // LocalData API는 EPSG:5174 (Korea 2000 / Central Belt) 좌표계 사용

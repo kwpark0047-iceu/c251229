@@ -2,6 +2,10 @@
  * 서울 지하철 광고 영업 시스템 - 타입 정의
  */
 
+import { METRO_LINE_COLORS as LINE_COLORS, SubwayStation } from '@/lib/constants';
+export type { SubwayStation };
+export { LINE_COLORS };
+
 // 리드 상태 타입
 export type LeadStatus = 'NEW' | 'PROPOSAL_SENT' | 'CONTACTED' | 'CONTRACTED';
 
@@ -78,16 +82,6 @@ export interface Lead {
   updatedAt?: string;        // 수정일
 }
 
-// 지하철역 타입
-export interface SubwayStation {
-  name: string;
-  lat: number;
-  lng: number;
-  lines: string[];
-}
-
-// 노선별 색상 (Shared에서 가져옴)
-export { LINE_COLORS } from '../shared/constants';
 
 // 뷰 모드 타입
 export type ViewMode = 'grid' | 'list' | 'map';

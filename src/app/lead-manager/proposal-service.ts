@@ -30,7 +30,6 @@ async function loadKoreanFont(pdf: jsPDF): Promise<void> {
     // Google Fonts에서 NanumGothic 폰트 로드 (TTF)
     const response = await fetch('https://fonts.gstatic.com/s/nanumgothic/v23/PN_3Rfi-oW3hYwmKDpxS7F_z_tLfxno.ttf');
     if (!response.ok) throw new Error('폰트 다운로드 실패');
-
     const fontBuffer = await response.arrayBuffer();
 
     // ArrayBuffer를 Base64로 변환

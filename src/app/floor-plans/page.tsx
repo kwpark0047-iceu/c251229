@@ -25,6 +25,7 @@ import { downloadFloorPlanImage } from './storage-service';
 import LineSelector from './components/LineSelector';
 import StationList from './components/StationList';
 import FloorPlanViewer from './components/FloorPlanViewer';
+import AdPositionDetail from './components/AdPositionDetail';
 import BatchDownloadModal from './components/BatchDownloadModal';
 import FloorPlanUploadModal from './components/FloorPlanUploadModal';
 import AdPositionDetailModal from './components/AdPositionDetailModal';
@@ -42,6 +43,9 @@ export default function FloorPlansPage() {
   const [planCounts, setPlanCounts] = useState<Record<MetroLine, { station_layout: number; psd: number }> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 상세 보기 상태
+  const [selectedPosition, setSelectedPosition] = useState<AdPosition | null>(null);
 
   // 다운로드 모달
   const [showDownloadModal, setShowDownloadModal] = useState(false);
@@ -293,13 +297,21 @@ export default function FloorPlansPage() {
               />
             </div>
 
-            {/* 도면 뷰어 */}
-            <FloorPlanViewer
-              plan={selectedPlan}
-              adPositions={adPositions}
-              onDownload={handleDownload}
-              onPositionClick={handlePositionClick}
-            />
+            {/* 도면 뷰어 영역 */}
+            <div className="flex-1 relative">
+              <FloorPlanViewer
+                plan={selectedPlan}
+                adPositions={adPositions}
+                onDownload={handleDownload}
+                onPositionClick={handlePositionClick}
+              />
+
+              {/* 광고 구좌 상세 패널 (애니메이션 적용) */}
+              <AdPositionDetail
+                position={selectedPosition}
+                onClose={() => setSelectedPosition(null)}
+              />
+            </div>
           </>
         )}
       </div>
