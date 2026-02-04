@@ -33,7 +33,7 @@
     "proj4": "^2.20.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-leaflet": "^5.0.0",
+    "react-leaflet": "^4.2.1",
     "react-window": "^1.8.8",
     "recharts": "^3.6.0",
     "resend": "^6.6.0",

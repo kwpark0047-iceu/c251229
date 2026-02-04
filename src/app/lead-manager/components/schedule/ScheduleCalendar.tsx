@@ -202,13 +202,12 @@ export default function ScheduleCalendar({
         {WEEKDAYS.map((day, index) => (
           <div
             key={day}
-            className={`py-3 text-center text-sm font-semibold ${
-              index === 0
+            className={`py-3 text-center text-sm font-semibold ${index === 0
                 ? 'text-red-400'
                 : index === 6
                   ? 'text-blue-400'
                   : 'text-[var(--text-muted)]'
-            }`}
+              }`}
           >
             {day}
           </div>
@@ -233,27 +232,30 @@ export default function ScheduleCalendar({
               <div
                 key={index}
                 onClick={() => handleDateClick(date)}
-                className={`min-h-[100px] p-2 border-b border-r cursor-pointer transition-colors group ${
-                  isCurrentMonth
-                    ? 'hover:bg-[var(--bg-secondary)]'
-                    : 'bg-[var(--bg-tertiary)] opacity-50'
-                } ${isSelected ? 'bg-[var(--metro-line4)]/10' : ''}`}
+                className={`min-h-[120px] p-3 border-b border-r cursor-pointer transition-all duration-300 group relative ${isCurrentMonth
+                    ? 'hover:bg-[var(--bg-secondary)] hover:shadow-inner'
+                    : 'bg-[var(--bg-tertiary)] opacity-30'
+                  } ${isSelected ? 'bg-[var(--metro-line4)]/5 !border-[var(--metro-line4)]/30' : ''}`}
                 style={{
                   borderColor: 'var(--border-subtle)',
                 }}
               >
+                {/* 호버 배경 효과 */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[var(--metro-line4)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
                 {/* 날짜 */}
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2 relative z-10">
                   <span
-                    className={`text-sm font-medium ${
-                      isTodayDate
-                        ? 'w-7 h-7 flex items-center justify-center rounded-full bg-[var(--metro-line2)] text-white'
-                        : dayOfWeek === 0
-                          ? 'text-red-400'
-                          : dayOfWeek === 6
-                            ? 'text-blue-400'
-                            : 'text-[var(--text-primary)]'
-                    }`}
+                    className={`text-sm font-bold transition-all ${isTodayDate
+                        ? 'w-8 h-8 flex items-center justify-center rounded-xl bg-gradient-to-br from-[var(--metro-line2)] to-[#00c55a] text-white shadow-lg shadow-green-500/30 scale-110'
+                        : isSelected
+                          ? 'text-[var(--metro-line4)] underline decoration-2 underline-offset-4'
+                          : dayOfWeek === 0
+                            ? 'text-red-400'
+                            : dayOfWeek === 6
+                              ? 'text-blue-400'
+                              : 'text-[var(--text-primary)]'
+                      }`}
                   >
                     {date.getDate()}
                   </span>
@@ -284,17 +286,19 @@ export default function ScheduleCalendar({
                           e.stopPropagation();
                           onEventClick?.(event);
                         }}
-                        className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-xs truncate cursor-pointer hover:opacity-80 ${
-                          event.type === 'callback'
-                            ? 'bg-amber-100 text-amber-700'
-                            : `${typeColors.bg} ${typeColors.text}`
-                        }`}
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium truncate cursor-pointer hover:scale-105 active:scale-95 transition-all animate-float-subtle border ${event.type === 'callback'
+                            ? 'bg-amber-100/10 text-amber-500 border-amber-500/20'
+                            : `${typeColors.bg.replace('100', '100/10')} ${typeColors.text} border-${typeColors.text.split('-')[1]}-500/20`
+                          }`}
                         title={event.title}
+                        style={{
+                          animationDelay: `${index * 200}ms`
+                        }}
                       >
                         {event.type === 'task' && event.taskType && (
-                          TASK_ICONS[event.taskType]
+                          <span className="shrink-0">{TASK_ICONS[event.taskType]}</span>
                         )}
-                        {event.type === 'callback' && <Phone className="w-3 h-3" />}
+                        {event.type === 'callback' && <Phone className="shrink-0 w-3 h-3" />}
                         <span className="truncate flex-1">{event.title}</span>
                         {getPriorityDot(event.priority)}
                       </div>

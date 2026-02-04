@@ -128,29 +128,35 @@ export default function TaskFormModal({
 
       {/* 모달 */}
       <div
-        className="relative w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto rounded-2xl border animate-in fade-in zoom-in-95 duration-300"
+        className="relative w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto rounded-3xl border animate-fade-in-up"
         style={{
           background: 'var(--glass-bg)',
           borderColor: 'var(--glass-border)',
-          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+          boxShadow: '0 32px 64px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.05)',
         }}
       >
         {/* 헤더 */}
         <div
-          className="flex items-center justify-between px-6 py-4 border-b sticky top-0"
+          className="flex items-center justify-between px-8 py-5 border-b sticky top-0 z-20"
           style={{
             borderColor: 'var(--border-subtle)',
             background: 'var(--glass-bg)',
+            backdropFilter: 'blur(20px)',
           }}
         >
-          <h2 className="text-lg font-bold text-[var(--text-primary)]">
-            {task?.id ? '업무 수정' : '새 업무'}
-          </h2>
+          <div>
+            <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
+              {task?.id ? '업무 수정' : '새 업무 등록'}
+            </h2>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              {task?.id ? '기존 업무 내용을 변경합니다.' : '새로운 영업 활동을 계획합니다.'}
+            </p>
+          </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+            className="p-2 rounded-xl hover:bg-white/10 transition-all hover:rotate-90"
           >
-            <X className="w-5 h-5 text-[var(--text-muted)]" />
+            <X className="w-6 h-6 text-[var(--text-muted)]" />
           </button>
         </div>
 
@@ -169,11 +175,10 @@ export default function TaskFormModal({
                     key={type}
                     type="button"
                     onClick={() => setFormData({ ...formData, taskType: type })}
-                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                      formData.taskType === type
+                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${formData.taskType === type
                         ? 'border-[var(--metro-line4)] bg-[var(--metro-line4)]/10 text-[var(--metro-line4)]'
                         : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-                    }`}
+                      }`}
                   >
                     {label}
                   </button>
@@ -251,15 +256,14 @@ export default function TaskFormModal({
                     key={priority}
                     type="button"
                     onClick={() => setFormData({ ...formData, priority })}
-                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                      formData.priority === priority
+                    className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${formData.priority === priority
                         ? priority === 'URGENT'
                           ? 'border-red-400 bg-red-400/10 text-red-400'
                           : priority === 'HIGH'
                             ? 'border-orange-400 bg-orange-400/10 text-orange-400'
                             : 'border-[var(--metro-line4)] bg-[var(--metro-line4)]/10 text-[var(--metro-line4)]'
                         : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-                    }`}
+                      }`}
                   >
                     {label}
                   </button>
@@ -336,11 +340,10 @@ export default function TaskFormModal({
                       setFormData({ ...formData, leadId: lead.id });
                       setSearchQuery(lead.bizName);
                     }}
-                    className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-tertiary)] transition-colors ${
-                      formData.leadId === lead.id
+                    className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-tertiary)] transition-colors ${formData.leadId === lead.id
                         ? 'bg-[var(--metro-line4)]/10 text-[var(--metro-line4)]'
                         : 'text-[var(--text-secondary)]'
-                    }`}
+                      }`}
                   >
                     <div className="font-medium">{lead.bizName}</div>
                     {lead.roadAddress && (

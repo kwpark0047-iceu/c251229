@@ -91,16 +91,14 @@ function TaskCard({
   return (
     <div
       onClick={onClick}
-      className={`p-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${
-        isOverdue ? 'border-red-400/50' : ''
-      }`}
+      className={`p-4 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl animate-float ${isOverdue ? 'border-red-400/50 bg-red-400/5' : 'bg-[var(--bg-secondary)] border-[var(--border-subtle)]'
+        }`}
       style={{
-        background: 'var(--bg-secondary)',
-        borderColor: isOverdue ? undefined : 'var(--border-subtle)',
+        boxShadow: isOverdue ? '0 8px 32px rgba(239, 68, 68, 0.1)' : 'var(--shadow-md)',
       }}
     >
       {/* 헤더 */}
-      <div className="flex items-start justify-between mb-2">
+      <div className="flex items-start justify-between mb-3">
         <div
           className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium ${typeColors.bg} ${typeColors.text}`}
         >
@@ -175,9 +173,8 @@ function TaskCard({
       {/* 날짜/시간/우선순위 */}
       <div className="flex items-center gap-2 flex-wrap">
         <span
-          className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg ${
-            isOverdue ? 'bg-red-100 text-red-600' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
-          }`}
+          className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
+            }`}
         >
           {isOverdue && <AlertTriangle className="w-3 h-3" />}
           <Calendar className="w-3 h-3" />
@@ -247,58 +244,37 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
   return (
     <div className="space-y-6">
       {/* 통계 카드 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div
-          className="p-4 rounded-xl border"
-          style={{
-            background: 'var(--glass-bg)',
-            borderColor: 'var(--glass-border)',
-          }}
-        >
-          <div className="text-sm text-[var(--text-muted)] mb-1">오늘 업무</div>
-          <div className="text-2xl font-bold text-[var(--text-primary)]">
-            {stats.todayCount}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {[
+          { label: '오늘 업무', value: stats.todayCount, color: 'var(--text-primary)', icon: <Calendar className="w-4 h-4" /> },
+          { label: '이번 주', value: stats.weekCount, color: 'var(--text-primary)', icon: <Clock className="w-4 h-4" /> },
+          { label: '진행중', value: stats.inProgress, color: 'var(--metro-line4)', icon: <Loader2 className="w-4 h-4" /> },
+          { label: '지연 업무', value: stats.overdue, color: stats.overdue > 0 ? 'var(--accent-danger)' : 'var(--text-primary)', icon: <AlertTriangle className="w-4 h-4" />, isAlert: stats.overdue > 0 }
+        ].map((item, i) => (
+          <div
+            key={i}
+            className={`p-5 rounded-2xl border transition-all hover:translate-y-[-4px] animate-fade-in-up`}
+            style={{
+              background: item.isAlert ? 'rgba(230, 24, 108, 0.05)' : 'var(--glass-bg)',
+              borderColor: item.isAlert ? 'rgba(230, 24, 108, 0.2)' : 'var(--glass-border)',
+              boxShadow: item.isAlert ? '0 8px 32px rgba(230, 24, 108, 0.1)' : 'var(--shadow-sm)',
+              animationDelay: `${i * 100}ms`
+            }}
+          >
+            <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)] mb-2 uppercase tracking-wider">
+              {item.icon}
+              {item.label}
+            </div>
+            <div className={`text-3xl font-display`} style={{ color: item.color }}>
+              {item.value}
+            </div>
+            {item.isAlert && (
+              <div className="mt-2 text-[10px] font-bold text-red-400 animate-pulse">
+                즉시 확인 필요
+              </div>
+            )}
           </div>
-        </div>
-        <div
-          className="p-4 rounded-xl border"
-          style={{
-            background: 'var(--glass-bg)',
-            borderColor: 'var(--glass-border)',
-          }}
-        >
-          <div className="text-sm text-[var(--text-muted)] mb-1">이번 주</div>
-          <div className="text-2xl font-bold text-[var(--text-primary)]">
-            {stats.weekCount}
-          </div>
-        </div>
-        <div
-          className="p-4 rounded-xl border"
-          style={{
-            background: 'var(--glass-bg)',
-            borderColor: 'var(--glass-border)',
-          }}
-        >
-          <div className="text-sm text-[var(--text-muted)] mb-1">진행중</div>
-          <div className="text-2xl font-bold text-[var(--metro-line4)]">
-            {stats.inProgress}
-          </div>
-        </div>
-        <div
-          className="p-4 rounded-xl border"
-          style={{
-            background: stats.overdue > 0 ? 'rgba(239, 68, 68, 0.1)' : 'var(--glass-bg)',
-            borderColor: stats.overdue > 0 ? 'rgba(239, 68, 68, 0.3)' : 'var(--glass-border)',
-          }}
-        >
-          <div className="text-sm text-[var(--text-muted)] mb-1 flex items-center gap-1">
-            {stats.overdue > 0 && <AlertTriangle className="w-4 h-4 text-red-400" />}
-            지연 업무
-          </div>
-          <div className={`text-2xl font-bold ${stats.overdue > 0 ? 'text-red-400' : 'text-[var(--text-primary)]'}`}>
-            {stats.overdue}
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* 필터 */}
