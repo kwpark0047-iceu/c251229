@@ -1,401 +1,320 @@
 /**
  * 역사 도면 최적화 컴포넌트
- * 타일링, 줌 레벨별 로딩, 캐싱
+ * 캔버스 기반 고성능 렌더링, 줌/팬, 광고 마커 통합
  */
 
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import OptimizedImage from '@/app/shared/OptimizedImage';
 import { cn } from '@/lib/utils';
+import { FloorPlan, AdPosition } from '../types';
+import {
+  ZoomIn,
+  ZoomOut,
+  RotateCcw,
+  Maximize2,
+  MapPin,
+  Move
+} from 'lucide-react';
 
 interface FloorPlanViewerProps {
-  floorPlanUrl: string;
-  stationName: string;
-  line: string;
-  floor: string;
+  plan: FloorPlan | null;
+  adPositions?: AdPosition[];
+  onPositionClick?: (position: AdPosition) => void;
   className?: string;
 }
 
-// 타일 정보
-interface TileInfo {
-  x: number;
-  y: number;
-  zoom: number;
-  url: string;
-  loaded: boolean;
-  loading: boolean;
-  error: boolean;
-}
-
-// 타일 캐시
-class TileCache {
-  private cache = new Map<string, HTMLImageElement>();
-  private maxCacheSize = 500;
-
-  set(key: string, image: HTMLImageElement): void {
-    if (this.cache.size >= this.maxCacheSize) {
-      this.cache.delete(this.cache.keys().next().value as string);
-    }
-    this.cache.set(key, image);
-  }
-
-  get(key: string): HTMLImageElement | undefined {
-    return this.cache.get(key);
-  }
-
-  has(key: string): boolean {
-    return this.cache.has(key);
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-}
-
-export default function FloorPlanViewer({
-  floorPlanUrl,
-  stationName,
-  line,
-  floor,
+export default function OptimizedFloorPlanViewer({
+  plan,
+  adPositions = [],
+  onPositionClick,
   className,
 }: FloorPlanViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [tiles, setTiles] = useState<TileInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const tileCache = useRef(new TileCache());
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const animationFrameRef = useRef<number>();
+  const lastMousePos = useRef({ x: 0, y: 0 });
 
-  // 타일 크기
-  const TILE_SIZE = 256;
-  const MAX_ZOOM = 4;
-  const MIN_ZOOM = 0.5;
+  const MAX_ZOOM = 5;
+  const MIN_ZOOM = 0.2;
 
-  // 타일 URL 생성
-  const getTileUrl = useCallback((x: number, y: number, zoomLevel: number): string => {
-    // CDN을 통한 타일 최적화
-    const baseUrl = floorPlanUrl.split('?')[0];
-    const params = new URLSearchParams({
-      w: TILE_SIZE.toString(),
-      h: TILE_SIZE.toString(),
-      q: '80',
-      f: 'webp',
-      crop: `${x * TILE_SIZE},${y * TILE_SIZE},${TILE_SIZE},${TILE_SIZE}`,
-    });
-
-    return `${baseUrl}?${params.toString()}`;
-  }, [floorPlanUrl]);
-
-  // 보이는 타일 계산
-  const getVisibleTiles = useCallback((): TileInfo[] => {
-    if (!containerRef.current) return [];
-
-    const container = containerRef.current;
-    const rect = container.getBoundingClientRect();
-
-    const startX = Math.floor(-pan.x / (TILE_SIZE * zoom));
-    const startY = Math.floor(-pan.y / (TILE_SIZE * zoom));
-    const endX = Math.ceil((rect.width - pan.x) / (TILE_SIZE * zoom));
-    const endY = Math.ceil((rect.height - pan.y) / (TILE_SIZE * zoom));
-
-    const visibleTiles: TileInfo[] = [];
-
-    for (let x = startX; x <= endX; x++) {
-      for (let y = startY; y <= endY; y++) {
-        const key = `${x}-${y}-${zoom}`;
-        const url = getTileUrl(x, y, zoom);
-
-        visibleTiles.push({
-          x,
-          y,
-          zoom,
-          url,
-          loaded: tileCache.current.has(key),
-          loading: false,
-          error: false,
-        });
-      }
-    }
-
-    return visibleTiles;
-  }, [pan, zoom, getTileUrl]);
-
-  // 타일 로딩
-  const loadTiles = useCallback(async (tilesToLoad: TileInfo[]) => {
-    const loadPromises = tilesToLoad.map(async (tile) => {
-      const key = `${tile.x}-${tile.y}-${tile.zoom}`;
-
-      if (tileCache.current.has(key)) {
-        return { ...tile, loaded: true };
-      }
-
-      try {
-        const img = new Image();
-        img.src = tile.url;
-
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-        });
-
-        tileCache.current.set(key, img);
-        return { ...tile, loaded: true };
-      } catch (error) {
-        console.error(`Failed to load tile ${key}:`, error);
-        return { ...tile, error: true };
-      }
-    });
-
-    const results = await Promise.allSettled(loadPromises);
-    return results.map((result, index) =>
-      result.status === 'fulfilled' ? result.value : tilesToLoad[index]
-    );
-  }, []);
-
-  // 캔버스 렌더링
-  const renderCanvas = useCallback(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-
-    if (!canvas || !ctx) return;
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    // 캔버스 크기 설정
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-
-    // 캔버스 초기화
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 배경
-    ctx.fillStyle = '#f3f4f6';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // 타일 렌더링
-    tiles.forEach(tile => {
-      const key = `${tile.x}-${tile.y}-${tile.zoom}`;
-      const img = tileCache.current.get(key);
-
-      if (img) {
-        const x = tile.x * TILE_SIZE * zoom + pan.x;
-        const y = tile.y * TILE_SIZE * zoom + pan.y;
-
-        ctx.drawImage(
-          img,
-          x,
-          y,
-          TILE_SIZE * zoom,
-          TILE_SIZE * zoom
-        );
-      }
-    });
-
-    // 로딩 인디케이터
-    const loadingTiles = tiles.filter(tile => !tile.loaded && !tile.error);
-    if (loadingTiles.length > 0) {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.font = '14px sans-serif';
-      ctx.fillText(
-        `Loading tiles... (${tiles.filter(t => t.loaded).length}/${tiles.length})`,
-        10,
-        20
-      );
-    }
-  }, [tiles, pan, zoom]);
-
-  // 타일 업데이트
+  // 이미지 로딩
   useEffect(() => {
-    const visibleTiles = getVisibleTiles();
-    setTiles(visibleTiles);
+    if (!plan?.imageUrl) return;
 
-    // 타일 로딩
-    const tilesToLoad = visibleTiles.filter(tile => !tile.loaded && !tile.error);
-    if (tilesToLoad.length > 0) {
-      setIsLoading(true);
-      loadTiles(tilesToLoad).then(loadedTiles => {
-        setTiles(loadedTiles);
-        setIsLoading(false);
-      });
-    }
-  }, [getVisibleTiles, loadTiles]);
-
-  // 캔버스 렌더링
-  useEffect(() => {
-    const animate = () => {
-      renderCanvas();
-      animationFrameRef.current = requestAnimationFrame(animate);
+    setIsLoading(true);
+    const img = new Image();
+    img.src = plan.imageUrl;
+    img.onload = () => {
+      imageRef.current = img;
+      setIsLoading(false);
+      handleReset();
     };
-
-    animate();
+    img.onerror = () => {
+      console.error('Failed to load floor plan image');
+      setIsLoading(false);
+    };
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      imageRef.current = null;
     };
-  }, [renderCanvas]);
+  }, [plan?.imageUrl]);
 
-  // 마우스 이벤트 핸들러
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({
-      x: e.clientX - pan.x,
-      y: e.clientY - pan.y,
+  // 캔버스 렌더링 로직
+  const render = useCallback(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    const img = imageRef.current;
+
+    if (!canvas || !ctx || !img) return;
+
+    // 캔버스 크기 동기화
+    const { clientWidth, clientHeight } = containerRef.current!;
+    if (canvas.width !== clientWidth || canvas.height !== clientHeight) {
+      canvas.width = clientWidth;
+      canvas.height = clientHeight;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // 1. 도면 이미지 그리기
+    const drawW = img.width * zoom;
+    const drawH = img.height * zoom;
+    const drawX = pan.x + (canvas.width - drawW) / 2;
+    const drawY = pan.y + (canvas.height - drawH) / 2;
+
+    ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+    // 2. 광고 마커 그리기
+    adPositions.forEach(pos => {
+      const centerX = drawX + (pos.positionX / 100) * drawW;
+      const centerY = drawY + (pos.positionY / 100) * drawH;
+      const size = pos.markerSize || 24;
+      const scaledSize = size * Math.sqrt(zoom);
+
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = `${pos.markerColor}66`;
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, scaledSize / 2, 0, Math.PI * 2);
+      ctx.fillStyle = pos.markerColor;
+      ctx.fill();
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#ffffff';
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, scaledSize / 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (zoom > 1.5 && pos.label) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(10, 8 * zoom)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(pos.label, centerX, centerY + scaledSize);
+      }
     });
-  }, [pan]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+  }, [adPositions, pan, zoom]);
+
+  // 애니메이션 루프
+  useEffect(() => {
+    const loop = () => {
+      render();
+      animationFrameRef.current = requestAnimationFrame(loop);
+    };
+    animationFrameRef.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animationFrameRef.current!);
+  }, [render]);
+
+  // 마우스 클릭 시 마커 체크
+  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+    if (isDragging) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas || !imageRef.current) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const drawW = imageRef.current.width * zoom;
+    const drawH = imageRef.current.height * zoom;
+    const drawX = pan.x + (canvas.width - drawW) / 2;
+    const drawY = pan.y + (canvas.height - drawH) / 2;
+
+    for (let i = adPositions.length - 1; i >= 0; i--) {
+      const pos = adPositions[i];
+      const centerX = drawX + (pos.positionX / 100) * drawW;
+      const centerY = drawY + (pos.positionY / 100) * drawH;
+      const radius = (pos.markerSize || 24) * Math.sqrt(zoom) / 2 + 5;
+
+      const dist = Math.sqrt((mouseX - centerX) ** 2 + (mouseY - centerY) ** 2);
+      if (dist <= radius) {
+        onPositionClick?.(pos);
+        break;
+      }
+    }
+  }, [adPositions, zoom, pan, isDragging, onPositionClick]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
     if (!isDragging) return;
-
     setPan({
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y,
     });
-  }, [isDragging, dragStart]);
+  };
 
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+  const handleMouseUp = () => setIsDragging(false);
 
-  // 휠 이벤트 핸들러 (확대/축소)
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * delta));
 
-    // 마우스 위치 기준 확대/축소
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (rect) {
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
+    const rect = containerRef.current!.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
 
-      const scale = newZoom / zoom;
-
-      setPan({
-        x: mouseX - (mouseX - pan.x) * scale,
-        y: mouseY - (mouseY - pan.y) * scale,
-      });
-    }
-
+    const ratio = newZoom / zoom;
+    setPan({
+      x: mouseX - (mouseX - pan.x) * ratio,
+      y: mouseY - (mouseY - pan.y) * ratio
+    });
     setZoom(newZoom);
-  }, [zoom, pan]);
+  };
 
-  // 컨트롤 버튼 핸들러
-  const handleZoomIn = useCallback(() => {
-    const newZoom = Math.min(MAX_ZOOM, zoom * 1.2);
-    setZoom(newZoom);
-  }, [zoom]);
-
-  const handleZoomOut = useCallback(() => {
-    const newZoom = Math.max(MIN_ZOOM, zoom / 1.2);
-    setZoom(newZoom);
-  }, [zoom]);
-
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
-  }, []);
+  };
+
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!isFullscreen) {
+      containerRef.current.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+    setIsFullscreen(!isFullscreen);
+  };
+
+  if (!plan) return null;
 
   return (
-    <div className={cn('relative bg-gray-100 rounded-lg overflow-hidden', className)}>
-      {/* 도면 뷰어 */}
+    <div className={cn('relative flex-1 bg-[var(--bg-tertiary)] overflow-hidden flex flex-col', className)}>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-[var(--bg-secondary)]/50 backdrop-blur-md z-10">
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-bold text-[var(--text-primary)]">
+            {plan.stationName} <span className="text-sm font-medium text-[var(--text-muted)] ml-1">{plan.floorName}층</span>
+          </h2>
+          <div className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/5 text-[var(--text-muted)] border border-white/5 uppercase">
+            {plan.planType === 'psd' ? 'PSD 도면' : '역구조 도면'}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setZoom(z => Math.max(MIN_ZOOM, z - 0.2))} className="p-2 rounded-xl hover:bg-white/5 transition-colors group">
+            <ZoomOut className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
+          </button>
+          <div className="px-3 py-1 bg-white/5 rounded-lg text-xs font-bold text-[var(--text-secondary)] min-w-[50px] text-center border border-white/5">
+            {Math.round(zoom * 100)}%
+          </div>
+          <button onClick={() => setZoom(z => Math.min(MAX_ZOOM, z + 0.2))} className="p-2 rounded-xl hover:bg-white/5 transition-colors group">
+            <ZoomIn className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
+          </button>
+
+          <div className="w-px h-4 bg-white/10 mx-1" />
+
+          <button onClick={handleReset} className="p-2 rounded-xl hover:bg-white/5 transition-colors group" title="초기화">
+            <RotateCcw className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
+          </button>
+          <button onClick={toggleFullscreen} className="p-2 rounded-xl hover:bg-white/5 transition-colors group" title="전체화면">
+            <Maximize2 className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
+          </button>
+        </div>
+      </div>
+
       <div
         ref={containerRef}
-        className="relative w-full h-full cursor-move"
+        className="flex-1 relative cursor-grab active:cursor-grabbing"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
+        onClick={handleCanvasClick}
       >
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full"
-        />
+        <canvas ref={canvasRef} className="w-full h-full" />
 
-        {/* 로딩 오버레이 */}
         {isLoading && (
-          <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
-              <p className="text-gray-600">도면을 불러오는 중...</p>
+          <div className="absolute inset-0 bg-[var(--bg-tertiary)]/80 backdrop-blur-sm flex items-center justify-center z-20">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-10 h-10 border-4 border-[var(--metro-line2)]/20 border-t-[var(--metro-line2)] rounded-full animate-spin" />
+              <p className="text-sm font-bold text-[var(--text-secondary)] tracking-tight">도면 렌더링 최적화 중...</p>
             </div>
+          </div>
+        )}
+
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 text-[10px] text-white/60 font-medium flex items-center gap-2 pointer-events-none transition-opacity duration-300">
+          <Move className="w-3 h-3" />
+          휠로 확대/축소하고 드래그하여 이동하세요
+        </div>
+
+        {!isLoading && imageRef.current && (
+          <div className="absolute bottom-6 right-6 w-32 h-32 bg-[var(--bg-secondary)]/80 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden group">
+            <div className="relative w-full h-full p-2 opacity-60 group-hover:opacity-100 transition-opacity">
+              <img
+                src={plan.imageUrl}
+                alt="Minimap"
+                className="w-full h-full object-contain pointer-events-none"
+              />
+              <div
+                className="absolute border-2 border-[var(--metro-line2)] bg-[var(--metro-line2)]/10 pointer-events-none"
+                style={{
+                  left: `${Math.max(0, ((-pan.x / zoom) / (imageRef.current?.width || 1)) * 100 + 50 - (50 / zoom))}%`,
+                  top: `${Math.max(0, ((-pan.y / zoom) / (imageRef.current?.height || 1)) * 100 + 50 - (50 / zoom))}%`,
+                  width: `${Math.min(100, (containerRef.current?.clientWidth || 0) / (imageRef.current?.width || 1) / zoom * 100)}%`,
+                  height: `${Math.min(100, (containerRef.current?.clientHeight || 0) / (imageRef.current?.height || 1) / zoom * 100)}%`,
+                }}
+              />
+            </div>
+            <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-black/40 text-[8px] font-black text-white/40 uppercase">Map</div>
           </div>
         )}
       </div>
 
-      {/* 컨트롤 버튼 */}
-      <div className="absolute top-4 right-4 flex flex-col gap-2">
-        <button
-          onClick={handleZoomIn}
-          className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
-          title="확대"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-          </svg>
-        </button>
-
-        <button
-          onClick={handleZoomOut}
-          className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
-          title="축소"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
-          </svg>
-        </button>
-
-        <button
-          onClick={handleReset}
-          className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-100 transition-colors"
-          title="초기화"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
-      </div>
-
-      {/* 정보 패널 */}
-      <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-md p-3">
-        <div className="text-sm space-y-1">
-          <div className="font-medium">{stationName}역</div>
-          <div className="text-gray-600">{line}호선 {floor}층</div>
-          <div className="text-gray-500">확대: {(zoom * 100).toFixed(0)}%</div>
+      <div className="px-4 py-2 border-t border-white/5 bg-[var(--bg-secondary)]/30 backdrop-blur-sm flex justify-between items-center text-[10px] text-[var(--text-muted)] font-medium">
+        <div className="flex items-center gap-3">
+          <span>{plan.fileName}</span>
+          <span className="w-px h-2 bg-white/10" />
+          <span>{imageRef.current ? `${imageRef.current.width} x ${imageRef.current.height} PX` : '--'}</span>
         </div>
-      </div>
-
-      {/* 미니맵 */}
-      <div className="absolute bottom-4 right-4 w-32 h-32 bg-white rounded-lg shadow-md overflow-hidden">
-        <OptimizedImage
-          src={floorPlanUrl}
-          alt={`${stationName}역 ${floor}층 미니맵`}
-          className="w-full h-full object-cover"
-          width={128}
-          height={128}
-          quality={60}
-        />
-
-        {/* 현재 보이는 영역 표시 */}
-        <div
-          className="absolute border-2 border-blue-500 bg-blue-500 bg-opacity-20"
-          style={{
-            left: `${Math.max(0, (-pan.x / zoom) / 100) * 100}%`,
-            top: `${Math.max(0, (-pan.y / zoom) / 100) * 100}%`,
-            width: `${Math.min(100, (containerRef.current?.clientWidth || 0) / zoom / 100) * 100}%`,
-            height: `${Math.min(100, (containerRef.current?.clientHeight || 0) / zoom / 100) * 100}%`,
-          }}
-        />
+        <div>
+          Performance: Canvas Optimized 🚀
+        </div>
       </div>
     </div>
   );
