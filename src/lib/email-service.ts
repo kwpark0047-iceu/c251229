@@ -53,3 +53,28 @@ export async function sendProposalNotification(email: string, bizName: string, p
 
     return sendEmail({ to: email, subject, html });
 }
+
+/**
+ * 제안서 리마인더 메일 템플릿 (3일 미열람 대상)
+ */
+export async function sendProposalReminder(email: string, recipientName: string, proposalTitle: string) {
+    const subject = `[리마인드] ${recipientName}님, 보내드린 제안서를 놓치지 마세요.`;
+    const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+      <div style="background: linear-gradient(135deg, #3CB54A 0%, #00A5DE 100%); padding: 30px; border-radius: 12px; color: white; text-align: center; margin-bottom: 25px;">
+        <h1 style="margin: 0; font-size: 24px;">다시 한번 확인 부탁드립니다!</h1>
+      </div>
+      <p>안녕하세요, <strong>${recipientName}</strong> 담당자님.</p>
+      <p>며칠 전 보내드린 <strong>'${proposalTitle}'</strong> 제안서가 아직 확인 전인 것으로 나타나 리마인드 드립니다.</p>
+      <p>귀사의 성공적인 홍보를 위해 엄선한 광고 구좌들이 현재 가용 상태입니다. 좋은 위치를 선점하실 수 있는 기회를 놓치지 마세요.</p>
+      <div style="margin: 40px 0; text-align: center;">
+        <a href="https://wemarket.subway/proposals" style="background-color: #3CB54A; color: white; padding: 15px 30px; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(60, 181, 74, 0.4);">제안서 열람하기</a>
+      </div>
+      <p style="color: #666; font-size: 14px; line-height: 1.6;">혹시 제안 수신이 어려우셨거나 추가로 궁금하신 점이 있다면 이 메일에 회신해 주세요. 영업 담당자가 신속히 안내해 드리겠습니다.</p>
+      <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
+      <p style="color: #999; font-size: 11px; text-align: center;">본 메일은 시스템에 의해 자동으로 발송되는 리마인더입니다.<br/>© 위마켓 서울 지하철 광고 통합 플랫폼</p>
+    </div>
+  `;
+
+    return sendEmail({ to: email, subject, html });
+}
