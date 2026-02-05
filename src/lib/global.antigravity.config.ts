@@ -1,6 +1,7 @@
 /**
  * global.antigravity.config.ts
  * Ver 2.0.5 (K-Dev Edition) - 시스템 전역 반중력 규칙 설정
+ * Last Deploy: 2026-02-04
  */
 
 export const GlobalAntigravityRules = {
