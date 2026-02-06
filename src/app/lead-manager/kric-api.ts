@@ -169,10 +169,12 @@ export async function fetchSubwayRouteInfo(
       throw new Error(response.data.error || 'API call failed');
     }
 
-    // Proxy returns { success: true, data: { items: { item: [] } } } or similar structure
-    // Adjust based on actual KRIC response structure
-    const items = response.data.data?.items?.item || [];
-    return items;
+    // Proxy returns { success: true, data: { body: { items: { item: [] } } } }
+    const proxyData = response.data.data;
+    const body = proxyData?.body || proxyData;
+    const items = body?.items?.item || [];
+
+    return Array.isArray(items) ? items : [items];
   } catch (error) {
     console.error(`Failed to fetch subway route info for line ${lineCode}:`, error);
     // 빈 배열 반환하여 UI 중단 방지
@@ -221,7 +223,11 @@ export async function fetchStationInfo(
       throw new Error(response.data.error || 'Failed to fetch station info');
     }
 
-    return response.data.data?.items?.item || [];
+    const proxyData = response.data.data;
+    const body = proxyData?.body || proxyData;
+    const items = body?.items?.item || [];
+
+    return Array.isArray(items) ? items : [items];
   } catch (error) {
     console.error(`Failed to fetch station info:`, error);
     // 빈 배열 반환하여 UI 중단 방지

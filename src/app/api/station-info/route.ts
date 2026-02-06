@@ -10,27 +10,53 @@ import { NextRequest, NextResponse } from 'next/server';
 const RAIL_OPR_CODES: Record<string, string> = {
   '1': 'S1', '2': 'S1', '3': 'S1', '4': 'S1',
   '5': 'S1', '6': 'S1', '7': 'S1', '8': 'S1',
-  '9': 'S9',
-  'S': 'NS', // 신분당선
-  'K': 'KR', // 경의중앙선 (코레일)
-  'A': 'AP', // 공항철도
-  'B': 'KR', // 분당선 (코레일)
-  'G': 'KR', // 경춘선 (코레일)
-  'U': 'UI', // 우이신설선
-  'W': 'WS', // 서해선
+  '9': 'S1',
+  '1001': 'S1', '1002': 'S1', '1003': 'S1', '1004': 'S1',
+  '1005': 'S1', '1006': 'S1', '1007': 'S1', '1008': 'S1',
+  '1009': 'S1',
+  '1077': 'NS', // 신분당선
+  '1085': 'KR', // 수인분당선
+  '1063': 'KR', // 경의중앙선
+  '1067': 'KR', // 경춘선
+  '1065': 'AP', // 공항철도
+  '1099': 'UI', // 의정부경전철
+  '1086': 'WS', // 서해선
+  '1087': 'GC', // 김포골드라인
+  '1092': 'UI', // 우이신설선
+  '1093': 'SL', // 신림선
+  '1081': 'KR', // 경강선
+  'S': 'NS', // 신분당선 (레거시)
+  'K': 'KR', // 경의중앙선 (레거시)
+  'A': 'AP', // 공항철도 (레거시)
+  'B': 'KR', // 분당선 (레거시)
+  'G': 'KR', // 경춘선 (레거시)
+  'U': 'UI', // 우이신설선 (레거시)
+  'W': 'WS', // 서해선 (레거시)
 };
 
-// 노선코드 매핑
+// 노선코드 매핑 (KRIC API 파라미터용)
 const LINE_CODES: Record<string, string> = {
   '1': '1', '2': '2', '3': '3', '4': '4',
   '5': '5', '6': '6', '7': '7', '8': '8', '9': '9',
-  'S': 'D1', // 신분당선
-  'K': 'K1', // 경의중앙선
-  'A': 'A1', // 공항철도
-  'B': 'B1', // 분당선
-  'G': 'G1', // 경춘선
-  'U': 'UI', // 우이신설선
-  'W': 'WE', // 서해선
+  '1001': '1', '1002': '2', '1003': '3', '1004': '4',
+  '1005': '5', '1006': '6', '1007': '7', '1008': '8',
+  '1009': '9',
+  '1077': 'D1', // 신분당선
+  '1085': 'B1', // 수인분당선
+  '1063': 'K1', // 경의중앙선
+  '1067': 'G1', // 경춘선
+  '1065': 'A1', // 공항철도
+  '1087': 'G1', // 김포골드라인
+  '1092': 'UI', // 우이신설선
+  '1093': 'SL', // 신림선
+  '1081': 'K1', // 경강선
+  'S': 'D1',
+  'K': 'K1',
+  'A': 'A1',
+  'B': 'B1',
+  'G': 'G1',
+  'U': 'UI',
+  'W': 'WE',
 };
 
 export async function GET(request: NextRequest) {
@@ -38,11 +64,13 @@ export async function GET(request: NextRequest) {
   const line = searchParams.get('line') || '1';
   const stationName = searchParams.get('station');
 
-  const apiKey = process.env.STATION_INFO_API_KEY;
+  // KRIC_API_KEY로 통합 사용
+  const apiKey = process.env.KRIC_API_KEY || process.env.NEXT_PUBLIC_KRIC_API_KEY;
 
   if (!apiKey) {
+    console.error('[Station Info API] Error: KRIC_API_KEY is missing');
     return NextResponse.json(
-      { error: 'API 키가 설정되지 않았습니다.' },
+      { error: 'API 키가 설정되지 않았습니다. Vercel 환경변수 KRIC_API_KEY를 확인하세요.' },
       { status: 500 }
     );
   }
