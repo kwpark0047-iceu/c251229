@@ -22,10 +22,10 @@ export async function POST(request: NextRequest) {
   try {
     // API 키 확인
     if (!LOCALDATA_API_KEY) {
-      console.error('[LocalData API] API 키가 설정되지 않았습니다.');
+      console.error('[LocalData API] API 키가 설정되지 않았습니다. Vercel 환경변수 LOCALDATA_API_KEY를 확인하세요.');
       return NextResponse.json(
-        { success: false, error: 'API 키가 서버에 설정되지 않았습니다. 관리자에게 문의하세요.' },
-        { status: 500 }
+        { success: false, error: '서버 설정 오류: LOCALDATA_API_KEY 환경변수가 누락되었습니다.' },
+        { status: 503 }
       );
     }
 

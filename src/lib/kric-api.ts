@@ -35,7 +35,7 @@ interface KricApiResponse {
 function getServiceKey(): string {
   const key = process.env.KRIC_API_KEY;
   if (!key) {
-    console.warn('KRIC_API_KEY가 설정되지 않았습니다.');
+    console.error('KRIC_API_KEY 환경변수가 설정되지 않았습니다. 지하철 정보를 조회할 수 없습니다.');
     return '';
   }
   return key;
