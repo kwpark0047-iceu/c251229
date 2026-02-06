@@ -214,6 +214,7 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
                   onCallLog={() => setCallModalLeadId(lead.id)}
                   searchQuery={searchQuery}
                   onMapView={() => onMapView?.(lead)}
+                  salesProgressMap={salesProgressMap}
                 />
               ))}
             </tbody>
@@ -252,9 +253,10 @@ interface LeadRowProps {
   onCallLog: () => void;
   searchQuery?: string;
   onMapView?: () => void;
+  salesProgressMap?: Map<string, SalesProgress[]>;
 }
 
-function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery = '', onMapView }: LeadRowProps) {
+function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery = '', onMapView, salesProgressMap }: LeadRowProps) {
   const statusColor = STATUS_METRO_COLORS[lead.status];
 
   return (

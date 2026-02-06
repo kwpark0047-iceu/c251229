@@ -25,8 +25,8 @@ export default function LineSelector({
       {METRO_LINES.map((line) => {
         const isSelected = selectedLine === line;
         const color = METRO_LINE_COLORS[line];
-        const totalCount = planCounts
-          ? planCounts[line].station_layout + planCounts[line].psd
+        const totalCount = planCounts && planCounts[line]
+          ? (planCounts[line].station_layout || 0) + (planCounts[line].psd || 0)
           : 0;
 
         return (
