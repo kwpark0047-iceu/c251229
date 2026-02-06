@@ -16,11 +16,14 @@ export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey)
  * 클라이언트 컴포넌트('use client')에서 사용하세요.
  */
 export function createClient() {
-  // 환경 변수가 없으면 에러 throw
+  // 환경 변수가 없으면 에러 로그 출력 (앱 중단 방지)
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.error('Supabase 환경 변수가 설정되지 않았습니다.')
-    throw new Error('Supabase 환경 변수가 설정되지 않았습니다. Vercel 환경변수를 확인해주세요.')
+    console.error('Supabase 환경 변수가 설정되지 않았습니다. .env 파일을 확인하거나 Vercel 환경변수를 설정해주세요.')
+    // Fallback to avoid crash, but requests will fail
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  return createBrowserClient(
+    supabaseUrl || 'https://placeholder.supabase.co',
+    supabaseAnonKey || 'placeholder-key'
+  )
 }
