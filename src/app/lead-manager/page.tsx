@@ -102,7 +102,7 @@ export default function LeadManagerPage() {
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
   const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [mapFocusLead, setMapFocusLead] = useState<Lead | null>(null);  // 지도에서 포커스할 리드
-  const [progressMap, setProgressMap] = useState<Map<string, SalesProgress[]>>(new Map());  // 리드별 진행상황
+  const [salesProgressMap, setSalesProgressMap] = useState<Map<string, SalesProgress[]>>(new Map());  // 리드별 진행상황
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);  // 통계 대시보드 확장 상태
 
   // 스케줄 관련 상태
@@ -259,7 +259,7 @@ export default function LeadManagerPage() {
       if (result.leads.length > 0) {
         const leadIds = result.leads.map(l => l.id);
         const progressData = await getProgressBatch(leadIds);
-        setProgressMap(progressData);
+        setSalesProgressMap(progressData);
       }
     }
     setIsLoading(false);
@@ -1023,7 +1023,7 @@ export default function LeadManagerPage() {
                       setMapFocusLead(lead);
                       setViewMode('map');
                     }}
-                    progressMap={progressMap}
+                    salesProgressMap={salesProgressMap}
                     isFieldMode={isFieldMode}
                   />
                 )}
@@ -1036,7 +1036,7 @@ export default function LeadManagerPage() {
                       setMapFocusLead(lead);
                       setViewMode('map');
                     }}
-                    progressMap={progressMap}
+                    salesProgressMap={salesProgressMap}
                   />
                 )}
                 {viewMode === 'map' && (

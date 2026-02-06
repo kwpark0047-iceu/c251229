@@ -24,19 +24,19 @@ import { ProgressDots } from './crm/ProgressChecklist';
 
 interface GridViewProps {
   leads: Lead[];
-  onStatusChange: (leadId: string, status: LeadStatus) => void;
-  searchQuery?: string;
-  onMapView?: (lead: Lead) => void;
-  progressMap?: Map<string, SalesProgress[]>;
+  onStatusChange: (leadId: string, newStatus: LeadStatus) => Promise<void>;
+  searchQuery: string;
+  onMapView: (lead: Lead) => void;
+  salesProgressMap?: Map<string, SalesProgress[]>;
   isFieldMode?: boolean;
 }
 
-export default function GridView({ leads, onStatusChange, searchQuery = '', onMapView, progressMap, isFieldMode = false }: GridViewProps) {
+export default function GridView({ leads, onStatusChange, searchQuery = '', onMapView, salesProgressMap, isFieldMode = false }: GridViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      <div className={`grid gap-4 ${isFieldMode ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}>
         {leads.map((lead, index) => (
           <LeadCard
             key={lead.id}
@@ -45,8 +45,8 @@ export default function GridView({ leads, onStatusChange, searchQuery = '', onMa
             onStatusChange={onStatusChange}
             onSelect={() => setSelectedLeadId(lead.id)}
             searchQuery={searchQuery}
-            onMapView={() => onMapView?.(lead)}
-            progress={progressMap?.get(lead.id)}
+            onMapView={() => onMapView(lead)}
+            progress={salesProgressMap?.get(lead.id)}
             isFieldMode={isFieldMode}
           />
         ))}
@@ -57,7 +57,10 @@ export default function GridView({ leads, onStatusChange, searchQuery = '', onMa
         <LeadDetailPanel
           leadId={selectedLeadId}
           onClose={() => setSelectedLeadId(null)}
-          onStatusChange={() => onStatusChange(selectedLeadId, leads.find(l => l.id === selectedLeadId)?.status || 'NEW')}
+          onStatusChange={() => {
+            const lead = leads.find(l => l.id === selectedLeadId);
+            if (lead) onStatusChange(selectedLeadId, lead.status); // Refresh or no-op
+          }}
         />
       )}
     </>
@@ -336,8 +339,8 @@ function StatusDropdown({ currentStatus, onSelect, onClose }: StatusDropdownProp
               key={status}
               onClick={() => onSelect(status)}
               className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors ${status === currentStatus
-                  ? 'bg-[var(--bg-secondary)]'
-                  : 'hover:bg-[var(--bg-secondary)]'
+                ? 'bg-[var(--bg-secondary)]'
+                : 'hover:bg-[var(--bg-secondary)]'
                 }`}
             >
               <span
