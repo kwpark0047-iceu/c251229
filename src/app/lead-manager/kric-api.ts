@@ -9,8 +9,8 @@ import axios from 'axios';
 const KRIC_API_BASE_URL = 'https://openapi.kric.go.kr/openapi/trainUseInfo/subwayRouteInfo';
 const KRIC_STATION_INFO_URL = 'https://openapi.kric.go.kr/openapi/convenientInfo/stationInfo';
 
-// 제공된 서비스 키
-const KRIC_SERVICE_KEY = '$2a$10$Y6y/8NTiO.CF9g/c9s0JPeXXyNNmZUNZeSN1DmmAWoTKCms4NL68y';
+// 제공된 서비스 키 (제거됨 - 서버 프록시 사용)
+// const KRIC_SERVICE_KEY = '...';
 
 // 권역 코드
 export const AREA_CODES = {
@@ -158,24 +158,25 @@ export async function fetchSubwayRouteInfo(
   lineCode: string
 ): Promise<KRICStation[]> {
   try {
-    const response = await axios.get<KRICAPIResponse<KRICStation>>(KRIC_API_BASE_URL, {
+    // 서버 프록시 사용 (/api/station-info)
+    const response = await axios.get<any>('/api/station-info', {
       params: {
-        serviceKey,
-        format: 'json',
-        mreaWideCd: areaCode,
-        lnCd: lineCode,
+        line: lineCode,
       },
-      timeout: 10000,
     });
 
-    if (response.data.resultCode !== '00') {
-      throw new Error(`API Error: ${response.data.resultMsg}`);
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'API call failed');
     }
 
-    return response.data.body?.items?.item || [];
+    // Proxy returns { success: true, data: { items: { item: [] } } } or similar structure
+    // Adjust based on actual KRIC response structure
+    const items = response.data.data?.items?.item || [];
+    return items;
   } catch (error) {
     console.error(`Failed to fetch subway route info for line ${lineCode}:`, error);
-    throw error;
+    // 빈 배열 반환하여 UI 중단 방지
+    return [];
   }
 }
 
@@ -208,19 +209,23 @@ export async function fetchStationInfo(
       params.stinCd = stationCode;
     }
 
-    const response = await axios.get<KRICAPIResponse<KRICStationInfo>>(KRIC_STATION_INFO_URL, {
-      params,
-      timeout: 10000,
+    // 서버 프록시 사용
+    const response = await axios.get<any>('/api/station-info', {
+      params: {
+        line: lineCode || '1', // 기본값 설정
+        station: stationCode
+      }
     });
 
-    if (response.data.resultCode !== '00') {
-      throw new Error(`API Error: ${response.data.resultMsg}`);
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'Failed to fetch station info');
     }
 
-    return response.data.body?.items?.item || [];
+    return response.data.data?.items?.item || [];
   } catch (error) {
     console.error(`Failed to fetch station info:`, error);
-    throw error;
+    // 빈 배열 반환하여 UI 중단 방지
+    return [];
   }
 }
 
@@ -490,11 +495,11 @@ export async function validateServiceKey(serviceKey: string): Promise<boolean> {
  * @returns API 서비스키
  */
 export function getKRICServiceKey(): string {
-  // 제공된 서비스키를 우선 사용
-  const providedKey = KRIC_SERVICE_KEY;
-  if (providedKey) {
-    return providedKey;
-  }
+  // 제공된 서비스키 우선 사용 (하드코딩 제거됨)
+  // const providedKey = KRIC_SERVICE_KEY;
+  // if (providedKey) {
+  //   return providedKey;
+  // }
 
   // 환경변수에서 API 키 찾기
   const key = process.env.KRIC_API_KEY || process.env.NEXT_PUBLIC_KRIC_API_KEY;

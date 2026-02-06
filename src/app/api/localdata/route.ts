@@ -6,7 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // 환경변수에서 API 키 로드 (서버에서만 접근 가능)
-const LOCALDATA_API_KEY = process.env.LOCALDATA_API_KEY;
+// 환경변수에서 API 키 로드 (서버에서만 접근 가능)
+const LOCALDATA_API_KEY = process.env.LOCALDATA_API_KEY || 'ZDYYNAzHrNEn=IvlfUsvSF0mPGcXK463jxO3en762Us=';
 const API_ENDPOINT = 'http://www.localdata.go.kr/platform/rest/TO0/openDataApi';
 
 interface LocalDataParams {
