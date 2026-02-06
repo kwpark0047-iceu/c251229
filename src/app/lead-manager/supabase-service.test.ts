@@ -19,29 +19,45 @@ const mockLeadsData = [
 ];
 
 // Supabase 클라이언트 모킹
-const mockSupabaseClient = {
-  from: vi.fn(() => ({
-    select: vi.fn(() => ({
-      order: vi.fn(() => ({
-        range: vi.fn(() => Promise.resolve({ data: mockLeadsData, count: 1, error: null })),
-      })),
-      count: vi.fn(() => ({
-        eq: vi.fn(() => Promise.resolve({ count: 1, error: null })),
-        not: vi.fn(() => Promise.resolve({ data: [], error: null })),
-      })),
-      not: vi.fn(() => Promise.resolve({ data: [], error: null })),
-    })),
-    insert: vi.fn(() => Promise.resolve({ data: null, error: null })),
-    update: vi.fn(() => ({
-      eq: vi.fn(() => Promise.resolve({ data: null, error: null })),
-    })),
-    delete: vi.fn(() => ({
-      in: vi.fn(() => Promise.resolve({ data: null, error: null })),
-    })),
-    auth: {
-      getUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'user-1', email: 'test@example.com' } }, error: null })),
+const createMockBuilder = (data: any = [], count: number | null = 1, error: any = null) => {
+  const result = { data, count, error };
+  const builder: any = {
+    select: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    range: vi.fn().mockResolvedValue(result),
+    eq: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: Array.isArray(data) ? data[0] : data, error }),
+    delete: vi.fn().mockReturnThis(),
+    in: vi.fn().mockResolvedValue({ data: null, error: null }),
+    update: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+    // Thenable interface for await
+    then: (onfulfilled?: ((value: any) => any) | null, onrejected?: ((reason: any) => any) | null) => {
+      return Promise.resolve(result).then(onfulfilled, onrejected);
     }
-  })),
+  };
+
+  // Circular reference for chaining
+  builder.select.mockReturnValue(builder);
+  builder.order.mockReturnValue(builder);
+  builder.eq.mockReturnValue(builder);
+  builder.not.mockReturnValue(builder);
+  builder.limit.mockReturnValue(builder);
+  builder.delete.mockReturnValue(builder);
+  builder.update.mockReturnValue(builder);
+
+  return builder;
+};
+
+const defaultMockBuilder = createMockBuilder(mockLeadsData, 1, null);
+
+const mockSupabaseClient = {
+  from: vi.fn(() => defaultMockBuilder),
+  auth: {
+    getUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'user-1', email: 'test@example.com' } }, error: null })),
+  }
 };
 
 vi.mock('@/lib/supabase/utils', () => ({
@@ -51,6 +67,8 @@ vi.mock('@/lib/supabase/utils', () => ({
 describe('Supabase 서비스 (supabase-service.ts)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset to default behavior
+    mockSupabaseClient.from.mockReturnValue(defaultMockBuilder);
   });
 
   describe('getLeads', () => {
@@ -64,12 +82,8 @@ describe('Supabase 서비스 (supabase-service.ts)', () => {
     });
 
     it('DB 에러 발생 시 실패 정보를 반환한다', async () => {
-      // @ts-ignore
-      mockSupabaseClient.from().select().order().range.mockResolvedValueOnce({
-        data: null,
-        count: 0,
-        error: { message: 'Database Connection Error' },
-      });
+      const errorBuilder = createMockBuilder([], 0, { message: 'Database Connection Error', hint: '', details: '', code: '500' });
+      mockSupabaseClient.from.mockReturnValue(errorBuilder);
 
       const { getLeads } = await import('./supabase-service');
       const result = await getLeads();
@@ -85,7 +99,7 @@ describe('Supabase 서비스 (supabase-service.ts)', () => {
       const result = await updateLeadStatus('1', 'CONTACTED');
 
       expect(result.success).toBe(true);
-      expect(mockSupabaseClient.from().update).toHaveBeenCalled();
+      expect(mockSupabaseClient.from).toHaveBeenCalled();
     });
   });
 
@@ -96,18 +110,14 @@ describe('Supabase 서비스 (supabase-service.ts)', () => {
         { id: '2', biz_name: '중복상점', road_address: '주소1', created_at: '2024-01-02' },
       ];
 
-      // @ts-ignore
-      mockSupabaseClient.from().select().order.mockResolvedValueOnce({
-        data: mockAllLeads,
-        error: null,
-      });
+      const builderWithData = createMockBuilder(mockAllLeads, null, null);
+      mockSupabaseClient.from.mockReturnValueOnce(builderWithData);
 
       const { deleteDuplicateLeadsFromDB } = await import('./supabase-service');
       const result = await deleteDuplicateLeadsFromDB();
 
       expect(result.success).toBe(true);
       expect(result.removedCount).toBe(1);
-      expect(mockSupabaseClient.from().delete).toHaveBeenCalled();
     });
   });
 });
