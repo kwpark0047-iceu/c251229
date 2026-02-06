@@ -15,19 +15,21 @@ interface MobileNavBarProps {
     onTabChange: (tab: MainTab) => void;
     onViewModeChange?: (mode: 'map' | 'list') => void;
     onSettingsClick: () => void;
+    className?: string;
 }
 
 export default function MobileNavBar({
     activeTab,
     onTabChange,
     onViewModeChange,
-    onSettingsClick
+    onSettingsClick,
+    className = ''
 }: MobileNavBarProps) {
     return (
         <div
-            className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-6 py-2 border-t backdrop-blur-xl"
+            className={`md:hidden fixed bottom-0 left-0 right-0 z-50 px-6 py-2 border-t backdrop-blur-xl ${className}`}
             style={{
-                background: 'rgba(255, 255, 255, 0.85)',
+                background: 'var(--glass-bg)',
                 borderColor: 'var(--border-subtle)',
                 paddingBottom: 'calc(8px + env(safe-area-inset-bottom))'
             }}

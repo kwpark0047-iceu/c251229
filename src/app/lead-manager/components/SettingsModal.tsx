@@ -76,7 +76,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
 
       {/* 모달 */}
       <div
-        className="relative w-full max-w-lg mx-4 rounded-2xl border overflow-hidden animate-in fade-in zoom-in-95 duration-300"
+        className="relative w-full max-w-lg mx-4 rounded-2xl border overflow-hidden animate-in fade-in zoom-in-95 duration-300 modal-popup"
         style={{
           background: 'var(--glass-bg)',
           borderColor: 'var(--glass-border)',

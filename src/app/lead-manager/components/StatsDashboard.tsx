@@ -30,12 +30,17 @@ const BarChart = dynamic(() => import('recharts').then(mod => mod.BarChart), { s
 const Bar = dynamic(() => import('recharts').then(mod => mod.Bar), { ssr: false });
 const LineChart = dynamic(() => import('recharts').then(mod => mod.LineChart), { ssr: false });
 const Line = dynamic(() => import('recharts').then(mod => mod.Line), { ssr: false });
+const AreaChart = dynamic(() => import('recharts').then(mod => mod.AreaChart), { ssr: false });
+const Area = dynamic(() => import('recharts').then(mod => mod.Area), { ssr: false });
 const XAxis = dynamic(() => import('recharts').then(mod => mod.XAxis), { ssr: false });
 const YAxis = dynamic(() => import('recharts').then(mod => mod.YAxis), { ssr: false });
 const CartesianGrid = dynamic(() => import('recharts').then(mod => mod.CartesianGrid), { ssr: false });
 const Tooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false });
 const ResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
 const Legend = dynamic(() => import('recharts').then(mod => mod.Legend), { ssr: false });
+
+import { getExtendedCRMStats } from '../crm-service';
+import { CATEGORY_LABELS } from '../types';
 
 interface StatsDashboardProps {
   leads: Lead[];
@@ -67,22 +72,29 @@ const METRO_CHART_COLORS: Record<string, string> = {
   'B': '#F5A200',
 };
 
-// 커스텀 툴팁 컴포넌트 (컴포넌트 외부에 정의하여 렌더링 시 재생성 방지)
-function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string; color: string }[]; label?: string }) {
+// 커스텀 툴팁 컴포넌트
+function CustomTooltip({ active, payload, label }: any) {
   if (active && payload && payload.length) {
     return (
       <div
-        className="px-3 py-2 rounded-lg shadow-lg border"
+        className="px-3 py-2 rounded-lg shadow-xl border backdrop-blur-md"
         style={{
-          background: 'var(--bg-secondary)',
-          borderColor: 'var(--border-subtle)',
+          background: 'var(--glass-bg)',
+          borderColor: 'var(--glass-border)',
         }}
       >
-        <p className="text-sm font-medium text-[var(--text-primary)]">{label}</p>
-        {payload.map((entry, index) => (
-          <p key={index} className="text-sm" style={{ color: entry.color }}>
-            {entry.name}: {entry.value}건
-          </p>
+        <p className="text-xs font-bold text-[var(--text-primary)] mb-1">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <div key={index} className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
+            <p className="text-xs text-[var(--text-secondary)]">
+              {entry.name}: <span className="font-bold text-[var(--text-primary)]">
+                {typeof entry.value === 'number' && entry.name.includes('율')
+                  ? `${entry.value.toFixed(1)}%`
+                  : `${entry.value}${entry.name.includes('수') || entry.name.includes('리드') ? '건' : ''}`}
+              </span>
+            </p>
+          </div>
         ))}
       </div>
     );
@@ -91,7 +103,15 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export default function StatsDashboard({ leads, isExpanded = false, onToggle }: StatsDashboardProps) {
-  const [activeChart, setActiveChart] = useState<'status' | 'trend' | 'line' | 'funnel'>('status');
+  const [activeChart, setActiveChart] = useState<'status' | 'trend' | 'line' | 'funnel' | 'category'>('status');
+  const [extendedStats, setExtendedStats] = useState<any>(null);
+
+  // 고도화된 통계 데이터 로드
+  React.useEffect(() => {
+    if (isExpanded) {
+      getExtendedCRMStats().then(setExtendedStats);
+    }
+  }, [isExpanded, leads]);
 
   // 상태별 통계
   const statusStats = useMemo(() => {
@@ -109,37 +129,9 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle }: 
     }));
   }, [leads]);
 
-  // 주간 트렌드 데이터 (최근 8주)
-  const weeklyTrend = useMemo(() => {
-    const weeks: { week: string; total: number; NEW: number; CONTRACTED: number }[] = [];
-    const now = new Date();
-
-    for (let i = 7; i >= 0; i--) {
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - (i * 7) - now.getDay());
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
-
-      const weekLeads = leads.filter(lead => {
-        const createdAt = new Date(lead.createdAt || '');
-        return createdAt >= weekStart && createdAt <= weekEnd;
-      });
-
-      weeks.push({
-        week: `${weekStart.getMonth() + 1}/${weekStart.getDate()}`,
-        total: weekLeads.length,
-        NEW: weekLeads.filter(l => l.status === 'NEW').length,
-        CONTRACTED: weekLeads.filter(l => l.status === 'CONTRACTED').length,
-      });
-    }
-
-    return weeks;
-  }, [leads]);
-
   // 노선별 통계
   const lineStats = useMemo(() => {
     const lineCount: Record<string, number> = {};
-
     leads.forEach(lead => {
       if (lead.stationLines && lead.stationLines.length > 0) {
         lead.stationLines.forEach(line => {
@@ -147,7 +139,6 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle }: 
         });
       }
     });
-
     return Object.entries(lineCount)
       .map(([line, count]) => ({
         name: `${line}호선`,
@@ -156,33 +147,13 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle }: 
         color: METRO_CHART_COLORS[line] || '#888',
       }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-  }, [leads]);
-
-  // 전환 퍼널 데이터
-  const funnelData = useMemo(() => {
-    const total = leads.length;
-    const proposalSent = leads.filter(l =>
-      l.status === 'PROPOSAL_SENT' || l.status === 'CONTACTED' || l.status === 'CONTRACTED'
-    ).length;
-    const contacted = leads.filter(l =>
-      l.status === 'CONTACTED' || l.status === 'CONTRACTED'
-    ).length;
-    const contracted = leads.filter(l => l.status === 'CONTRACTED').length;
-
-    return [
-      { stage: '전체 리드', count: total, rate: 100, color: '#3CB54A' },
-      { stage: '제안 발송', count: proposalSent, rate: total > 0 ? Math.round((proposalSent / total) * 100) : 0, color: '#32A4CE' },
-      { stage: '컨택 완료', count: contacted, rate: total > 0 ? Math.round((contacted / total) * 100) : 0, color: '#993399' },
-      { stage: '계약 성사', count: contracted, rate: total > 0 ? Math.round((contracted / total) * 100) : 0, color: '#EF7C3D' },
-    ];
+      .slice(0, 8);
   }, [leads]);
 
   // 주요 지표 계산
   const metrics = useMemo(() => {
-    const total = leads.length;
+    const totalLeads = leads.length;
     const contracted = leads.filter(l => l.status === 'CONTRACTED').length;
-    const conversionRate = total > 0 ? (contracted / total) * 100 : 0;
 
     // 이번 주 신규 리드
     const now = new Date();
@@ -206,70 +177,54 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle }: 
       ? ((thisWeekLeads - lastWeekLeads) / lastWeekLeads) * 100
       : thisWeekLeads > 0 ? 100 : 0;
 
-    return { total, contracted, conversionRate, thisWeekLeads, weeklyChange };
-  }, [leads]);
+    return {
+      total: totalLeads,
+      contracted,
+      viewRate: extendedStats?.totalMetrics?.proposalViewRate || 0,
+      closingRate: extendedStats?.totalMetrics?.closingRate || 0,
+      thisWeekLeads,
+      weeklyChange
+    };
+  }, [leads, extendedStats]);
 
   if (!isExpanded) {
-    // 축소된 상태 - 요약 카드만 표시
     return (
       <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 backdrop-blur-sm">
         <div className="max-w-[1600px] mx-auto px-6 py-4">
-          <button
-            onClick={onToggle}
-            className="w-full flex items-center justify-between group"
-          >
-            <div className="flex items-center gap-6">
-              {/* 주요 지표 미니 카드들 */}
+          <button onClick={onToggle} className="w-full flex items-center justify-between group">
+            <div className="flex items-center gap-8">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg" style={{ background: 'rgba(60, 181, 74, 0.15)' }}>
-                  <Users className="w-4 h-4" style={{ color: 'var(--metro-line2)' }} />
+                <div className="p-2 rounded-lg bg-[var(--metro-line2)]/10">
+                  <Users className="w-4 h-4 text-[var(--metro-line2)]" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-[var(--text-primary)]">{metrics.total}</p>
-                  <p className="text-xs text-[var(--text-muted)]">전체 리드</p>
+                  <p className="text-lg font-bold text-[var(--text-primary)] leading-none mb-1">{metrics.total}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Total Leads</p>
                 </div>
               </div>
-
-              <div className="w-px h-8 bg-[var(--border-subtle)]" />
-
+              <div className="w-px h-6 bg-[var(--border-subtle)]" />
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg" style={{ background: 'rgba(239, 124, 61, 0.15)' }}>
-                  <Target className="w-4 h-4" style={{ color: 'var(--metro-line3)' }} />
+                <div className="p-2 rounded-lg bg-[var(--metro-line4)]/10">
+                  <TrendingUp className="w-4 h-4 text-[var(--metro-line4)]" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-[var(--text-primary)]">{metrics.conversionRate.toFixed(1)}%</p>
-                  <p className="text-xs text-[var(--text-muted)]">전환율</p>
+                  <p className="text-lg font-bold text-[var(--text-primary)] leading-none mb-1">{metrics.viewRate.toFixed(1)}%</p>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">View Rate</p>
                 </div>
               </div>
-
-              <div className="w-px h-8 bg-[var(--border-subtle)]" />
-
+              <div className="w-px h-6 bg-[var(--border-subtle)]" />
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg" style={{ background: 'rgba(50, 164, 206, 0.15)' }}>
-                  <Calendar className="w-4 h-4" style={{ color: 'var(--metro-line4)' }} />
+                <div className="p-2 rounded-lg bg-[var(--metro-line3)]/10">
+                  <Target className="w-4 h-4 text-[var(--metro-line3)]" />
                 </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-lg font-bold text-[var(--text-primary)]">{metrics.thisWeekLeads}</p>
-                  {metrics.weeklyChange !== 0 && (
-                    <span
-                      className="flex items-center text-xs font-medium px-1.5 py-0.5 rounded"
-                      style={{
-                        background: metrics.weeklyChange > 0 ? 'rgba(60, 181, 74, 0.15)' : 'rgba(230, 24, 108, 0.15)',
-                        color: metrics.weeklyChange > 0 ? 'var(--metro-line2)' : '#E6186C',
-                      }}
-                    >
-                      {metrics.weeklyChange > 0 ? <TrendingUp className="w-3 h-3 mr-0.5" /> : <TrendingDown className="w-3 h-3 mr-0.5" />}
-                      {Math.abs(metrics.weeklyChange).toFixed(0)}%
-                    </span>
-                  )}
+                <div>
+                  <p className="text-lg font-bold text-[var(--text-primary)] leading-none mb-1">{metrics.closingRate.toFixed(1)}%</p>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Closing Rate</p>
                 </div>
-                <p className="text-xs text-[var(--text-muted)]">이번 주</p>
               </div>
             </div>
-
-            <div className="flex items-center gap-2 text-[var(--text-muted)] group-hover:text-[var(--text-secondary)] transition-colors">
-              <BarChart3 className="w-4 h-4" />
-              <span className="text-sm">상세 통계 보기</span>
+            <div className="flex items-center gap-2 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">
+              <span className="text-xs font-medium">상세 대시보드</span>
               <ChevronDown className="w-4 h-4" />
             </div>
           </button>
@@ -278,291 +233,176 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle }: 
     );
   }
 
-  // 확장된 상태 - 전체 대시보드
   return (
     <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 backdrop-blur-sm">
-      <div className="max-w-[1600px] mx-auto px-6 py-6">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div
-              className="p-2 rounded-lg"
-              style={{
-                background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-              }}
-            >
-              <BarChart3 className="w-5 h-5 text-white" />
+      <div className="max-w-[1600px] mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--metro-line2)] to-[var(--metro-line4)] flex items-center justify-center shadow-lg shadow-[var(--metro-line4)]/20">
+              <BarChart3 className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">영업 통계 대시보드</h2>
-              <p className="text-xs text-[var(--text-muted)]">실시간 리드 데이터 분석</p>
+              <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">영업 성과 분석 리포트</h2>
+              <p className="text-xs text-[var(--text-muted)]">Real-time Sales Performance & Lead Analytics</p>
             </div>
           </div>
-
-          <button
-            onClick={onToggle}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-all"
-          >
-            <span className="text-sm">접기</span>
-            <ChevronUp className="w-4 h-4" />
+          <button onClick={onToggle} className="p-2 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all">
+            <ChevronUp className="w-5 h-5" />
           </button>
         </div>
 
-        {/* 주요 지표 카드 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <MetricCard
-            icon={Users}
-            label="전체 리드"
-            value={metrics.total}
-            color="var(--metro-line2)"
-            bgColor="rgba(60, 181, 74, 0.15)"
-          />
-          <MetricCard
-            icon={Target}
-            label="계약 성사"
-            value={metrics.contracted}
-            color="var(--metro-line3)"
-            bgColor="rgba(239, 124, 61, 0.15)"
-          />
-          <MetricCard
-            icon={TrendingUp}
-            label="전환율"
-            value={`${metrics.conversionRate.toFixed(1)}%`}
-            color="var(--metro-line4)"
-            bgColor="rgba(50, 164, 206, 0.15)"
-          />
-          <MetricCard
-            icon={Calendar}
-            label="이번 주 신규"
-            value={metrics.thisWeekLeads}
-            change={metrics.weeklyChange}
-            color="var(--metro-line5)"
-            bgColor="rgba(153, 51, 153, 0.15)"
-          />
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <MetricCard icon={Users} label="전체 리드 수" value={metrics.total} color="var(--metro-line2)" />
+          <MetricCard icon={PieChartIcon} label="제안서 열람률" value={`${metrics.viewRate.toFixed(1)}%`} color="var(--metro-line4)" />
+          <MetricCard icon={Target} label="계약 전환율" value={`${metrics.closingRate.toFixed(1)}%`} color="var(--metro-line3)" />
+          <MetricCard icon={Calendar} label="이번 주 신규" value={metrics.thisWeekLeads} change={metrics.weeklyChange} color="var(--metro-line5)" />
         </div>
 
-        {/* 차트 탭 */}
-        <div className="flex items-center gap-2 mb-4">
-          {[
-            { id: 'status', label: '상태 분포', icon: PieChartIcon },
-            { id: 'trend', label: '주간 트렌드', icon: TrendingUp },
-            { id: 'line', label: '노선별 현황', icon: Train },
-            { id: 'funnel', label: '전환 퍼널', icon: Target },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveChart(tab.id as typeof activeChart)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeChart === tab.id
-                  ? 'bg-[var(--metro-line4)] text-white shadow-lg'
-                  : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-              }`}
-              style={{
-                boxShadow: activeChart === tab.id ? '0 4px 15px rgba(50, 164, 206, 0.3)' : 'none',
-              }}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Chart Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left: Tabs & Charts */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex items-center p-1 bg-[var(--bg-tertiary)] rounded-xl w-fit">
+              {[
+                { id: 'status', label: '상태 분포', icon: PieChartIcon },
+                { id: 'funnel', label: '전환 퍼널', icon: Target },
+                { id: 'category', label: '업종 성과', icon: Users },
+                { id: 'trend', label: '성과 트렌드', icon: TrendingUp },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveChart(tab.id as any)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeChart === tab.id ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                    }`}
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-        {/* 차트 영역 */}
-        <div
-          className="p-6 rounded-xl border"
-          style={{
-            background: 'var(--bg-tertiary)',
-            borderColor: 'var(--border-subtle)',
-          }}
-        >
-          {activeChart === 'status' && (
-            <div className="flex items-center gap-8">
-              <div className="flex-1" style={{ height: 280 }}>
-                <ResponsiveContainer width="100%" height="100%">
+            <div className="p-6 rounded-2xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                {activeChart === 'status' ? (
                   <PieChart>
                     <Pie
                       data={statusStats}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
+                      innerRadius={70}
                       outerRadius={100}
-                      paddingAngle={4}
+                      paddingAngle={5}
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                      labelLine={false}
                     >
                       {statusStats.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                        <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
+                    <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" />
                   </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="space-y-3">
-                {statusStats.map((stat) => (
-                  <div key={stat.status} className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: stat.color }}
-                    />
-                    <span className="text-sm text-[var(--text-secondary)] w-24">{stat.name}</span>
-                    <span className="text-lg font-bold" style={{ color: stat.color }}>
-                      {stat.value}
-                    </span>
-                    <span className="text-xs text-[var(--text-muted)]">
-                      ({leads.length > 0 ? ((stat.value / leads.length) * 100).toFixed(1) : 0}%)
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeChart === 'trend' && (
-            <div style={{ height: 280 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={weeklyTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                  <XAxis dataKey="week" stroke="var(--text-muted)" fontSize={12} />
-                  <YAxis stroke="var(--text-muted)" fontSize={12} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="total"
-                    name="전체"
-                    stroke="#32A4CE"
-                    strokeWidth={2}
-                    dot={{ fill: '#32A4CE', strokeWidth: 2 }}
-                    activeDot={{ r: 6 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="NEW"
-                    name="신규"
-                    stroke="#3CB54A"
-                    strokeWidth={2}
-                    dot={{ fill: '#3CB54A', strokeWidth: 2 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="CONTRACTED"
-                    name="계약"
-                    stroke="#EF7C3D"
-                    strokeWidth={2}
-                    dot={{ fill: '#EF7C3D', strokeWidth: 2 }}
-                  />
-                </LineChart>
+                ) : activeChart === 'funnel' ? (
+                  <BarChart data={extendedStats?.funnelData || []} layout="vertical" margin={{ left: 20 }}>
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="stage" type="category" axisLine={false} tickLine={false} fontSize={12} width={80} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="count" name="리드 수" radius={[0, 4, 4, 0]} barSize={30}>
+                      {(extendedStats?.funnelData || []).map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                ) : activeChart === 'category' ? (
+                  <BarChart data={extendedStats?.categoryPerformance || []}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-subtle)" />
+                    <XAxis dataKey="category" tickFormatter={(v) => (CATEGORY_LABELS as any)[v] || v} fontSize={10} />
+                    <YAxis fontSize={10} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="leads" name="리드 수" fill="var(--metro-line2)" radius={[4, 4, 0, 0]} barSize={40} />
+                    <Bar dataKey="conversionRate" name="전환율(%)" fill="var(--metro-line3)" radius={[4, 4, 0, 0]} barSize={40} />
+                  </BarChart>
+                ) : (
+                  <AreaChart data={extendedStats?.weeklyTrends || []}>
+                    <defs>
+                      <linearGradient id="colorView" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--metro-line4)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--metro-line4)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-subtle)" />
+                    <XAxis dataKey="date" fontSize={10} />
+                    <YAxis fontSize={10} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend fontSize={10} />
+                    <Area type="monotone" dataKey="viewRate" name="열람률(%)" stroke="var(--metro-line4)" fillOpacity={1} fill="url(#colorView)" />
+                    <Area type="monotone" dataKey="conversionRate" name="전환율(%)" stroke="var(--metro-line3)" fill="transparent" />
+                  </AreaChart>
+                )}
               </ResponsiveContainer>
             </div>
-          )}
+          </div>
 
-          {activeChart === 'line' && (
-            <div style={{ height: 280 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={lineStats} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
-                  <XAxis type="number" stroke="var(--text-muted)" fontSize={12} />
-                  <YAxis dataKey="name" type="category" stroke="var(--text-muted)" fontSize={12} width={60} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="count" name="리드 수" radius={[0, 4, 4, 0]}>
-                    {lineStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {activeChart === 'funnel' && (
-            <div className="flex flex-col gap-3" style={{ height: 280 }}>
-              {funnelData.map((stage) => (
-                <div key={stage.stage} className="flex items-center gap-4">
-                  <div className="w-24 text-sm text-[var(--text-secondary)]">{stage.stage}</div>
-                  <div className="flex-1 relative h-10">
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-lg transition-all duration-500"
-                      style={{
-                        width: `${stage.rate}%`,
-                        backgroundColor: stage.color,
-                        opacity: 0.8,
-                      }}
-                    />
-                    <div
-                      className="absolute inset-y-0 left-0 right-0 rounded-lg"
-                      style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        zIndex: -1,
-                      }}
-                    />
+          {/* Right: Line Stats & Summary */}
+          <div className="space-y-6">
+            <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+              <Train className="w-4 h-4 text-[var(--metro-line4)]" />
+              주요 노선별 리드 분포
+            </h3>
+            <div className="space-y-3">
+              {lineStats.map((line) => (
+                <div key={line.line} className="space-y-1">
+                  <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider">
+                    <span className="text-[var(--text-secondary)]">{line.name}</span>
+                    <span className="text-[var(--text-primary)]">{line.count}건</span>
                   </div>
-                  <div className="w-20 text-right">
-                    <span className="text-lg font-bold" style={{ color: stage.color }}>
-                      {stage.count}
-                    </span>
-                    <span className="text-xs text-[var(--text-muted)] ml-1">({stage.rate}%)</span>
+                  <div className="h-1.5 w-full bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                    <div
+                      className="h-full transition-all duration-1000"
+                      style={{
+                        width: `${(line.count / metrics.total) * 100}%`,
+                        backgroundColor: line.color
+                      }}
+                    />
                   </div>
                 </div>
               ))}
-              <div className="mt-4 pt-4 border-t border-[var(--border-subtle)]">
-                <p className="text-sm text-[var(--text-muted)]">
-                  전체 리드 중 <span className="font-bold text-[var(--metro-line3)]">{funnelData[3].rate}%</span>가
-                  계약으로 전환되었습니다.
-                </p>
-              </div>
             </div>
-          )}
+
+            <div className="mt-8 p-4 rounded-xl bg-gradient-to-br from-[var(--metro-line2)]/10 to-[var(--metro-line4)]/10 border border-[var(--metro-line4)]/20">
+              <p className="text-[11px] font-medium text-[var(--text-secondary)] leading-relaxed">
+                현재 전반적인 제안서 <span className="text-[var(--metro-line4)] font-extrabold text-sm mx-1">열람률은 {metrics.viewRate.toFixed(1)}%</span>로
+                양호한 수준을 유지하고 있습니다. {metrics.closingRate > 10 ? '계약 전환율이 상승세에 있어 긍정적인 성과가 기대됩니다.' : '전환율 향상을 위한 후속 팔로업이 필요해 보입니다.'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// 지표 카드 컴포넌트
 function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  change,
-  color,
-  bgColor,
+  icon: Icon, label, value, color, change
 }: {
-  icon: React.ElementType;
-  label: string;
-  value: number | string;
-  change?: number;
-  color: string;
-  bgColor: string;
+  icon: any, label: string, value: any, color: string, change?: number
 }) {
   return (
-    <div
-      className="p-4 rounded-xl border"
-      style={{
-        background: 'var(--bg-tertiary)',
-        borderColor: 'var(--border-subtle)',
-      }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="p-2 rounded-lg" style={{ background: bgColor }}>
+    <div className="p-5 rounded-2xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-[var(--text-muted)] transition-all">
+      <div className="flex items-center justify-between mb-4">
+        <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${color}15` }}>
           <Icon className="w-5 h-5" style={{ color }} />
         </div>
-        {change !== undefined && change !== 0 && (
-          <span
-            className="flex items-center text-xs font-medium px-2 py-1 rounded-full"
-            style={{
-              background: change > 0 ? 'rgba(60, 181, 74, 0.15)' : 'rgba(230, 24, 108, 0.15)',
-              color: change > 0 ? 'var(--metro-line2)' : '#E6186C',
-            }}
-          >
-            {change > 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+        {change !== undefined && (
+          <div className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 ${change >= 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+            {change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {Math.abs(change).toFixed(0)}%
-          </span>
+          </div>
         )}
       </div>
-      <p className="text-2xl font-bold text-[var(--text-primary)]">{value}</p>
-      <p className="text-sm text-[var(--text-muted)]">{label}</p>
+      <div>
+        <p className="text-2xl font-black text-[var(--text-primary)] tracking-tight mb-1">{value}</p>
+        <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
+      </div>
     </div>
   );
 }

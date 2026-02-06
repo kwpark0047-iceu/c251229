@@ -2,6 +2,11 @@
 @import "tailwindcss";
 
 :root {
+  /* 반중력 디자인 시스템 변수 */
+  --antigravity-level-1: -5.0;
+  --antigravity-level-2: -9.8;
+  --antigravity-float-y: -20px;
+
   --bg-void: #0a0a0f;
   --bg-primary: #0d0d14;
   --bg-secondary: #12121a;
@@ -616,15 +621,51 @@ body {
 }
 
 .animate-float {
-  animation: float 3s ease-in-out infinite;
+  animation: float 4s ease-in-out infinite;
+}
+
+/* 반중력 규칙(GARF) 적용 유틸리티 */
+.modal-popup {
+  animation: float 5s ease-in-out infinite;
+  box-shadow: var(--shadow-xl), var(--glow-blue);
+}
+
+.toast-notification {
+  animation: float-subtle 3s ease-in-out infinite;
+  box-shadow: var(--shadow-lg), var(--glow-green);
+}
+
+#loading-spinner {
+  animation: float 2s ease-in-out infinite, spin 1s linear infinite;
+  box-shadow: var(--glow-blue);
+}
+
+/* 바닥 고정 요소 (Anchored) */
+.footer-copyright,
+.anchored-bottom {
+  transform: none !important;
+  animation: none !important;
+  z-index: 10;
+}
+
+/* 저전력 모드 및 모바일 성능 최적화 */
+@media (prefers-reduced-motion: reduce) {
+
+  .animate-float,
+  .modal-popup,
+  .toast-notification,
+  #loading-spinner {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 .animate-float-subtle {
-  animation: float-subtle 4s ease-in-out infinite;
+  animation: float-subtle 5s ease-in-out infinite;
 }
 
 .animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+  animation: pulse-glow 3s ease-in-out infinite;
 }
 
 .delay-75 {

@@ -14,6 +14,7 @@ import {
 } from './utils';
 import { createLeadKey } from './lead-utils';
 import { removeDuplicateLeads } from './deduplication-utils';
+import { safeFetch, ApiError } from './api-client';
 
 /**
  * API 호출 결과 타입
@@ -57,9 +58,7 @@ export async function fetchLocalDataAPI(
   const region = regionCode || settings.regionCode;
 
   try {
-    // API 요청 진행 중
-
-    const response = await fetch('/api/localdata', {
+    const result = await safeFetch('/api/localdata', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -72,12 +71,10 @@ export async function fetchLocalDataAPI(
         pageIndex,
         pageSize,
       }),
+      maxRetries: 2, // 수동 리트라이 포함 총 3회
     });
 
-    const result = await response.json();
-
     if (!result.success) {
-      // API 오류 처리
       return {
         success: false,
         leads: [],
@@ -86,10 +83,7 @@ export async function fetchLocalDataAPI(
       };
     }
 
-    // 원시 데이터를 Lead 객체로 변환 (좌표 변환 + 역 매칭)
     const leads = processRawLeads(result.leads, serviceInfo);
-
-    // API 조회 완료
 
     return {
       success: true,
@@ -98,12 +92,15 @@ export async function fetchLocalDataAPI(
     };
 
   } catch (error) {
-    // API 요청 오류 처리
+    console.error('[API] LocalData API Error:', error);
+
     return {
       success: false,
       leads: [],
       totalCount: 0,
-      message: `네트워크 오류: ${(error as Error).message}`,
+      message: error instanceof ApiError
+        ? error.message
+        : `네트워크 오류: ${(error as Error).message}`,
     };
   }
 }

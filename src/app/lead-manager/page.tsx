@@ -63,6 +63,8 @@ import CallbackNotification from './components/CallbackNotification';
 import RoleGuard from '@/components/RoleGuard';
 import MobileNavBar from './components/MobileNavBar';
 import BackgroundEffect from './components/BackgroundEffect';
+import NotificationCenter from '@/components/NotificationCenter';
+import { useNotification } from '@/context/NotificationContext';
 
 type MainTab = 'leads' | 'inventory' | 'schedule';
 
@@ -80,6 +82,7 @@ export default function LeadManagerPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
+  const { showNotification } = useNotification();
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>(() => {
@@ -266,8 +269,8 @@ export default function LeadManagerPage() {
   const checkConnection = useCallback(async () => {
     const result = await testAPIConnection(settings);
     setIsConnected(result.success);
-    showMessage(result.success ? 'success' : 'error', result.message);
-  }, [settings]);
+    showNotification(result.success ? 'success' : 'error', result.message);
+  }, [settings, showNotification]);
 
   // 데이터 새로고침 (API에서 가져오기)
   const refreshData = async () => {
@@ -318,18 +321,18 @@ export default function LeadManagerPage() {
               .map(s => s.name)
               .join(', ')
             : '전체';
-          showMessage(
+          showNotification(
             'success',
             `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}/${serviceNames}] API에서 ${result.leads.length}건 조회. ${saveResult.message}`
           );
         } else {
-          showMessage('error', saveResult.message);
+          showNotification('error', saveResult.message);
         }
       } else {
-        showMessage('error', result.message || '데이터 조회에 실패했습니다.');
+        showNotification('error', result.message || '데이터 조회에 실패했습니다.');
       }
     } catch (error) {
-      showMessage('error', `오류: ${(error as Error).message}`);
+      showNotification('error', `오류: ${(error as Error).message}`);
     } finally {
       setIsLoading(false);
       setLoadingStatus('');
@@ -367,9 +370,9 @@ export default function LeadManagerPage() {
           return updatedLead;
         })
       );
-      showMessage('success', result.message);
+      showNotification('success', result.message);
     } else {
-      showMessage('error', result.message);
+      showNotification('error', result.message);
     }
   };
 
@@ -378,7 +381,7 @@ export default function LeadManagerPage() {
     setSettings(newSettings);
     await saveSettings(newSettings);
     setIsSettingsOpen(false);
-    showMessage('success', '설정이 저장되었습니다.');
+    showNotification('success', '설정이 저장되었습니다.');
   };
 
   // 날짜 이동
@@ -482,6 +485,7 @@ export default function LeadManagerPage() {
 
             {/* 우측 컨트롤 */}
             <div className="flex items-center gap-2">
+              <NotificationCenter />
               <ThemeToggle />
 
               {/* 설정 */}
@@ -708,28 +712,6 @@ export default function LeadManagerPage() {
           console.log('Lead clicked:', leadId);
         }}
       />
-
-      {/* 메시지 토스트 */}
-      {message && (
-        <div
-          className="fixed top-24 right-6 z-50 px-5 py-4 rounded-xl shadow-2xl animate-float border"
-          style={{
-            background: message.type === 'success'
-              ? 'linear-gradient(135deg, rgba(60, 181, 74, 0.95) 0%, rgba(60, 181, 74, 0.8) 100%)'
-              : message.type === 'error'
-                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(239, 68, 68, 0.7) 100%)'
-                : 'linear-gradient(135deg, rgba(50, 164, 206, 0.9) 0%, rgba(50, 164, 206, 0.7) 100%)',
-            backdropFilter: 'blur(10px)',
-            borderColor: message.type === 'success' ? 'var(--metro-line2)' : message.type === 'error' ? '#ef4444' : 'var(--metro-line4)',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.1)',
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <Zap className="w-5 h-5 text-white" />
-            <span className="text-white font-bold tracking-tight">{message.text}</span>
-          </div>
-        </div>
-      )}
 
       {/* 리드 탭일 때만 통계 바 및 필터 바 표시 */}
       {mainTab === 'leads' && (
@@ -961,26 +943,28 @@ export default function LeadManagerPage() {
             {initialLoading ? (
               <div className="flex flex-col items-center justify-center py-24">
                 <div
+                  id="loading-spinner"
                   className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
                   style={{
                     background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
                     boxShadow: '0 8px 30px rgba(60, 181, 74, 0.3)',
                   }}
                 >
-                  <RefreshCw className="w-8 h-8 text-white animate-spin" />
+                  <RefreshCw className="w-8 h-8 text-white" />
                 </div>
                 <p className="text-[var(--text-secondary)] font-medium">Supabase에서 데이터를 불러오는 중...</p>
               </div>
             ) : isLoading ? (
               <div className="flex flex-col items-center justify-center py-24">
                 <div
+                  id="loading-spinner"
                   className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative"
                   style={{
                     background: 'linear-gradient(135deg, var(--metro-line4) 0%, var(--metro-line2) 100%)',
                     boxShadow: '0 8px 30px rgba(50, 164, 206, 0.3)',
                   }}
                 >
-                  <RefreshCw className="w-8 h-8 text-white animate-spin" />
+                  <RefreshCw className="w-8 h-8 text-white" />
                 </div>
                 <p className="text-[var(--text-secondary)] font-medium mb-2">
                   [{CATEGORY_LABELS[categoryFilter]}] LocalData API에서 데이터를 가져오는 중...
@@ -1166,7 +1150,7 @@ export default function LeadManagerPage() {
             onClose={() => setShowInventoryUpload(false)}
             onSuccess={() => {
               setInventoryRefreshKey(k => k + 1);
-              showMessage('success', '인벤토리가 업로드되었습니다.');
+              showNotification('success', '인벤토리가 업로드되었습니다.');
             }}
           />
         )
@@ -1192,7 +1176,7 @@ export default function LeadManagerPage() {
               setShowTaskForm(false);
               setSelectedTask(null);
               setScheduleRefreshKey(k => k + 1);
-              showMessage('success', selectedTask ? '업무가 수정되었습니다.' : '업무가 생성되었습니다.');
+              showNotification('success', selectedTask ? '업무가 수정되었습니다.' : '업무가 생성되었습니다.');
             }}
             onClose={() => {
               setShowTaskForm(false);
@@ -1210,6 +1194,7 @@ export default function LeadManagerPage() {
         }}
         onViewModeChange={(mode) => setViewMode(mode)}
         onSettingsClick={() => setIsSettingsOpen(true)}
+        className="anchored-bottom"
       />
     </div>
   );

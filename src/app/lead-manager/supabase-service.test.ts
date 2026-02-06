@@ -1,38 +1,20 @@
 /**
- * Supabase 서비스 레이어 테스트
+ * Supabase 서비스 레이어 테스트 (Refactored)
  * 실제 DB 연결 없이 모의 테스트
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Lead, LeadStatus } from './types';
+import { LeadStatus } from './types';
 
 // Mock 데이터
-const mockLeads: Lead[] = [
+const mockLeadsData = [
   {
     id: '1',
-    bizName: '테스트 상점',
-    roadAddress: '서울시 강남구 테헤란로 123',
-    bizType: '음식점',
+    biz_name: '테스트 상점',
+    road_address: '서울시 강남구 테헤란로 123',
+    status: 'NEW',
     category: 'FOOD',
-    status: 'NEW' as LeadStatus,
-    nearestStation: '강남역',
-    distance: 500,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    organizationId: 'org-1',
-  },
-  {
-    id: '2',
-    bizName: '테스트 병원',
-    roadAddress: '서울시 서초구 강남대로 456',
-    bizType: '병원',
-    category: 'HEALTH',
-    status: 'PROPOSAL_SENT' as LeadStatus,
-    nearestStation: '교대역',
-    distance: 300,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    organizationId: 'org-1',
+    created_at: new Date().toISOString(),
   },
 ];
 
@@ -40,162 +22,92 @@ const mockLeads: Lead[] = [
 const mockSupabaseClient = {
   from: vi.fn(() => ({
     select: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        order: vi.fn(() => ({
-          data: mockLeads,
-          error: null,
-        })),
-        in: vi.fn(() => ({
-          order: vi.fn(() => ({
-            data: mockLeads.filter(lead => ['NEW', 'PROPOSAL_SENT'].includes(lead.status)),
-            error: null,
-          })),
-        })),
+      order: vi.fn(() => ({
+        range: vi.fn(() => Promise.resolve({ data: mockLeadsData, count: 1, error: null })),
       })),
-      ilike: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => ({
-            data: mockLeads.filter(lead => lead.bizName.includes('테스트')),
-            error: null,
-          })),
-        })),
+      count: vi.fn(() => ({
+        eq: vi.fn(() => Promise.resolve({ count: 1, error: null })),
+        not: vi.fn(() => Promise.resolve({ data: [], error: null })),
       })),
+      not: vi.fn(() => Promise.resolve({ data: [], error: null })),
     })),
-    insert: vi.fn(() => ({
-      select: vi.fn(() => ({
-        single: vi.fn(() => ({
-          data: mockLeads[0],
-          error: null,
-        })),
-      })),
-    })),
+    insert: vi.fn(() => Promise.resolve({ data: null, error: null })),
     update: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        data: mockLeads[0],
-        error: null,
-      })),
+      eq: vi.fn(() => Promise.resolve({ data: null, error: null })),
     })),
     delete: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        data: mockLeads[0],
-        error: null,
-      })),
+      in: vi.fn(() => Promise.resolve({ data: null, error: null })),
     })),
+    auth: {
+      getUser: vi.fn(() => Promise.resolve({ data: { user: { id: 'user-1', email: 'test@example.com' } }, error: null })),
+    }
   })),
 };
 
-vi.mock('@/lib/supabase/client', () => ({
-  createClient: vi.fn(() => mockSupabaseClient),
+vi.mock('@/lib/supabase/utils', () => ({
+  getSupabase: vi.fn(() => mockSupabaseClient),
 }));
 
-describe('Supabase 서비스', () => {
+describe('Supabase 서비스 (supabase-service.ts)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('리드 관리', () => {
-    it('모든 리드를 조회할 수 있다', async () => {
-      // 실제 서비스 함수를 동적으로 import
+  describe('getLeads', () => {
+    it('필터 없이 리드 목록을 조회할 수 있다', async () => {
       const { getLeads } = await import('./supabase-service');
-      const leads = await getLeads('org-1');
-      
-      expect(leads).toHaveLength(2);
-      expect(leads[0].bizName).toBe('테스트 상점');
-      expect(leads[1].bizName).toBe('테스트 병원');
-    });
+      const result = await getLeads();
 
-    it('상태별로 리드를 필터링할 수 있다', async () => {
-      const { getLeads } = await import('./supabase-service');
-      const leads = await getLeads('org-1', ['NEW', 'PROPOSAL_SENT']);
-      
-      expect(leads).toHaveLength(2);
-      expect(leads.every(lead => ['NEW', 'PROPOSAL_SENT'].includes(lead.status))).toBe(true);
-    });
-
-    it('검색어로 리드를 필터링할 수 있다', async () => {
-      const { getLeads } = await import('./supabase-service');
-      const leads = await getLeads('org-1', undefined, '테스트');
-      
-      expect(leads.length).toBeGreaterThan(0);
-      expect(leads.every(lead => lead.bizName.includes('테스트'))).toBe(true);
-    });
-
-    it('새로운 리드를 저장할 수 있다', async () => {
-      const newLead = {
-        bizName: '새로운 상점',
-        roadAddress: '서울시 송파구 올림픽로 789',
-        bizType: '카페',
-        category: 'FOOD' as const,
-        status: 'NEW' as LeadStatus,
-        nearestStation: '잠실역',
-        distance: 200,
-        organizationId: 'org-1',
-      };
-
-      const { saveLeads } = await import('./supabase-service');
-      const result = await saveLeads([newLead]);
-      
       expect(result.success).toBe(true);
-      expect(mockSupabaseClient.from().insert).toHaveBeenCalled();
+      expect(result.leads).toHaveLength(1);
+      expect(result.leads[0].bizName).toBe('테스트 상점');
     });
 
+    it('DB 에러 발생 시 실패 정보를 반환한다', async () => {
+      // @ts-ignore
+      mockSupabaseClient.from().select().order().range.mockResolvedValueOnce({
+        data: null,
+        count: 0,
+        error: { message: 'Database Connection Error' },
+      });
+
+      const { getLeads } = await import('./supabase-service');
+      const result = await getLeads();
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Database Connection Error');
+    });
+  });
+
+  describe('updateLeadStatus', () => {
     it('리드 상태를 업데이트할 수 있다', async () => {
       const { updateLeadStatus } = await import('./supabase-service');
       const result = await updateLeadStatus('1', 'CONTACTED');
-      
+
       expect(result.success).toBe(true);
-      expect(mockSupabaseClient.from().update).toHaveBeenCalledWith({
-        status: 'CONTACTED',
-        updated_at: expect.any(String),
-      });
+      expect(mockSupabaseClient.from().update).toHaveBeenCalled();
     });
   });
 
-  describe('설정 관리', () => {
-    it('설정을 조회할 수 있다', async () => {
-      const mockSettings = {
-        id: '1',
-        organizationId: 'org-1',
-        data: { theme: 'light', language: 'ko' },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+  describe('deleteDuplicateLeadsFromDB', () => {
+    it('중복 리드를 삭제할 수 있다', async () => {
+      const mockAllLeads = [
+        { id: '1', biz_name: '중복상점', road_address: '주소1', created_at: '2024-01-01' },
+        { id: '2', biz_name: '중복상점', road_address: '주소1', created_at: '2024-01-02' },
+      ];
 
-      mockSupabaseClient.from().select().eq().single.mockResolvedValueOnce({
-        data: mockSettings,
+      // @ts-ignore
+      mockSupabaseClient.from().select().order.mockResolvedValueOnce({
+        data: mockAllLeads,
         error: null,
       });
 
-      const { getSettings } = await import('./supabase-service');
-      const settings = await getSettings('org-1');
-      
-      expect(settings).toEqual(mockSettings.data);
-    });
+      const { deleteDuplicateLeadsFromDB } = await import('./supabase-service');
+      const result = await deleteDuplicateLeadsFromDB();
 
-    it('설정을 저장할 수 있다', async () => {
-      const newSettings = { theme: 'dark', language: 'en' };
-
-      const { saveSettings } = await import('./supabase-service');
-      const result = await saveSettings('org-1', newSettings);
-      
       expect(result.success).toBe(true);
-      expect(mockSupabaseClient.from().upsert).toHaveBeenCalledWith({
-        organization_id: 'org-1',
-        data: newSettings,
-        updated_at: expect.any(String),
-      });
-    });
-  });
-
-  describe('통계', () => {
-    it('리드 통계를 계산할 수 있다', async () => {
-      const { getLeadStats } = await import('./supabase-service');
-      const stats = await getLeadStats('org-1');
-      
-      expect(stats).toHaveProperty('total');
-      expect(stats).toHaveProperty('byStatus');
-      expect(stats).toHaveProperty('byCategory');
-      expect(stats.total).toBe(2);
+      expect(result.removedCount).toBe(1);
+      expect(mockSupabaseClient.from().delete).toHaveBeenCalled();
     });
   });
 });

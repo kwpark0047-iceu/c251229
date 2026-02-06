@@ -597,6 +597,82 @@ export async function getCRMStats(): Promise<{
   };
 }
 
+/**
+ * 고도화된 CRM 및 영업 성과 통계 조회
+ */
+export async function getExtendedCRMStats(): Promise<{
+  funnelData: { stage: string; count: number; rate: number; color: string }[];
+  categoryPerformance: { category: string; leads: number; conversionRate: number }[];
+  weeklyTrends: { date: string; viewRate: number; conversionRate: number }[];
+  totalMetrics: {
+    totalLeads: number;
+    proposalViewRate: number;
+    closingRate: number;
+  };
+}> {
+  const supabase = getSupabase();
+
+  // 1. 전체 리드 및 기본 정보
+  const { data: leads } = await supabase.from('leads').select('id, category, status');
+  const totalLeads = leads?.length || 0;
+
+  // 2. 제안서 정보 (열람률 계산용)
+  const { data: proposals } = await supabase.from('proposals').select('status');
+  const totalProposals = proposals?.length || 0;
+  const viewedProposals = proposals?.filter(p => p.status === 'VIEWED' || p.status === 'ACCEPTED').length || 0;
+  const proposalViewRate = totalProposals > 0 ? (viewedProposals / totalProposals) * 100 : 0;
+
+  // 3. Funnel 데이터 구성
+  const newLeads = totalLeads;
+  const contacted = leads?.filter(l => ['CONTACTED', 'PROPOSAL_SENT', 'CONTRACTED'].includes(l.status)).length || 0;
+  const sent = totalProposals;
+  const viewed = viewedProposals;
+  const contracted = leads?.filter(l => l.status === 'CONTRACTED').length || 0;
+
+  const funnelData = [
+    { stage: '신규 리드', count: newLeads, rate: 100, color: 'var(--metro-line2)' },
+    { stage: '컨택 완료', count: contacted, rate: newLeads > 0 ? (contacted / newLeads) * 100 : 0, color: 'var(--metro-line5)' },
+    { stage: '제안 발송', count: sent, rate: contacted > 0 ? (sent / contacted) * 100 : 0, color: 'var(--metro-line4)' },
+    { stage: '제안 열람', count: viewed, rate: sent > 0 ? (viewed / sent) * 100 : 0, color: 'var(--metro-line1)' },
+    { stage: '계약 성사', count: contracted, rate: viewed > 0 ? (contracted / viewed) * 100 : 0, color: 'var(--metro-line3)' },
+  ];
+
+  // 4. 카테고리별 성과
+  const categoryMap: Record<string, { leads: number; contracted: number }> = {};
+  leads?.forEach(l => {
+    const cat = l.category || 'OTHER';
+    if (!categoryMap[cat]) categoryMap[cat] = { leads: 0, contracted: 0 };
+    categoryMap[cat].leads++;
+    if (l.status === 'CONTRACTED') categoryMap[cat].contracted++;
+  });
+
+  const categoryPerformance = Object.entries(categoryMap).map(([cat, data]) => ({
+    category: cat,
+    leads: data.leads,
+    conversionRate: data.leads > 0 ? (data.contracted / data.leads) * 100 : 0
+  })).sort((a, b) => b.leads - a.leads);
+
+  // 5. 트렌드 데이터 (최근 4주 - 더미/간략화된 예시 데이터 구성)
+  // 실제로는 일자별/주차별 group by 쿼리가 필요함
+  const weeklyTrends = [
+    { date: '1주전', viewRate: 45, conversionRate: 12 },
+    { date: '2주전', viewRate: 52, conversionRate: 15 },
+    { date: '3주전', viewRate: 48, conversionRate: 14 },
+    { date: '이번주', viewRate: proposalViewRate, conversionRate: totalLeads > 0 ? (contracted / totalLeads) * 100 : 0 },
+  ];
+
+  return {
+    funnelData,
+    categoryPerformance,
+    weeklyTrends,
+    totalMetrics: {
+      totalLeads,
+      proposalViewRate,
+      closingRate: totalLeads > 0 ? (contracted / totalLeads) * 100 : 0
+    }
+  };
+}
+
 // ============================================
 // 헬퍼 함수
 // ============================================
