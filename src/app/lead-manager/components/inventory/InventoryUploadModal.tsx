@@ -42,10 +42,9 @@ export default function InventoryUploadModal({
       // 엑셀 파일 확인
       const validTypes = [
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.ms-excel',
       ];
       if (!validTypes.includes(selectedFile.type) && !selectedFile.name.endsWith('.xlsx')) {
-        alert('엑셀 파일(.xlsx)만 업로드 가능합니다.');
+        alert('엑셀 파일(.xlsx)만 업로드 가능합니다. 구버전 엑셀(.xls)이나 다른 형식은 지원하지 않습니다.');
         return;
       }
       setFile(selectedFile);
@@ -56,9 +55,11 @@ export default function InventoryUploadModal({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && (droppedFile.name.endsWith('.xlsx') || droppedFile.name.endsWith('.xls'))) {
+    if (droppedFile && droppedFile.name.endsWith('.xlsx')) {
       setFile(droppedFile);
       setResult(null);
+    } else if (droppedFile) {
+      alert('.xlsx 형식의 엑셀 파일만 업로드 가능합니다.');
     }
   };
 
@@ -118,11 +119,10 @@ export default function InventoryUploadModal({
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-              file
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${file
                 ? 'border-green-300 bg-green-50'
                 : 'border-slate-300 hover:border-blue-400 hover:bg-blue-50'
-            }`}
+              }`}
           >
             <input
               ref={fileInputRef}
@@ -164,11 +164,10 @@ export default function InventoryUploadModal({
                   key={type.value}
                   type="button"
                   onClick={() => setMediaType(type.value)}
-                  className={`px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
-                    mediaType === type.value
+                  className={`px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all ${mediaType === type.value
                       ? `${type.color} border-current ring-2 ring-offset-1`
                       : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                  }`}
+                    }`}
                 >
                   {type.label}
                 </button>
@@ -216,11 +215,10 @@ export default function InventoryUploadModal({
           {/* 결과 */}
           {result && (
             <div
-              className={`p-4 rounded-lg ${
-                result.success
+              className={`p-4 rounded-lg ${result.success
                   ? 'bg-green-50 border border-green-200'
                   : 'bg-red-50 border border-red-200'
-              }`}
+                }`}
             >
               <div className="flex items-start gap-3">
                 {result.success ? (
@@ -230,9 +228,8 @@ export default function InventoryUploadModal({
                 )}
                 <div>
                   <p
-                    className={`font-medium ${
-                      result.success ? 'text-green-800' : 'text-red-800'
-                    }`}
+                    className={`font-medium ${result.success ? 'text-green-800' : 'text-red-800'
+                      }`}
                   >
                     {result.success ? '업로드 완료' : '업로드 실패'}
                   </p>

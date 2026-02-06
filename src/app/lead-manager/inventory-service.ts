@@ -28,6 +28,13 @@ import { getOrganizationId } from './auth-service';
  */
 export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?: string): Promise<ExcelInventoryRow[]> {
   const workbook = new ExcelJS.Workbook();
+
+  // 브라우저에서도 사용 가능하도록 Uint8Array로 체크 (PK 상한: Zip 파일의 시작)
+  const uint8 = new Uint8Array(buffer.slice(0, 4));
+  if (uint8[0] !== 0x50 || uint8[1] !== 0x4B) {
+    throw new Error('올바른 .xlsx (Excel) 파일이 아닙니다. 파일이 손상되었거나 형식이 다릅니다.');
+  }
+
   await workbook.xlsx.load(buffer);
   const worksheet = workbook.worksheets[0];
 
