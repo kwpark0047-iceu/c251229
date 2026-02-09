@@ -107,13 +107,13 @@ describe('GridView 컴포넌트', () => {
     await waitFor(() => {
       const newStatus = screen.getByText('신규');
       const proposalSentStatus = screen.getByText('제안서 발송');
-      
+
       expect(newStatus).toHaveClass('status-new');
       expect(proposalSentStatus).toHaveClass('status-proposal-sent');
     });
   });
 
-  it '검색 기능이 동작한다', async () => {
+  it('검색 기능이 동작한다', async () => {
     const GridView = (await import('./components/GridView')).default;
     render(<GridView {...mockProps} />);
 
@@ -155,7 +155,7 @@ describe('ListView 컴포넌트', () => {
     });
   });
 
-  it '정렬 기능이 동작한다', async () => {
+  it('정렬 기능이 동작한다', async () => {
     const ListView = (await import('./components/ListView')).default;
     render(<ListView {...mockProps} />);
 
@@ -168,7 +168,7 @@ describe('ListView 컴포넌트', () => {
     });
   });
 
-  it '체크박스로 여러 리드를 선택할 수 있다', async () => {
+  it('체크박스로 여러 리드를 선택할 수 있다', async () => {
     const ListView = (await import('./components/ListView')).default;
     render(<ListView {...mockProps} />);
 
@@ -206,7 +206,7 @@ describe('MapView 컴포넌트', () => {
     });
   });
 
-  it '마커를 클릭하면 팝업이 표시된다', async () => {
+  it('마커를 클릭하면 팝업이 표시된다', async () => {
     const MapView = (await import('./components/MapView')).default;
     render(<MapView {...mockProps} />);
 
@@ -219,7 +219,7 @@ describe('MapView 컴포넌트', () => {
     });
   });
 
-  it '역명으로 필터링할 수 있다', async () => {
+  it('역명으로 필터링할 수 있다', async () => {
     const MapView = (await import('./components/MapView')).default;
     render(<MapView {...mockProps} />);
 
@@ -257,7 +257,7 @@ describe('StatsBar 컴포넌트', () => {
     expect(screen.getByText('25')).toBeInTheDocument(); // 계약 완료
   });
 
-  it '상태별 카드를 클릭하면 필터링된다', async () => {
+  it('상태별 카드를 클릭하면 필터링된다', async () => {
     const onFilter = vi.fn();
     const StatsBar = (await import('./components/StatsBar')).default;
     render(<StatsBar stats={mockStats} onFilter={onFilter} />);
@@ -281,7 +281,7 @@ describe('ProposalForm 컴포넌트', () => {
     vi.clearAllMocks();
   });
 
-  it '제안서 폼을 렌더링한다', async () => {
+  it('제안서 폼을 렌더링한다', async () => {
     const ProposalForm = (await import('./components/ProposalForm')).default;
     render(<ProposalForm {...mockProps} />);
 
@@ -302,18 +302,18 @@ describe('ProposalForm 컴포넌트', () => {
   });
 
   it '필수 필드를 검증한다', async () => {
-    const ProposalForm = (await import('./components/ProposalForm')).default;
-    render(<ProposalForm {...mockProps} />);
+  const ProposalForm = (await import('./components/ProposalForm')).default;
+  render(<ProposalForm {...mockProps} />);
 
-    // 필수 필드를 비우고 제출 시도
-    const titleInput = screen.getByPlaceholderText('제안서 제목');
-    fireEvent.change(titleInput, { target: { value: '' } });
+  // 필수 필드를 비우고 제출 시도
+  const titleInput = screen.getByPlaceholderText('제안서 제목');
+  fireEvent.change(titleInput, { target: { value: '' } });
 
-    const submitButton = screen.getByText('제안서 생성');
-    fireEvent.click(submitButton);
+  const submitButton = screen.getByText('제안서 생성');
+  fireEvent.click(submitButton);
 
-    await waitFor(() => {
-      expect(screen.getByText('제안서 제목을 입력해주세요.')).toBeInTheDocument();
-    });
+  await waitFor(() => {
+    expect(screen.getByText('제안서 제목을 입력해주세요.')).toBeInTheDocument();
   });
+});
 });
