@@ -362,11 +362,15 @@ export async function getFloorPlanCounts(): Promise<Record<MetroLine, { station_
 
   if (error) {
     console.error('도면 통계 조회 오류:', error);
-    throw new Error(error.message);
+    // 컬럼이 없는 경우(스키마 미적용) 에러 메시지 상세화
+    if (error.code === 'PGRST204' || error.message.includes('column')) {
+      throw new Error('데이터베이스 스키마가 최신 버전이 아닙니다. migrations 폴더의 SQL을 실행해 주세요.');
+    }
+    throw new Error(`도면 통계 조회 오류: ${error.message}`);
   }
 
   const counts: Record<string, { station_layout: number; psd: number }> = {};
-  const lines: MetroLine[] = ['1', '2', '5', '7', '8'];
+  const lines: MetroLine[] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'K', 'A', 'B'];
 
   lines.forEach(line => {
     counts[line] = { station_layout: 0, psd: 0 };
@@ -375,7 +379,7 @@ export async function getFloorPlanCounts(): Promise<Record<MetroLine, { station_
   (data || []).forEach(row => {
     const line = row.line_number as MetroLine;
     const type = row.plan_type as PlanType;
-    if (counts[line] && type) {
+    if (line && counts[line] && type) {
       counts[line][type]++;
     }
   });

@@ -64,13 +64,15 @@ export async function GET(request: NextRequest) {
   const line = searchParams.get('line') || '1';
   const stationName = searchParams.get('station');
 
-  // KRIC_API_KEY로 통합 사용
-  const apiKey = process.env.KRIC_API_KEY || process.env.NEXT_PUBLIC_KRIC_API_KEY;
+  // KRIC_API_KEY를 우선 사용하되, 기존 STATION_INFO_API_KEY도 지원 (하위 호환성)
+  const apiKey = process.env.KRIC_API_KEY ||
+    process.env.NEXT_PUBLIC_KRIC_API_KEY ||
+    process.env.STATION_INFO_API_KEY;
 
   if (!apiKey) {
-    console.error('[Station Info API] Error: KRIC_API_KEY is missing');
+    console.error('[Station Info API] Error: No API Key found in environment variables');
     return NextResponse.json(
-      { error: 'API 키가 설정되지 않았습니다. Vercel 환경변수 KRIC_API_KEY를 확인하세요.' },
+      { error: 'API 키가 설정되지 않았습니다. KRIC_API_KEY 또는 STATION_INFO_API_KEY 환경변수를 확인하세요.' },
       { status: 500 }
     );
   }
