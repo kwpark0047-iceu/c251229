@@ -23,3 +23,6 @@ export function createClient() {
     supabaseAnonKey || 'placeholder-key'
   )
 }
+
+// Supabase 설정 여부 확인 변수
+export const isSupabaseConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
