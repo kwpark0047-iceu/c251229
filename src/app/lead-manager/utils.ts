@@ -219,7 +219,7 @@ export function truncateString(str: string, maxLength: number): string {
  * @returns UUID 문자열
  */
 export function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
@@ -297,4 +297,26 @@ export function getHighlightParts(text: string, query: string): { text: string; 
   }
 
   return parts.length > 0 ? parts : [{ text, isHighlight: false }];
+}
+/**
+ * 주소 문자열에서 구(District) 정보 추출
+ * @param address 주소 문자열
+ * @returns 구 이름 (예: 강남구)
+ */
+export function extractDistrict(address: string | null | undefined): string | null {
+  if (!address) return null;
+  const match = address.match(/([가-힣]+구)\b/);
+  return match ? match[1] : null;
+}
+
+/**
+ * 주소 문자열에서 동(Neighborhood) 정보 추출
+ * @param address 주소 문자열
+ * @returns 동 이름 (예: 역삼동)
+ */
+export function extractNeighborhood(address: string | null | undefined): string | null {
+  if (!address) return null;
+  // 도로명 주소에서 '동'을 찾거나, 지번 주소에서 '동'을 찾음
+  const match = address.match(/([가-힣\d]+동)\b/);
+  return match ? match[1] : null;
 }

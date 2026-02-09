@@ -8,7 +8,6 @@
 import { Lead, Settings, BusinessCategory, CATEGORY_SERVICE_IDS, ServiceIdInfo } from './types';
 import {
   convertGRS80ToWGS84,
-  findNearestStation,
   formatDateToAPI,
   generateUUID,
 } from './utils';
@@ -83,7 +82,7 @@ export async function fetchLocalDataAPI(
       };
     }
 
-    const leads = processRawLeads(result.leads, serviceInfo);
+    const leads = await processRawLeads(result.leads, serviceInfo);
 
     return {
       success: true,
@@ -108,8 +107,13 @@ export async function fetchLocalDataAPI(
 /**
  * 원시 리드 데이터를 처리 (좌표 변환, 역 매칭)
  */
-function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo): Lead[] {
-  return rawLeads.map(raw => {
+/**
+ * 원시 리드 데이터를 처리 (좌표 변환, 역 매칭)
+ */
+async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo): Promise<Lead[]> {
+  const { subwayDataManager } = await import('./kric-data-manager');
+
+  const processedLeads = await Promise.all(rawLeads.map(async (raw) => {
     let latitude: number | undefined;
     let longitude: number | undefined;
     let nearestStation: string | undefined;
@@ -118,13 +122,18 @@ function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo): Lead
 
     // 좌표 변환 (GRS80 -> WGS84)
     if (raw.coordX && raw.coordY) {
+      const { convertGRS80ToWGS84 } = await import('./utils');
       const converted = convertGRS80ToWGS84(raw.coordX, raw.coordY);
+
       if (converted) {
         latitude = converted.lat;
         longitude = converted.lng;
 
-        // 가장 가까운 역 찾기
-        const nearest = findNearestStation(latitude, longitude);
+        // 가장 가까운 역 찾기 (고도화된 로직 적용)
+        // 도로명 주소 또는 지번 주소를 기반으로 가중치 검색
+        const bizAddress = raw.roadAddress || raw.lotAddress;
+        const nearest = await subwayDataManager.findNearbyStation(latitude, longitude, bizAddress);
+
         if (nearest) {
           nearestStation = nearest.station.name;
           stationDistance = nearest.distance;
@@ -154,7 +163,9 @@ function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo): Lead
       stationLines,
       status: 'NEW' as const,
     };
-  });
+  }));
+
+  return processedLeads;
 }
 
 /**

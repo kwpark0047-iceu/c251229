@@ -270,6 +270,61 @@ export class KRICSubwayDataManager {
       cacheSize: (cache as any).cache.size,
     };
   }
+
+  /**
+   * 위치와 주소를 기반으로 최적의 인근 역사 검색 (가중치 적용)
+   */
+  async findNearbyStation(
+    lat: number,
+    lng: number,
+    address?: string
+  ): Promise<{ station: any; distance: number } | null> {
+    const data = await this.getAllSubwayData();
+    const stations = data.stations;
+
+    if (!stations || stations.length === 0) return null;
+
+    const { calculateDistance, extractDistrict, extractNeighborhood } = await import('./utils');
+    const bizDistrict = extractDistrict(address);
+    const bizNeighborhood = extractNeighborhood(address);
+
+    let bestMatch: { station: any; distance: number; score: number } | null = null;
+
+    for (const station of stations) {
+      if (!station.lat || !station.lng) continue;
+
+      // 1. 물리적 거리 계산 (미터)
+      const physicalDistance = calculateDistance(lat, lng, station.lat, station.lng);
+
+      // 최대 3km 이내 역만 고려
+      if (physicalDistance > 3000) continue;
+
+      // 2. 주소지 보정 (Score 기반)
+      let discountFactor = 1.0;
+
+      if (address && station.address) {
+        const stationDistrict = extractDistrict(station.address);
+        const stationNeighborhood = extractNeighborhood(station.address);
+
+        // '동'이 일치하면 거리를 25% 가상 할인 (강력한 매칭)
+        if (bizNeighborhood && stationNeighborhood && bizNeighborhood === stationNeighborhood) {
+          discountFactor *= 0.75;
+        }
+        // '구'가 일치하면 거리를 10% 할인
+        else if (bizDistrict && stationDistrict && bizDistrict === stationDistrict) {
+          discountFactor *= 0.90;
+        }
+      }
+
+      const weightedDistance = physicalDistance * discountFactor;
+
+      if (!bestMatch || weightedDistance < bestMatch.score) {
+        bestMatch = { station, distance: physicalDistance, score: weightedDistance };
+      }
+    }
+
+    return bestMatch ? { station: bestMatch.station, distance: bestMatch.distance } : null;
+  }
 }
 
 // 싱글톤 인스턴스

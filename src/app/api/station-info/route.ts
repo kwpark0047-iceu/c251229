@@ -1,87 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { RAIL_OPR_CODES, LINE_CODES } from '@/lib/kric-codes';
 
 /**
- * KRIC 역사별 정보 API 프록시
+ * KRIC 역사별 정보 API 프록시 (캐싱 지원)
  * 서비스ID: convenientInfo
  * 오퍼레이션ID: stationInfo
  */
 
-// 철도운영기관코드
-const RAIL_OPR_CODES: Record<string, string> = {
-  '1': 'S1', '2': 'S1', '3': 'S1', '4': 'S1',
-  '5': 'S1', '6': 'S1', '7': 'S1', '8': 'S1',
-  '9': 'S1',
-  '1001': 'S1', '1002': 'S1', '1003': 'S1', '1004': 'S1',
-  '1005': 'S1', '1006': 'S1', '1007': 'S1', '1008': 'S1',
-  '1009': 'S1',
-  '1077': 'NS', // 신분당선
-  '1085': 'KR', // 수인분당선
-  '1063': 'KR', // 경의중앙선
-  '1067': 'KR', // 경춘선
-  '1065': 'AP', // 공항철도
-  '1099': 'UI', // 의정부경전철
-  '1086': 'EV', // 에버라인 (용인경전철)
-  '1087': 'GC', // 김포골드라인
-  '1090': 'WS', // 서해선
-  '1061': 'IC', // 인천1호선
-  '1069': 'IC', // 인천2호선
-  '1092': 'UI', // 우이신설선
-  '1093': 'SL', // 신림선
-  '1081': 'KR', // 경강선
-  'S': 'NS', // 신분당선 (레거시)
-  'K': 'KR', // 경의중앙선 (레거시)
-  'A': 'AP', // 공항철도 (레거시)
-  'B': 'KR', // 분당선 (레거시)
-  'G': 'KR', // 경춘선 (레거시)
-  'U': 'UI', // 우이신설선 (레거시)
-  'W': 'WS', // 서해선 (레거시)
-};
+// 캐시 유효 시간 (초) - 1시간 (3600초)
+const CACHE_TTL = 3600;
 
-// 노선코드 매핑 (KRIC API 파라미터용)
-const LINE_CODES: Record<string, string> = {
-  '1': '1', '2': '2', '3': '3', '4': '4',
-  '5': '5', '6': '6', '7': '7', '8': '8', '9': '9',
-  '1001': '1', '1002': '2', '1003': '3', '1004': '4',
-  '1005': '5', '1006': '6', '1007': '7', '1008': '8',
-  '1009': '9',
-  '1077': 'D1', // 신분당선
-  '1085': 'B1', // 수인분당선
-  '1063': 'K1', // 경의중앙선
-  '1067': 'G1', // 경춘선
-  '1065': 'A1', // 공항철도
-  '1086': 'E1', // 에버라인
-  '1087': 'GP', // 김포골드라인
-  '1090': 'WE', // 서해선
-  '1061': 'I1', // 인천1호선
-  '1069': 'I2', // 인천2호선
-  '1092': 'UI', // 우이신설선
-  '1093': 'SL', // 신림선
-  '1081': 'KK', // 경강선
-  '1099': 'UJ', // 의정부경전철
-  'S': 'D1',
-  'K': 'K1',
-  'A': 'A1',
-  'B': 'B1',
-  'G': 'G1',
-  'U': 'UI',
-  'W': 'WE',
-};
-
-// ... imports
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const line = searchParams.get('line') || '1';
   const stationName = searchParams.get('station');
 
-  // KRIC_API_KEY를 우선 사용하되, 기존 STATION_INFO_API_KEY도 지원 (하위 호환성)
+  // API 키 확인
   const apiKey = process.env.KRIC_API_KEY ||
     process.env.NEXT_PUBLIC_KRIC_API_KEY ||
     process.env.STATION_INFO_API_KEY;
 
   if (!apiKey) {
-    console.error('[Station Info API] Error: No API Key found in environment variables');
+    console.error('[Station Info API] Error: No API Key found');
     return NextResponse.json(
-      { error: 'API 키가 설정되지 않았습니다. KRIC_API_KEY 환경변수를 확인하세요.' },
+      { error: 'API 키가 설정되지 않았습니다.' },
       { status: 500 }
     );
   }
@@ -90,7 +32,6 @@ export async function GET(request: NextRequest) {
     const railOprIsttCd = RAIL_OPR_CODES[line] || 'S1';
     const lnCd = LINE_CODES[line] || line;
 
-    // KRIC API 엔드포인트
     const baseUrl = 'https://openapi.kric.go.kr/openapi/convenientInfo/stationInfo';
     const params = new URLSearchParams({
       serviceKey: apiKey,
@@ -99,64 +40,102 @@ export async function GET(request: NextRequest) {
       lnCd,
     });
 
-    // 특정 역 검색 시 역명 파라미터 추가
     if (stationName) {
       params.append('stinNm', stationName);
     }
 
     const apiUrl = `${baseUrl}?${params.toString()}`;
-    console.log(`[Station Info API] Fetching: ${baseUrl}?serviceKey=***&format=JSON&railOprIsttCd=${railOprIsttCd}&lnCd=${lnCd}`);
 
+    // 로깅 (보안을 위해 API 키 마스킹)
+    console.log(`[Station Info API] Request: railOprIsttCd=${railOprIsttCd}, lnCd=${lnCd}, station=${stationName || 'ALL'}`);
+
+    // fetch with cache tags or revalidate
     const response = await fetch(apiUrl, {
       headers: {
         'Accept': 'application/json',
       },
-      cache: 'no-store',
+      next: {
+        revalidate: CACHE_TTL,
+        tags: ['kric-station-info', `station-${stationName || 'all'}`]
+      }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Station Info API] Upstream Error:', response.status, response.statusText, errorText);
+      console.error(`[Station Info API] Upstream Error (${line}):`, response.status, errorText);
+
+      // 500 에러 대신 success: false를 반환하여 클라이언트 측 중단 방지
       return NextResponse.json(
-        { error: `API 요청 실패: ${response.status}`, details: errorText },
-        { status: response.status }
+        {
+          success: false,
+          error: `KRIC API 요청 실패 (${response.status})`,
+          details: errorText,
+          fallback_data: true // 클라이언트에게 폴백 사용 권장
+        },
+        { status: 200 } // HTTP 상태 코드는 200으로 반환하여 Axios 500 에러 방지
       );
     }
 
     const textData = await response.text();
     let data;
     try {
+      if (textData.trim().startsWith('<')) {
+        // XML 또는 HTML 에러 페이지가 돌아온 경우
+        throw new Error('Invalid JSON format (received XML/HTML)');
+      }
       data = JSON.parse(textData);
     } catch (e) {
-      console.error('[Station Info API] JSON Parse Error:', e, 'Raw Data:', textData.substring(0, 200));
+      console.error(`[Station Info API] Data Format Error (${line}):`, e instanceof Error ? e.message : 'Unknown error');
       return NextResponse.json(
-        { error: 'API 응답 형식이 올바르지 않습니다.', details: textData.substring(0, 200) },
-        { status: 500 }
+        {
+          success: false,
+          error: 'API 응답 형식이 올바르지 않습니다.',
+          details: textData.substring(0, 200),
+          is_html_error: textData.trim().startsWith('<')
+        },
+        { status: 200 }
       );
     }
 
-    // KRIC API 내부 에러 체크
+    // KRIC API 결과 코드 체크
     if (data.header && data.header.resultCode !== '00') {
-      console.error('[Station Info API] KRIC Error:', data.header);
+      const isAuthError = ['10', '20', '30'].includes(data.header.resultCode);
+      console.error(`[Station Info API] KRIC Logic Error (${line}):`, data.header.resultMsg);
+
       return NextResponse.json(
-        { error: `KRIC API 오류: ${data.header.resultMsg}`, code: data.header.resultCode },
-        { status: 500 } // 또는 400
+        {
+          success: false,
+          error: `KRIC API 오류: ${data.header.resultMsg}`,
+          code: data.header.resultCode,
+          is_auth_error: isAuthError
+        },
+        { status: 200 }
       );
     }
 
+    // 결과 반환 (캐시 정보 포함)
     return NextResponse.json({
       success: true,
-      data: data.body || data,
+      data: data.body || [],
       line,
       railOprIsttCd,
       lnCd,
+      _metadata: {
+        cached_at: new Date().toISOString(),
+        ttl: CACHE_TTL,
+        count: Array.isArray(data.body) ? data.body.length : (data.body ? 1 : 0)
+      }
     });
 
   } catch (error) {
-    console.error('[Station Info API] Internal Error:', error);
+    console.error('[Station Info API] Internal Exception:', error);
     return NextResponse.json(
-      { error: '역사 정보를 가져오는 중 오류가 발생했습니다.', details: (error as Error).message },
-      { status: 500 }
+      {
+        success: false,
+        error: '서버 내부 오류가 발생했습니다.',
+        details: (error as Error).message
+      },
+      { status: 200 } // 안정성을 위해 200으로 반환
     );
   }
 }

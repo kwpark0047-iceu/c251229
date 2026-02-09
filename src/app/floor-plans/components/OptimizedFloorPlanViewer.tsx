@@ -288,19 +288,19 @@ export default function OptimizedFloorPlanViewer({
         {isLoading && (
           <div className="absolute inset-0 bg-[var(--bg-tertiary)]/80 backdrop-blur-sm flex items-center justify-center z-20">
             <div className="flex flex-col items-center gap-4">
-              <div className="w-10 h-10 border-4 border-[var(--metro-line2)]/20 border-t-[var(--metro-line2)] rounded-full animate-spin" />
-              <p className="text-sm font-bold text-[var(--text-secondary)] tracking-tight">도면 렌더링 최적화 중...</p>
+              <div id="loading-spinner" className="w-10 h-10 border-4 border-[var(--metro-line2)]/20 border-t-[var(--metro-line2)] rounded-full" />
+              <p className="text-sm font-bold text-[var(--text-secondary)] tracking-tight animate-pulse">도면 렌더링 최적화 중...</p>
             </div>
           </div>
         )}
 
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 text-[10px] text-white/60 font-medium flex items-center gap-2 pointer-events-none transition-opacity duration-300">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 text-[10px] text-white/60 font-medium flex items-center gap-2 pointer-events-none transition-opacity duration-300 animate-float-subtle">
           <Move className="w-3 h-3" />
           휠로 확대/축소하고 드래그하여 이동하세요
         </div>
 
         {!isLoading && imageRef.current && (
-          <div className="absolute bottom-6 right-6 w-32 h-32 bg-[var(--bg-secondary)]/80 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden group">
+          <div className="absolute bottom-6 right-6 w-32 h-32 glass-card-elevated border border-white/10 shadow-floating overflow-hidden group animate-float-subtle">
             <div className="relative w-full h-full p-2 opacity-60 group-hover:opacity-100 transition-opacity">
               <img
                 src={plan.imageUrl}
@@ -308,7 +308,7 @@ export default function OptimizedFloorPlanViewer({
                 className="w-full h-full object-contain pointer-events-none"
               />
               <div
-                className="absolute border-2 border-[var(--metro-line2)] bg-[var(--metro-line2)]/10 pointer-events-none"
+                className="absolute border-2 border-[var(--metro-line2)] bg-[var(--metro-line2)]/10 pointer-events-none transition-all duration-200"
                 style={{
                   left: `${Math.max(0, ((-pan.x / zoom) / (imageRef.current?.width || 1)) * 100 + 50 - (50 / zoom))}%`,
                   top: `${Math.max(0, ((-pan.y / zoom) / (imageRef.current?.height || 1)) * 100 + 50 - (50 / zoom))}%`,

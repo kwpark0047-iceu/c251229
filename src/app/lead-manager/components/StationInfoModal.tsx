@@ -27,7 +27,7 @@ export default function StationInfoModal({
     if (isOpen && stationName) {
       fetchStationInfo();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- 의존성 고정
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 의존성 고정
   }, [isOpen, stationName, selectedLine]);
 
   const fetchStationInfo = async () => {
@@ -87,6 +87,7 @@ export default function StationInfoModal({
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              title="닫기"
             >
               <X className="w-5 h-5 text-gray-500" />
             </button>
@@ -99,11 +100,10 @@ export default function StationInfoModal({
                 <button
                   key={line}
                   onClick={() => setSelectedLine(line)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                    selectedLine === line
-                      ? 'text-white shadow-md'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                  }`}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${selectedLine === line
+                    ? 'text-white shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
                   style={
                     selectedLine === line
                       ? { backgroundColor: LINE_COLORS[line] || '#666' }
@@ -129,10 +129,21 @@ export default function StationInfoModal({
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <AlertCircle className="w-12 h-12 text-amber-500 mb-3" />
-              <p className="text-gray-600 dark:text-gray-400 mb-2">{error}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                API 연결을 확인해주세요.
-              </p>
+              <p className="text-gray-900 dark:text-gray-100 font-bold mb-2">{error}</p>
+              {error.includes('인증') || error.includes('키') ? (
+                <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-xs text-amber-700 dark:text-amber-400 text-left border border-amber-200 dark:border-amber-800">
+                  <p className="font-bold mb-1">🛠️ 조치 방법:</p>
+                  <ul className="list-disc ml-4 space-y-1">
+                    <li><code className=".env.local">.env.local</code> 파일의 <code className="font-mono">KRIC_API_KEY</code>를 확인해 주세요.</li>
+                    <li>철도산업정보센터에서 발급받은 실제 서비스 키인지 대조가 필요합니다.</li>
+                    <li>현재 설정된 키가 해시 형태($2a$...)라면 잘못된 키일 가능성이 높습니다.</li>
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-500">
+                  네트워크 상태를 확인하거나 잠시 후 다시 시도해 주세요.
+                </p>
+              )}
             </div>
           ) : stationInfo ? (
             <div className="space-y-6">
