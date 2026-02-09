@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, MapPin, FileText, Loader2 } from 'lucide-react';
+import './TaskFormModal.css';
 import {
   Task,
   TaskType,
@@ -121,28 +122,17 @@ export default function TaskFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 백드롭 */}
       <div
-        className="absolute inset-0 backdrop-blur-md"
-        style={{ background: 'rgba(8, 8, 12, 0.8)' }}
+        className="absolute inset-0 backdrop-blur-md task-form-overlay"
         onClick={onClose}
       />
 
       {/* 모달 */}
       <div
-        className="relative w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto rounded-3xl border animate-fade-in-up"
-        style={{
-          background: 'var(--glass-bg)',
-          borderColor: 'var(--glass-border)',
-          boxShadow: '0 32px 64px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.05)',
-        }}
+        className="relative w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto rounded-3xl border animate-fade-in-up task-form-container"
       >
         {/* 헤더 */}
         <div
-          className="flex items-center justify-between px-8 py-5 border-b sticky top-0 z-20"
-          style={{
-            borderColor: 'var(--border-subtle)',
-            background: 'var(--glass-bg)',
-            backdropFilter: 'blur(20px)',
-          }}
+          className="flex items-center justify-between px-8 py-5 border-b sticky top-0 z-20 task-form-header"
         >
           <div>
             <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
@@ -220,11 +210,12 @@ export default function TaskFormModal({
           {/* 날짜/시간 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-2">
+              <label htmlFor="task-date" className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-2">
                 <Calendar className="w-4 h-4 text-[var(--metro-line3)]" />
                 날짜 <span className="text-red-400">*</span>
               </label>
               <input
+                id="task-date"
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -233,11 +224,12 @@ export default function TaskFormModal({
               />
             </div>
             <div>
-              <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-2">
+              <label htmlFor="task-time" className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-2">
                 <Clock className="w-4 h-4 text-[var(--metro-line5)]" />
                 시간
               </label>
               <input
+                id="task-time"
                 type="time"
                 value={formData.dueTime}
                 onChange={(e) => setFormData({ ...formData, dueTime: e.target.value })}
@@ -277,10 +269,11 @@ export default function TaskFormModal({
           {/* 상태 (편집 시에만) */}
           {task?.id && (
             <div>
-              <label className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
+              <label htmlFor="task-status" className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
                 상태
               </label>
               <select
+                id="task-status"
                 value={formData.status}
                 onChange={(e) =>
                   setFormData({ ...formData, status: e.target.value as TaskStatus })
@@ -365,6 +358,7 @@ export default function TaskFormModal({
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, leadId: '' })}
+                  title="연결 해제"
                   className="ml-auto text-[var(--text-muted)] hover:text-red-400"
                 >
                   <X className="w-4 h-4" />

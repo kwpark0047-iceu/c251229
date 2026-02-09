@@ -4,6 +4,7 @@
  */
 
 import ExcelJS from 'exceljs';
+import * as XLSX from 'xlsx';
 import { getSupabase } from '@/lib/supabase/utils';
 import {
   AdInventory,
@@ -27,26 +28,40 @@ import { getOrganizationId } from './auth-service';
  * @param defaultMediaType - 기본 매체 유형 (광고유형 컬럼이 없을 때 사용)
  */
 export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?: string): Promise<ExcelInventoryRow[]> {
-  const workbook = new ExcelJS.Workbook();
+  // 브라우저에서도 사용 가능하도록 Uint8Array로 체크
+  const uint8 = new Uint8Array(buffer.slice(0, 8));
 
-  // 브라우저에서도 사용 가능하도록 Uint8Array로 체크 (PK 상한: Zip 파일의 시작)
-  const uint8 = new Uint8Array(buffer.slice(0, 4));
-  if (uint8[0] !== 0x50 || uint8[1] !== 0x4B) {
-    throw new Error('올바른 .xlsx (Excel) 파일이 아닙니다. 파일이 손상되었거나 형식이 다릅니다.');
+  // .xlsx 매직 넘버 (PK...)
+  const isXlsx = uint8[0] === 0x50 && uint8[1] === 0x4B;
+  // .xls 매직 넘버 (D0 CF 11 E0...)
+  const isXls = uint8[0] === 0xD0 && uint8[1] === 0xCF && uint8[2] === 0x11 && uint8[3] === 0xE0;
+
+  if (!isXlsx && !isXls) {
+    throw new Error('올바른 Excel 파일(.xlsx 또는 .xls)이 아닙니다. 파일 형식을 확인해주세요.');
   }
 
-  await workbook.xlsx.load(buffer);
-  const worksheet = workbook.worksheets[0];
+  let rawData: any[][] = [];
 
-  // 전체 데이터를 배열로 변환 (ExcelJS row.values는 1-indexed이므로 0번째 요소 제거)
-  const rawData: unknown[][] = [];
-  worksheet.eachRow((row) => {
-    const values = row.values as unknown[];
-    // ExcelJS는 1-indexed 배열을 반환하므로 첫 번째 요소(undefined) 제거
-    rawData.push(values.slice(1));
-  });
+  if (isXlsx) {
+    // .xlsx 처리 (기존 ExcelJS 사용)
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const worksheet = workbook.worksheets[0];
 
-  // 디버그 로그 제거 (필요시 개발 환경에서만 활성화)
+    worksheet.eachRow((row) => {
+      const values = row.values as any[];
+      // ExcelJS는 1-indexed 배열을 반환하므로 첫 번째 요소(undefined) 제거
+      rawData.push(values.slice(1));
+    });
+  } else {
+    // .xls 처리 (SheetJS 사용)
+    const workbook = XLSX.read(buffer, { type: 'array' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+
+    // 이중 배열 형식으로 변환
+    rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+  }
 
   // 헤더 행 찾기 (역사, 유형, 위치명 등이 포함된 행)
   let headerRowIndex = -1;
@@ -627,7 +642,7 @@ export async function getFloorPlansForStation(
       supabase
         .from('floor_plans')
         .select('*')
-        .or(`station_name.eq.${cleanStationName},station_name.eq.${cleanStationName}역`)
+        .or(`station_name.ilike.${cleanStationName},station_name.ilike.${cleanStationName}역,station_name.ilike.${cleanStationName} (%,station_name.ilike.${cleanStationName}역 (%,station_name.ilike.${cleanStationName}%,station_name.ilike.${cleanStationName}역%`)
         .order('floor_name'),
       supabase
         .from('ad_inventory')

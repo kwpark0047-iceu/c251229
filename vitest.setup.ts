@@ -1,4 +1,24 @@
 import '@testing-library/jest-dom';
+import fs from 'fs';
+import path from 'path';
+
+// .env.local manually
+try {
+  const envPath = path.resolve(process.cwd(), '.env.local');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      const match = line.match(/^([^=]+)=(.*)$/);
+      if (match) {
+        const key = match[1].trim();
+        const value = match[2].trim().replace(/^["']|["']$/g, '');
+        process.env[key] = value;
+      }
+    });
+  }
+} catch (err) {
+  console.error('Failed to load .env.local manually:', err);
+}
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({

@@ -16,9 +16,11 @@ import {
   getRealtimeSubwayData,
   initializeSubwayData,
   useSubwayDataRefresh,
-  KRIC_LINE_COLORS
+  KRIC_LINE_COLORS,
+  getLineDisplayName as getKRICDisplayName
 } from '../kric-data-manager';
-import { generateSubwayRoutes, getLineDisplayName } from '../utils/subway-utils';
+import { generateSubwayRoutes } from '../utils/subway-utils';
+import './MapView.css';
 
 interface MapViewProps {
   leads: Lead[];
@@ -142,91 +144,6 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
         crossOrigin=""
       />
 
-      <style jsx global>{`
-        .leaflet-container {
-          height: calc(100vh - 280px);
-          min-height: 500px;
-          border-radius: 0.75rem;
-          z-index: 1;
-        }
-        
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          min-width: max-content;
-        }
-        .station-name {
-          font-size: 12px;
-          font-weight: 700;
-          color: #1e293b;
-          white-space: nowrap;
-        }
-        .line-badges {
-          display: flex;
-          gap: 2px;
-        }
-        .line-badge {
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 9px;
-          font-weight: bold;
-        }
-        .lead-tooltip {
-          background: white !important;
-          border: 1px solid #e2e8f0 !important;
-          border-radius: 6px !important;
-          padding: 4px 8px !important;
-          font-size: 12px !important;
-          font-weight: 600 !important;
-          color: #334155 !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
-          white-space: nowrap !important;
-        }
-        .station-tooltip {
-          background: rgba(255,255,255,0.95) !important;
-          border: 1px solid #cbd5e1 !important;
-          border-radius: 4px !important;
-          padding: 2px 6px !important;
-          font-size: 11px !important;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
-          white-space: nowrap !important;
-        }
-        .station-label {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-        .station-name-text {
-          font-weight: 600;
-          color: #1e293b;
-        }
-        .station-lines {
-          display: flex;
-          gap: 2px;
-        }
-        .station-line-badge {
-          width: 14px;
-          height: 14px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 8px;
-          font-weight: bold;
-        }
-        .lead-tooltip::before {
-          border-top-color: white !important;
-        }
-        .leaflet-tooltip-top:before {
-          border-top-color: #e2e8f0 !important;
-        }
-      `}</style>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <MapContainer
@@ -259,7 +176,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
           {subwayData?.routes && (
             Object.entries(subwayData.routes)
               .filter(([lineCode]) => {
-                const displayName = getLineDisplayName(lineCode);
+                const displayName = getKRICDisplayName(lineCode);
                 return visibleLines.includes(displayName);
               })
               .map(([lineCode, route]: [string, any]) => (
@@ -307,8 +224,8 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
       </div>
 
       {/* 범례 */}
-      <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-3 z-10">
-        <h4 className="text-sm font-semibold text-slate-700 mb-2">범례</h4>
+      <div className="absolute bottom-4 left-4 map-control-panel p-3 z-[1000]">
+        <h4 className="text-sm font-semibold text-slate-200 mb-2">범례</h4>
         <div className="space-y-1.5">
           {(['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as LeadStatus[]).map(status => (
             <div key={status} className="flex items-center gap-2 text-sm">
@@ -316,39 +233,41 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: getStatusColor(status) }}
               />
-              <span className="text-slate-600">{STATUS_LABELS[status]}</span>
+              <span className="text-slate-400">{STATUS_LABELS[status]}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* 노선 표시 토글 */}
-      <div className="absolute bottom-4 left-36 bg-white rounded-lg shadow-lg p-3 z-10 max-w-[calc(100%-10rem)] overflow-x-auto">
-        <h4 className="text-sm font-semibold text-slate-700 mb-2">노선 표시</h4>
+      <div className="absolute bottom-4 left-36 map-control-panel p-3 z-[1000] max-w-[calc(100%-10rem)] overflow-x-auto">
+        <h4 className="text-sm font-semibold text-slate-200 mb-2">노선 표시</h4>
         <div className="flex flex-wrap gap-1 min-w-max">
-          {subwayData?.routes && Object.entries(subwayData.routes).map(([lineCode, route]: [string, any]) => (
-            <button
-              key={lineCode}
-              onClick={() => {
-                setVisibleLines(prev =>
-                  prev.includes(lineCode)
-                    ? prev.filter(l => l !== lineCode)
-                    : [...prev, lineCode]
-                );
-              }}
-              className={`w-7 h-7 rounded-full text-[10px] font-bold flex items-center justify-center transition-all ${visibleLines.includes(lineCode)
-                ? 'text-white shadow-md'
-                : 'bg-gray-200 text-gray-500'
-                }`}
-              style={{
-                backgroundColor: visibleLines.includes(lineCode) ? route.color : undefined,
-                minWidth: '28px'
-              }}
-              title={getLineDisplayName(lineCode)}
-            >
-              {lineCode.length > 2 ? lineCode.substring(0, 1) : lineCode}
-            </button>
-          ))}
+          {subwayData?.routes && Object.entries(subwayData.routes).map(([lineCode, route]: [string, any]) => {
+            const displayName = getKRICDisplayName(lineCode);
+            return (
+              <button
+                key={lineCode}
+                onClick={() => {
+                  setVisibleLines(prev =>
+                    prev.includes(displayName)
+                      ? prev.filter(l => l !== displayName)
+                      : [...prev, displayName]
+                  );
+                }}
+                className={`w-7 h-7 rounded-full text-[10px] font-bold flex items-center justify-center transition-all ${visibleLines.includes(displayName)
+                  ? 'text-white shadow-md'
+                  : 'bg-slate-700 text-slate-400'
+                  }`}
+                style={{
+                  backgroundColor: visibleLines.includes(displayName) ? route.color : undefined
+                }}
+                title={displayName + '호선'}
+              >
+                {displayName}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -363,7 +282,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
       )}
 
       {/* 역사명 토글 */}
-      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-3 z-10">
+      <div className="absolute top-4 right-4 map-control-panel p-3 z-[1000]">
         <StationToggle
           showLabels={showStationLabels}
           onToggle={setShowStationLabels}
@@ -371,13 +290,13 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
       </div>
 
       {/* 통계 */}
-      <div className="absolute top-4 right-32 bg-white rounded-lg shadow-lg p-3 z-10">
-        <p className="text-sm text-slate-600">
-          지도 표시: <strong>{validLeads.length}</strong>건
+      <div className="absolute top-4 right-32 map-control-panel p-3 z-[1000]">
+        <p className="text-sm text-slate-300">
+          지도 표시: <strong className="text-white">{validLeads.length}</strong>건
         </p>
         {subwayData && (
-          <p className="text-sm text-slate-600">
-            지하철역: <strong>{subwayData.stations.length}</strong>개
+          <p className="text-sm text-slate-300">
+            지하철역: <strong className="text-white">{subwayData.stations.length}</strong>개
           </p>
         )}
       </div>
@@ -444,7 +363,8 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
       <select
         value={lead.status}
         onChange={(e) => onStatusChange(lead.id, e.target.value as LeadStatus)}
-        className="w-full text-sm px-2 py-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full text-sm px-2 py-1 border border-slate-700 bg-slate-800 text-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        title="리드 상태 변경"
       >
         {(['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as LeadStatus[]).map(status => (
           <option key={status} value={status}>

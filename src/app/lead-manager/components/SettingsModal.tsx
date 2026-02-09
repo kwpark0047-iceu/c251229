@@ -139,6 +139,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
             <select
               value={isPresetProxy ? formData.corsProxy : 'custom'}
               onChange={(e) => handleProxyChange(e.target.value)}
+              title="CORS 프록시 선택"
               className="metro-input mb-2"
             >
               {CORS_PROXIES.map(proxy => (

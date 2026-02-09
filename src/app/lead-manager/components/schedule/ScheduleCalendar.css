@@ -1,0 +1,22 @@
+.calendar-container {
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+}
+
+.calendar-header-border {
+    border-color: var(--border-subtle);
+}
+
+.calendar-accent-btn {
+    background: linear-gradient(135deg, var(--metro-line5) 0%, #7d4d91 100%) !important;
+    box-shadow: 0 4px 15px rgba(153, 108, 172, 0.3) !important;
+}
+
+.calendar-secondary-btn {
+    background: var(--bg-secondary) !important;
+    color: var(--text-secondary) !important;
+}
+
+.task-item-shadow {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}

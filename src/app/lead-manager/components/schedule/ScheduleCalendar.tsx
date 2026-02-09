@@ -16,6 +16,7 @@ import {
   CircleDot,
   Plus,
 } from 'lucide-react';
+import './ScheduleCalendar.css';
 import {
   CalendarEvent,
   TaskType,
@@ -154,16 +155,11 @@ export default function ScheduleCalendar({
 
   return (
     <div
-      className="rounded-2xl border overflow-hidden"
-      style={{
-        background: 'var(--glass-bg)',
-        borderColor: 'var(--glass-border)',
-      }}
+      className="rounded-2xl border overflow-hidden calendar-container"
     >
       {/* 헤더 */}
       <div
-        className="flex items-center justify-between px-6 py-4 border-b"
-        style={{ borderColor: 'var(--border-subtle)' }}
+        className="flex items-center justify-between px-6 py-4 border-b calendar-header-border"
       >
         <div className="flex items-center gap-4">
           <button
@@ -186,11 +182,7 @@ export default function ScheduleCalendar({
         </div>
         <button
           onClick={handleToday}
-          className="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-          style={{
-            background: 'var(--bg-secondary)',
-            color: 'var(--text-secondary)',
-          }}
+          className="px-4 py-2 text-sm font-medium rounded-lg transition-colors calendar-secondary-btn"
         >
           오늘
         </button>
@@ -198,8 +190,7 @@ export default function ScheduleCalendar({
 
       {/* 요일 헤더 */}
       <div
-        className="grid grid-cols-7 border-b"
-        style={{ borderColor: 'var(--border-subtle)' }}
+        className="grid grid-cols-7 border-b calendar-header-border"
       >
         {WEEKDAYS.map((day, index) => (
           <div
@@ -267,6 +258,7 @@ export default function ScheduleCalendar({
                         e.stopPropagation();
                         onAddTask(dateStr);
                       }}
+                      title="업무 추가"
                       className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--bg-tertiary)] transition-all"
                     >
                       <Plus className="w-4 h-4 text-[var(--text-muted)]" />

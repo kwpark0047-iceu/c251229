@@ -202,8 +202,8 @@ body {
 
 .glass-card-elevated {
   background: var(--bg-elevated);
-  backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-lg);
@@ -662,8 +662,8 @@ body {
 
 .header-blur {
   background: rgba(13, 13, 20, 0.7);
-  backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
   transition: var(--transition-ux);
 }
 

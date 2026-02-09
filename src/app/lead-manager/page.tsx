@@ -606,6 +606,7 @@ export default function LeadManagerPage() {
                     <Calendar className="w-4 h-4 text-[var(--metro-line5)]" />
                     <input
                       type="date"
+                      title="시작 날짜"
                       value={dateRange.start.toISOString().split('T')[0]}
                       onChange={(e) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))}
                       className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none"
@@ -613,6 +614,7 @@ export default function LeadManagerPage() {
                     <span className="text-[var(--text-muted)] text-xs">~</span>
                     <input
                       type="date"
+                      title="종료 날짜"
                       value={dateRange.end.toISOString().split('T')[0]}
                       onChange={(e) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))}
                       className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none"
@@ -774,7 +776,10 @@ export default function LeadManagerPage() {
                   </div>
 
                   {/* 모바일 검색 버튼 */}
-                  <button className="sm:hidden p-2.5 rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors">
+                  <button
+                    title="검색"
+                    className="sm:hidden p-2.5 rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                  >
                     <Search className="w-5 h-5" />
                   </button>
 
@@ -1086,6 +1091,7 @@ export default function LeadManagerPage() {
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
+                  title="이전 페이지"
                   className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] disabled:opacity-30 transition-colors"
                 >
                   <ChevronLeft className="w-5 h-5 text-[var(--text-secondary)]" />
@@ -1117,6 +1123,7 @@ export default function LeadManagerPage() {
                 <button
                   onClick={() => setCurrentPage(p => p + 1)}
                   disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
+                  title="다음 페이지"
                   className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] disabled:opacity-30 transition-colors"
                 >
                   <ChevronRight className="w-5 h-5 text-[var(--text-secondary)]" />

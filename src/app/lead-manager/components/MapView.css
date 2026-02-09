@@ -1,0 +1,133 @@
+/* MapView.css - Leaflet Map Styles with Antigravity Premium Design */
+
+.leaflet-container {
+    height: calc(100vh - 280px);
+    min-height: 500px;
+    border-radius: var(--radius-xl);
+    z-index: 1;
+    background: var(--bg-secondary) !important;
+}
+
+/* Custom Tooltips with "Antigravity" Design System */
+.lead-tooltip {
+    background: var(--bg-card) !important;
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    box-shadow: var(--shadow-lg) !important;
+    white-space: nowrap !important;
+    animation: float-subtle 4s ease-in-out infinite;
+}
+
+.lead-tooltip::before {
+    border-top-color: var(--glass-border) !important;
+}
+
+.station-tooltip {
+    background: rgba(18, 18, 26, 0.85) !important;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    color: var(--text-secondary) !important;
+    box-shadow: var(--shadow-sm) !important;
+    white-space: nowrap !important;
+}
+
+/* Subway Station Label Styling */
+.station-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.station-name-text {
+    font-weight: 700;
+    color: var(--text-primary);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.station-lines {
+    display: flex;
+    gap: 2px;
+}
+
+.station-line-badge {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 8px;
+    font-weight: bold;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* Legend and Controls */
+.map-control-panel {
+    background: var(--bg-card);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-premium);
+    transition: var(--transition-base);
+}
+
+.map-control-panel:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-medium);
+}
+
+/* Animations from globals.css integration */
+@keyframes float-subtle {
+
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+/* Leaflet Overrides for Dark Mode */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    background: var(--bg-elevated) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-subtle);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+    background: var(--bg-elevated) !important;
+}
+
+.map-bg-grid {
+    background-image: linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+.text-muted-color {
+    color: var(--text-muted) !important;
+}

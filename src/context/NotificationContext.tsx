@@ -111,6 +111,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
                             <button
                                 onClick={() => removeToast(n.id)}
+                                title="알림 닫기"
                                 className="p-1 hover:bg-white/20 rounded-lg transition-colors"
                             >
                                 <X className="w-4 h-4 text-white/70" />

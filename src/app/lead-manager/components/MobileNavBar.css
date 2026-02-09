@@ -1,0 +1,21 @@
+.mobile-nav-container {
+    background: var(--glass-bg);
+    border-color: var(--border-subtle);
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+.mobile-nav-indicator {
+    width: calc(100% / 5);
+}
+
+.mobile-nav-map-btn {
+    background: linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%);
+}
+
+.mobile-nav-map-btn-glow {
+    box-shadow: var(--glow-green) !important;
+}
+
+.mobile-nav-map-btn-shadow {
+    box-shadow: 0 8px 25px rgba(60, 181, 74, 0.4) !important;
+}

@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { Users, Package, Calendar, Map, Settings } from 'lucide-react';
+import './MobileNavBar.css';
 
 type MainTab = 'leads' | 'inventory' | 'schedule';
 
@@ -27,19 +28,13 @@ export default function MobileNavBar({
 }: MobileNavBarProps) {
     return (
         <div
-            className={`md:hidden fixed bottom-0 left-0 right-0 z-50 px-6 py-2 border-t backdrop-blur-xl ${className}`}
-            style={{
-                background: 'var(--glass-bg)',
-                borderColor: 'var(--border-subtle)',
-                paddingBottom: 'calc(8px + env(safe-area-inset-bottom))'
-            }}
+            className={`md:hidden fixed bottom-0 left-0 right-0 z-50 px-6 py-2 border-t backdrop-blur-xl mobile-nav-container ${className}`}
         >
             <div className="relative flex items-center justify-between max-w-sm mx-auto">
                 {/* 슬라이딩 인디케이터 */}
                 <div
-                    className="absolute h-full rounded-xl bg-[var(--bg-tertiary)] -z-10 transition-all duration-300 ease-out sm:hidden"
+                    className="absolute h-full rounded-xl bg-[var(--bg-tertiary)] -z-10 transition-all duration-300 ease-out sm:hidden mobile-nav-indicator"
                     style={{
-                        width: 'calc(100% / 5)',
                         left: activeTab === 'leads' ? '0%' :
                             activeTab === 'inventory' ? '20%' :
                                 activeTab === 'map' ? '40%' :
@@ -62,11 +57,7 @@ export default function MobileNavBar({
                 <button
                     onClick={() => onViewModeChange?.('map')}
                     title="지도 보기"
-                    className="relative -top-6 p-4 rounded-full shadow-lg transition-all duration-500 hover:scale-110 active:scale-95 group animate-float"
-                    style={{
-                        background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                        boxShadow: activeTab === 'map' ? 'var(--glow-green)' : '0 8px 25px rgba(60, 181, 74, 0.4)'
-                    }}
+                    className={`relative -top-6 p-4 rounded-full shadow-lg transition-all duration-500 hover:scale-110 active:scale-95 group animate-float mobile-nav-map-btn ${activeTab === 'map' ? 'mobile-nav-map-btn-glow' : 'mobile-nav-map-btn-shadow'}`}
                 >
                     <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity blur-md" />
                     <Map className={`w-6 h-6 text-white relative z-10 ${activeTab === 'map' ? 'scale-110' : ''} transition-transform`} />

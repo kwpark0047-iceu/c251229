@@ -20,6 +20,7 @@ import {
   MapPin,
   Loader2,
 } from 'lucide-react';
+import './TaskBoard.css';
 import {
   TaskWithLead,
   TaskType,
@@ -140,7 +141,7 @@ function TaskCard({
                   {col.label}로 변경
                 </button>
               ))}
-              <hr style={{ borderColor: 'var(--border-subtle)' }} className="my-1" />
+              <hr className="my-1 task-board-border-subtle" />
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -287,6 +288,7 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
             setFilter({ ...filter, taskType: (e.target.value || undefined) as TaskType | undefined })
           }
           className="metro-input !w-auto"
+          title="업무 유형 필터"
         >
           <option value="">전체 유형</option>
           {Object.entries(TASK_TYPE_LABELS).map(([key, label]) => (
@@ -301,6 +303,7 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
             setFilter({ ...filter, priority: (e.target.value || undefined) as TaskPriority | undefined })
           }
           className="metro-input !w-auto"
+          title="우선순위 필터"
         >
           <option value="">전체 우선순위</option>
           {Object.entries(TASK_PRIORITY_LABELS).map(([key, label]) => (

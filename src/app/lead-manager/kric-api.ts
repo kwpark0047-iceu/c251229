@@ -310,6 +310,31 @@ export async function fetchAllSeoulStationInfo(
   }
 }
 
+import proj4 from 'proj4';
+
+// proj4 ESM/CJS 호환성 처리
+const getProj4 = () => {
+  // console.log('DEBUG [getProj4]: proj4 value:', proj4);
+  if (typeof proj4 === 'function') return proj4;
+  if (proj4 && (proj4 as any).default && typeof (proj4 as any).default === 'function') {
+    return (proj4 as any).default;
+  }
+  // Try to use globally or locally if available
+  try {
+    const p = require('proj4');
+    if (typeof p === 'function') return p;
+    if (p.default && typeof p.default === 'function') return p.default;
+  } catch (e) {
+    // ignore
+  }
+  return proj4;
+};
+
+// TM128 (EPSG:5181) 및 WGS84 (EPSG:4326) 정의
+// 한국 중부원점 (GRS80)
+const TM128 = '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs';
+const WGS84 = 'EPSG:4326';
+
 /**
  * KRIC 좌표를 WGS84 좌표로 변환
  * KRIC API는 TM128 좌표계를 사용
@@ -318,17 +343,39 @@ export async function fetchAllSeoulStationInfo(
  * @returns WGS84 좌표 [lat, lng]
  */
 export function convertKRICToWGS84(xcrd: string, ycrd: string): [number, number] {
-  // TM128에서 WGS84로 변환하는 공식
-  // 실제 프로젝트에서는 proj4 라이브러리 사용 권장
-  const x = parseFloat(xcrd);
-  const y = parseFloat(ycrd);
+  if (!xcrd || !ycrd) {
+    console.warn('Empty coordinates provided to convertKRICToWGS84');
+    return [0, 0];
+  }
 
-  // 임시 변환 (실제로는 정확한 좌표 변환 필요)
-  // 이 부분은 실제 테스트 후 정확한 변환 공식으로 교체 필요
-  const lat = y * 0.000089 - 0.0003;
-  const lng = x * 0.000089 + 0.0003;
+  try {
+    const x = parseFloat(xcrd);
+    const y = parseFloat(ycrd);
 
-  return [lat, lng];
+    if (isNaN(x) || isNaN(y)) {
+      console.warn(`Invalid coordinates provided: x=${xcrd}, y=${ycrd}`);
+      return [0, 0];
+    }
+
+    // proj4를 이용한 정밀 변환
+    const p4 = getProj4();
+    if (typeof p4 !== 'function') {
+      return [0, 0];
+    }
+
+    const result = p4(TM128, WGS84, [x, y]);
+
+    if (!result || !Array.isArray(result)) {
+      console.error('proj4 returned invalid result:', result);
+      return [0, 0];
+    }
+
+    const [lng, lat] = result;
+    return [lat, lng];
+  } catch (error) {
+    console.error('Coordinate conversion failed:', error);
+    return [0, 0];
+  }
 }
 
 /**

@@ -1,0 +1,19 @@
+.bg-orb-green {
+    background: radial-gradient(circle, var(--metro-line2) 0%, transparent 70%);
+    filter: blur(80px);
+}
+
+.bg-orb-blue {
+    background: radial-gradient(circle, var(--metro-line4) 0%, transparent 70%);
+    filter: blur(100px);
+}
+
+.bg-orb-purple {
+    background: radial-gradient(circle, var(--metro-line5) 0%, transparent 70%);
+    filter: blur(120px);
+}
+
+.bg-metro-pattern {
+    background-image: linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+    background-size: 60px 60px;
+}

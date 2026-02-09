@@ -1,0 +1,7 @@
+.task-board-card-shadow {
+    box-shadow: var(--shadow-sm);
+}
+
+.task-board-border-subtle {
+    border-color: var(--border-subtle);
+}
