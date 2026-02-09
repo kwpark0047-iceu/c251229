@@ -24,7 +24,7 @@ import { downloadFloorPlanImage } from './storage-service';
 
 import LineSelector from './components/LineSelector';
 import StationList from './components/StationList';
-import FloorPlanViewer from './components/FloorPlanViewer';
+import FloorPlanViewer from './components/OptimizedFloorPlanViewer';
 import AdPositionDetail from './components/AdPositionDetail';
 import BatchDownloadModal from './components/BatchDownloadModal';
 import FloorPlanUploadModal from './components/FloorPlanUploadModal';

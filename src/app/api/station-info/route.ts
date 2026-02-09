@@ -59,6 +59,7 @@ const LINE_CODES: Record<string, string> = {
   'W': 'WE',
 };
 
+// ... imports
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const line = searchParams.get('line') || '1';
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
   if (!apiKey) {
     console.error('[Station Info API] Error: No API Key found in environment variables');
     return NextResponse.json(
-      { error: 'API 키가 설정되지 않았습니다. KRIC_API_KEY 또는 STATION_INFO_API_KEY 환경변수를 확인하세요.' },
+      { error: 'API 키가 설정되지 않았습니다. KRIC_API_KEY 환경변수를 확인하세요.' },
       { status: 500 }
     );
   }
@@ -95,7 +96,10 @@ export async function GET(request: NextRequest) {
       params.append('stinNm', stationName);
     }
 
-    const response = await fetch(`${baseUrl}?${params.toString()}`, {
+    const apiUrl = `${baseUrl}?${params.toString()}`;
+    console.log(`[Station Info API] Fetching: ${baseUrl}?serviceKey=***&format=JSON&railOprIsttCd=${railOprIsttCd}&lnCd=${lnCd}`);
+
+    const response = await fetch(apiUrl, {
       headers: {
         'Accept': 'application/json',
       },
@@ -103,14 +107,34 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error('[Station Info API] Error:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('[Station Info API] Upstream Error:', response.status, response.statusText, errorText);
       return NextResponse.json(
-        { error: `API 요청 실패: ${response.status}` },
+        { error: `API 요청 실패: ${response.status}`, details: errorText },
         { status: response.status }
       );
     }
 
-    const data = await response.json();
+    const textData = await response.text();
+    let data;
+    try {
+      data = JSON.parse(textData);
+    } catch (e) {
+      console.error('[Station Info API] JSON Parse Error:', e, 'Raw Data:', textData.substring(0, 200));
+      return NextResponse.json(
+        { error: 'API 응답 형식이 올바르지 않습니다.', details: textData.substring(0, 200) },
+        { status: 500 }
+      );
+    }
+
+    // KRIC API 내부 에러 체크
+    if (data.header && data.header.resultCode !== '00') {
+      console.error('[Station Info API] KRIC Error:', data.header);
+      return NextResponse.json(
+        { error: `KRIC API 오류: ${data.header.resultMsg}`, code: data.header.resultCode },
+        { status: 500 } // 또는 400
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -121,9 +145,9 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Station Info API] Error:', error);
+    console.error('[Station Info API] Internal Error:', error);
     return NextResponse.json(
-      { error: '역사 정보를 가져오는 중 오류가 발생했습니다.' },
+      { error: '역사 정보를 가져오는 중 오류가 발생했습니다.', details: (error as Error).message },
       { status: 500 }
     );
   }

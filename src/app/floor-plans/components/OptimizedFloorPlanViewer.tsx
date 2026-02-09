@@ -14,13 +14,15 @@ import {
   RotateCcw,
   Maximize2,
   MapPin,
-  Move
+  Move,
+  Download
 } from 'lucide-react';
 
 interface FloorPlanViewerProps {
   plan: FloorPlan | null;
   adPositions?: AdPosition[];
   onPositionClick?: (position: AdPosition) => void;
+  onDownload?: (plan: FloorPlan) => void;
   className?: string;
 }
 
@@ -28,6 +30,7 @@ export default function OptimizedFloorPlanViewer({
   plan,
   adPositions = [],
   onPositionClick,
+  onDownload,
   className,
 }: FloorPlanViewerProps) {
   const [zoom, setZoom] = useState(1);
@@ -254,6 +257,19 @@ export default function OptimizedFloorPlanViewer({
           <button onClick={toggleFullscreen} className="p-2 rounded-xl hover:bg-white/5 transition-colors group" title="전체화면">
             <Maximize2 className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
           </button>
+
+          {onDownload && (
+            <>
+              <div className="w-px h-4 bg-white/10 mx-1" />
+              <button
+                onClick={() => onDownload(plan)}
+                className="p-2 rounded-xl hover:bg-white/5 transition-colors group"
+                title="다운로드"
+              >
+                <Download className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
