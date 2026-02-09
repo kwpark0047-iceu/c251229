@@ -166,7 +166,9 @@ export async function fetchSubwayRouteInfo(
     });
 
     if (!response.data.success) {
-      throw new Error(response.data.error || 'API call failed');
+      // API 호출 실패 시 빈 배열 반환 (지원되지 않는 노선일 수 있음)
+      console.warn(`API returned failure for line ${lineCode}: ${response.data.error}`);
+      return [];
     }
 
     const proxyData = response.data.data;
@@ -175,12 +177,15 @@ export async function fetchSubwayRouteInfo(
 
     const result = Array.isArray(items) ? items : [items];
     if (result.length === 0) {
-      throw new Error(`No data found for line ${lineCode}`);
+      // 데이터가 없으면 빈 배열 반환 (KRIC에서 지원되지 않는 노선)
+      console.warn(`No data found for line ${lineCode} - this line may not be supported by KRIC API`);
+      return [];
     }
     return result;
   } catch (error) {
     console.error(`Failed to fetch subway route info for line ${lineCode}:`, error);
-    throw error; // Throw so validator can catch it
+    // 에러 발생 시에도 빈 배열 반환하여 다른 노선 데이터 로딩에 영향 없도록 함
+    return [];
   }
 }
 
