@@ -169,16 +169,18 @@ export async function fetchSubwayRouteInfo(
       throw new Error(response.data.error || 'API call failed');
     }
 
-    // Proxy returns { success: true, data: { body: { items: { item: [] } } } }
     const proxyData = response.data.data;
     const body = proxyData?.body || proxyData;
     const items = body?.items?.item || [];
 
-    return Array.isArray(items) ? items : [items];
+    const result = Array.isArray(items) ? items : [items];
+    if (result.length === 0) {
+      throw new Error(`No data found for line ${lineCode}`);
+    }
+    return result;
   } catch (error) {
     console.error(`Failed to fetch subway route info for line ${lineCode}:`, error);
-    // 빈 배열 반환하여 UI 중단 방지
-    return [];
+    throw error; // Throw so validator can catch it
   }
 }
 
@@ -489,8 +491,8 @@ export function generateLineRoutes(
  */
 export async function validateServiceKey(serviceKey: string): Promise<boolean> {
   try {
-    await fetchSubwayRouteInfo(serviceKey, AREA_CODES.SEOUL, LINE_CODES.LINE_1);
-    return true;
+    const info = await fetchSubwayRouteInfo(serviceKey, AREA_CODES.SEOUL, LINE_CODES.LINE_1);
+    return info && info.length > 0;
   } catch (error) {
     return false;
   }

@@ -154,6 +154,7 @@ export default function TaskFormModal({
           </div>
           <button
             onClick={onClose}
+            title="닫기"
             className="p-2 rounded-xl hover:bg-white/10 transition-all hover:rotate-90"
           >
             <X className="w-6 h-6 text-[var(--text-muted)]" />
@@ -175,9 +176,10 @@ export default function TaskFormModal({
                     key={type}
                     type="button"
                     onClick={() => setFormData({ ...formData, taskType: type })}
+                    title={label}
                     className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${formData.taskType === type
-                        ? 'border-[var(--metro-line4)] bg-[var(--metro-line4)]/10 text-[var(--metro-line4)]'
-                        : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                      ? 'border-[var(--metro-line4)] bg-[var(--metro-line4)]/10 text-[var(--metro-line4)]'
+                      : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                       }`}
                   >
                     {label}
@@ -257,12 +259,12 @@ export default function TaskFormModal({
                     type="button"
                     onClick={() => setFormData({ ...formData, priority })}
                     className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${formData.priority === priority
-                        ? priority === 'URGENT'
-                          ? 'border-red-400 bg-red-400/10 text-red-400'
-                          : priority === 'HIGH'
-                            ? 'border-orange-400 bg-orange-400/10 text-orange-400'
-                            : 'border-[var(--metro-line4)] bg-[var(--metro-line4)]/10 text-[var(--metro-line4)]'
-                        : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                      ? priority === 'URGENT'
+                        ? 'border-red-400 bg-red-400/10 text-red-400'
+                        : priority === 'HIGH'
+                          ? 'border-orange-400 bg-orange-400/10 text-orange-400'
+                          : 'border-[var(--metro-line4)] bg-[var(--metro-line4)]/10 text-[var(--metro-line4)]'
+                      : 'border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                       }`}
                   >
                     {label}
@@ -341,8 +343,8 @@ export default function TaskFormModal({
                       setSearchQuery(lead.bizName);
                     }}
                     className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-tertiary)] transition-colors ${formData.leadId === lead.id
-                        ? 'bg-[var(--metro-line4)]/10 text-[var(--metro-line4)]'
-                        : 'text-[var(--text-secondary)]'
+                      ? 'bg-[var(--metro-line4)]/10 text-[var(--metro-line4)]'
+                      : 'text-[var(--text-secondary)]'
                       }`}
                   >
                     <div className="font-medium">{lead.bizName}</div>

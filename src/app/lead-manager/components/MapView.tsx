@@ -258,7 +258,10 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
           {/* 지하철 노선 */}
           {subwayData?.routes && (
             Object.entries(subwayData.routes)
-              .filter(([lineCode]) => visibleLines.includes(lineCode)) // lineCode 자체를 사용
+              .filter(([lineCode]) => {
+                const displayName = getLineDisplayName(lineCode);
+                return visibleLines.includes(displayName);
+              })
               .map(([lineCode, route]: [string, any]) => (
                 <Polyline
                   key={lineCode}

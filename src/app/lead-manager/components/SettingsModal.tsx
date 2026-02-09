@@ -102,6 +102,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
           </div>
           <button
             onClick={onClose}
+            title="닫기"
             className="p-2.5 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
           >
             <X className="w-5 h-5 text-[var(--text-muted)]" />
@@ -224,6 +225,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
             <select
               value={formData.regionCode}
               onChange={(e) => setFormData({ ...formData, regionCode: e.target.value })}
+              title="지역 선택"
               className="metro-input"
             >
               {Object.entries(REGION_CODES).map(([code, name]) => (
@@ -245,6 +247,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                 type="button"
                 onClick={handleRemoveDuplicates}
                 disabled={isRemovingDuplicates}
+                title="중복 리드 삭제"
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium transition-all duration-300 hover:bg-red-500/10 disabled:opacity-50"
                 style={{
                   borderColor: 'rgba(239, 68, 68, 0.3)',

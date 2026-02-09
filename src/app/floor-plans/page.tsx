@@ -70,13 +70,15 @@ export default function FloorPlansPage() {
       const data = await getFloorPlansByLine(selectedLine);
       setPlans(data);
 
-      // 첫 번째 도면 자동 선택
-      if (data.length > 0 && !selectedPlan) {
-        setSelectedPlan(data[0]);
-      } else if (data.length > 0) {
-        // 같은 노선의 도면이 있는지 확인
+      // 첫 번째 도면 자동 선택 또는 기존 선택 유지
+      if (data.length > 0) {
+        // 이미 선택된 도면이 이 노선에 있는지 확인
         const samePlan = data.find(p => p.id === selectedPlan?.id);
-        if (!samePlan) {
+        if (samePlan) {
+          // 이미 같은 도면이 로드되어 있으므로 아무것도 하지 않음 (또는 최신 데이터로 업데이트)
+          setSelectedPlan(samePlan);
+        } else {
+          // 노선이 바뀌었거나 선택된 도면이 없으면 첫 번째 도면 선택
           setSelectedPlan(data[0]);
         }
       } else {
@@ -88,7 +90,7 @@ export default function FloorPlansPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedLine, selectedPlan]);
+  }, [selectedLine]); // selectedPlan을 의존성에서 제거하여 무한 루프 방지
 
   // 광고 위치 로드
   const loadAdPositions = useCallback(async () => {

@@ -46,6 +46,8 @@ interface StatsDashboardProps {
   leads: Lead[];
   isExpanded?: boolean;
   onToggle?: () => void;
+  onStatusFilter?: (status: LeadStatus | 'ALL') => void;
+  currentStatusFilter?: LeadStatus | 'ALL';
 }
 
 // 상태별 색상
@@ -102,7 +104,7 @@ function CustomTooltip({ active, payload, label }: any) {
   return null;
 }
 
-export default function StatsDashboard({ leads, isExpanded = false, onToggle }: StatsDashboardProps) {
+export default function StatsDashboard({ leads, isExpanded = false, onToggle, onStatusFilter, currentStatusFilter }: StatsDashboardProps) {
   const [activeChart, setActiveChart] = useState<'status' | 'trend' | 'line' | 'funnel' | 'category'>('status');
   const [extendedStats, setExtendedStats] = useState<any>(null);
 
@@ -247,16 +249,35 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle }: 
               <p className="text-xs text-[var(--text-muted)]">Real-time Sales Performance & Lead Analytics</p>
             </div>
           </div>
-          <button onClick={onToggle} className="p-2 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all">
+          <button onClick={onToggle} title="대시보드 접기" className="p-2 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all">
             <ChevronUp className="w-5 h-5" />
           </button>
         </div>
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <MetricCard icon={Users} label="전체 리드 수" value={metrics.total} color="var(--metro-line2)" />
-          <MetricCard icon={PieChartIcon} label="제안서 열람률" value={`${metrics.viewRate.toFixed(1)}%`} color="var(--metro-line4)" />
-          <MetricCard icon={Target} label="계약 전환율" value={`${metrics.closingRate.toFixed(1)}%`} color="var(--metro-line3)" />
+          <MetricCard
+            icon={Users}
+            label="전체 리드 수"
+            value={metrics.total}
+            color="var(--metro-line2)"
+            onClick={() => onStatusFilter?.('ALL')}
+            isActive={currentStatusFilter === 'ALL'}
+          />
+          <MetricCard
+            icon={PieChartIcon}
+            label="제안서 열람률"
+            value={`${metrics.viewRate.toFixed(1)}%`}
+            color="var(--metro-line4)"
+          />
+          <MetricCard
+            icon={Target}
+            label="계약 전환율"
+            value={`${metrics.closingRate.toFixed(1)}%`}
+            color="var(--metro-line3)"
+            onClick={() => onStatusFilter?.('CONTRACTED')}
+            isActive={currentStatusFilter === 'CONTRACTED'}
+          />
           <MetricCard icon={Calendar} label="이번 주 신규" value={metrics.thisWeekLeads} change={metrics.weeklyChange} color="var(--metro-line5)" />
         </div>
 
@@ -295,7 +316,13 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle }: 
                       dataKey="value"
                     >
                       {statusStats.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.color}
+                          stroke="none"
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => onStatusFilter?.(entry.status)}
+                        />
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
@@ -382,12 +409,21 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle }: 
 }
 
 function MetricCard({
-  icon: Icon, label, value, color, change
+  icon: Icon, label, value, color, change, onClick, isActive
 }: {
-  icon: any, label: string, value: any, color: string, change?: number
+  icon: any, label: string, value: any, color: string, change?: number, onClick?: () => void, isActive?: boolean
 }) {
+  const isClickable = !!onClick;
+
   return (
-    <div className="p-5 rounded-2xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-[var(--text-muted)] transition-all">
+    <button
+      onClick={onClick}
+      disabled={!isClickable}
+      className={`p-5 rounded-2xl bg-[var(--bg-tertiary)] border transition-all text-left w-full
+        ${isClickable ? 'cursor-pointer hover:border-[var(--text-muted)] hover:translate-y-[-4px]' : 'cursor-default'}
+        ${isActive ? 'border-[var(--metro-line4)] shadow-lg ring-1 ring-[var(--metro-line4)]/30' : 'border-[var(--border-subtle)]'}
+      `}
+    >
       <div className="flex items-center justify-between mb-4">
         <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${color}15` }}>
           <Icon className="w-5 h-5" style={{ color }} />
@@ -403,6 +439,6 @@ function MetricCard({
         <p className="text-2xl font-black text-[var(--text-primary)] tracking-tight mb-1">{value}</p>
         <p className="text-xs font-medium text-[var(--text-muted)]">{label}</p>
       </div>
-    </div>
+    </button>
   );
 }

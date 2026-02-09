@@ -627,12 +627,12 @@ export async function getFloorPlansForStation(
       supabase
         .from('floor_plans')
         .select('*')
-        .eq('station_name', cleanStationName)
+        .or(`station_name.eq.${cleanStationName},station_name.eq.${cleanStationName}역`)
         .order('floor_name'),
       supabase
         .from('ad_inventory')
         .select('floor_plan_url, station_name, location_code')
-        .eq('station_name', cleanStationName)
+        .or(`station_name.eq.${cleanStationName},station_name.eq.${cleanStationName}역`)
         .not('floor_plan_url', 'is', null)
     ]);
 

@@ -287,7 +287,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             <h2 className="text-xl font-bold text-[var(--text-primary)]">광고 제안서 작성</h2>
             <p className="text-sm text-[var(--text-muted)]">{lead.bizName}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
+          <button onClick={onClose} title="닫기" className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
             <X className="w-5 h-5 text-[var(--text-muted)]" />
           </button>
         </div>
@@ -328,6 +328,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             <select
               value={selectedStation?.name || ''}
               onChange={(e) => handleStationChange(e.target.value)}
+              title="역사 선택"
               className="w-full px-4 py-3 rounded-xl border text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)]"
               style={{
                 background: 'var(--bg-secondary)',

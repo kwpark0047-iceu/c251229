@@ -337,6 +337,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
             className="text-sm font-medium hover:underline transition-colors"
             style={{ color: 'var(--metro-line4)' }}
             onClick={(e) => e.stopPropagation()}
+            title="전화 걸기"
           >
             <HighlightText text={formatPhoneNumber(lead.phone)} searchQuery={searchQuery} />
           </a>
@@ -378,6 +379,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
             onStatusChange(lead.id, e.target.value as LeadStatus);
           }}
           onClick={(e) => e.stopPropagation()}
+          title="상태 변경"
           className="text-sm px-3 py-1.5 rounded-lg border font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)] appearance-none"
           style={{
             background: statusColor.bg,

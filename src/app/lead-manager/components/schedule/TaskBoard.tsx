@@ -111,6 +111,7 @@ function TaskCard({
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
+            title="상태 변경 메뉴"
             className="p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
           >
             <MoreVertical className="w-4 h-4 text-[var(--text-muted)]" />
@@ -131,6 +132,7 @@ function TaskCard({
                     onStatusChange(col.status);
                     setShowMenu(false);
                   }}
+                  title={`${col.label} 상태로 변경`}
                   className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-secondary)] transition-colors flex items-center gap-2"
                   style={{ color: 'var(--text-secondary)' }}
                 >

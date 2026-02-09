@@ -139,6 +139,31 @@ export default function LeadManagerPage() {
   });
 
   // 지역 코드 매핑
+  const [isScrolled, setIsScrolled] = useState(false);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+  // 스크롤 감지
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // 단축키 설정
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // '/' 키 입력 시 검색창 포커스 (input/textarea 제외)
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const REGION_OPTIONS = [
     { code: '6110000', name: '서울', color: 'var(--metro-line1)' },
     { code: '6410000', name: '경기', color: 'var(--metro-line3)' },
@@ -430,7 +455,7 @@ export default function LeadManagerPage() {
       <BackgroundEffect />
 
       {/* 헤더 */}
-      <header className="glass-card border-b border-[var(--glass-border)] sticky top-0 z-40 backdrop-blur-xl bg-[var(--bg-primary)]/80">
+      <header className={`header-blur border-b border-[var(--glass-border)] sticky top-0 z-40 backdrop-blur-xl transition-all duration-300 ${isScrolled ? 'header-scrolled bg-[var(--bg-primary)]/95 h-14' : 'h-16 bg-[var(--bg-primary)]/80'}`}>
         {/* 상단 헤더: 로고 + 탭 + 사용자 */}
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="flex items-center justify-between h-16">
@@ -501,6 +526,7 @@ export default function LeadManagerPage() {
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
+                  title="사용자 메뉴"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
                 >
                   <div
@@ -547,7 +573,7 @@ export default function LeadManagerPage() {
                           <code className="flex-1 text-xs font-mono bg-[var(--bg-secondary)] text-[var(--metro-line2)] px-2.5 py-1.5 rounded-lg">
                             {userInfo.inviteCode}
                           </code>
-                          <button onClick={copyInviteCode} className="p-1.5 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors">
+                          <button onClick={copyInviteCode} title="초대 코드 복사" className="p-1.5 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors">
                             {copiedInviteCode ? <Check className="w-3.5 h-3.5 text-[var(--metro-line2)]" /> : <Copy className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
                           </button>
                         </div>
@@ -592,10 +618,10 @@ export default function LeadManagerPage() {
                       className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none"
                     />
                     <div className="flex border-l border-[var(--border-subtle)] pl-2 ml-1">
-                      <button onClick={() => moveDate(-30)} className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors">
+                      <button onClick={() => moveDate(-30)} title="이전 달" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors">
                         <ChevronLeft className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                       </button>
-                      <button onClick={() => moveDate(30)} className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors">
+                      <button onClick={() => moveDate(30)} title="다음 달" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors">
                         <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                       </button>
                     </div>
@@ -649,6 +675,7 @@ export default function LeadManagerPage() {
                     <button
                       key={mode}
                       onClick={() => setViewMode(mode)}
+                      title={`${mode === 'grid' ? '그리드' : mode === 'list' ? '리스트' : '지도'} 보기`}
                       className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                         }`}
                       style={viewMode === mode ? { background: color } : {}}
@@ -722,6 +749,8 @@ export default function LeadManagerPage() {
               leads={leads}
               isExpanded={isDashboardExpanded}
               onToggle={() => setIsDashboardExpanded(!isDashboardExpanded)}
+              onStatusFilter={setStatusFilter}
+              currentStatusFilter={statusFilter}
             />
           </div>
 
@@ -735,8 +764,9 @@ export default function LeadManagerPage() {
                   <div className="relative hidden sm:block">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                     <input
+                      ref={searchInputRef}
                       type="text"
-                      placeholder="병원명, 주소, 역이름 검색..."
+                      placeholder="병원명, 주소, 역이름 검색... ('/' 키로 포커스)"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent w-64 transition-all"

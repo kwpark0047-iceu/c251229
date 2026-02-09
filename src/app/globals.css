@@ -55,6 +55,14 @@
   --radius-lg: 14px;
   --radius-xl: 20px;
   --radius-2xl: 28px;
+
+  /* UX Pro Max 프리미엄 토큰 */
+  --shadow-premium: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.02);
+  --shadow-floating: 0 30px 60px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.05);
+  --glow-accent: 0 0 40px rgba(0, 165, 222, 0.3);
+
+  --radius-pro: 1.5rem;
+  --transition-ux: all 500ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* 라이트 모드 테마 */
@@ -177,8 +185,8 @@ body {
 
 .glass-card {
   background: var(--bg-card);
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
@@ -622,6 +630,52 @@ body {
 
 .animate-float {
   animation: float 4s ease-in-out infinite;
+}
+
+/* 프리미엄 인터랙티브 효과 */
+.parallax-card {
+  transition: var(--transition-ux);
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.parallax-card:hover {
+  transform: translateY(-8px) scale(1.01);
+  box-shadow: var(--shadow-floating);
+  border-color: var(--border-strong);
+}
+
+.parallax-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.06) 0%, transparent 80%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.parallax-card:hover::after {
+  opacity: 1;
+}
+
+.header-blur {
+  background: rgba(13, 13, 20, 0.7);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  transition: var(--transition-ux);
+}
+
+.header-scrolled {
+  background: rgba(13, 13, 20, 0.95);
+  height: 4rem !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+.btn-hover-glow:hover {
+  box-shadow: var(--glow-accent);
+  transform: scale(1.05);
 }
 
 /* 반중력 규칙(GARF) 적용 유틸리티 */

@@ -3,6 +3,7 @@
  * 실시간 노선 정보 업데이트 및 캐싱
  */
 
+import { useState, useEffect, useCallback } from 'react';
 import {
   fetchAllSeoulSubwayRoutes,
   fetchAllSeoulStationInfo,
@@ -151,7 +152,15 @@ export class KRICSubwayDataManager {
         return cached;
       }
 
-      throw error;
+      // 정적 데이터로 최종 fallback
+      console.log('📦 Falling back to static data');
+      const { SUBWAY_STATIONS } = await import('./constants');
+      const { generateSubwayRoutes } = await import('./utils/subway-utils');
+
+      return {
+        stations: SUBWAY_STATIONS,
+        routes: generateSubwayRoutes()
+      };
     }
   }
 

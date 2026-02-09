@@ -102,16 +102,22 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
   return (
     <>
       <div
-        className="group relative rounded-xl border overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02]"
+        className="parallax-card group relative rounded-pro border overflow-hidden cursor-pointer"
         style={{
           background: 'var(--glass-bg)',
           borderColor: 'var(--glass-border)',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
           animationDelay: `${index * 30}ms`,
         }}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest('button, a')) return;
           onSelect();
+        }}
+        onMouseMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width) * 100;
+          const y = ((e.clientY - rect.top) / rect.height) * 100;
+          e.currentTarget.style.setProperty('--mouse-x', `${x}%`);
+          e.currentTarget.style.setProperty('--mouse-y', `${y}%`);
         }}
       >
         {/* 호버 시 글로우 효과 */}
@@ -148,6 +154,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                 }}
                 className="p-1.5 rounded-lg transition-colors hover:bg-white/10"
                 style={{ color: statusColor.text }}
+                title="상태 변경"
               >
                 <ChevronDown className="w-4 h-4" />
               </button>

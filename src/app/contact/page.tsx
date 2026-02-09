@@ -549,7 +549,7 @@ export default function ContactPage() {
       {/* 메인 콘텐츠 */}
       <main className="flex-1 w-full flex flex-row-reverse gap-20 relative z-10">
         {/* 오른쪽: 폼 영역 */}
-        <div className="w-[calc(50%-2.5rem)] px-6 pt-4 pb-12 overflow-y-auto" style={{ position: 'relative', zIndex: 10 }}>
+        <div className="w-[calc(50%-2.5rem)] px-6 pt-4 pb-12 overflow-y-auto relative z-10">
           <div className="w-full max-w-xl mx-auto">
             {/* 타이틀 */}
             <div className="text-center mb-10">
@@ -661,6 +661,7 @@ export default function ContactPage() {
                       name="businessType"
                       value={form.businessType}
                       onChange={handleChange}
+                      title="업종 선택"
                       className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-[#00A5DE] transition-colors cursor-pointer"
                     >
                       <option value="">선택해주세요</option>
@@ -681,6 +682,7 @@ export default function ContactPage() {
                       name="adType"
                       value={form.adType}
                       onChange={handleChange}
+                      title="희망 광고 유형 선택"
                       className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-[#00A5DE] transition-colors cursor-pointer"
                     >
                       <option value="">선택해주세요</option>
@@ -697,6 +699,7 @@ export default function ContactPage() {
                       name="budget"
                       value={form.budget}
                       onChange={handleChange}
+                      title="예상 예산 선택"
                       className="w-full px-0 py-3 bg-transparent border-0 border-b-2 border-gray-300 text-gray-900 focus:outline-none focus:border-[#00A5DE] transition-colors cursor-pointer"
                     >
                       <option value="">선택해주세요</option>

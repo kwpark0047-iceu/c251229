@@ -69,6 +69,7 @@ export default function AdPositionDetail({ position, onClose }: AdPositionDetail
                     </div>
                     <button
                         onClick={onClose}
+                        title="상세 정보 닫기"
                         className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
                     >
                         <X className="w-4 h-4 text-[var(--text-muted)]" />

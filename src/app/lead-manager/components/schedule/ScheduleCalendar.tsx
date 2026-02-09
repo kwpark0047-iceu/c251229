@@ -168,6 +168,7 @@ export default function ScheduleCalendar({
         <div className="flex items-center gap-4">
           <button
             onClick={handlePrevMonth}
+            title="이전 달"
             className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
           >
             <ChevronLeft className="w-5 h-5 text-[var(--text-secondary)]" />
@@ -177,6 +178,7 @@ export default function ScheduleCalendar({
           </h2>
           <button
             onClick={handleNextMonth}
+            title="다음 달"
             className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
           >
             <ChevronRight className="w-5 h-5 text-[var(--text-secondary)]" />
@@ -203,10 +205,10 @@ export default function ScheduleCalendar({
           <div
             key={day}
             className={`py-3 text-center text-sm font-semibold ${index === 0
-                ? 'text-red-400'
-                : index === 6
-                  ? 'text-blue-400'
-                  : 'text-[var(--text-muted)]'
+              ? 'text-red-400'
+              : index === 6
+                ? 'text-blue-400'
+                : 'text-[var(--text-muted)]'
               }`}
           >
             {day}
@@ -233,8 +235,8 @@ export default function ScheduleCalendar({
                 key={index}
                 onClick={() => handleDateClick(date)}
                 className={`min-h-[120px] p-3 border-b border-r cursor-pointer transition-all duration-300 group relative ${isCurrentMonth
-                    ? 'hover:bg-[var(--bg-secondary)] hover:shadow-inner'
-                    : 'bg-[var(--bg-tertiary)] opacity-30'
+                  ? 'hover:bg-[var(--bg-secondary)] hover:shadow-inner'
+                  : 'bg-[var(--bg-tertiary)] opacity-30'
                   } ${isSelected ? 'bg-[var(--metro-line4)]/5 !border-[var(--metro-line4)]/30' : ''}`}
                 style={{
                   borderColor: 'var(--border-subtle)',
@@ -247,14 +249,14 @@ export default function ScheduleCalendar({
                 <div className="flex items-center justify-between mb-2 relative z-10">
                   <span
                     className={`text-sm font-bold transition-all ${isTodayDate
-                        ? 'w-8 h-8 flex items-center justify-center rounded-xl bg-gradient-to-br from-[var(--metro-line2)] to-[#00c55a] text-white shadow-lg shadow-green-500/30 scale-110'
-                        : isSelected
-                          ? 'text-[var(--metro-line4)] underline decoration-2 underline-offset-4'
-                          : dayOfWeek === 0
-                            ? 'text-red-400'
-                            : dayOfWeek === 6
-                              ? 'text-blue-400'
-                              : 'text-[var(--text-primary)]'
+                      ? 'w-8 h-8 flex items-center justify-center rounded-xl bg-gradient-to-br from-[var(--metro-line2)] to-[#00c55a] text-white shadow-lg shadow-green-500/30 scale-110'
+                      : isSelected
+                        ? 'text-[var(--metro-line4)] underline decoration-2 underline-offset-4'
+                        : dayOfWeek === 0
+                          ? 'text-red-400'
+                          : dayOfWeek === 6
+                            ? 'text-blue-400'
+                            : 'text-[var(--text-primary)]'
                       }`}
                   >
                     {date.getDate()}
@@ -287,8 +289,8 @@ export default function ScheduleCalendar({
                           onEventClick?.(event);
                         }}
                         className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium truncate cursor-pointer hover:scale-105 active:scale-95 transition-all animate-float-subtle border ${event.type === 'callback'
-                            ? 'bg-amber-100/10 text-amber-500 border-amber-500/20'
-                            : `${typeColors.bg.replace('100', '100/10')} ${typeColors.text} border-${typeColors.text.split('-')[1]}-500/20`
+                          ? 'bg-amber-100/10 text-amber-500 border-amber-500/20'
+                          : `${typeColors.bg.replace('100', '100/10')} ${typeColors.text} border-${typeColors.text.split('-')[1]}-500/20`
                           }`}
                         title={event.title}
                         style={{

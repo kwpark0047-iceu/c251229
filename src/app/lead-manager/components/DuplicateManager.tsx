@@ -200,6 +200,7 @@ export default function DuplicateManager({
                     type="checkbox"
                     checked={selectedGroups.has(index)}
                     onChange={() => { }}
+                    aria-label={`그룹 ${index + 1} 선택`}
                     className="w-4 h-4 text-blue-600 rounded"
                     onClick={(e) => e.stopPropagation()}
                   />

@@ -124,6 +124,7 @@ export default function LeadDetailPanel({
             </div>
             <button
               onClick={onClose}
+              title="닫기"
               className="p-2 hover:bg-white/50 rounded-lg transition-colors"
             >
               <X className="w-5 h-5 text-slate-600" />
@@ -502,6 +503,7 @@ function ProposalCard({
           <div className="relative">
             <button
               onClick={() => setShowMenu(!showMenu)}
+              title="상태 변경 메뉴"
               className="p-1 hover:bg-slate-100 rounded transition-colors"
             >
               <MoreVertical className="w-4 h-4 text-slate-400" />

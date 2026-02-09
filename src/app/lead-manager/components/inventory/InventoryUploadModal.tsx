@@ -106,6 +106,7 @@ export default function InventoryUploadModal({
           </div>
           <button
             onClick={onClose}
+            title="닫기"
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-slate-500" />
@@ -120,8 +121,8 @@ export default function InventoryUploadModal({
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${file
-                ? 'border-green-300 bg-green-50'
-                : 'border-slate-300 hover:border-blue-400 hover:bg-blue-50'
+              ? 'border-green-300 bg-green-50'
+              : 'border-slate-300 hover:border-blue-400 hover:bg-blue-50'
               }`}
           >
             <input
@@ -129,6 +130,7 @@ export default function InventoryUploadModal({
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileChange}
+              title="엑셀 파일 선택"
               className="hidden"
             />
 
@@ -165,8 +167,8 @@ export default function InventoryUploadModal({
                   type="button"
                   onClick={() => setMediaType(type.value)}
                   className={`px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all ${mediaType === type.value
-                      ? `${type.color} border-current ring-2 ring-offset-1`
-                      : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                    ? `${type.color} border-current ring-2 ring-offset-1`
+                    : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                     }`}
                 >
                   {type.label}
@@ -216,8 +218,8 @@ export default function InventoryUploadModal({
           {result && (
             <div
               className={`p-4 rounded-lg ${result.success
-                  ? 'bg-green-50 border border-green-200'
-                  : 'bg-red-50 border border-red-200'
+                ? 'bg-green-50 border border-green-200'
+                : 'bg-red-50 border border-red-200'
                 }`}
             >
               <div className="flex items-start gap-3">

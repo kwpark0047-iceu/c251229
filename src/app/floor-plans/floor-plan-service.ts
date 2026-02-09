@@ -43,6 +43,10 @@ export async function getFloorPlansByLine(
     throw new Error(error.message);
   }
 
+  if (!data || data.length === 0) {
+    console.warn(`[getFloorPlansByLine] No plans found for line: ${lineNumber}, type: ${planType}`);
+  }
+
   return (data || []).map(mapDbToFloorPlan);
 }
 

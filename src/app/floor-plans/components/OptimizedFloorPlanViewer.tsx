@@ -236,13 +236,13 @@ export default function OptimizedFloorPlanViewer({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <button onClick={() => setZoom(z => Math.max(MIN_ZOOM, z - 0.2))} className="p-2 rounded-xl hover:bg-white/5 transition-colors group">
+          <button onClick={() => setZoom(z => Math.max(MIN_ZOOM, z - 0.2))} className="p-2 rounded-xl hover:bg-white/5 transition-colors group" title="축소">
             <ZoomOut className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
           </button>
           <div className="px-3 py-1 bg-white/5 rounded-lg text-xs font-bold text-[var(--text-secondary)] min-w-[50px] text-center border border-white/5">
             {Math.round(zoom * 100)}%
           </div>
-          <button onClick={() => setZoom(z => Math.min(MAX_ZOOM, z + 0.2))} className="p-2 rounded-xl hover:bg-white/5 transition-colors group">
+          <button onClick={() => setZoom(z => Math.min(MAX_ZOOM, z + 0.2))} className="p-2 rounded-xl hover:bg-white/5 transition-colors group" title="확대">
             <ZoomIn className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)]" />
           </button>
 

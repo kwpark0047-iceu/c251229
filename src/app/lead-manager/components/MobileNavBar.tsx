@@ -34,7 +34,18 @@ export default function MobileNavBar({
                 paddingBottom: 'calc(8px + env(safe-area-inset-bottom))'
             }}
         >
-            <div className="flex items-center justify-between max-w-sm mx-auto">
+            <div className="relative flex items-center justify-between max-w-sm mx-auto">
+                {/* 슬라이딩 인디케이터 */}
+                <div
+                    className="absolute h-full rounded-xl bg-[var(--bg-tertiary)] -z-10 transition-all duration-300 ease-out sm:hidden"
+                    style={{
+                        width: 'calc(100% / 5)',
+                        left: activeTab === 'leads' ? '0%' :
+                            activeTab === 'inventory' ? '20%' :
+                                activeTab === 'map' ? '40%' :
+                                    activeTab === 'schedule' ? '60%' : '80%'
+                    }}
+                />
                 <NavButton
                     icon={Users}
                     label="리드"
@@ -50,13 +61,15 @@ export default function MobileNavBar({
                 {/* 중앙 강조 버튼 (지도) */}
                 <button
                     onClick={() => onViewModeChange?.('map')}
-                    className="relative -top-5 p-4 rounded-full shadow-lg transition-transform active:scale-95"
+                    title="지도 보기"
+                    className="relative -top-6 p-4 rounded-full shadow-lg transition-all duration-500 hover:scale-110 active:scale-95 group animate-float"
                     style={{
                         background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                        boxShadow: '0 4px 15px rgba(60, 181, 74, 0.4)'
+                        boxShadow: activeTab === 'map' ? 'var(--glow-green)' : '0 8px 25px rgba(60, 181, 74, 0.4)'
                     }}
                 >
-                    <Map className="w-6 h-6 text-white" />
+                    <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity blur-md" />
+                    <Map className={`w-6 h-6 text-white relative z-10 ${activeTab === 'map' ? 'scale-110' : ''} transition-transform`} />
                 </button>
                 <NavButton
                     icon={Calendar}
@@ -89,11 +102,17 @@ function NavButton({
     return (
         <button
             onClick={onClick}
-            className={`flex flex-col items-center gap-1 p-2 transition-colors ${isActive ? 'text-[var(--metro-line2)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            title={label}
+            className={`relative flex flex-col items-center gap-1 p-2 transition-all duration-300 ${isActive ? 'text-[var(--metro-line4)] scale-110' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:scale-105'
                 }`}
         >
-            <Icon className={`w-6 h-6 ${isActive ? 'fill-current opacity-20' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
-            <span className="text-[10px] font-medium">{label}</span>
+            <div className={`transition-all duration-500 ${isActive ? 'drop-shadow-[0_0_8px_var(--metro-line4)]' : ''}`}>
+                <Icon className={`w-6 h-6 ${isActive ? 'fill-current opacity-20' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+            </div>
+            <span className={`text-[10px] font-bold transition-all ${isActive ? 'opacity-100' : 'opacity-70'}`}>{label}</span>
+            {isActive && (
+                <div className="absolute -bottom-1 w-1 h-1 rounded-full bg-[var(--metro-line4)] shadow-[0_0_8px_var(--metro-line4)]" />
+            )}
         </button>
     );
 }
