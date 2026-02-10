@@ -119,6 +119,7 @@ export const REGION_CODES: Record<string, string> = {
 // ============================================
 
 export type BusinessCategory =
+  | 'ALL'         // 전체 (조회 및 수집용)
   | 'HEALTH'      // 건강
   | 'ANIMAL'      // 동물
   | 'FOOD'        // 식품
@@ -128,6 +129,7 @@ export type BusinessCategory =
   | 'OTHER';      // 기타
 
 export const CATEGORY_LABELS: Record<BusinessCategory, string> = {
+  ALL: '전체',
   HEALTH: '건강',
   ANIMAL: '동물',
   FOOD: '식품',
@@ -138,6 +140,7 @@ export const CATEGORY_LABELS: Record<BusinessCategory, string> = {
 };
 
 export const CATEGORY_COLORS: Record<BusinessCategory, { bg: string; text: string; border: string }> = {
+  ALL: { bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-300' },
   HEALTH: { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-300' },
   ANIMAL: { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300' },
   FOOD: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
@@ -155,6 +158,7 @@ export interface ServiceIdInfo {
 }
 
 export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
+  ALL: [], // 전체 카테고리는 개별 카테고리들을 순회하며 처리함
   HEALTH: [
     { id: '01_01_02_P', name: '병원', category: 'HEALTH' },
     { id: '01_01_03_P', name: '의원', category: 'HEALTH' },

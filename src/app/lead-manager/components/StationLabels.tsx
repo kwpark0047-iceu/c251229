@@ -5,10 +5,19 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { SubwayStation } from '../types';
+import { SUBWAY_STATIONS } from '../constants';
+import { KRIC_LINE_COLORS, getLineDisplayName } from '../kric-data-manager';
 import './station-labels.css';
+
+// Leaflet 타입 및 라이브러리 임포트
+// 클라이언트 사이드에서만 안전하게 실행되도록 처리
+let L: any;
+if (typeof window !== 'undefined') {
+  L = require('leaflet');
+}
 
 interface StationLabelProps {
   station: {
@@ -36,50 +45,36 @@ const Tooltip = dynamic(
   { ssr: false }
 );
 
-export default function StationLabel({ 
-  station, 
-  showLabel = true, 
+export default function StationLabel({
+  station,
+  showLabel = true,
   size = 'medium',
   color = '#333'
 }: StationLabelProps) {
-  const icon = L.divIcon({
-    html: `
-      <div class="station-label-container" style="
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        transform: translate(-50%, -100%);
-      ">
-        <div class="station-marker ${size}" style="
-          background: white;
-          border: 2px solid ${color};
-          border-radius: 50%;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        "></div>
-        ${showLabel ? `
-          <div class="station-name ${size}" style="
-            background: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 600;
-            color: ${color};
-            white-space: nowrap;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            margin-top: 2px;
-            border: 1px solid rgba(0,0,0,0.1);
-          ">
-            ${station.name}
+  const [icon, setIcon] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && L) {
+      const newIcon = L.divIcon({
+        html: `
+          <div class="station-label-container">
+            <div class="station-marker ${size}" style="border-color: ${color};"></div>
+            ${showLabel ? `
+              <div class="station-name ${size}" style="color: ${color}; border-color: ${color}44;">
+                ${station.name}
+              </div>
+            ` : ''}
           </div>
-        ` : ''}
-      </div>
-    `,
-    className: 'station-label-icon',
-    iconSize: [size === 'small' ? 40 : size === 'medium' ? 50 : 60, 
-               size === 'small' ? 30 : size === 'medium' ? 40 : 50],
-    iconAnchor: [size === 'small' ? 20 : size === 'medium' ? 25 : 30, 
-               size === 'small' ? 30 : size === 'medium' ? 40 : 50],
-  });
+        `,
+        className: 'station-label-icon',
+        iconSize: [80, 80], // 컨테이너 충분히 크게
+        iconAnchor: [40, 40],
+      });
+      setIcon(newIcon);
+    }
+  }, [station.name, color, size, showLabel]);
+
+  if (!icon) return null;
 
   return (
     <Marker
@@ -135,7 +130,7 @@ interface StationLayerProps {
   clusterThreshold?: number;
 }
 
-export function StationLayer({ 
+export function StationLayer({
   stations = [],
   routes = {},
   visibleLines = ['1', '2', '3', '4', '5', '6', '7', '8', '9'],
@@ -145,47 +140,42 @@ export function StationLayer({
   clusterThreshold = 5
 }: StationLayerProps) {
   // 표시할 역 필터링
-  const visibleStations = stations.filter(station => 
-    station.lines.some(line => visibleLines.includes(line))
-  );
+  const visibleStations = stations.filter(station => {
+    // station.lines에 있는 값이 '1001'일 수도 있고 '1'일 수도 있으므로 둘 다 체크
+    return station.lines.some(line => {
+      const displayName = getLineDisplayName(line); // 1001 -> 1
+      return visibleLines.includes(displayName) || visibleLines.includes(line);
+    });
+  });
 
-  // 너무 많은 역이 표시될 경우 제한
-  const displayStations = visibleStations.length > maxVisible 
+  // 너무 많은 역이 표시될 경우 제한 (성능 최적화)
+  const displayStations = visibleStations.length > maxVisible
     ? visibleStations.slice(0, maxVisible)
     : visibleStations;
 
-  // 노선별 색상
+  // 노선별 색상 (KRIC 표준 색상 적용)
   const getLineColor = (lines: string[]) => {
-    const lineColors: Record<string, string> = {
-      '1': '#0052A4',
-      '2': '#00A84D',
-      '3': '#EF7C1C',
-      '4': '#00A5DE',
-      '5': '#996CAC',
-      '6': '#CD7E2F',
-      '7': '#727FB8',
-      '8': '#E6186A',
-      '9': '#BAB135',
-      'S': '#D4003A', // 신분당선
-      'K': '#77BB4A', // 경의중앙선
-      'B': '#F5A200', // 분당선
-      'A': '#009D3E', // 공항철도
-      'G': '#807DB8', // 경춘선
-      'U': '#FDA600', // 의정부경전철
-      'E': '#6FB245', // 에버라인
-      'W': '#0079C2', // 서해선
+    // 첫 번째 노선 색상 사용 (KRIC 표준 매핑 우선)
+    for (const line of lines) {
+      if (KRIC_LINE_COLORS[line as keyof typeof KRIC_LINE_COLORS]) {
+        return KRIC_LINE_COLORS[line as keyof typeof KRIC_LINE_COLORS];
+      }
+    }
+
+    const fallbackColors: Record<string, string> = {
+      '1': '#0052A4', '2': '#00A84D', '3': '#EF7C1C', '4': '#00A5DE',
+      '5': '#996CAC', '6': '#CD7E2F', '7': '#727FB8', '8': '#E6186A', '9': '#BAB135',
     };
 
-    // 첫 번째 노선 색상 사용
-    const firstLine = lines.find(line => lineColors[line]);
-    return firstLine ? lineColors[firstLine] : '#333';
+    const firstLineShort = lines.find(line => fallbackColors[line]);
+    return firstLineShort ? fallbackColors[firstLineShort] : '#333';
   };
 
   return (
     <>
-      {displayStations.map((station) => (
+      {displayStations.map((station: any) => (
         <StationLabel
-          key={station.name}
+          key={`${station.name}-${station.lines.join('-')}`}
           station={station}
           showLabel={showLabels}
           size={size}
@@ -204,19 +194,19 @@ interface MajorStationsProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-export function MajorStations({ 
-  showLabels = true, 
-  size = 'medium' 
+export function MajorStations({
+  showLabels = true,
+  size = 'medium'
 }: MajorStationsProps) {
   // 주요 역만 필터링 (환승역, 대표역 등)
-  const majorStations = SUBWAY_STATIONS.filter(station => 
+  const majorStations = SUBWAY_STATIONS.filter((station: any) =>
     station.lines.length >= 2 || // 환승역
     ['강남', '역삼', '선릉', '홍대입구', '신촌', '시청', '서울역', '잠실', '교대'].includes(station.name) // 대표역
   );
 
   return (
     <>
-      {majorStations.map((station) => (
+      {majorStations.map((station: any) => (
         <StationLabel
           key={station.name}
           station={station}
@@ -237,12 +227,12 @@ interface LineStationsProps {
   size?: 'small' | 'medium' | 'large';
 }
 
-export function LineStations({ 
-  line, 
-  showLabels = true, 
-  size = 'medium' 
+export function LineStations({
+  line,
+  showLabels = true,
+  size = 'medium'
 }: LineStationsProps) {
-  const lineStations = SUBWAY_STATIONS.filter(station => 
+  const lineStations = SUBWAY_STATIONS.filter((station: any) =>
     station.lines.includes(line)
   );
 
@@ -287,10 +277,10 @@ interface StationToggleProps {
   disabled?: boolean;
 }
 
-export function StationToggle({ 
-  onToggle, 
-  showLabels, 
-  disabled = false 
+export function StationToggle({
+  onToggle,
+  showLabels,
+  disabled = false
 }: StationToggleProps) {
   return (
     <div className="flex items-center space-x-2 p-2 bg-white rounded-lg shadow-md">
@@ -298,6 +288,7 @@ export function StationToggle({
       <button
         onClick={() => onToggle(!showLabels)}
         disabled={disabled}
+        title={showLabels ? "역사명 숨기기" : "역사명 표시하기"}
         className={`
           relative inline-flex h-6 w-11 items-center rounded-full transition-colors
           ${showLabels ? 'bg-blue-600' : 'bg-gray-200'}

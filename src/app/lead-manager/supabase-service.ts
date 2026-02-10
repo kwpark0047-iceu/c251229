@@ -238,7 +238,7 @@ export async function getLeads(filters?: {
     if (filters?.status) {
       query = query.eq('status', filters.status);
     }
-    if (filters?.category) {
+    if (filters?.category && filters.category !== 'ALL') {
       query = query.eq('category', filters.category);
     }
     if (filters?.nearestStation) {

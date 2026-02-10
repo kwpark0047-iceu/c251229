@@ -17,34 +17,41 @@
   background: white;
   border: 2px solid;
   border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-base);
+  animation: antigravity-float 3s ease-in-out infinite;
 }
 
 .station-marker.small {
-  width: 8px;
-  height: 8px;
-}
-
-.station-marker.medium {
   width: 10px;
   height: 10px;
 }
 
+.station-marker.medium {
+  width: 14px;
+  height: 14px;
+}
+
 .station-marker.large {
-  width: 12px;
-  height: 12px;
+  width: 18px;
+  height: 18px;
 }
 
 /* 지하철역 이름 레이블 */
 .station-name {
-  background: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 600;
+  background: var(--bg-card);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  margin-top: 2px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
+  margin-top: 4px;
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  font-family: inherit;
+  pointer-events: none;
 }
 
 .station-name.small {
@@ -52,11 +59,25 @@
 }
 
 .station-name.medium {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .station-name.large {
-  font-size: 12px;
+  font-size: 14px;
+}
+
+@keyframes antigravity-float {
+
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  50% {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+  }
 }
 
 /* 지하철역 툴팁 */
@@ -84,20 +105,67 @@
 }
 
 /* 노선별 색상 */
-.line-1 { background-color: #0052A4; }
-.line-2 { background-color: #00A84D; }
-.line-3 { background-color: #EF7C1C; }
-.line-4 { background-color: #00A5DE; }
-.line-5 { background-color: #996CAC; }
-.line-6 { background-color: #CD7E2F; }
-.line-7 { background-color: #727FB8; }
-.line-8 { background-color: #E6186A; }
-.line-9 { background-color: #BAB135; }
-.line-S { background-color: #D4003A; } /* 신분당선 */
-.line-K { background-color: #77BB4A; } /* 경의중앙선 */
-.line-B { background-color: #F5A200; } /* 분당선 */
-.line-A { background-color: #009D3E; } /* 공항철도 */
-.line-G { background-color: #807DB8; } /* 경춘선 */
+.line-1 {
+  background-color: #0052A4;
+}
+
+.line-2 {
+  background-color: #00A84D;
+}
+
+.line-3 {
+  background-color: #EF7C1C;
+}
+
+.line-4 {
+  background-color: #00A5DE;
+}
+
+.line-5 {
+  background-color: #996CAC;
+}
+
+.line-6 {
+  background-color: #CD7E2F;
+}
+
+.line-7 {
+  background-color: #727FB8;
+}
+
+.line-8 {
+  background-color: #E6186A;
+}
+
+.line-9 {
+  background-color: #BAB135;
+}
+
+.line-S {
+  background-color: #D4003A;
+}
+
+/* 신분당선 */
+.line-K {
+  background-color: #77BB4A;
+}
+
+/* 경의중앙선 */
+.line-B {
+  background-color: #F5A200;
+}
+
+/* 분당선 */
+.line-A {
+  background-color: #009D3E;
+}
+
+/* 공항철도 */
+.line-G {
+  background-color: #807DB8;
+}
+
+/* 경춘선 */
 
 /* Leaflet 지도 컨테이너 */
 .leaflet-container {
@@ -239,39 +307,39 @@
     height: calc(100vh - 320px);
     min-height: 400px;
   }
-  
+
   .station-name {
     font-size: 9px;
     padding: 1px 4px;
   }
-  
+
   .station-marker.small {
     width: 6px;
     height: 6px;
   }
-  
+
   .station-marker.medium {
     width: 8px;
     height: 8px;
   }
-  
+
   .station-marker.large {
     width: 10px;
     height: 10px;
   }
-  
+
   .map-legend {
     padding: 8px;
   }
-  
+
   .map-legend h4 {
     font-size: 12px;
   }
-  
+
   .map-legend-item {
     font-size: 12px;
   }
-  
+
   .line-button {
     width: 24px;
     height: 24px;
@@ -286,37 +354,37 @@
     color: #f9fafb;
     border-color: #374151;
   }
-  
+
   .station-tooltip {
     background: rgba(31, 41, 55, 0.95) !important;
     border-color: #4b5563 !important;
     color: #f9fafb !important;
   }
-  
+
   .lead-tooltip {
     background: #1f2937 !important;
     border-color: #4b5563 !important;
     color: #f9fafb !important;
   }
-  
+
   .map-legend {
     background: #1f2937;
     border-color: #4b5563;
   }
-  
+
   .map-legend h4 {
     color: #f9fafb;
   }
-  
+
   .map-legend-item {
     color: #9ca3af;
   }
-  
+
   .station-toggle {
     background: #1f2937;
     border-color: #4b5563;
   }
-  
+
   .station-toggle-label {
     color: #f9fafb;
   }
@@ -331,9 +399,11 @@
   0% {
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
@@ -366,16 +436,21 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 인쇄기 방지 */
 .station-label-container {
-  user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  user-select: none;
 }
 
 /* 접근성 */

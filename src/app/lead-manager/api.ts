@@ -5,7 +5,7 @@
  * 보안: API 키는 서버에서만 관리되며 클라이언트에 노출되지 않습니다.
  */
 
-import { Lead, Settings, BusinessCategory, CATEGORY_SERVICE_IDS, ServiceIdInfo } from './types';
+import { Lead, Settings, BusinessCategory, CATEGORY_SERVICE_IDS, CATEGORY_LABELS, ServiceIdInfo } from './types';
 import {
   convertGRS80ToWGS84,
   formatDateToAPI,
@@ -190,9 +190,18 @@ export async function fetchAllLeads(
   const seenBizIds = new Set<string>(); // 사업자 ID 중복 체크용
 
   // 카테고리에 해당하는 서비스 ID 목록
-  let serviceIds: ServiceIdInfo[] = category
-    ? CATEGORY_SERVICE_IDS[category]
-    : CATEGORY_SERVICE_IDS['HEALTH'];
+  let serviceIds: ServiceIdInfo[] = [];
+
+  if (category === 'ALL' || !category) {
+    // 모든 카테고리의 서비스 ID를 합침 (ALL 제외)
+    Object.entries(CATEGORY_SERVICE_IDS).forEach(([key, services]) => {
+      if (key !== 'ALL') {
+        serviceIds = [...serviceIds, ...services];
+      }
+    });
+  } else {
+    serviceIds = CATEGORY_SERVICE_IDS[category];
+  }
 
   // 선택된 세부항목이 있으면 해당 항목만 필터링
   if (selectedServiceIds && selectedServiceIds.length > 0) {
@@ -217,7 +226,8 @@ export async function fetchAllLeads(
     const regionName = regionNames[regionCode] || regionCode;
 
     for (const serviceInfo of serviceIds) {
-      onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name} 조회 중...`);
+      const categoryLabel = CATEGORY_LABELS[serviceInfo.category] || serviceInfo.category;
+      onProgress?.(totalProcessed, estimatedTotal, `[${regionName}/${categoryLabel}] ${serviceInfo.name} 조회 중...`);
 
       // 첫 페이지 조회
       const firstResult = await fetchLocalDataAPI(

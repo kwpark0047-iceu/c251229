@@ -92,7 +92,7 @@ export default function LeadManagerPage() {
         return saved as BusinessCategory;
       }
     }
-    return 'HEALTH';
+    return 'ALL';
   });
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);  // 선택된 세부 서비스 ID들
   const [searchQuery, setSearchQuery] = useState<string>('');  // 검색 기능
@@ -787,9 +787,9 @@ export default function LeadManagerPage() {
 
                   {/* 업종 카테고리 */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    {(['HEALTH', 'ANIMAL', 'FOOD', 'CULTURE', 'LIVING', 'ENVIRONMENT', 'OTHER'] as BusinessCategory[]).map(category => {
+                    {(['ALL', 'HEALTH', 'ANIMAL', 'FOOD', 'CULTURE', 'LIVING', 'ENVIRONMENT', 'OTHER'] as BusinessCategory[]).map(category => {
                       const colors = CATEGORY_COLORS[category];
-                      const count = leads.filter(l => l.category === category).length;
+                      const count = category === 'ALL' ? leads.length : leads.filter(l => l.category === category).length;
                       const getCategoryColor = () => {
                         if (colors.bg.includes('red')) return 'var(--metro-line1)';
                         if (colors.bg.includes('amber')) return 'var(--metro-line3)';
@@ -807,7 +807,7 @@ export default function LeadManagerPage() {
                             setSelectedServiceIds([]);
                           }}
                           className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${categoryFilter === category
-                            ? 'text-white shadow-md'
+                            ? 'text-white shadow-md animate-float'
                             : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'
                             }`}
                           style={categoryFilter === category ? {

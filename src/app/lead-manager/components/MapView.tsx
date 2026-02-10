@@ -92,16 +92,28 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
       setIsLoadingSubwayData(true);
       try {
         const data = await getRealtimeSubwayData();
+
+        // 데이터 유효성 검증
+        if (!data || !data.stations || data.stations.length === 0) {
+          throw new Error('KRIC data is empty or invalid');
+        }
+
         setSubwayData(data);
-        console.log('✅ KRIC subway data loaded successfully');
+        console.log(`✅ KRIC subway data loaded: ${data.stations.length} stations, ${Object.keys(data.routes || {}).length} routes`);
       } catch (error) {
         console.error('❌ Failed to load KRIC subway data:', error);
         // 기존 SUBWAY_STATIONS로 fallback
         console.log('📦 Falling back to static subway data');
+
+        const routes = generateSubwayRoutes();
         setSubwayData({
           stations: SUBWAY_STATIONS,
-          routes: generateSubwayRoutes()
+          routes: routes
         });
+
+        // 폴백 데이터의 노선들도 보이도록 자동 활성화
+        const fallbackLines = Object.keys(routes).map(line => getKRICDisplayName(line));
+        setVisibleLines(prev => Array.from(new Set([...prev, ...fallbackLines])));
       } finally {
         setIsLoadingSubwayData(false);
       }
@@ -176,18 +188,22 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
           {subwayData?.routes && (
             Object.entries(subwayData.routes)
               .filter(([lineCode]) => {
+                // KRIC 코드(1001) -> 약어(1) 변환 후 필터 확인
                 const displayName = getKRICDisplayName(lineCode);
                 return visibleLines.includes(displayName);
               })
-              .map(([lineCode, route]: [string, any]) => (
-                <Polyline
-                  key={lineCode}
-                  positions={route.coords}
-                  color={route.color}
-                  weight={5}
-                  opacity={0.8}
-                />
-              ))
+              .map(([lineCode, route]: [string, any]) => {
+                if (!route.coords || route.coords.length < 2) return null;
+                return (
+                  <Polyline
+                    key={lineCode}
+                    positions={route.coords}
+                    color={route.color}
+                    weight={5}
+                    opacity={0.8}
+                  />
+                );
+              })
           )}
 
           {/* 병원 마커 */}
