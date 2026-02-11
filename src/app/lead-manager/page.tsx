@@ -979,10 +979,10 @@ export default function LeadManagerPage() {
               <div className="flex flex-col items-center justify-center py-24">
                 <div
                   id="loading-spinner"
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 animate-float"
                   style={{
                     background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                    boxShadow: '0 8px 30px rgba(60, 181, 74, 0.3)',
+                    boxShadow: '0 0 20px rgba(60, 181, 74, 0.4)',
                   }}
                 >
                   <RefreshCw className="w-8 h-8 text-white" />
