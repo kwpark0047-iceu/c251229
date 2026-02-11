@@ -18,9 +18,17 @@ export function createClient() {
     console.error('Supabase 환경 변수가 설정되지 않았습니다. .env 파일을 확인하거나 Vercel 환경변수를 설정해주세요.')
   }
 
-  return createBrowserClient(
+  return (createBrowserClient as any)(
     supabaseUrl || 'https://placeholder.supabase.co',
-    supabaseAnonKey || 'placeholder-key'
+    supabaseAnonKey || 'placeholder-key',
+    {
+      auth: {
+        lockType: 'memory',
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    }
   )
 }
 

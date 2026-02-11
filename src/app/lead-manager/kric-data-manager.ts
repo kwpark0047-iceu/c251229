@@ -146,7 +146,9 @@ export class KRICSubwayDataManager {
         cache.set(cacheKey, result, 1800000);
         this.lastUpdateTime = Date.now();
 
-        console.log(`✅ Loaded ${mergedStations.length} stations and ${Object.keys(routes).length} lines`);
+        if (mergedStations.length > 0) {
+          console.log(`✅ Loaded ${mergedStations.length} stations and ${Object.keys(routes).length} lines`);
+        }
         return result;
 
       } catch (error) {

@@ -177,8 +177,7 @@ export async function fetchSubwayRouteInfo(
 
     const result = Array.isArray(items) ? items : [items];
     if (result.length === 0) {
-      // 데이터가 없으면 빈 배열 반환 (KRIC에서 지원되지 않는 노선)
-      console.warn(`No data found for line ${lineCode} - this line may not be supported by KRIC API`);
+      // 데이터가 없으면 빈 배열 반환 (KRIC에서 지원되지 않는 노선) - 로그 생략
       return [];
     }
     return result;
@@ -286,9 +285,11 @@ export async function fetchAllSeoulSubwayRoutes(
       try {
         const stations = await fetchSubwayRouteInfo(serviceKey, AREA_CODES.SEOUL, lineCode);
         results[lineCode] = stations;
-        console.log(`✅ ${lineCode} 노선: ${stations.length}개역 로드 완료`);
+        if (stations.length > 0) {
+          console.log(`✅ ${lineCode} 노선: ${stations.length}개역 로드 완료`);
+        }
       } catch (error) {
-        console.error(`❌ ${lineCode} 노선 로드 실패:`, error);
+        // 에러 로그 최소화
         results[lineCode] = [];
       }
     }));
