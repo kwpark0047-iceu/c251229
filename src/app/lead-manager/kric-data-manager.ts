@@ -61,6 +61,7 @@ export class KRICSubwayDataManager {
   private isInitialized = false;
   private lastUpdateTime = 0;
   private serviceKey: string | null = null;
+  private pendingRequest: Promise<any> | null = null;
 
   static getInstance(): KRICSubwayDataManager {
     if (!KRICSubwayDataManager.instance) {
@@ -111,57 +112,68 @@ export class KRICSubwayDataManager {
       }
     }
 
-    try {
-      console.log('🔄 Fetching fresh subway data from KRIC API...');
-
-      // 노선 정보와 역사 정보를 병렬로 가져오기
-      const [kricStations, kricStationInfos] = await Promise.all([
-        fetchAllSeoulSubwayRoutes(this.serviceKey!),
-        fetchAllSeoulStationInfo(this.serviceKey!)
-      ]);
-
-      // 노선 정보로 기본 역 데이터 생성
-      const basicStations = convertKRICToSubwayStation(
-        Object.values(kricStations).flat()
-      );
-
-      // 상세 역사 정보로 추가 데이터 병합
-      const detailedStations = convertKRICStationInfoToSubwayStation(kricStationInfos);
-
-      // 두 데이터를 병합하여 최종 역 정보 생성
-      const mergedStations = this.mergeStationData(basicStations, detailedStations);
-
-      const routes = generateLineRoutes(kricStations);
-
-      const result = { stations: mergedStations, routes };
-
-      // 30분 캐시
-      cache.set(cacheKey, result, 1800000);
-      this.lastUpdateTime = Date.now();
-
-      console.log(`✅ Loaded ${mergedStations.length} stations and ${Object.keys(routes).length} lines`);
-      return result;
-
-    } catch (error) {
-      console.error('❌ Failed to fetch subway data:', error);
-
-      // 캐시된 데이터가 있으면 반환
-      const cached = cache.get(cacheKey);
-      if (cached) {
-        console.log('📦 Falling back to cached data');
-        return cached;
-      }
-
-      // 정적 데이터로 최종 fallback
-      console.log('📦 Falling back to static data');
-      const { SUBWAY_STATIONS } = await import('./constants');
-      const { generateSubwayRoutes } = await import('./utils/subway-utils');
-
-      return {
-        stations: SUBWAY_STATIONS,
-        routes: generateSubwayRoutes()
-      };
+    if (this.pendingRequest) {
+      console.log('⏳ Waiting for pending subway data request...');
+      return this.pendingRequest;
     }
+
+    this.pendingRequest = (async () => {
+      try {
+        console.log('🔄 Fetching fresh subway data from KRIC API...');
+
+        // 노선 정보와 역사 정보를 병렬로 가져오기
+        const [kricStations, kricStationInfos] = await Promise.all([
+          fetchAllSeoulSubwayRoutes(this.serviceKey!),
+          fetchAllSeoulStationInfo(this.serviceKey!)
+        ]);
+
+        // 노선 정보로 기본 역 데이터 생성
+        const basicStations = convertKRICToSubwayStation(
+          Object.values(kricStations).flat()
+        );
+
+        // 상세 역사 정보로 추가 데이터 병합
+        const detailedStations = convertKRICStationInfoToSubwayStation(kricStationInfos);
+
+        // 두 데이터를 병합하여 최종 역 정보 생성
+        const mergedStations = this.mergeStationData(basicStations, detailedStations);
+
+        const routes = generateLineRoutes(kricStations);
+
+        const result = { stations: mergedStations, routes };
+
+        // 30분 캐시
+        cache.set(cacheKey, result, 1800000);
+        this.lastUpdateTime = Date.now();
+
+        console.log(`✅ Loaded ${mergedStations.length} stations and ${Object.keys(routes).length} lines`);
+        return result;
+
+      } catch (error) {
+        console.error('❌ Failed to fetch subway data:', error);
+
+        // 캐시된 데이터가 있으면 반환
+        const cached = cache.get(cacheKey);
+        if (cached) {
+          console.log('📦 Falling back to cached data');
+          return cached;
+        }
+
+        // 정적 데이터로 최종 fallback
+        console.log('📦 Falling back to static data');
+        const { SUBWAY_STATIONS } = await import('./constants');
+        const { generateSubwayRoutes } = await import('./utils/subway-utils');
+
+        return {
+          stations: SUBWAY_STATIONS,
+          routes: generateSubwayRoutes()
+        };
+      } finally {
+        this.pendingRequest = null;
+      }
+    })();
+
+    return this.pendingRequest;
   }
 
   /**

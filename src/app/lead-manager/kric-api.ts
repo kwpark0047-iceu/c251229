@@ -278,19 +278,22 @@ export async function fetchAllSeoulSubwayRoutes(
 
   const results: Record<string, KRICStation[]> = {};
 
-  // 병렬로 API 호출 (성능 최적화)
-  const promises = seoulLines.map(async (lineCode) => {
-    try {
-      const stations = await fetchSubwayRouteInfo(serviceKey, AREA_CODES.SEOUL, lineCode);
-      results[lineCode] = stations;
-      console.log(`✅ ${lineCode} 노선: ${stations.length}개역 로드 완료`);
-    } catch (error) {
-      console.error(`❌ ${lineCode} 노선 로드 실패:`, error);
-      results[lineCode] = [];
-    }
-  });
+  // 브라우저 리소스 보호를 위해 청크 단위로 병렬 실행 (동시 요청 5개 제한)
+  const chunkSize = 5;
+  for (let i = 0; i < seoulLines.length; i += chunkSize) {
+    const chunk = seoulLines.slice(i, i + chunkSize);
+    await Promise.all(chunk.map(async (lineCode) => {
+      try {
+        const stations = await fetchSubwayRouteInfo(serviceKey, AREA_CODES.SEOUL, lineCode);
+        results[lineCode] = stations;
+        console.log(`✅ ${lineCode} 노선: ${stations.length}개역 로드 완료`);
+      } catch (error) {
+        console.error(`❌ ${lineCode} 노선 로드 실패:`, error);
+        results[lineCode] = [];
+      }
+    }));
+  }
 
-  await Promise.all(promises);
   return results;
 }
 
@@ -429,7 +432,56 @@ export function convertKRICToSubwayStation(kricStations: KRICStation[]): Array<{
   }));
 }
 
-// ... 상세 정보 변환 함수 등 생략 ...
+/**
+ * KRIC 역사 상세 정보를 기존 SubwayStation 형식으로 변환
+ * @param kricStationInfos KRIC 역사 정보 배열
+ * @returns 변환된 역 정보 배열
+ */
+export function convertKRICStationInfoToSubwayStation(kricStationInfos: KRICStationInfo[]): Array<{
+  name: string;
+  lat: number;
+  lng: number;
+  lines: string[];
+  address?: string;
+  phone?: string;
+  facilities?: string;
+}> {
+  const stationMap = new Map<string, { lat: number; lng: number; lines: Set<string>; address?: string; phone?: string; facilities?: string }>();
+
+  kricStationInfos.forEach(info => {
+    const [lat, lng] = convertKRICToWGS84(info.xcrd, info.ycrd);
+    const stationName = info.stinNm;
+
+    if (!stationMap.has(stationName)) {
+      stationMap.set(stationName, {
+        lat,
+        lng,
+        lines: new Set(),
+        address: info.stinAdres,
+        phone: info.stinTelno,
+        facilities: info.stinFcty,
+      });
+    }
+
+    const current = stationMap.get(stationName)!;
+    current.lines.add(getLineName(info.lnCd));
+
+    // 더 상세한 정보가 있으면 업데이트
+    if (info.stinAdres) current.address = info.stinAdres;
+    if (info.stinTelno) current.phone = info.stinTelno;
+    if (info.stinFcty) current.facilities = info.stinFcty;
+  });
+
+  return Array.from(stationMap.entries()).map(([name, data]) => ({
+    name,
+    lat: data.lat,
+    lng: data.lng,
+    lines: Array.from(data.lines),
+    address: data.address,
+    phone: data.phone,
+    facilities: data.facilities,
+  }));
+}
 
 /**
  * 노선코드를 노선명으로 변환

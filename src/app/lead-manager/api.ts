@@ -113,6 +113,9 @@ export async function fetchLocalDataAPI(
 async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo): Promise<Lead[]> {
   const { subwayDataManager } = await import('./kric-data-manager');
 
+  // 캐시 워밍: 대량 처리 전 지하철 데이터를 미리 로드하여 Thundering Herd 방지
+  await subwayDataManager.getAllSubwayData();
+
   const processedLeads = await Promise.all(rawLeads.map(async (raw) => {
     let latitude: number | undefined;
     let longitude: number | undefined;
