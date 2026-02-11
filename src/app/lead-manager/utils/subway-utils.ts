@@ -59,18 +59,23 @@ export const generateSubwayRoutes = (): Record<string, RouteData> => {
     });
 
     // 각 노선별로 좌표 배열 생성
-    Array.from(allLines).forEach(lineCode => {
-        // 해당 노선에 속하는 역들을 찾음
-        // 주의: TOTAL_SUBWAY_STATIONS 배열의 순서가 해당 노선의 역 순서와 일치해야 선이 예쁘게 그려짐
-        // stations.ts 파일은 노선별로 그룹화되어 있으므로, 
-        // 전체 리스트에서 해당 라인을 포함하는 역을 순서대로 추출하면 됨
+    const linePriorityOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'B', 'K', 'G', 'A', 'I1', 'I2', 'Ui', 'Si', 'Kg', 'W', 'E', 'U'];
+
+    linePriorityOrder.forEach(lineCode => {
         const stationPoints: [number, number][] = [];
 
+        // 해당 노선에 속하는 역들을 찾음
+        // TOTAL_SUBWAY_STATIONS가 노선별로 어느 정도 정렬되어 있으므로 필터링 후 사용
         TOTAL_SUBWAY_STATIONS.forEach(station => {
             if (station.lines.includes(lineCode)) {
                 stationPoints.push([station.lat, station.lng]);
             }
         });
+
+        // 2호선 순환선 처리 (첫 역과 마지막 역 연결)
+        if (lineCode === '2' && stationPoints.length > 2) {
+            stationPoints.push(stationPoints[0]);
+        }
 
         if (stationPoints.length > 1) {
             routes[lineCode] = {

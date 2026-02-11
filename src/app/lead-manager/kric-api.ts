@@ -158,8 +158,8 @@ export async function fetchSubwayRouteInfo(
   lineCode: string
 ): Promise<KRICStation[]> {
   try {
-    // 서버 프록시 사용 (/api/station-info)
-    const response = await axios.get<any>('/api/station-info', {
+    // 서버 프록시 사용 (/api/subway-routes)
+    const response = await axios.get<any>('/api/subway-routes', {
       params: {
         line: lineCode,
       },
@@ -172,8 +172,8 @@ export async function fetchSubwayRouteInfo(
     }
 
     const proxyData = response.data.data;
-    const body = proxyData?.body || proxyData;
-    const items = body?.items?.item || [];
+    // KRIC API 응답 구조: { body: { items: { item: [...] } } }
+    const items = proxyData?.items?.item || proxyData || [];
 
     const result = Array.isArray(items) ? items : [items];
     if (result.length === 0) {

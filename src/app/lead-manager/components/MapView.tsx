@@ -102,12 +102,13 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
         console.log(`✅ KRIC subway data loaded: ${data.stations.length} stations, ${Object.keys(data.routes || {}).length} routes`);
       } catch (error) {
         console.error('❌ Failed to load KRIC subway data:', error);
-        // 기존 SUBWAY_STATIONS로 fallback
-        console.log('📦 Falling back to static subway data');
+        // 기존 TOTAL_SUBWAY_STATIONS로 fallback (더 풍부한 데이터)
+        console.log('📦 Falling back to static subway data (Full)');
 
         const routes = generateSubwayRoutes();
+        const { TOTAL_SUBWAY_STATIONS } = await import('../data/stations');
         setSubwayData({
-          stations: SUBWAY_STATIONS,
+          stations: TOTAL_SUBWAY_STATIONS,
           routes: routes
         });
 
@@ -179,7 +180,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
               visibleLines={visibleLines}
               showLabels={true}
               size="small"
-              maxVisible={50}
+              maxVisible={200}
             />
           )}
 
