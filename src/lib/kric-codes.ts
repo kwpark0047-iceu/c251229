@@ -3,6 +3,7 @@
  */
 
 // 철도운영기관코드 (railOprIsttCd)
+// S1: 서울교통공사, KR: 국가철도공단, NS: 신분당선, AP: 공항철도, UI: 우이신설, EV: 용인, GC: 김포, WS: 서해선, IC: 인천, SL: 신림
 export const RAIL_OPR_CODES: Record<string, string> = {
     '1': 'S1', '2': 'S1', '3': 'S1', '4': 'S1',
     '5': 'S1', '6': 'S1', '7': 'S1', '8': 'S1',
@@ -24,13 +25,17 @@ export const RAIL_OPR_CODES: Record<string, string> = {
     '1092': 'UI', // 우이신설선
     '1093': 'SL', // 신림선
     '1081': 'KR', // 경강선
-    'S': 'NS', // 신분당선 (레거시)
-    'K': 'KR', // 경의중앙선 (레거시)
-    'A': 'AP', // 공항철도 (레거시)
-    'B': 'KR', // 분당선 (레거시)
-    'G': 'KR', // 경춘선 (레거시)
-    'U': 'UI', // 우이신설선 (레거시)
-    'W': 'WS', // 서해선 (레거시)
+    'S': 'NS',    // 신분당선 (Short)
+    'K': 'KR',    // 경의중앙선 (Short)
+    'A': 'AP',    // 공항철도 (Short)
+    'B': 'KR',    // 분당선 (Short)
+    'G': 'KR',    // 경춘선 (Short)
+    'U': 'UI',    // 우이신설선 (Short)
+    'W': 'WS',    // 서해선 (Short)
+    'I1': 'IC',   // 인천1호선 (Short)
+    'I2': 'IC',   // 인천2호선 (Short)
+    'Ui': 'UI',   // 우이신설 (Case-sensitive)
+    'Si': 'SL',   // 신림선 (Case-sensitive)
 };
 
 // 노선코드 매핑 (lnCd)
@@ -61,4 +66,8 @@ export const LINE_CODES: Record<string, string> = {
     'G': 'G1',
     'U': 'UI',
     'W': 'WE',
+    'I1': 'I1',
+    'I2': 'I2',
+    'Ui': 'UI',
+    'Si': 'SL',
 };

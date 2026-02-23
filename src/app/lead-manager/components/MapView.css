@@ -5,90 +5,108 @@
     min-height: 500px;
     border-radius: var(--radius-xl);
     z-index: 1;
-    background: var(--bg-secondary) !important;
+    background: #0b0b0f !important;
+    /* 초저중력 블랙 */
+}
+
+/* 다크 테마 최적화 Tiles */
+.leaflet-tile-pane {
+    filter: brightness(0.6) contrast(1.2) saturate(0.5) invert(1) hue-rotate(180deg);
 }
 
 /* Custom Tooltips with "Antigravity" Design System */
 .lead-tooltip {
-    background: var(--bg-card) !important;
+    background: rgba(18, 18, 26, 0.8) !important;
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: var(--radius-md) !important;
-    padding: 6px 12px !important;
+    padding: 6px 14px !important;
     font-size: 13px !important;
     font-weight: 600 !important;
-    color: var(--text-primary) !important;
-    box-shadow: var(--shadow-lg) !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
     white-space: nowrap !important;
     animation: float-subtle 4s ease-in-out infinite;
 }
 
-.lead-tooltip::before {
-    border-top-color: var(--glass-border) !important;
+/* 리드(병원) 툴팁 스타일 */
+.lead-tooltip {
+    background: rgba(15, 23, 42, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    padding: 4px 10px !important;
+    color: white !important;
+    font-family: 'Pretendard', sans-serif !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: opacity 0.3s ease, transform 0.3s ease !important;
 }
 
-.station-tooltip {
-    background: rgba(18, 18, 26, 0.85) !important;
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: var(--radius-sm) !important;
-    padding: 4px 8px !important;
-    font-size: 11px !important;
-    color: var(--text-secondary) !important;
-    box-shadow: var(--shadow-sm) !important;
-    white-space: nowrap !important;
+.lead-tooltip.focused {
+    background: rgba(220, 38, 38, 0.95) !important;
+    transform: scale(1.1) translateY(-5px) !important;
+    z-index: 1000 !important;
 }
 
-/* Subway Station Label Styling */
-.station-label {
+.lead-label-content {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 1px;
 }
 
-.station-name-text {
+.biz-name {
     font-weight: 700;
-    color: var(--text-primary);
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+    font-size: 0.85rem;
+    letter-spacing: -0.02em;
 }
 
-.station-lines {
-    display: flex;
-    gap: 2px;
+.subject {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    font-weight: 400;
 }
 
-.station-line-badge {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 8px;
-    font-weight: bold;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+/* Leaflet 기본 스타일 보정 */
+.leaflet-tooltip-top:before {
+    border-top-color: rgba(15, 23, 42, 0.9) !important;
 }
 
-/* Legend and Controls */
+/* 고도화된 노선 스타일 (Polyline Glow) */
+/* 지하철 노선 글로우 효과 */
+.subway-line-glow {
+    filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
+    transition: all 0.3s ease;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.subway-line-glow:hover {
+    stroke-width: 8px !important;
+    filter: drop-shadow(0 0 12px var(--line-color));
+    cursor: pointer;
+}
+
+/* Legend and Controls - 프리미엄 유리 질감 */
 .map-control-panel {
-    background: var(--bg-card);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-premium);
-    transition: var(--transition-base);
+    background: rgba(30, 30, 45, 0.7);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .map-control-panel:hover {
-    background: var(--bg-card-hover);
-    border-color: var(--border-medium);
+    background: rgba(40, 40, 60, 0.8);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
 }
 
-/* Animations from globals.css integration */
+/* Animations */
 @keyframes float-subtle {
 
     0%,
@@ -101,33 +119,20 @@
     }
 }
 
-/* Leaflet Overrides for Dark Mode */
-.leaflet-popup-content-wrapper,
-.leaflet-popup-tip {
-    background: var(--bg-elevated) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--border-subtle);
-    -webkit-backdrop-filter: blur(16px);
+/* Leaflet Popups */
+.leaflet-popup-content-wrapper {
+    background: rgba(20, 20, 30, 0.9) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(16px);
+    border-radius: 12px !important;
 }
 
-.leaflet-control-zoom-in,
-.leaflet-control-zoom-out {
-    background: var(--bg-tertiary) !important;
-    color: var(--text-primary) !important;
-    border-bottom: 1px solid var(--border-subtle) !important;
-}
-
-.leaflet-control-zoom-in:hover,
-.leaflet-control-zoom-out:hover {
-    background: var(--bg-elevated) !important;
+.leaflet-popup-tip {
+    background: rgba(20, 20, 30, 0.9) !important;
 }
 
 .map-bg-grid {
-    background-image: linear-gradient(var(--border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
-    background-size: 40px 40px;
-}
-
-.text-muted-color {
-    color: var(--text-muted) !important;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
 }

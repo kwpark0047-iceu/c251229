@@ -38,12 +38,12 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       // 실제 API 라우트 모듈 import
-      const { GET, POST } = await import('../../src/app/api/localdata/route');
-      
+      const { POST } = await import('../../src/app/api/localdata/route');
+
       if (POST) {
         const response = await POST(request);
         const data = await response.json();
-        
+
         expect(response.status).toBe(200);
         expect(data).toHaveProperty('data');
         expect(data).toHaveProperty('totalCount');
@@ -68,7 +68,7 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       const { POST } = await import('../../src/app/api/localdata/route');
-      
+
       if (POST) {
         const response = await POST(request);
         expect(response.status).toBe(400);
@@ -78,8 +78,8 @@ describe('API 라우트 통합 테스트', () => {
     it('GET 요청은 지원하지 않는다', async () => {
       const request = new NextRequest('http://localhost:3000/api/localdata');
 
-      const { GET } = await import('../../src/app/api/localdata/route');
-      
+      const { GET } = await import('../../src/app/api/localdata/route') as any;
+
       if (GET) {
         const response = await GET(request);
         expect(response.status).toBe(405);
@@ -107,11 +107,11 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       const { POST } = await import('../../src/app/api/ai-proposal/route');
-      
+
       if (POST) {
         const response = await POST(request);
         const data = await response.json();
-        
+
         expect(response.status).toBe(200);
         expect(data).toHaveProperty('proposal');
         expect(data.proposal).toHaveProperty('title');
@@ -135,7 +135,7 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       const { POST } = await import('../../src/app/api/ai-proposal/route');
-      
+
       if (POST) {
         const response = await POST(request);
         expect(response.status).toBe(400);
@@ -162,11 +162,11 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       const { POST } = await import('../../src/app/api/send-proposal/route');
-      
+
       if (POST) {
         const response = await POST(request);
         const data = await response.json();
-        
+
         expect(response.status).toBe(200);
         expect(data).toHaveProperty('success');
         expect(data).toHaveProperty('messageId');
@@ -189,7 +189,7 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       const { POST } = await import('../../src/app/api/send-proposal/route');
-      
+
       if (POST) {
         const response = await POST(request);
         expect(response.status).toBe(400);
@@ -202,15 +202,15 @@ describe('API 라우트 통합 테스트', () => {
       const request = new NextRequest('http://localhost:3000/api/station-info?station=강남역');
 
       const { GET } = await import('../../src/app/api/station-info/route');
-      
+
       if (GET) {
         const response = await GET(request);
         const data = await response.json();
-        
+
         expect(response.status).toBe(200);
         expect(data).toHaveProperty('data');
         expect(Array.isArray(data.data)).toBe(true);
-        
+
         if (data.data.length > 0) {
           expect(data.data[0]).toHaveProperty('stationName');
           expect(data.data[0]).toHaveProperty('lineNum');
@@ -222,23 +222,23 @@ describe('API 라우트 통합 테스트', () => {
       const request = new NextRequest('http://localhost:3000/api/station-info');
 
       const { GET } = await import('../../src/app/api/station-info/route');
-      
+
       if (GET) {
         const response = await GET(request);
         expect(response.status).toBe(400);
       }
     });
 
-    it '캐싱이 동작한다', async () => {
+    it('캐싱이 동작한다', async () => {
       const request = new NextRequest('http://localhost:3000/api/station-info?station=강남역');
 
       const { GET } = await import('../../src/app/api/station-info/route');
-      
+
       if (GET) {
         // 첫 번째 요청
         const response1 = await GET(request);
         expect(response1.headers.get('cache-control')).toContain('max-age=');
-        
+
         // 두 번째 요청 (캐시된 데이터 사용)
         const response2 = await GET(request);
         expect(response2.status).toBe(200);
@@ -265,11 +265,11 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       const { POST } = await import('../../src/app/api/backup/route');
-      
+
       if (POST) {
         const response = await POST(request);
         const data = await response.json();
-        
+
         expect(response.status).toBe(200);
         expect(data).toHaveProperty('success');
         expect(data).toHaveProperty('backupId');
@@ -281,28 +281,28 @@ describe('API 라우트 통합 테스트', () => {
       const request = new NextRequest('http://localhost:3000/api/backup?organizationId=org-1');
 
       const { GET } = await import('../../src/app/api/backup/route');
-      
+
       if (GET) {
         const response = await GET(request);
         const data = await response.json();
-        
+
         expect(response.status).toBe(200);
         expect(data).toHaveProperty('backups');
         expect(Array.isArray(data.backups)).toBe(true);
       }
     });
 
-    it 'DELETE 요청으로 백업을 삭제할 수 있다', async () => {
+    it('DELETE 요청으로 백업을 삭제할 수 있다', async () => {
       const request = new NextRequest('http://localhost:3000/api/backup?backupId=backup-123', {
         method: 'DELETE',
       });
 
-      const { DELETE } = await import('../../src/app/api/backup/route');
-      
+      const { DELETE } = await import('../../src/app/api/backup/route') as any;
+
       if (DELETE) {
         const response = await DELETE(request);
         const data = await response.json();
-        
+
         expect(response.status).toBe(200);
         expect(data).toHaveProperty('success');
         expect(data.success).toBe(true);
@@ -315,11 +315,11 @@ describe('API 라우트 통합 테스트', () => {
       const request = new NextRequest('http://localhost:3000/api/floor-plans?line=2');
 
       const { GET } = await import('../../src/app/api/floor-plans/route');
-      
+
       if (GET) {
         const response = await GET(request);
         const data = await response.json();
-        
+
         expect(response.status).toBe(200);
         expect(data).toHaveProperty('data');
         expect(Array.isArray(data.data)).toBe(true);
@@ -339,18 +339,18 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       const { POST } = await import('../../src/app/api/floor-plans/route');
-      
+
       if (POST) {
         const response = await POST(request);
         const data = await response.json();
-        
+
         expect(response.status).toBe(200);
         expect(data).toHaveProperty('success');
         expect(data).toHaveProperty('floorPlanId');
       }
     });
 
-    it '필수 필드가 없으면 400 에러를 반환한다', async () => {
+    it('필수 필드가 없으면 400 에러를 반환한다', async () => {
       const formData = new FormData();
       formData.append('file', new Blob(['test'], { type: 'image/jpeg' }), 'test.jpg');
       // line, station, floor 누락
@@ -361,7 +361,7 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       const { POST } = await import('../../src/app/api/floor-plans/route');
-      
+
       if (POST) {
         const response = await POST(request);
         expect(response.status).toBe(400);
@@ -370,7 +370,7 @@ describe('API 라우트 통합 테스트', () => {
   });
 
   describe('API 에러 핸들링', () => {
-    it '인증되지 않은 요청은 401 에러를 반환한다', async () => {
+    it('인증되지 않은 요청은 401 에러를 반환한다', async () => {
       // 인증 키 제거
       delete process.env.LOCALDATA_API_KEY;
 
@@ -388,14 +388,14 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       const { POST } = await import('../../src/app/api/localdata/route');
-      
+
       if (POST) {
         const response = await POST(request);
         expect(response.status).toBe(401);
       }
     });
 
-    it '서버 내부 에러는 500 에러를 반환한다', async () => {
+    it('서버 내부 에러는 500 에러를 반환한다', async () => {
       // 잘못된 요청으로 서버 에러 유발
       const requestBody = {
         category: 'FOOD',
@@ -411,7 +411,7 @@ describe('API 라우트 통합 테스트', () => {
       });
 
       const { POST } = await import('../../src/app/api/localdata/route');
-      
+
       if (POST) {
         const response = await POST(request);
         expect(response.status).toBe(500);

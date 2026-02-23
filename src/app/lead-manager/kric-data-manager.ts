@@ -127,18 +127,44 @@ export class KRICSubwayDataManager {
           fetchAllSeoulStationInfo(this.serviceKey!)
         ]);
 
-        // 노선 정보로 기본 역 데이터 생성
-        const basicStations = convertKRICToSubwayStation(
-          Object.values(kricStations).flat()
-        );
-
-        // 상세 역사 정보로 추가 데이터 병합
+        // 1. 노선 정보 데이터 정규화 및 병합
+        const allKricStations: KRICStation[] = Object.values(kricStations).flat();
+        const basicStations = convertKRICToSubwayStation(allKricStations);
         const detailedStations = convertKRICStationInfoToSubwayStation(kricStationInfos);
 
-        // 두 데이터를 병합하여 최종 역 정보 생성
-        const mergedStations = this.mergeStationData(basicStations, detailedStations);
+        let mergedStations = this.mergeStationData(basicStations, detailedStations);
+        let routes = generateLineRoutes(kricStations);
 
-        const routes = generateLineRoutes(kricStations);
+        // 2. 지능형 노선별 폴백 (API 결과가 부족한 노선에 대해 정적 데이터 적용)
+        try {
+          const { TOTAL_SUBWAY_STATIONS } = await import('./data/stations');
+          const { generateSubwayRoutes } = await import('./utils/subway-utils');
+          const staticRoutes = generateSubwayRoutes();
+
+          // KRIC에서 누락된 노선(routes에 없거나 역이 적은 경우)을 정적 데이터로 보충
+          Object.entries(staticRoutes).forEach(([lineCode, data]) => {
+            // KRIC 응답에 해당 노선이 없거나, 정적 데이터의 역 개수가 현저히 많은 경우 폴백
+            if (!routes[lineCode] || routes[lineCode].coords.length < data.coords.length * 0.5) {
+              console.log(`⚠️ Line ${lineCode}: Falling back to static route data`);
+              routes[lineCode] = data;
+            }
+          });
+
+          // KRIC에서 누락된 역사 정보 보충
+          const kricStationNames = new Set(mergedStations.map(s => s.name));
+          TOTAL_SUBWAY_STATIONS.forEach(staticStation => {
+            if (!kricStationNames.has(staticStation.name)) {
+              mergedStations.push({
+                ...staticStation,
+                address: '정보 없음',
+                phone: '',
+                facilities: ''
+              });
+            }
+          });
+        } catch (fallbackError) {
+          console.error('⚠️ Failed to apply partial static fallback:', fallbackError);
+        }
 
         const result = { stations: mergedStations, routes };
 
@@ -196,8 +222,8 @@ export class KRICSubwayDataManager {
     detailedStations.forEach(detailed => {
       const existing = stationMap.get(detailed.name);
       if (existing) {
-        // 좌표가 더 정확한 경우 업데이트
-        if (detailed.lat && detailed.lng) {
+        // 좌표가 더 정확한 경우(상세 데이터가 있고 0,0이 아닌 경우) 업데이트
+        if (detailed.lat !== 0 && detailed.lng !== 0) {
           existing.lat = detailed.lat;
           existing.lng = detailed.lng;
         }
@@ -210,8 +236,8 @@ export class KRICSubwayDataManager {
         const existingLines = new Set(existing.lines);
         detailed.lines.forEach(line => existingLines.add(line));
         existing.lines = Array.from(existingLines);
-      } else {
-        // 새로운 역 추가
+      } else if (detailed.lat !== 0 && detailed.lng !== 0) {
+        // 새로운 역 추가 (유효한 좌표가 있을 때만)
         stationMap.set(detailed.name, { ...detailed });
       }
     });
@@ -391,6 +417,17 @@ export const KRIC_LINE_COLORS = {
   '1092': '#B0CE18', // 우이신설선
   '1093': '#6789CA', // 신림선
   '1081': '#003DA5', // 경강선
+  'S': '#D4003A',    // 신분당선 (Local)
+  'B': '#F5A200',    // 수인분당선 (Local)
+  'K': '#77BB4A',    // 경의중앙선 (Local)
+  'G': '#807DB8',    // 경춘선 (Local)
+  'A': '#009D3E',    // 공항철도 (Local)
+  'Ui': '#B0CE18',   // 우이신설 (Local)
+  'Si': '#6789CA',   // 신림선 (Local)
+  'Kg': '#003DA5',   // 경강선 (Local)
+  'W': '#81A914',    // 서해선 (Local)
+  'E': '#6FB245',    // 에버라인 (Local)
+  'U': '#FDA600',    // 의정부 (Local)
 } as const;
 
 /**
@@ -421,6 +458,9 @@ export function getLineDisplayName(lineCode: string): string {
     '1092': 'Ui',     // 우이신설선
     '1093': 'Si',     // 신림선
     '1081': 'Kg',     // 경강선
+    'S': 'S', 'B': 'B', 'K': 'K', 'G': 'G', 'A': 'A',
+    'Ui': 'Ui', 'Si': 'Si', 'Kg': 'Kg', 'W': 'W', 'E': 'E', 'U': 'U',
+    'I1': 'I1', 'I2': 'I2'
   };
 
   return lineNames[lineCode] || lineCode;

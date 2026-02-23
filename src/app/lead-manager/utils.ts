@@ -11,6 +11,9 @@ proj4.defs('EPSG5174', PROJ4_DEFS.EPSG5174);
 proj4.defs('EPSG5181', PROJ4_DEFS.EPSG5181);
 proj4.defs('EPSG5179', PROJ4_DEFS.EPSG5179);
 proj4.defs('WGS84', PROJ4_DEFS.WGS84);
+// KRIC API 전용 TM128 좌표계 정의 (중부원점 GRS80)
+const TM128 = '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs';
+proj4.defs('TM128', TM128);
 
 /**
  * 좌표값을 기반으로 좌표계 자동 감지
@@ -47,16 +50,61 @@ export function convertGRS80ToWGS84(x: number, y: number): { lat: number; lng: n
     const sourceSystem = detectCoordinateSystem(x, y);
     const [lng, lat] = proj4(sourceSystem, 'WGS84', [x, y]);
 
-    // 변환 결과 유효성 검사 (서울/경기 범위: 위도 37~38, 경도 126~128)
+    // 변환 결과 유효성 검사 (서울/경기 범위: 위도 33~43, 경도 124~132)
     if (lat < 33 || lat > 43 || lng < 124 || lng > 132) {
-      console.warn(`좌표 변환 결과가 범위를 벗어남: (${lat}, ${lng})`);
+      console.warn(`[Utils] 좌표 변환 결과가 범위를 벗어남: (${lat}, ${lng}) from source ${sourceSystem}`);
       return null;
     }
 
     return { lat, lng };
   } catch (error) {
-    console.error('좌표 변환 오류:', error);
+    console.error('[Utils] GRS80 좌표 변환 오류:', error);
     return null;
+  }
+}
+
+/**
+ * KRIC 좌표(TM128)를 WGS84 위경도로 변환
+ * @param xcrd - X 좌표 문자열
+ * @param ycrd - Y 좌표 문자열
+ * @returns [lat, lng] 배열
+ */
+export function convertKRICToWGS84(xcrd: string, ycrd: string): [number, number] {
+  if (!xcrd || !ycrd) {
+    return [0, 0];
+  }
+
+  try {
+    const x = parseFloat(xcrd);
+    const y = parseFloat(ycrd);
+
+    if (isNaN(x) || isNaN(y) || x === 0 || y === 0) {
+      return [0, 0];
+    }
+
+    // 방어 코드: 이미 WGS84(위경도) 범위인 경우 변환 건너뜀
+    // 경도: 124~132, 위도: 33~39 (한국 범위)
+    if (x > 124 && x < 132 && y > 33 && y < 39) {
+      return [y, x];
+    }
+    // KRIC API 응답 중 x, y 순서가 바뀐 경우 대응 (위도: 33~39, 경도: 124~132)
+    if (y > 124 && y < 132 && x > 33 && x < 39) {
+      return [x, y];
+    }
+
+    // proj4를 이용한 TM128 -> WGS84 변환
+    const [lng, lat] = proj4('TM128', 'WGS84', [x, y]);
+
+    // 변환 결과 유효성 검증
+    if (isNaN(lat) || isNaN(lng) || lat < 33 || lat > 43 || lng < 124 || lng > 132) {
+      console.warn(`[Utils] KRIC 좌표 변환 결과 무효: (${lat}, ${lng}) for inputs (${xcrd}, ${ycrd})`);
+      return [0, 0];
+    }
+
+    return [lat, lng];
+  } catch (error) {
+    console.error('[Utils] KRIC 좌표 변환 실패:', error);
+    return [0, 0];
   }
 }
 

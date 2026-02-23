@@ -55,24 +55,27 @@ export default function StationLabel({
 
   useEffect(() => {
     if (typeof window !== 'undefined' && L) {
+      const isTransfer = station.lines.length >= 2;
+      const transferClass = isTransfer ? 'transfer' : '';
+
       const newIcon = L.divIcon({
         html: `
-          <div class="station-label-container">
-            <div class="station-marker ${size}" style="border-color: ${color};"></div>
+          <div class="station-label-container animate-antigravity" style="--line-color: ${color};">
+            <div class="station-marker ${size} ${transferClass}" style="border-color: ${color};"></div>
             ${showLabel ? `
-              <div class="station-name ${size}" style="color: ${color}; border-color: ${color}44;">
+              <div class="station-name ${size}" style="border-color: ${color}66;">
                 ${station.name}
               </div>
             ` : ''}
           </div>
         `,
         className: 'station-label-icon',
-        iconSize: [80, 80], // 컨테이너 충분히 크게
-        iconAnchor: [40, 40],
+        iconSize: [100, 100],
+        iconAnchor: [50, 50],
       });
       setIcon(newIcon);
     }
-  }, [station.name, color, size, showLabel]);
+  }, [station.name, color, size, showLabel, station.lines.length]);
 
   if (!icon) return null;
 
@@ -141,6 +144,9 @@ export function StationLayer({
 }: StationLayerProps) {
   // 표시할 역 필터링
   const visibleStations = stations.filter(station => {
+    // 좌표가 유효하지 않은 경우 제외
+    if (station.lat === 0 && station.lng === 0) return false;
+
     // station.lines에 있는 값이 '1001'일 수도 있고 '1'일 수도 있으므로 둘 다 체크
     return station.lines.some(line => {
       const displayName = getLineDisplayName(line); // 1001 -> 1

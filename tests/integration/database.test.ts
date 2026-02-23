@@ -83,7 +83,7 @@ describe('데이터베이스 통합 테스트', () => {
       expect(org1Leads.data[0].biz_name).toBe('조직1 리드');
     });
 
-    it '리드 상태를 업데이트할 수 있다', async () => {
+    it('리드 상태를 업데이트할 수 있다', async () => {
       const testOrg = await supabase.from('organizations').insert({
         name: '테스트 조직',
         slug: 'test-org',
@@ -266,7 +266,7 @@ describe('데이터베이스 통합 테스트', () => {
       expect(result.data).toHaveLength(0);
     });
 
-    it '인증되지 않은 사용자는 데이터에 접근할 수 없다', async () => {
+    it('인증되지 않은 사용자는 데이터에 접근할 수 없다', async () => {
       // 익명 클라이언트로 접근 시도
       const anonymousClient = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
@@ -281,7 +281,7 @@ describe('데이터베이스 통합 테스트', () => {
   });
 
   describe('데이터 무결성', () => {
-    it '필수 필드가 없으면 데이터를 생성할 수 없다', async () => {
+    it('필수 필드가 없으면 데이터를 생성할 수 없다', async () => {
       const result = await supabase.from('leads').insert({
         // biz_name 누락
         road_address: '서울시 강남구 테헤란로 123',
@@ -291,33 +291,36 @@ describe('데이터베이스 통합 테스트', () => {
       expect(result.error?.code).toBe('23502'); // NOT NULL violation
     });
 
-    it '외래 키 제약 조건을 준수한다', async () => {
+    it('외래 키 제약 조건을 준수한다', async () => {
       const result = await supabase.from('leads').insert({
         biz_name: '테스트 상점',
-        organization_id: 'non-existent-org-id',
+        road_address: '서울시 강남구 테헤란로 456',
+        organization_id: '00000000-0000-0000-0000-000000000000', // 형식은 맞지만 존재하지 않는 ID
       });
 
       expect(result.error).toBeTruthy();
       expect(result.error?.code).toBe('23503'); // Foreign key violation
     });
 
-    it 'unique 제약 조건을 준수한다', async () => {
+    it('unique 제약 조건을 준수한다', async () => {
       const testOrg = await supabase.from('organizations').insert({
-        name: '테스트 조직',
-        slug: 'test-org',
+        name: '테스트 조직 ' + Date.now(),
+        slug: 'test-org-' + Date.now(),
       }).select().single();
+
+      if (!testOrg.data) throw new Error('Failed to create test org');
 
       // 첫 번째 리드 생성
       await supabase.from('leads').insert({
         biz_name: '동일한 상점명',
-        road_address: '서울시 강남구 테헤란로 123',
+        road_address: '서울시 강남구 테헤란로 789',
         organization_id: testOrg.data.id,
       });
 
       // 동일한 상점명과 주소로 두 번째 리드 생성 시도
       const result = await supabase.from('leads').insert({
         biz_name: '동일한 상점명',
-        road_address: '서울시 강남구 테헤란로 123',
+        road_address: '서울시 강남구 테헤란로 789',
         organization_id: testOrg.data.id,
       });
 

@@ -4,6 +4,7 @@
  */
 
 import axios from 'axios';
+import { convertKRICToWGS84 } from './utils';
 
 // API 기본 정보
 const KRIC_API_BASE_URL = 'https://openapi.kric.go.kr/openapi/trainUseInfo/subwayRouteInfo';
@@ -249,31 +250,8 @@ export async function fetchStationInfo(
 export async function fetchAllSeoulSubwayRoutes(
   serviceKey: string
 ): Promise<Record<string, KRICStation[]>> {
-  const seoulLines = [
-    LINE_CODES.LINE_1,
-    LINE_CODES.LINE_2,
-    LINE_CODES.LINE_3,
-    LINE_CODES.LINE_4,
-    LINE_CODES.LINE_5,
-    LINE_CODES.LINE_6,
-    LINE_CODES.LINE_7,
-    LINE_CODES.LINE_8,
-    LINE_CODES.LINE_9,
-    LINE_CODES.SUIN_BUNDANG,
-    LINE_CODES.SHINBUNDANG,
-    LINE_CODES.GYEONGUI_JUNGANG,
-    LINE_CODES.GYEONGCHUN,
-    LINE_CODES.AIRPORT_RAILROAD,
-    LINE_CODES.UIJEONGBU,
-    LINE_CODES.EVERLINE,
-    LINE_CODES.GIMPO_GOLD,
-    LINE_CODES.SEOIL,
-    LINE_CODES.INCHEON_1,
-    LINE_CODES.INCHEON_2,
-    LINE_CODES.UI_SINSEOL,
-    LINE_CODES.SILLIM,
-    LINE_CODES.GYEONGGANG,
-  ];
+  // LINE_CODES의 모든 키 중 4자리 숫자(KRIC 코드)만 추출하여 대상 노선 설정
+  const seoulLines = Object.keys(LINE_CODES).filter(key => /^\d{4}$/.test(key));
 
   const results: Record<string, KRICStation[]> = {};
 
@@ -299,101 +277,44 @@ export async function fetchAllSeoulSubwayRoutes(
 }
 
 /**
- * 수도권 전체 역사 정보 가져오기 (상세 정보 포함)
+ * 수도권 주요 노선의 역사 정보 수집 (상세 정보 포함)
  * @param serviceKey API 서비스키
  * @returns 전체 역사 상세 정보
  */
 export async function fetchAllSeoulStationInfo(
   serviceKey: string
 ): Promise<KRICStationInfo[]> {
-  try {
-    console.log('🔄 Fetching all Seoul station info from KRIC API...');
+  // 주요 상세 정보 수집 대상 노선 (서울교통공사 및 주요 광역철도)
+  const targetLines = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'B', 'S', 'K', 'G', 'A', 'I1', 'I2'];
 
-    const stations = await fetchStationInfo(serviceKey, AREA_CODES.SEOUL);
+  const allStations: KRICStationInfo[] = [];
+  const seenStationKeys = new Set<string>();
 
-    console.log(`✅ Loaded ${stations.length} station details`);
-    return stations;
-  } catch (error) {
-    console.error('❌ Failed to fetch station info:', error);
-    throw error;
+  console.log(`🔄 Fetching station details for ${targetLines.length} major lines...`);
+
+  // 병렬 요청 (5개씩)
+  const chunkSize = 5;
+  for (let i = 0; i < targetLines.length; i += chunkSize) {
+    const chunk = targetLines.slice(i, i + chunkSize);
+    const results = await Promise.all(chunk.map(line =>
+      fetchStationInfo(serviceKey, AREA_CODES.SEOUL, line)
+    ));
+
+    results.flat().forEach(station => {
+      const key = `${station.stinNm}-${station.lnNm}`;
+      if (!seenStationKeys.has(key)) {
+        seenStationKeys.add(key);
+        allStations.push(station);
+      }
+    });
   }
+
+  console.log(`✅ Loaded ${allStations.length} total unique station details`);
+  return allStations;
 }
 
-import proj4 from 'proj4';
 
-// proj4 ESM/CJS 호환성 처리
-const getProj4 = () => {
-  // console.log('DEBUG [getProj4]: proj4 value:', proj4);
-  if (typeof proj4 === 'function') return proj4;
-  if (proj4 && (proj4 as any).default && typeof (proj4 as any).default === 'function') {
-    return (proj4 as any).default;
-  }
-  // Try to use globally or locally if available
-  try {
-    const p = require('proj4');
-    if (typeof p === 'function') return p;
-    if (p.default && typeof p.default === 'function') return p.default;
-  } catch (e) {
-    // ignore
-  }
-  return proj4;
-};
-
-// TM128 (EPSG:5181) 및 WGS84 (EPSG:4326) 정의
-// 한국 중부원점 (GRS80)
-const TM128 = '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs';
-const WGS84 = 'EPSG:4326';
-
-/**
- * KRIC 좌표를 WGS84 좌표로 변환
- * KRIC API는 TM128 좌표계를 사용
- * @param xcrd X좌표
- * @param ycrd Y좌표
- * @returns WGS84 좌표 [lat, lng]
- */
-export function convertKRICToWGS84(xcrd: string, ycrd: string): [number, number] {
-  if (!xcrd || !ycrd) {
-    return [0, 0];
-  }
-
-  try {
-    const x = parseFloat(xcrd);
-    const y = parseFloat(ycrd);
-
-    if (isNaN(x) || isNaN(y)) {
-      return [0, 0];
-    }
-
-    // 방어 코드: 이미 WGS84(위경도) 범위인 경우 변환 건너뜀
-    // 경도: 124~132, 위도: 33~39 (한국 범위)
-    if (x > 124 && x < 132 && y > 33 && y < 39) {
-      return [y, x];
-    }
-    // KRIC API 응답 중 x, y 순서가 바뀐 경우 대응 (위도: 33~39, 경도: 124~132)
-    if (y > 124 && y < 132 && x > 33 && x < 39) {
-      return [x, y];
-    }
-
-    // proj4를 이용한 TM128 -> WGS84 변환
-    const p4 = getProj4();
-    if (typeof p4 !== 'function') {
-      // proj4 로드 실패 시 마지막 수단으로 (비정밀하지만) 그대로 반환 시도
-      return [y > 100 ? x : y, x > 100 ? x : y];
-    }
-
-    const result = p4(TM128, WGS84, [x, y]);
-
-    if (!result || !Array.isArray(result)) {
-      return [0, 0];
-    }
-
-    const [lng, lat] = result;
-    return [lat, lng];
-  } catch (error) {
-    console.error('Coordinate conversion failed:', error);
-    return [0, 0];
-  }
-}
+// KRIC 역 정보 변환 관여 함수들
 
 /**
  * KRIC 역 정보를 기존 SubwayStation 형식으로 변환
@@ -411,7 +332,9 @@ export function convertKRICToSubwayStation(kricStations: KRICStation[]): Array<{
   kricStations.forEach(station => {
     const [lat, lng] = convertKRICToWGS84(station.xcrd, station.ycrd);
 
-    // 유효하지 않은 좌표(0, 0)인 경우 제외하지 않고 일단 역은 추가 (검색용)
+    // 유효하지 않은 좌표(0, 0)인 경우 역 목록에서 제외 (지도 상의 고아 역 방지)
+    if (lat === 0 && lng === 0) return;
+
     const stinName = station.stinNm;
 
     if (!stationMap.has(stinName)) {
@@ -537,10 +460,10 @@ export function generateLineRoutes(
       parseInt(a.ordrNo) - parseInt(b.ordrNo)
     );
 
-    // 좌표 변환
+    // 좌표 변환 및 유효성 검사 ([0, 0] 좌표 제거)
     const coords = sortedStations
       .map(station => convertKRICToWGS84(station.xcrd, station.ycrd))
-      .filter(([lat, lng]) => !isNaN(lat) && !isNaN(lng));
+      .filter(([lat, lng]) => lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng));
 
     routes[lineCode] = {
       color: LINE_COLORS[lineCode as keyof typeof LINE_COLORS] || '#888',

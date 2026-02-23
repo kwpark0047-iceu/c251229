@@ -57,6 +57,12 @@ const Tooltip = dynamic(
   { ssr: false }
 );
 
+// 신규 생성한 MapEvents 컴포닉트 동적 임포트
+const MapEvents = dynamic(
+  () => import('./MapEvents'),
+  { ssr: false }
+);
+
 // 지도 포커스 컨트롤러 컴포넌트 (useMap 사용)
 const MapFocusController = dynamic(
   () => import('./MapFocusController'),
@@ -83,6 +89,12 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 클라이언트 hydration 감지용
     setIsClient(true);
   }, []);
+
+  // 지도 초기 줌 레벨
+  const defaultZoom = focusLead?.latitude && focusLead?.longitude ? 17 : 14;
+
+  // 현재 지도 줌 레벨 추적용 상태
+  const [currentZoom, setCurrentZoom] = useState(defaultZoom);
 
   // KRIC 지하철 데이터 로드
   useEffect(() => {
@@ -136,9 +148,6 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
       }
       : { lat: 37.5012, lng: 127.0396 }; // 강남역
 
-  // 줌 레벨 (focusLead가 있으면 더 높은 줌)
-  const zoomLevel = focusLead?.latitude && focusLead?.longitude ? 17 : 14;
-
   if (!isClient) {
     return (
       <div className="bg-slate-100 rounded-xl h-[calc(100vh-280px)] min-h-[500px] flex items-center justify-center">
@@ -146,6 +155,9 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
       </div>
     );
   }
+
+  // 줌 레벨 기반 업체명 표시 여부
+  const showLeadLabels = currentZoom >= 15;
 
   return (
     <div className="relative">
@@ -161,15 +173,16 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <MapContainer
           center={[center.lat, center.lng]}
-          zoom={zoomLevel}
+          zoom={defaultZoom}
           scrollWheelZoom={true}
         >
+          <MapEvents onZoomEnd={setCurrentZoom} />
           {/* 지도 포커스 컨트롤러 */}
           <MapFocusController focusLead={focusLead} onFocusClear={onFocusClear} />
 
           <TileLayer
             attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
 
           {/* 지하철역 레이블 */}
@@ -178,30 +191,41 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
               stations={subwayData.stations}
               routes={subwayData.routes}
               visibleLines={visibleLines}
-              showLabels={true}
-              size="small"
-              maxVisible={200}
+              showLabels={currentZoom >= 14}
+              size={currentZoom >= 16 ? 'medium' : 'small'}
+              maxVisible={currentZoom >= 15 ? 400 : 150}
             />
           )}
 
-// 하단 노선 토글 버튼 및 맵 렌더링 수정
-          {/* 지하철 노선 */}
+          {/* 지하철 노선 (본선 및 지선 모두 포함) */}
           {subwayData?.routes && (
             Object.entries(subwayData.routes)
               .filter(([lineCode]) => {
-                // KRIC 코드(1001) -> 약어(1) 변환 후 필터 확인
-                const displayName = getKRICDisplayName(lineCode);
+                // '2-seongsu' 등에서도 기본 노선명 '2'를 추출하여 가시성 체크
+                const baseLineCode = lineCode.split('-')[0];
+                const displayName = getKRICDisplayName(baseLineCode);
                 return visibleLines.includes(displayName);
               })
-              .map(([lineCode, route]: [string, any]) => {
+              .map(([lineKey, route]: [string, any]) => {
                 if (!route.coords || route.coords.length < 2) return null;
                 return (
                   <Polyline
-                    key={lineCode}
+                    key={lineKey}
                     positions={route.coords}
-                    color={route.color}
-                    weight={5}
-                    opacity={0.8}
+                    pathOptions={{
+                      color: route.color,
+                      weight: currentZoom >= 15 ? 5 : 3,
+                      opacity: 0.8,
+                      className: 'subway-line-glow',
+                    }}
+                    eventHandlers={{
+                      mouseover: (e) => {
+                        e.target.setStyle({ weight: 8, opacity: 1 });
+                      },
+                      mouseout: (e) => {
+                        e.target.setStyle({ weight: currentZoom >= 15 ? 5 : 3, opacity: 0.8 });
+                      }
+                    }}
                   />
                 );
               })
@@ -214,11 +238,11 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
               <CircleMarker
                 key={lead.id}
                 center={[lead.latitude!, lead.longitude!]}
-                radius={isFocused ? 14 : 8}
+                radius={isFocused ? 14 : (currentZoom >= 15 ? 10 : 7)}
                 fillColor={isFocused ? '#FF0000' : getStatusColor(lead.status)}
                 fillOpacity={isFocused ? 1 : 0.8}
-                color={isFocused ? '#FF0000' : getStatusColor(lead.status)}
-                weight={isFocused ? 4 : 2}
+                color="#FFFFFF"
+                weight={2}
                 eventHandlers={{
                   click: () => setSelectedLead(lead),
                 }}
@@ -226,10 +250,14 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                 <Tooltip
                   direction="top"
                   offset={[0, -10]}
-                  permanent={true}
-                  className="lead-tooltip"
+                  permanent={showLeadLabels || isFocused}
+                  className={`lead-tooltip ${isFocused ? 'focused' : ''}`}
+                  opacity={showLeadLabels || isFocused ? 1 : 0}
                 >
-                  {lead.bizName}
+                  <div className="lead-label-content">
+                    <span className="biz-name">{lead.bizName}</span>
+                    {currentZoom >= 17 && <span className="subject">{lead.medicalSubject}</span>}
+                  </div>
                 </Tooltip>
                 <Popup>
                   <LeadPopup lead={lead} onStatusChange={onStatusChange} onListView={onListView} />
