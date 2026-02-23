@@ -107,7 +107,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
       if (!error && data) {
         setAvailableInventory(
-          data.map((row) => ({
+          data.map((row: any) => ({
             id: row.id,
             stationName: row.station_name,
             locationCode: row.location_code,
@@ -300,6 +300,8 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             </label>
             <div className="relative">
               <input
+                id="recipient-email"
+                name="recipientEmail"
                 type="email"
                 value={recipientEmail}
                 onChange={(e) => setRecipientEmail(e.target.value)}
@@ -326,6 +328,8 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               추천 역사 선택
             </label>
             <select
+              id="selected-station"
+              name="selectedStation"
               value={selectedStation?.name || ''}
               onChange={(e) => handleStationChange(e.target.value)}
               title="역사 선택"

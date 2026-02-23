@@ -197,6 +197,8 @@ export default function DuplicateManager({
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <input
+                    id={`duplicate-group-${index}`}
+                    name={`duplicateGroup-${index}`}
                     type="checkbox"
                     checked={selectedGroups.has(index)}
                     onChange={() => { }}

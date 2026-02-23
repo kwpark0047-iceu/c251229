@@ -137,6 +137,8 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
               CORS 프록시
             </label>
             <select
+              id="cors-proxy-select"
+              name="corsProxySelect"
               value={isPresetProxy ? formData.corsProxy : 'custom'}
               onChange={(e) => handleProxyChange(e.target.value)}
               title="CORS 프록시 선택"
@@ -151,6 +153,8 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
             </select>
             {!isPresetProxy && (
               <input
+                id="custom-proxy-input"
+                name="corsProxy"
                 type="text"
                 value={formData.corsProxy}
                 onChange={(e) => setFormData({ ...formData, corsProxy: e.target.value })}
@@ -178,6 +182,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                 }}
               >
                 <input
+                  id="search-type-license"
                   type="radio"
                   name="searchType"
                   value="license_date"
@@ -200,6 +205,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                 }}
               >
                 <input
+                  id="search-type-modified"
                   type="radio"
                   name="searchType"
                   value="modified_date"
@@ -224,6 +230,8 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
               지역
             </label>
             <select
+              id="region-code-select"
+              name="regionCode"
               value={formData.regionCode}
               onChange={(e) => setFormData({ ...formData, regionCode: e.target.value })}
               title="지역 선택"

@@ -156,19 +156,11 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
     );
   }
 
-  // 줌 레벨 기반 업체명 표시 여부
-  const showLeadLabels = currentZoom >= 15;
+  // 줌 레벨 기반 업체명 표시 여부 (12 이상에서 표시)
+  const showLeadLabels = currentZoom >= 12;
 
   return (
     <div className="relative">
-      {/* Leaflet CSS */}
-      <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossOrigin=""
-      />
-
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <MapContainer
@@ -250,9 +242,9 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                 <Tooltip
                   direction="top"
                   offset={[0, -10]}
-                  permanent={showLeadLabels || isFocused}
+                  permanent={true}
                   className={`lead-tooltip ${isFocused ? 'focused' : ''}`}
-                  opacity={showLeadLabels || isFocused ? 1 : 0}
+                  opacity={1}
                 >
                   <div className="lead-label-content">
                     <span className="biz-name">{lead.bizName}</span>
@@ -430,6 +422,8 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
       </div>
 
       <select
+        id={`lead-status-${lead.id}`}
+        name="status"
         value={lead.status}
         onChange={(e) => onStatusChange(lead.id, e.target.value as LeadStatus)}
         className="w-full text-sm px-2 py-1 border border-slate-700 bg-slate-800 text-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

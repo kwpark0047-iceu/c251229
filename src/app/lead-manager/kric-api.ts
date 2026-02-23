@@ -236,8 +236,8 @@ export async function fetchStationInfo(
 
     return Array.isArray(items) ? items : [items];
   } catch (error) {
-    console.error(`Failed to fetch station info:`, error);
-    // 빈 배열 반환하여 UI 중단 방지
+    // 상세 정보가 없는 역이 많으므로 에러 대신 디버그용 로그로 처리
+    // console.debug(`[Station Info] No details available for station on line ${lineCode}`);
     return [];
   }
 }
@@ -309,7 +309,9 @@ export async function fetchAllSeoulStationInfo(
     });
   }
 
-  console.log(`✅ Loaded ${allStations.length} total unique station details`);
+  if (allStations.length > 0) {
+    console.log(`✅ Loaded ${allStations.length} total unique station details`);
+  }
   return allStations;
 }
 

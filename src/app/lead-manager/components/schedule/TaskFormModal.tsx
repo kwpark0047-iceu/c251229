@@ -185,6 +185,8 @@ export default function TaskFormModal({
               제목 <span className="text-red-400">*</span>
             </label>
             <input
+              id="task-title"
+              name="title"
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -200,6 +202,8 @@ export default function TaskFormModal({
               설명
             </label>
             <textarea
+              id="task-description"
+              name="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="metro-input min-h-[80px]"
@@ -216,6 +220,7 @@ export default function TaskFormModal({
               </label>
               <input
                 id="task-date"
+                name="dueDate"
                 type="date"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -230,6 +235,7 @@ export default function TaskFormModal({
               </label>
               <input
                 id="task-time"
+                name="dueTime"
                 type="time"
                 value={formData.dueTime}
                 onChange={(e) => setFormData({ ...formData, dueTime: e.target.value })}
@@ -274,6 +280,7 @@ export default function TaskFormModal({
               </label>
               <select
                 id="task-status"
+                name="status"
                 value={formData.status}
                 onChange={(e) =>
                   setFormData({ ...formData, status: e.target.value as TaskStatus })
@@ -298,6 +305,8 @@ export default function TaskFormModal({
               담당자
             </label>
             <input
+              id="task-assignee"
+              name="assignee"
               type="text"
               value={formData.assignee}
               onChange={(e) => setFormData({ ...formData, assignee: e.target.value })}
@@ -313,6 +322,8 @@ export default function TaskFormModal({
               연결 리드
             </label>
             <input
+              id="lead-search-query"
+              name="searchQuery"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -373,6 +384,8 @@ export default function TaskFormModal({
               메모
             </label>
             <textarea
+              id="task-notes"
+              name="notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="metro-input min-h-[60px]"

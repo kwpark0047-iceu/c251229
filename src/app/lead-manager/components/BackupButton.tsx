@@ -153,6 +153,8 @@ export default function BackupButton({ className = '' }: BackupButtonProps) {
 
         {/* 숨겨진 파일 입력 */}
         <input
+          id="backup-file-input"
+          name="backupFile"
           ref={fileInputRef}
           type="file"
           accept=".json"
@@ -164,11 +166,10 @@ export default function BackupButton({ className = '' }: BackupButtonProps) {
       {/* 메시지 표시 */}
       {message && (
         <div
-          className={`absolute top-full mt-2 right-0 p-3 rounded-lg text-sm whitespace-pre-line z-10 ${
-            message.type === 'success'
+          className={`absolute top-full mt-2 right-0 p-3 rounded-lg text-sm whitespace-pre-line z-10 ${message.type === 'success'
               ? 'bg-green-100 text-green-800 border border-green-300'
               : 'bg-red-100 text-red-800 border border-red-300'
-          }`}
+            }`}
           style={{ minWidth: '200px', maxWidth: '300px' }}
         >
           <div className="flex items-start gap-2">

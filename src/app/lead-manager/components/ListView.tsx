@@ -373,6 +373,8 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       {/* 상태 */}
       <td className="px-5 py-4">
         <select
+          id={`status-select-${lead.id}`}
+          name="status"
           value={lead.status}
           onChange={(e) => {
             e.stopPropagation();

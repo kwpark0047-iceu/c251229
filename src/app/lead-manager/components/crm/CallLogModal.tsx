@@ -115,11 +115,10 @@ export default function CallLogModal({
                   key={key}
                   type="button"
                   onClick={() => setOutcome(key)}
-                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
-                    outcome === key
+                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${outcome === key
                       ? `${CALL_OUTCOME_COLORS[key].bg} ${CALL_OUTCOME_COLORS[key].text} border-current`
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {CALL_OUTCOME_LABELS[key]}
                 </button>
@@ -134,6 +133,8 @@ export default function CallLogModal({
               통화 시간 (분)
             </label>
             <input
+              id="call-duration"
+              name="durationMinutes"
               type="number"
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(e.target.value)}
@@ -150,6 +151,8 @@ export default function CallLogModal({
               담당자명
             </label>
             <input
+              id="contact-person"
+              name="contactPerson"
               type="text"
               value={contactPerson}
               onChange={(e) => setContactPerson(e.target.value)}
@@ -165,6 +168,8 @@ export default function CallLogModal({
               통화 메모
             </label>
             <textarea
+              id="call-notes"
+              name="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="통화 내용을 기록하세요..."
@@ -179,6 +184,8 @@ export default function CallLogModal({
               다음 액션
             </label>
             <input
+              id="next-action"
+              name="nextAction"
               type="text"
               value={nextAction}
               onChange={(e) => setNextAction(e.target.value)}
@@ -194,6 +201,8 @@ export default function CallLogModal({
               다음 연락 예정일
             </label>
             <input
+              id="next-contact-date"
+              name="nextContactDate"
               type="date"
               value={nextContactDate}
               onChange={(e) => setNextContactDate(e.target.value)}
