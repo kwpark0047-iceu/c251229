@@ -19,7 +19,7 @@ import {
   KRIC_LINE_COLORS,
   getLineDisplayName as getKRICDisplayName
 } from '../kric-data-manager';
-import { generateSubwayRoutes } from '../utils/subway-utils';
+import { generateSubwayRoutes, SUBWAY_LINE_COLORS } from '../utils/subway-utils';
 import './MapView.css';
 
 interface MapViewProps {
@@ -288,31 +288,55 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
       <div className="absolute bottom-4 left-36 map-control-panel p-3 z-[1000] max-w-[calc(100%-10rem)] overflow-x-auto">
         <h4 className="text-sm font-semibold text-slate-200 mb-2">노선 표시</h4>
         <div className="flex flex-wrap gap-1 min-w-max">
-          {subwayData?.routes && Object.entries(subwayData.routes).map(([lineCode, route]: [string, any]) => {
-            const displayName = getKRICDisplayName(lineCode);
-            return (
-              <button
-                key={lineCode}
-                onClick={() => {
-                  setVisibleLines(prev =>
-                    prev.includes(displayName)
-                      ? prev.filter(l => l !== displayName)
-                      : [...prev, displayName]
-                  );
-                }}
-                className={`w-7 h-7 rounded-full text-[10px] font-bold flex items-center justify-center transition-all ${visibleLines.includes(displayName)
-                  ? 'text-white shadow-md'
-                  : 'bg-slate-700 text-slate-400'
-                  }`}
-                style={{
-                  backgroundColor: visibleLines.includes(displayName) ? route.color : undefined
-                }}
-                title={displayName + '호선'}
-              >
-                {displayName}
-              </button>
-            );
-          })}
+          {subwayData?.routes && (() => {
+            const uniqueLines = new Set<string>();
+            const buttons: React.ReactNode[] = [];
+
+            // 노선 정렬 순서 정의
+            const sortOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'B', 'K', 'G', 'A', 'I1', 'I2', 'Ui', 'Si', 'Kg', 'W', 'E', 'U', 'GTX-A'];
+
+            // 표시 가능한 모든 노선 키(Base) 추출
+            const allLineKeys = Object.keys(subwayData.routes).map(k => k.split('-')[0]);
+            const sortedLineKeys = Array.from(new Set(allLineKeys)).sort((a, b) => {
+              const idxA = sortOrder.indexOf(getKRICDisplayName(a));
+              const idxB = sortOrder.indexOf(getKRICDisplayName(b));
+              if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+              if (idxA !== -1) return -1;
+              if (idxB !== -1) return 1;
+              return a.localeCompare(b);
+            });
+
+            return sortedLineKeys.map(baseCode => {
+              const displayName = getKRICDisplayName(baseCode);
+              const isActive = visibleLines.includes(displayName);
+              const color = SUBWAY_LINE_COLORS[baseCode] || '#999999';
+
+              return (
+                <button
+                  key={baseCode}
+                  onClick={() => {
+                    setVisibleLines(prev =>
+                      isActive
+                        ? prev.filter(l => l !== displayName)
+                        : [...prev, displayName]
+                    );
+                  }}
+                  className={`
+                    px-2 py-0.5 rounded text-xs font-bold transition-all border
+                    ${isActive
+                      ? 'text-white shadow-sm scale-105'
+                      : 'bg-slate-800/50 text-slate-500 border-slate-700 hover:border-slate-500'}
+                  `}
+                  style={{
+                    backgroundColor: isActive ? color : undefined,
+                    borderColor: isActive ? color : undefined
+                  }}
+                >
+                  {displayName}
+                </button>
+              );
+            });
+          })()}
         </div>
       </div>
 

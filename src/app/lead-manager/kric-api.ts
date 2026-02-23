@@ -442,10 +442,11 @@ function getLineName(lineCode: string): string {
   return lineNames[lineCode] || lineCode;
 }
 
+import { LINE_SEQUENCES } from './data/line-sequences';
+
 /**
  * 노선별 좌표 경로 생성
- * @param kricStations 노선별 역 정보
- * @returns 노선별 좌표 배열
+ * KRIC 데이터와 하드코딩된 시퀀스를 결합하여 최적의 경로 생성 (스파이더 웹 방지)
  */
 export function generateLineRoutes(
   kricStations: Record<string, KRICStation[]>
@@ -455,20 +456,41 @@ export function generateLineRoutes(
   Object.entries(kricStations).forEach(([lineCode, stations]) => {
     if (stations.length === 0) return;
 
-    // 순번으로 정렬
-    const sortedStations = stations.sort((a, b) =>
-      parseInt(a.ordrNo) - parseInt(b.ordrNo)
-    );
+    const baseLineName = getLineName(lineCode);
+    const color = LINE_COLORS[lineCode as keyof typeof LINE_COLORS] || '#888';
 
-    // 좌표 변환 및 유효성 검사 ([0, 0] 좌표 제거)
-    const coords = sortedStations
-      .map(station => convertKRICToWGS84(station.xcrd, station.ycrd))
-      .filter(([lat, lng]) => lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng));
+    // 해당 노선에 대한 표준 시퀀스 찾기
+    const matchingSequences = Object.entries(LINE_SEQUENCES)
+      .filter(([key]) => key.split('-')[0] === baseLineName);
 
-    routes[lineCode] = {
-      color: LINE_COLORS[lineCode as keyof typeof LINE_COLORS] || '#888',
-      coords,
-    };
+    if (matchingSequences.length > 0) {
+      // 1호선, 2호선 등 분기가 있는 노선 처리
+      matchingSequences.forEach(([seqKey, sequence]) => {
+        const coords = (sequence as string[])
+          .map(name => {
+            const station = stations.find(s => s.stinNm === name);
+            return station ? convertKRICToWGS84(station.xcrd, station.ycrd) : null;
+          })
+          .filter((coord): coord is [number, number] => !!coord && coord[0] !== 0);
+
+        if (coords.length > 1) {
+          routes[seqKey] = { color, coords };
+        }
+      });
+    } else {
+      // 시퀀스가 없는 노선은 기존대로 ordrNo 기반 정렬
+      const sortedStations = stations.sort((a, b) =>
+        parseInt(a.ordrNo) - parseInt(b.ordrNo)
+      );
+
+      const coords = sortedStations
+        .map(station => convertKRICToWGS84(station.xcrd, station.ycrd))
+        .filter(([lat, lng]) => lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng));
+
+      if (coords.length > 1) {
+        routes[lineCode] = { color, coords };
+      }
+    }
   });
 
   return routes;
