@@ -183,8 +183,8 @@ export async function fetchSubwayRouteInfo(
     }
     return result;
   } catch (error) {
-    console.error(`Failed to fetch subway route info for line ${lineCode}:`, error);
-    // 에러 발생 시에도 빈 배열 반환하여 다른 노선 데이터 로딩에 영향 없도록 함
+    // API 연결 오류 등 예외 상황 발생 시 경고 로그만 남김
+    console.warn(`Failed to fetch subway route info for line ${lineCode}`);
     return [];
   }
 }
@@ -227,7 +227,8 @@ export async function fetchStationInfo(
     });
 
     if (!response.data.success) {
-      throw new Error(response.data.error || 'Failed to fetch station info');
+      // 데이터가 없는 경우는 에러가 아닌 빈 결과로 취급 (KRIC에서 상세 정보가 없는 노선이 많으므로)
+      return [];
     }
 
     const proxyData = response.data.data;
@@ -236,8 +237,7 @@ export async function fetchStationInfo(
 
     return Array.isArray(items) ? items : [items];
   } catch (error) {
-    // 상세 정보가 없는 역이 많으므로 에러 대신 디버그용 로그로 처리
-    // console.debug(`[Station Info] No details available for station on line ${lineCode}`);
+    // 예기치 못한 에러 발생 시에도 빈 배열 반환하여 전체 프로세스 중단 방지
     return [];
   }
 }
@@ -470,7 +470,9 @@ export function generateLineRoutes(
       matchingSequences.forEach(([seqKey, sequence]) => {
         const coords = (sequence as string[])
           .map(name => {
-            const station = stations.find(s => s.stinNm === name);
+            const station = stations.find(s =>
+              s.stinNm.replace(/\s/g, '') === name.replace(/\s/g, '')
+            );
             return station ? convertKRICToWGS84(station.xcrd, station.ycrd) : null;
           })
           .filter((coord): coord is [number, number] => !!coord && coord[0] !== 0);

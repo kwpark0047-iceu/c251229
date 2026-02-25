@@ -85,15 +85,7 @@ export default function LeadManagerPage() {
   const { showNotification } = useNotification();
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
-  const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('leadManager_categoryFilter');
-      if (saved) {
-        return saved as BusinessCategory;
-      }
-    }
-    return 'ALL';
-  });
+  const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>('ALL');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);  // 선택된 세부 서비스 ID들
   const [searchQuery, setSearchQuery] = useState<string>('');  // 검색 기능
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
@@ -124,19 +116,7 @@ export default function LeadManagerPage() {
   });
 
   // 선택된 지역 (서울, 경기도) - localStorage에서 복원
-  const [selectedRegions, setSelectedRegions] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('leadManager_selectedRegions');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          return ['6110000', '6410000'];
-        }
-      }
-    }
-    return ['6110000', '6410000'];
-  });
+  const [selectedRegions, setSelectedRegions] = useState<string[]>(['6110000', '6410000']);
 
   // 지역 코드 매핑
   const [isScrolled, setIsScrolled] = useState(false);
@@ -181,6 +161,22 @@ export default function LeadManagerPage() {
   useEffect(() => {
     const init = async () => {
       setInitialLoading(true);
+
+      // localStorage에서 필터 설정 복원 (Hydration 오류 방지를 위해 마운트 후 처리)
+      if (typeof window !== 'undefined') {
+        const savedCategory = localStorage.getItem('leadManager_categoryFilter');
+        if (savedCategory) setCategoryFilter(savedCategory as BusinessCategory);
+
+        const savedRegions = localStorage.getItem('leadManager_selectedRegions');
+        if (savedRegions) {
+          try {
+            setSelectedRegions(JSON.parse(savedRegions));
+          } catch (e) {
+            console.error('Failed to parse saved regions:', e);
+          }
+        }
+      }
+
       const user = await getCurrentUser();
       setUserInfo(user);
       await loadSettings();
