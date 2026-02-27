@@ -1056,6 +1056,10 @@ export default function LeadManagerPage() {
                     }}
                     salesProgressMap={salesProgressMap}
                     isFieldMode={isFieldMode}
+                    currentPage={currentPage}
+                    totalCount={totalCount}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={(page: number) => setCurrentPage(page)}
                   />
                 )}
                 {viewMode === 'list' && (
@@ -1068,6 +1072,10 @@ export default function LeadManagerPage() {
                       setViewMode('map');
                     }}
                     salesProgressMap={salesProgressMap}
+                    currentPage={currentPage}
+                    totalCount={totalCount}
+                    pageSize={PAGE_SIZE}
+                    onPageChange={(page: number) => setCurrentPage(page)}
                   />
                 )}
                 {viewMode === 'map' && (
@@ -1080,51 +1088,6 @@ export default function LeadManagerPage() {
                   />
                 )}
               </>
-            )}
-            {/* 페이지네이션 (리드 탭) */}
-            {totalCount > 0 && (
-              <div className="flex justify-center items-center gap-2 mt-6 pb-10">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  title="이전 페이지"
-                  className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] disabled:opacity-30 transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5 text-[var(--text-secondary)]" />
-                </button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, Math.ceil(totalCount / PAGE_SIZE)) }, (_, i) => {
-                    let p = currentPage - 2 + i;
-                    if (currentPage < 3) p = 1 + i;
-                    const maxPage = Math.ceil(totalCount / PAGE_SIZE);
-                    if (p > maxPage) return null;
-                    if (p < 1) return null;
-
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => setCurrentPage(p)}
-                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-all ${currentPage === p
-                          ? 'bg-[var(--metro-line2)] text-white shadow-md'
-                          : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]'
-                          }`}
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  onClick={() => setCurrentPage(p => p + 1)}
-                  disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
-                  title="다음 페이지"
-                  className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] disabled:opacity-30 transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5 text-[var(--text-secondary)]" />
-                </button>
-              </div>
             )}
           </>
         ) : mainTab === 'inventory' ? (

@@ -8,10 +8,11 @@
 import React, { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 
-import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS } from '../types';
+import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS, STATUS_METRO_COLORS } from '../types';
 import { SUBWAY_STATIONS } from '../constants';
 import { formatDistance, formatPhoneNumber } from '../utils';
 import StationLabels, { StationLayer, StationToggle } from './StationLabels';
+import { MessageSquare, ChevronDown } from 'lucide-react';
 import {
   getRealtimeSubwayData,
   initializeSubwayData,
@@ -150,8 +151,11 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
 
   if (!isClient) {
     return (
-      <div className="bg-slate-100 rounded-xl h-[calc(100vh-280px)] min-h-[500px] flex items-center justify-center">
-        <p className="text-slate-500">지도를 불러오는 중...</p>
+      <div className="bg-slate-900 rounded-xl h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[400px] flex items-center justify-center border border-slate-800">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-slate-700 animate-spin" />
+          <p className="text-slate-400 font-medium">네오-서울 수송망 동기화 중...</p>
+        </div>
       </div>
     );
   }
@@ -160,9 +164,8 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   const showLeadLabels = currentZoom >= 12;
 
   return (
-    <div className="relative">
-
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="relative group/map">
+      <div className="bg-[#0b0c10] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[450px]">
         <MapContainer
           center={[center.lat, center.lng]}
           zoom={defaultZoom}
@@ -260,106 +263,92 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
         </MapContainer>
       </div>
 
-      {/* 범례 */}
-      <div className="absolute bottom-4 left-4 map-control-panel p-3 z-[1000]">
-        <h4 className="text-sm font-semibold text-slate-200 mb-2">범례</h4>
-        <div className="space-y-1.5">
-          {(['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as LeadStatus[]).map(status => (
-            <div key={status} className="flex items-center gap-2 text-sm">
-              <span
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: getStatusColor(status) }}
-              />
-              <span className="text-slate-400">{STATUS_LABELS[status]}</span>
+      {/* 모바일 최적화된 컨트롤 레이어 */}
+      <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
+        {/* KRIC 데이터 로딩 상태 */}
+        {isLoadingSubwayData && (
+          <div className="bg-black/60 backdrop-blur-md rounded-lg border border-blue-500/30 p-2.5 flex items-center gap-2 shadow-lg animate-pulse">
+            <div className="relative w-3.5 h-3.5">
+              <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+              <div className="absolute inset-0 rounded-full border-2 border-t-blue-500 animate-spin" />
             </div>
-          ))}
+            <span className="text-[10px] sm:text-xs font-bold text-blue-400 tracking-tight">STATION DATA SYNC...</span>
+          </div>
+        )}
+
+        {/* 지도 표시 통계 (모바일에서는 작게) */}
+        <div className="bg-black/60 backdrop-blur-md rounded-lg border border-slate-700 p-2 shadow-lg">
+          <p className="text-[10px] font-mono text-slate-400 leading-tight">
+            NODES: <span className="text-white font-bold">{validLeads.length}</span><br />
+            LINES: <span className="text-white font-bold">{subwayData?.stations.length || 0}</span>
+          </p>
         </div>
       </div>
 
-      {/* 노선 표시 토글 */}
-      <div className="absolute bottom-4 left-36 map-control-panel p-3 z-[1000] max-w-[calc(100%-10rem)] overflow-x-auto">
-        <h4 className="text-sm font-semibold text-slate-200 mb-2">노선 표시</h4>
-        <div className="flex flex-wrap gap-1 min-w-max">
-          {subwayData?.routes && (() => {
-            const uniqueLines = new Set<string>();
-            const buttons: React.ReactNode[] = [];
-
-            // 노선 정렬 순서 정의
-            const sortOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'B', 'K', 'G', 'A', 'I1', 'I2', 'Ui', 'Si', 'Kg', 'W', 'E', 'U', 'GTX-A'];
-
-            // 표시 가능한 모든 노선 키(Base) 추출
-            const allLineKeys = Object.keys(subwayData.routes).map(k => k.split('-')[0]);
-            const sortedLineKeys = Array.from(new Set(allLineKeys)).sort((a, b) => {
-              const idxA = sortOrder.indexOf(getKRICDisplayName(a));
-              const idxB = sortOrder.indexOf(getKRICDisplayName(b));
-              if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-              if (idxA !== -1) return -1;
-              if (idxB !== -1) return 1;
-              return a.localeCompare(b);
-            });
-
-            return sortedLineKeys.map(baseCode => {
-              const displayName = getKRICDisplayName(baseCode);
-              const isActive = visibleLines.includes(displayName);
-              const color = SUBWAY_LINE_COLORS[baseCode] || '#999999';
-
-              return (
-                <button
-                  key={baseCode}
-                  onClick={() => {
-                    setVisibleLines(prev =>
-                      isActive
-                        ? prev.filter(l => l !== displayName)
-                        : [...prev, displayName]
-                    );
-                  }}
-                  className={`
-                    px-2 py-0.5 rounded text-xs font-bold transition-all border
-                    ${isActive
-                      ? 'text-white shadow-sm scale-105'
-                      : 'bg-slate-800/50 text-slate-500 border-slate-700 hover:border-slate-500'}
-                  `}
-                  style={{
-                    backgroundColor: isActive ? color : undefined,
-                    borderColor: isActive ? color : undefined
-                  }}
-                >
-                  {displayName}
-                </button>
-              );
-            });
-          })()}
+      {/* 우상단 조작 패널 */}
+      <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 items-end">
+        <div className="bg-black/60 backdrop-blur-md rounded-xl border border-slate-700 p-1.5 shadow-xl">
+          <StationToggle
+            showLabels={showStationLabels}
+            onToggle={setShowStationLabels}
+          />
         </div>
       </div>
 
-      {/* KRIC 데이터 로딩 상태 표시 */}
-      {isLoadingSubwayData && (
-        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 z-10">
-          <div className="flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-            <span className="text-sm text-gray-600">지하철 데이터 로딩 중...</span>
+      {/* 하단 통합 컨트롤 패널 (모바일 대응) */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-2rem)] max-w-2xl px-4">
+        <div className="bg-black/80 backdrop-blur-xl rounded-2xl border border-slate-700 p-3 shadow-2xl flex flex-col gap-3">
+          {/* 노선 필터 */}
+          <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+            {subwayData?.routes && (() => {
+              const sortOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'B', 'K', 'G', 'A', 'I1', 'I2', 'Ui', 'Si', 'Kg', 'W', 'E', 'U', 'GTX-A'];
+              const allLineKeys = Object.keys(subwayData.routes).map(k => k.split('-')[0]);
+              const sortedLineKeys = Array.from(new Set(allLineKeys)).sort((a, b) => {
+                const idxA = sortOrder.indexOf(getKRICDisplayName(a));
+                const idxB = sortOrder.indexOf(getKRICDisplayName(b));
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                return a.localeCompare(b);
+              });
+
+              return sortedLineKeys.map(baseCode => {
+                const displayName = getKRICDisplayName(baseCode);
+                const isActive = visibleLines.includes(displayName);
+                const color = SUBWAY_LINE_COLORS[baseCode] || '#999999';
+                return (
+                  <button
+                    key={baseCode}
+                    onClick={() => {
+                      setVisibleLines(prev => isActive ? prev.filter(l => l !== displayName) : [...prev, displayName]);
+                    }}
+                    className={`
+                      flex-shrink-0 min-w-[28px] h-[28px] rounded-full flex items-center justify-center text-[10px] font-bold transition-all border
+                      ${isActive ? 'text-white shadow-[0_0_10px_rgba(255,255,255,0.2)] scale-110' : 'bg-slate-800 text-slate-500 border-slate-700'}
+                    `}
+                    style={{
+                      backgroundColor: isActive ? color : undefined,
+                      borderColor: isActive ? color : undefined
+                    }}
+                  >
+                    {displayName}
+                  </button>
+                );
+              });
+            })()}
+          </div>
+
+          {/* 범례 및 상태 요약 */}
+          <div className="flex items-center justify-between px-1 border-t border-slate-700/50 pt-2.5">
+            <div className="flex gap-3">
+              {(['NEW', 'PROPOSAL_SENT', 'CONTACTED'] as LeadStatus[]).map(status => (
+                <div key={status} className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full" style={{ background: getStatusColor(status) }} />
+                  <span className="text-[10px] font-bold text-slate-400">{STATUS_LABELS[status].split(' ')[0]}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Antigravity Geo-System</p>
           </div>
         </div>
-      )}
-
-      {/* 역사명 토글 */}
-      <div className="absolute top-4 right-4 map-control-panel p-3 z-[1000]">
-        <StationToggle
-          showLabels={showStationLabels}
-          onToggle={setShowStationLabels}
-        />
-      </div>
-
-      {/* 통계 */}
-      <div className="absolute top-4 right-32 map-control-panel p-3 z-[1000]">
-        <p className="text-sm text-slate-300">
-          지도 표시: <strong className="text-white">{validLeads.length}</strong>건
-        </p>
-        {subwayData && (
-          <p className="text-sm text-slate-300">
-            지하철역: <strong className="text-white">{subwayData.stations.length}</strong>개
-          </p>
-        )}
       </div>
     </div>
   );
@@ -389,52 +378,75 @@ interface LeadPopupProps {
 }
 
 function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
+  const statusColor = STATUS_METRO_COLORS[lead.status];
+
   return (
-    <div className="min-w-[200px]">
-      <button
-        onClick={() => onListView?.()}
-        className="font-semibold text-slate-800 mb-1 text-left hover:text-blue-600 hover:underline transition-colors"
-        title={`${lead.bizName} - 리스트에서 보기`}
-      >
-        {lead.bizName}
-      </button>
-
-      {lead.medicalSubject && (
-        <p className="text-xs text-slate-500 mb-2">{lead.medicalSubject}</p>
-      )}
-
-      <div className="text-sm space-y-1 mb-3">
-        {lead.roadAddress && (
-          <p className="text-slate-600">{lead.roadAddress}</p>
-        )}
-        {lead.phone && (
-          <p>
-            <a href={`tel:${lead.phone}`} className="text-blue-600 hover:underline">
-              {formatPhoneNumber(lead.phone)}
-            </a>
-          </p>
-        )}
-        {lead.nearestStation && (
-          <p className="text-slate-600">
-            {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'} {lead.stationDistance && `(${formatDistance(lead.stationDistance)})`}
-          </p>
+    <div className="min-w-[240px] p-1 bg-[#0b0c10] text-[#c5c6c7]">
+      <div className="mb-3">
+        <button
+          onClick={() => onListView?.()}
+          className="text-lg font-black text-white leading-tight hover:text-blue-400 transition-colors text-left"
+          title={`${lead.bizName} - 리스트에서 보기`}
+        >
+          {lead.bizName}
+        </button>
+        {lead.medicalSubject && (
+          <p className="text-[10px] font-bold text-blue-500/80 uppercase tracking-tighter mt-0.5">{lead.medicalSubject}</p>
         )}
       </div>
 
-      <select
-        id={`lead-status-${lead.id}`}
-        name="status"
-        value={lead.status}
-        onChange={(e) => onStatusChange(lead.id, e.target.value as LeadStatus)}
-        className="w-full text-sm px-2 py-1 border border-slate-700 bg-slate-800 text-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        title="리드 상태 변경"
-      >
-        {(['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as LeadStatus[]).map(status => (
-          <option key={status} value={status}>
-            {STATUS_LABELS[status]}
-          </option>
-        ))}
-      </select>
+      <div className="space-y-2 mb-4">
+        {lead.roadAddress && (
+          <div className="flex items-start gap-2">
+            <span className="text-xs">📍</span>
+            <p className="text-xs text-slate-400 leading-relaxed font-medium">{lead.roadAddress}</p>
+          </div>
+        )}
+        {lead.phone && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs">📞</span>
+            <a href={`tel:${lead.phone}`} className="text-xs font-bold text-blue-400 hover:underline">
+              {formatPhoneNumber(lead.phone)}
+            </a>
+          </div>
+        )}
+        {lead.nearestStation && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs">🚉</span>
+            <p className="text-xs font-semibold text-slate-300">
+              {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'}
+              <span className="text-[10px] text-slate-500 font-normal ml-1">
+                ({lead.stationDistance && formatDistance(lead.stationDistance)})
+              </span>
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="relative">
+        <select
+          id={`lead-status-popup-${lead.id}`}
+          name="status"
+          value={lead.status}
+          onChange={(e) => onStatusChange(lead.id, e.target.value as LeadStatus)}
+          className="w-full text-xs font-bold px-3 py-2.5 rounded-lg border appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+          style={{
+            background: statusColor.bg,
+            color: 'white',
+            borderColor: statusColor.border,
+          }}
+          title="리드 상태 변경"
+        >
+          {(['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as LeadStatus[]).map(status => (
+            <option key={status} value={status} className="bg-[#0b0c10] text-white">
+              {STATUS_LABELS[status]}
+            </option>
+          ))}
+        </select>
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/50">
+          <ChevronDown className="w-3 h-3" />
+        </div>
+      </div>
     </div>
   );
 }

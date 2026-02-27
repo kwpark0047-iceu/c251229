@@ -124,6 +124,7 @@ export type BusinessCategory =
   | 'ANIMAL'      // 동물
   | 'FOOD'        // 식품
   | 'CULTURE'     // 문화
+  | 'SPORTS'      // 체육 (신규)
   | 'LIVING'      // 생활
   | 'ENVIRONMENT' // 자원환경
   | 'OTHER';      // 기타
@@ -134,6 +135,7 @@ export const CATEGORY_LABELS: Record<BusinessCategory, string> = {
   ANIMAL: '동물',
   FOOD: '식품',
   CULTURE: '문화',
+  SPORTS: '체육',
   LIVING: '생활',
   ENVIRONMENT: '자원환경',
   OTHER: '기타',
@@ -145,6 +147,7 @@ export const CATEGORY_COLORS: Record<BusinessCategory, { bg: string; text: strin
   ANIMAL: { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300' },
   FOOD: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300' },
   CULTURE: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
+  SPORTS: { bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-300' },
   LIVING: { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-300' },
   ENVIRONMENT: { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300' },
   OTHER: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' },
@@ -160,11 +163,17 @@ export interface ServiceIdInfo {
 export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
   ALL: [], // 전체 카테고리는 개별 카테고리들을 순회하며 처리함
   HEALTH: [
-    { id: '01_01_02_P', name: '병원', category: 'HEALTH' },
+    { id: '01_01_06_P', name: '의료기관/병원부속', category: 'HEALTH' },
+    { id: '01_01_02_P', name: '의료기관(병원)', category: 'HEALTH' },
+    { id: '01_03_02_P', name: '산후조리업', category: 'HEALTH' },
+    { id: '01_03_03_P', name: '안전상비의약품 판매업소', category: 'HEALTH' },
+    { id: '01_01_01_P', name: '약국', category: 'HEALTH' },
+    { id: '01_03_01_P', name: '응급환자이송업', category: 'HEALTH' },
+    { id: '01_04_01_P', name: '의료법인', category: 'HEALTH' },
+    { id: '01_02_02_P', name: '의료유사업', category: 'HEALTH' },
     { id: '01_01_03_P', name: '의원', category: 'HEALTH' },
     { id: '01_01_04_P', name: '치과', category: 'HEALTH' },
     { id: '01_01_05_P', name: '한의원', category: 'HEALTH' },
-    { id: '01_01_01_P', name: '약국', category: 'HEALTH' },
     { id: '01_02_01_P', name: '안경업', category: 'HEALTH' },
   ],
   ANIMAL: [
@@ -174,6 +183,9 @@ export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
     { id: '07_01_04_P', name: '동물위탁관리업', category: 'ANIMAL' },
   ],
   FOOD: [
+    { id: '03_05_01_P', name: '관광식당', category: 'FOOD' },
+    { id: '03_05_02_P', name: '관광유흥음식점업', category: 'FOOD' },
+    { id: '03_05_03_P', name: '외국인전용유흥음식점업', category: 'FOOD' },
     { id: '07_24_04_P', name: '일반음식점', category: 'FOOD' },
     { id: '07_24_05_P', name: '휴게음식점', category: 'FOOD' },
     { id: '07_24_01_P', name: '식품제조가공업', category: 'FOOD' },
@@ -185,6 +197,23 @@ export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
     { id: '06_02_01_P', name: '비디오물감상실', category: 'CULTURE' },
     { id: '06_03_01_P', name: '게임제공업', category: 'CULTURE' },
     { id: '06_04_01_P', name: '노래연습장업', category: 'CULTURE' },
+  ],
+  SPORTS: [
+    { id: '10_39_01_P', name: '골프연습장업', category: 'SPORTS' },
+    { id: '10_41_01_P', name: '골프장', category: 'SPORTS' },
+    { id: '10_42_01_P', name: '당구장업', category: 'SPORTS' },
+    { id: '10_51_01_P', name: '등록체육시설업', category: 'SPORTS' },
+    { id: '10_53_01_P', name: '무도장업', category: 'SPORTS' },
+    { id: '10_54_01_P', name: '무도학원업', category: 'SPORTS' },
+    { id: '10_31_01_P', name: '빙상장업', category: 'SPORTS' },
+    { id: '10_32_01_P', name: '수영장업', category: 'SPORTS' },
+    { id: '10_33_01_P', name: '스키장', category: 'SPORTS' },
+    { id: '10_34_01_P', name: '승마장업', category: 'SPORTS' },
+    { id: '10_35_01_P', name: '썰매장업', category: 'SPORTS' },
+    { id: '10_36_01_P', name: '요트장업', category: 'SPORTS' },
+    { id: '10_37_01_P', name: '종합체육시설업', category: 'SPORTS' },
+    { id: '10_44_01_P', name: '체력단련장업', category: 'SPORTS' },
+    { id: '10_45_01_P', name: '체육도장업', category: 'SPORTS' },
   ],
   LIVING: [
     { id: '08_01_01_P', name: '숙박업', category: 'LIVING' },

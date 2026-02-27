@@ -235,6 +235,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             adType: item.adType,
             locationCode: item.locationCode,
             priceMonthly: item.priceMonthly,
+            floorPlanUrl: item.floorPlanUrl, // 도면 URL 추가
           })),
           totalPrice,
           discountRate,

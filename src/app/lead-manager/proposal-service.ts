@@ -57,13 +57,25 @@ async function fetchImage(url: string): Promise<string | null> {
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
+    const arrayBuffer = await response.arrayBuffer();
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+
+    // 환경에 따른 Base64 변환
+    let base64: string;
+    if (typeof btoa === 'function') {
+      // 브라우저 환경
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      base64 = btoa(binary);
+    } else {
+      // Node.js 환경
+      base64 = Buffer.from(arrayBuffer).toString('base64');
+    }
+
+    return `data:${contentType};base64,${base64}`;
   } catch (error) {
     console.warn('이미지 로드 실패:', url, error);
     return null;
@@ -426,66 +438,69 @@ export async function generateProposalPDF(
     pdf.setTextColor(30, 64, 175);
     pdf.text(`최종 금액: ${(proposal.finalPrice || 0).toLocaleString()}원/월`, margin + 80, yPos);
 
-    // === 페이지 3: 도면 첨부 (인근역 도면 1개) ===
-    pdf.addPage();
-    yPos = 30;
+    // === 페이지 3~: 도면 첨부 (선택된 모든 도면) ===
+    const itemsWithPlans = inventory.filter(item => item.floorPlanUrl);
 
-    // 도면이 있는 첫 번째 인벤토리 찾기
-    const planItem = inventory.find(item => item.floorPlanUrl);
+    if (itemsWithPlans.length > 0) {
+      for (const planItem of itemsWithPlans) {
+        if (!planItem.floorPlanUrl) continue;
 
-    if (planItem && planItem.floorPlanUrl) {
-      pdf.setFontSize(16);
-      pdf.setTextColor(30, 64, 175);
-      pdf.text(`${planItem.stationName}역 상세 도면`, margin, yPos);
-      yPos += 10;
+        pdf.addPage();
+        yPos = 30;
 
-      pdf.setFontSize(12);
-      pdf.setTextColor(0, 0, 0);
-      pdf.text(`위치: ${planItem.locationCode}`, margin, yPos);
-      yPos += 15;
+        pdf.setFontSize(16);
+        pdf.setTextColor(30, 64, 175);
+        pdf.text(`${planItem.stationName}역 상세 도면`, margin, yPos);
+        yPos += 10;
 
-      // 이미지 로드 및 추가
-      const imgData = await fetchImage(planItem.floorPlanUrl);
-      if (imgData) {
-        try {
-          // 이미지 형식 판별
-          let imgFormat = 'JPEG';
-          if (imgData.startsWith('data:image/png')) {
-            imgFormat = 'PNG';
-          } else if (imgData.startsWith('data:image/jpeg') || imgData.startsWith('data:image/jpg')) {
-            imgFormat = 'JPEG';
+        pdf.setFontSize(12);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(`위치: ${planItem.locationCode} (${planItem.adType})`, margin, yPos);
+        yPos += 15;
+
+        // 이미지 로드 및 추가
+        const imgData = await fetchImage(planItem.floorPlanUrl);
+        if (imgData) {
+          try {
+            let imgFormat = 'JPEG';
+            if (imgData.startsWith('data:image/png')) {
+              imgFormat = 'PNG';
+            } else if (imgData.startsWith('data:image/jpeg') || imgData.startsWith('data:image/jpg')) {
+              imgFormat = 'JPEG';
+            }
+
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pageWidth - margin * 2;
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const maxHeight = pageHeight - yPos - margin;
+
+            let finalWidth = pdfWidth;
+            let finalHeight = pdfHeight;
+
+            if (pdfHeight > maxHeight) {
+              finalHeight = maxHeight;
+              finalWidth = (imgProps.width * finalHeight) / imgProps.height;
+            }
+
+            pdf.addImage(imgData, imgFormat, margin, yPos, finalWidth, finalHeight);
+          } catch (err) {
+            console.error('도면 추가 중 오류:', err);
+            pdf.setFontSize(10);
+            pdf.setTextColor(150, 150, 150);
+            pdf.text('도면 이미지를 불러올 수 없습니다.', margin, yPos);
           }
-
-          const imgProps = pdf.getImageProperties(imgData);
-          const pdfWidth = pageWidth - margin * 2;
-          const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-
-          // 페이지 높이를 초과하면 비율 조정
-          const pageHeight = pdf.internal.pageSize.getHeight();
-          const maxHeight = pageHeight - yPos - margin;
-
-          let finalWidth = pdfWidth;
-          let finalHeight = pdfHeight;
-
-          if (pdfHeight > maxHeight) {
-            finalHeight = maxHeight;
-            finalWidth = (imgProps.width * finalHeight) / imgProps.height;
-          }
-
-          pdf.addImage(imgData, imgFormat, margin, yPos, finalWidth, finalHeight);
-        } catch (err) {
-          console.error('도면 추가 중 오류:', err);
+        } else {
           pdf.setFontSize(10);
           pdf.setTextColor(150, 150, 150);
-          pdf.text('도면 이미지를 불러올 수 없습니다.', margin, yPos);
+          pdf.text('도면 이미지를 로드하는데 실패했습니다.', margin, yPos);
         }
-      } else {
-        pdf.setFontSize(10);
-        pdf.setTextColor(150, 150, 150);
-        pdf.text('도면 이미지를 로드하는데 실패했습니다.', margin, yPos);
       }
     } else {
       // 도면이 없는 경우
+      pdf.addPage();
+      yPos = 30;
       pdf.setFontSize(11);
       pdf.setTextColor(100, 100, 100);
       pdf.text('등록된 도면 정보가 없습니다.', margin, yPos);

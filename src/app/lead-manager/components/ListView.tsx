@@ -20,6 +20,11 @@ interface ListViewProps {
   searchQuery?: string;
   onMapView?: (lead: Lead) => void;
   salesProgressMap?: Map<string, SalesProgress[]>;
+  // 페이지네이션 관련 추가
+  currentPage: number;
+  totalCount: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
 }
 
 type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status' | 'createdAt';
@@ -59,7 +64,17 @@ function HighlightText({ text, searchQuery }: { text: string; searchQuery: strin
   );
 }
 
-export default function ListView({ leads, onStatusChange, searchQuery = '', onMapView, salesProgressMap }: ListViewProps) {
+export default function ListView({
+  leads,
+  onStatusChange,
+  searchQuery = '',
+  onMapView,
+  salesProgressMap,
+  currentPage,
+  totalCount,
+  pageSize,
+  onPageChange
+}: ListViewProps) {
   const [sortField, setSortField] = useState<SortField>('licenseDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
@@ -131,7 +146,8 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
           boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
         }}
       >
-        <div className="overflow-x-auto">
+        {/* 데스크톱: 테이블 뷰 */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr
@@ -219,6 +235,150 @@ export default function ListView({ leads, onStatusChange, searchQuery = '', onMa
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* 모바일: 카드 뷰 */}
+        <div className="md:hidden divide-y divide-[var(--border-subtle)]">
+          {sortedLeads.map((lead, index) => (
+            <div
+              key={lead.id}
+              className="p-4 active:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+              onClick={() => setSelectedLeadId(lead.id)}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h3 className="font-bold text-[var(--text-primary)]">
+                    <HighlightText text={lead.bizName} searchQuery={searchQuery} />
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                    <HighlightText text={lead.medicalSubject || ''} searchQuery={searchQuery} />
+                  </p>
+                </div>
+                <div
+                  className="px-2 py-1 rounded text-[10px] font-bold"
+                  style={{
+                    background: STATUS_METRO_COLORS[lead.status].bg,
+                    color: STATUS_METRO_COLORS[lead.status].text,
+                    border: `1px solid ${STATUS_METRO_COLORS[lead.status].border}`
+                  }}
+                >
+                  {STATUS_LABELS[lead.status]}
+                </div>
+              </div>
+
+              <div className="space-y-1.5 text-xs text-[var(--text-secondary)]">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-4 flex justify-center">📍</span>
+                  <span className="line-clamp-1">{lead.roadAddress || lead.lotAddress}</span>
+                </div>
+                {lead.nearestStation && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-4 flex justify-center">🚉</span>
+                    <span>
+                      {lead.nearestStation}
+                      {lead.stationDistance && ` (${formatDistance(lead.stationDistance)})`}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-dashed border-[var(--border-subtle)]">
+                {lead.phone && (
+                  <a
+                    href={`tel:${lead.phone}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 text-[var(--metro-line2)] font-bold text-xs"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    전화
+                  </a>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedLeadId(lead.id);
+                  }}
+                  className="flex items-center gap-1.5 text-[var(--metro-line4)] font-bold text-xs"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  제안
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 페이지네이션 UI 추가 */}
+        <div
+          className="px-6 py-4 flex items-center justify-between border-t"
+          style={{
+            background: 'var(--bg-tertiary)',
+            borderColor: 'var(--border-subtle)',
+          }}
+        >
+          <div className="text-sm text-[var(--text-secondary)]">
+            전체 <span className="font-semibold text-[var(--text-primary)]">{totalCount.toLocaleString()}</span>건 중
+            <span className="mx-1 font-semibold text-[var(--text-primary)]">
+              {Math.min((currentPage - 1) * pageSize + 1, totalCount)} - {Math.min(currentPage * pageSize, totalCount)}
+            </span>
+            표시
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+              title="이전 페이지"
+              className="p-2 rounded-lg border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)]"
+              style={{ borderColor: 'var(--glass-border)' }}
+            >
+              <ChevronUp className="w-5 h-5 -rotate-90" />
+            </button>
+
+            <div className="flex items-center gap-1.5 px-2">
+              {Array.from({ length: Math.min(5, Math.ceil(totalCount / pageSize)) }, (_, i) => {
+                // 현재 페이지 주변의 페이지 번호 계산
+                const totalPages = Math.ceil(totalCount / pageSize);
+                let pageNum = i + 1;
+
+                if (totalPages > 5) {
+                  if (currentPage > 3) {
+                    pageNum = currentPage - 2 + i;
+                    if (pageNum + (4 - i) > totalPages) {
+                      pageNum = totalPages - 4 + i;
+                    }
+                  }
+                }
+
+                if (pageNum > totalPages) return null;
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => onPageChange(pageNum)}
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-200"
+                    style={{
+                      background: currentPage === pageNum ? 'var(--metro-line4)' : 'transparent',
+                      color: currentPage === pageNum ? 'white' : 'var(--text-secondary)',
+                      border: currentPage === pageNum ? 'none' : '1px solid var(--glass-border)',
+                    }}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+              title="다음 페이지"
+              className="p-2 rounded-lg border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)]"
+              style={{ borderColor: 'var(--glass-border)' }}
+            >
+              <ChevronUp className="w-5 h-5 rotate-90" />
+            </button>
+          </div>
         </div>
       </div>
 

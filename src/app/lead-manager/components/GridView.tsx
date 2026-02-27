@@ -29,9 +29,25 @@ interface GridViewProps {
   onMapView: (lead: Lead) => void;
   salesProgressMap?: Map<string, SalesProgress[]>;
   isFieldMode?: boolean;
+  // 페이지네이션 관련 추가
+  currentPage: number;
+  totalCount: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
 }
 
-export default function GridView({ leads, onStatusChange, searchQuery = '', onMapView, salesProgressMap, isFieldMode = false }: GridViewProps) {
+export default function GridView({
+  leads,
+  onStatusChange,
+  searchQuery = '',
+  onMapView,
+  salesProgressMap,
+  isFieldMode = false,
+  currentPage,
+  totalCount,
+  pageSize,
+  onPageChange
+}: GridViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   return (
@@ -52,6 +68,67 @@ export default function GridView({ leads, onStatusChange, searchQuery = '', onMa
         ))}
       </div>
 
+      {/* 페이지네이션 UI */}
+      {totalCount > pageSize && (
+        <div className="mt-8 mb-4 flex items-center justify-center gap-2">
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage <= 1}
+            title="이전 페이지"
+            className="p-2.5 rounded-xl border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)]"
+            style={{
+              background: 'var(--glass-bg)',
+              borderColor: 'var(--glass-border)',
+              color: 'var(--text-secondary)'
+            }}
+          >
+            <ChevronDown className="w-5 h-5 rotate-90" />
+          </button>
+
+          <div className="flex items-center gap-2 px-4">
+            {Array.from({ length: Math.min(5, Math.ceil(totalCount / pageSize)) }, (_, i) => {
+              const totalPages = Math.ceil(totalCount / pageSize);
+              let pageNum = i + 1;
+              if (totalPages > 5 && currentPage > 3) {
+                pageNum = currentPage - 2 + i;
+                if (pageNum + (4 - i) > totalPages) pageNum = totalPages - 4 + i;
+              }
+              if (pageNum > totalPages) return null;
+
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => onPageChange(pageNum)}
+                  className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300"
+                  style={{
+                    background: currentPage === pageNum ? 'var(--metro-line4)' : 'var(--glass-bg)',
+                    color: currentPage === pageNum ? 'white' : 'var(--text-secondary)',
+                    border: '1px solid var(--glass-border)',
+                    boxShadow: currentPage === pageNum ? '0 0 15px rgba(50, 164, 206, 0.4)' : 'none',
+                  }}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+            title="다음 페이지"
+            className="p-2.5 rounded-xl border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)]"
+            style={{
+              background: 'var(--glass-bg)',
+              borderColor: 'var(--glass-border)',
+              color: 'var(--text-secondary)'
+            }}
+          >
+            <ChevronDown className="w-5 h-5 -rotate-90" />
+          </button>
+        </div>
+      )}
+
       {/* 리드 상세 패널 */}
       {selectedLeadId && (
         <LeadDetailPanel
@@ -59,7 +136,7 @@ export default function GridView({ leads, onStatusChange, searchQuery = '', onMa
           onClose={() => setSelectedLeadId(null)}
           onStatusChange={() => {
             const lead = leads.find(l => l.id === selectedLeadId);
-            if (lead) onStatusChange(selectedLeadId, lead.status); // Refresh or no-op
+            if (lead) onStatusChange(selectedLeadId, lead.status);
           }}
         />
       )}
