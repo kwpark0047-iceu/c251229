@@ -30,12 +30,14 @@ export const RAIL_OPR_CODES: Record<string, string> = {
     'A': 'AP',    // 공항철도 (Short)
     'B': 'KR',    // 분당선 (Short)
     'G': 'KR',    // 경춘선 (Short)
-    'U': 'UI',    // 우이신설선 (Short)
+    'U': 'UI',    // 우이신설선 (Short/Case-sensitive)
     'W': 'WS',    // 서해선 (Short)
     'I1': 'IC',   // 인천1호선 (Short)
     'I2': 'IC',   // 인천2호선 (Short)
     'Ui': 'UI',   // 우이신설 (Case-sensitive)
     'Si': 'SL',   // 신림선 (Case-sensitive)
+    'Kg': 'KR',   // 경강선
+    'E': 'EV',    // 에버라인
 };
 
 // 노선코드 매핑 (lnCd)
@@ -70,4 +72,20 @@ export const LINE_CODES: Record<string, string> = {
     'I2': 'I2',
     'Ui': 'UI',
     'Si': 'SL',
+    'Kg': 'KK',
+    'E': 'E1',
 };
+
+/**
+ * 입력된 노선 식별자를 KRIC API에서 사용하는 운영기관코드와 노선코드로 변환합니다.
+ * 분기 노선(예: '1-incheon')을 처리하여 상위 노선 정보를 반환합니다.
+ */
+export function getKricCodes(line: string): { railOprIsttCd: string; lnCd: string } {
+    // 분기 노선 처리 (예: '1-incheon' -> '1')
+    const baseLine = line.split('-')[0];
+
+    const railOprIsttCd = RAIL_OPR_CODES[baseLine] || RAIL_OPR_CODES[line] || 'S1';
+    const lnCd = LINE_CODES[baseLine] || LINE_CODES[line] || baseLine;
+
+    return { railOprIsttCd, lnCd };
+}

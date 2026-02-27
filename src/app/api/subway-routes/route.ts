@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { RAIL_OPR_CODES, LINE_CODES } from '@/lib/kric-codes';
+import { getKricCodes } from '@/lib/kric-codes';
 
 /**
  * KRIC 도시철도 전체노선정보 API 프록시
@@ -29,9 +29,7 @@ export async function GET(request: NextRequest) {
 
     try {
         // kric-codes.ts를 통해 운영기관코드와 노선코드 변환
-        // 예: line '1' -> railOprIsttCd 'S1', lnCd '1'
-        const railOprIsttCd = RAIL_OPR_CODES[line] || 'S1';
-        const lnCd = LINE_CODES[line] || line;
+        const { railOprIsttCd, lnCd } = getKricCodes(line);
 
         const baseUrl = 'https://openapi.kric.go.kr/openapi/trainUseInfo/subwayRouteInfo';
         const params = new URLSearchParams({
@@ -85,13 +83,16 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // 결과 반환
+        // 결과 반환 (배열 보장)
+        const rawData = data.body || [];
+        const formattedData = Array.isArray(rawData) ? rawData : [rawData];
+
         return NextResponse.json({
             success: true,
-            data: data.body || [],
+            data: formattedData,
             _metadata: {
                 cached_at: new Date().toISOString(),
-                count: Array.isArray(data.body) ? data.body.length : (data.body ? 1 : 0)
+                count: formattedData.length
             }
         });
 

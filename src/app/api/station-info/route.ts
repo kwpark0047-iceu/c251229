@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { RAIL_OPR_CODES, LINE_CODES } from '@/lib/kric-codes';
+import { getKricCodes } from '@/lib/kric-codes';
 
 /**
  * KRIC 역사별 정보 API 프록시 (캐싱 지원)
@@ -29,8 +29,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const railOprIsttCd = RAIL_OPR_CODES[line] || 'S1';
-    const lnCd = LINE_CODES[line] || line;
+    const { railOprIsttCd, lnCd } = getKricCodes(line);
 
     const baseUrl = 'https://openapi.kric.go.kr/openapi/convenientInfo/stationInfo';
     const params = new URLSearchParams({
@@ -114,16 +113,19 @@ export async function GET(request: NextRequest) {
     }
 
     // 결과 반환 (캐시 정보 포함)
+    const rawBody = data.body || [];
+    const formattedData = Array.isArray(rawBody) ? rawBody : [rawBody];
+
     return NextResponse.json({
       success: true,
-      data: data.body || [],
+      data: formattedData,
       line,
       railOprIsttCd,
       lnCd,
       _metadata: {
         cached_at: new Date().toISOString(),
         ttl: CACHE_TTL,
-        count: Array.isArray(data.body) ? data.body.length : (data.body ? 1 : 0)
+        count: formattedData.length
       }
     });
 
