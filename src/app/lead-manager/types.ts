@@ -167,7 +167,6 @@ export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
     { id: '01_01_02_P', name: '의료기관(병원)', category: 'HEALTH' },
     { id: '01_03_02_P', name: '산후조리업', category: 'HEALTH' },
     { id: '01_03_03_P', name: '안전상비의약품 판매업소', category: 'HEALTH' },
-    { id: '01_01_01_P', name: '약국', category: 'HEALTH' },
     { id: '01_03_01_P', name: '응급환자이송업', category: 'HEALTH' },
     { id: '01_04_01_P', name: '의료법인', category: 'HEALTH' },
     { id: '01_02_02_P', name: '의료유사업', category: 'HEALTH' },
