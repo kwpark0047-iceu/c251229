@@ -336,14 +336,31 @@ DROP POLICY IF EXISTS "Users can manage own settings" ON user_settings;
 CREATE POLICY "Users can manage own settings" ON user_settings FOR ALL USING (user_id = auth.uid() OR user_id IS NULL);
 
 -- 나머지 테이블에 대한 기본 개발용 정책 (나중에 필요시 강화)
+DROP POLICY IF EXISTS "Early dev access" ON organization_members;
 CREATE POLICY "Early dev access" ON organization_members FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Early dev access org" ON organizations;
 CREATE POLICY "Early dev access org" ON organizations FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Early dev access call" ON call_logs;
 CREATE POLICY "Early dev access call" ON call_logs FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Early dev access sales" ON sales_progress;
 CREATE POLICY "Early dev access sales" ON sales_progress FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Early dev access tasks" ON tasks;
 CREATE POLICY "Early dev access tasks" ON tasks FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Early dev access proposals" ON proposals;
 CREATE POLICY "Early dev access proposals" ON proposals FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Early dev access flows" ON floor_plans;
 CREATE POLICY "Early dev access flows" ON floor_plans FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Early dev access excel" ON excel_uploads;
 CREATE POLICY "Early dev access excel" ON excel_uploads FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Early dev access logs" ON activity_logs;
 CREATE POLICY "Early dev access logs" ON activity_logs FOR ALL USING (true);
 
 -- 5. 권한 부여 (Grants)
