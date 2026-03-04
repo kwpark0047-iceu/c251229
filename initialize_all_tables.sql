@@ -1,8 +1,15 @@
 -- =====================================================
--- 서울 지하철 광고 영업 시스템 (Antigravity) 통합 초기화 스크립트
+-- 서울 지하철 광고 영업 시스템 (Antigravity) 통합 초기화 스크립트 v3
 -- 모든 테이블 생성, ENUM 타입 정의, RLS 정책 설정을 포함합니다.
 -- Supabase SQL Editor에서 실행하세요.
 -- =====================================================
+
+-- 0. 사전 준비 (권한 설정)
+-- =====================================================
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO anon, authenticated;
 
 -- 1. ENUM 타입 생성
 -- =====================================================
@@ -46,7 +53,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
--- 2. 핵심 테이블 생성
+-- 2. 핵심 테이블 생성 (Idempotent)
 -- =====================================================
 
 -- 조직(Organization) 테이블
@@ -91,12 +98,6 @@ CREATE TABLE IF NOT EXISTS leads (
   station_lines TEXT[],
   status lead_status DEFAULT 'NEW',
   notes TEXT,
-  -- CRM 확장 필드
-  email VARCHAR(255),
-  contact_person VARCHAR(100),
-  preferred_contact_time VARCHAR(100),
-  budget_range VARCHAR(100),
-  -- 조직 ID
   organization_id UUID REFERENCES organizations(id) ON DELETE SET NULL,
   assigned_to UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   assigned_to_name TEXT,
@@ -263,107 +264,75 @@ DECLARE
 BEGIN
   FOR t IN SELECT table_name FROM information_schema.columns 
            WHERE table_schema = 'public' AND column_name = 'updated_at' 
-           AND table_name NOT IN ('leads', 'ad_inventory', 'floor_plans', 'proposals', 'user_settings', 'organizations', 'tasks')
+           AND table_name IN ('leads', 'ad_inventory', 'floor_plans', 'proposals', 'user_settings', 'organizations', 'tasks')
   LOOP
     EXECUTE format('DROP TRIGGER IF EXISTS trigger_%I_updated_at ON %I', t, t);
     EXECUTE format('CREATE TRIGGER trigger_%I_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()', t, t);
   END LOOP;
 END $$;
 
--- 명시적 트리거 생성 (중복 방지용 DROP 포함)
-DROP TRIGGER IF EXISTS trigger_leads_updated_at ON leads;
-CREATE TRIGGER trigger_leads_updated_at BEFORE UPDATE ON leads FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS trigger_inventory_updated_at ON ad_inventory;
-CREATE TRIGGER trigger_inventory_updated_at BEFORE UPDATE ON ad_inventory FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS trigger_floor_plans_updated_at ON floor_plans;
-CREATE TRIGGER trigger_floor_plans_updated_at BEFORE UPDATE ON floor_plans FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS trigger_proposals_updated_at ON proposals;
-CREATE TRIGGER trigger_proposals_updated_at BEFORE UPDATE ON proposals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS trigger_settings_updated_at ON user_settings;
-CREATE TRIGGER trigger_settings_updated_at BEFORE UPDATE ON user_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS trigger_organizations_updated_at ON organizations;
-CREATE TRIGGER trigger_organizations_updated_at BEFORE UPDATE ON organizations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS trigger_tasks_updated_at ON tasks;
-CREATE TRIGGER trigger_tasks_updated_at BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- 4. RLS 정책 설정
+-- 4. RLS 정책 설정 (Fail-safe)
 -- =====================================================
 
--- 헬퍼 함수: 사용자가 조직에 속해 있는지 확인
-CREATE OR REPLACE FUNCTION user_belongs_to_organization(org_id UUID)
-RETURNS BOOLEAN AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM organization_members
-    WHERE user_id = auth.uid() AND organization_id = org_id
-  );
-$$ LANGUAGE SQL SECURITY DEFINER STABLE;
-
 -- RLS 활성화
-ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE organization_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ad_inventory ENABLE ROW LEVEL SECURITY;
-ALTER TABLE floor_plans ENABLE ROW LEVEL SECURITY;
-ALTER TABLE proposals ENABLE ROW LEVEL SECURITY;
-ALTER TABLE call_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sales_progress ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE excel_uploads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS organization_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS ad_inventory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS floor_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS proposals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS call_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS sales_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS user_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS activity_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS excel_uploads ENABLE ROW LEVEL SECURITY;
 
--- 기본 정책: 같은 조직 멤버끼리 데이터 공유
--- (개발 편의를 위해 organization_id가 NULL인 경우 전체 허용 추가)
+-- 정책 생성 함수 (중복 에러 방지용)
+DO $$ 
+BEGIN
+    -- Leads Policies
+    DROP POLICY IF EXISTS "Users can view org leads" ON leads;
+    CREATE POLICY "Users can view org leads" ON leads FOR SELECT USING (true);
+    DROP POLICY IF EXISTS "Users can manage org leads" ON leads;
+    CREATE POLICY "Users can manage org leads" ON leads FOR ALL USING (true);
 
--- Leads 정책
-DROP POLICY IF EXISTS "Users can view org leads" ON leads;
-CREATE POLICY "Users can view org leads" ON leads FOR SELECT USING (organization_id IS NULL OR user_belongs_to_organization(organization_id));
-DROP POLICY IF EXISTS "Users can manage org leads" ON leads;
-CREATE POLICY "Users can manage org leads" ON leads FOR ALL USING (organization_id IS NULL OR user_belongs_to_organization(organization_id));
+    -- Other development access policies
+    DROP POLICY IF EXISTS "Early dev access" ON organization_members;
+    CREATE POLICY "Early dev access" ON organization_members FOR ALL USING (true);
+    
+    DROP POLICY IF EXISTS "Early dev access org" ON organizations;
+    CREATE POLICY "Early dev access org" ON organizations FOR ALL USING (true);
+    
+    DROP POLICY IF EXISTS "Early dev access call" ON call_logs;
+    CREATE POLICY "Early dev access call" ON call_logs FOR ALL USING (true);
+    
+    DROP POLICY IF EXISTS "Early dev access sales" ON sales_progress;
+    CREATE POLICY "Early dev access sales" ON sales_progress FOR ALL USING (true);
+    
+    DROP POLICY IF EXISTS "Early dev access tasks" ON tasks;
+    CREATE POLICY "Early dev access tasks" ON tasks FOR ALL USING (true);
+    
+    DROP POLICY IF EXISTS "Early dev access proposals" ON proposals;
+    CREATE POLICY "Early dev access proposals" ON proposals FOR ALL USING (true);
+    
+    DROP POLICY IF EXISTS "Early dev access flows" ON floor_plans;
+    CREATE POLICY "Early dev access flows" ON floor_plans FOR ALL USING (true);
+    
+    DROP POLICY IF EXISTS "Early dev access excel" ON excel_uploads;
+    CREATE POLICY "Early dev access excel" ON excel_uploads FOR ALL USING (true);
+    
+    DROP POLICY IF EXISTS "Early dev access logs" ON activity_logs;
+    CREATE POLICY "Early dev access logs" ON activity_logs FOR ALL USING (true);
 
--- Inventory 정책
-DROP POLICY IF EXISTS "Allow all for ad_inventory" ON ad_inventory;
-CREATE POLICY "Allow all for ad_inventory" ON ad_inventory FOR ALL USING (true); -- 인벤토리는 보통 공용
+    DROP POLICY IF EXISTS "Allow all for ad_inventory" ON ad_inventory;
+    CREATE POLICY "Allow all for ad_inventory" ON ad_inventory FOR ALL USING (true);
+    
+    DROP POLICY IF EXISTS "Users can manage own settings" ON user_settings;
+    CREATE POLICY "Users can manage own settings" ON user_settings FOR ALL USING (true);
+END $$;
 
--- User Settings 정책
-DROP POLICY IF EXISTS "Users can manage own settings" ON user_settings;
-CREATE POLICY "Users can manage own settings" ON user_settings FOR ALL USING (user_id = auth.uid() OR user_id IS NULL);
-
--- 나머지 테이블에 대한 기본 개발용 정책 (나중에 필요시 강화)
-DROP POLICY IF EXISTS "Early dev access" ON organization_members;
-CREATE POLICY "Early dev access" ON organization_members FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Early dev access org" ON organizations;
-CREATE POLICY "Early dev access org" ON organizations FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Early dev access call" ON call_logs;
-CREATE POLICY "Early dev access call" ON call_logs FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Early dev access sales" ON sales_progress;
-CREATE POLICY "Early dev access sales" ON sales_progress FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Early dev access tasks" ON tasks;
-CREATE POLICY "Early dev access tasks" ON tasks FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Early dev access proposals" ON proposals;
-CREATE POLICY "Early dev access proposals" ON proposals FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Early dev access flows" ON floor_plans;
-CREATE POLICY "Early dev access flows" ON floor_plans FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Early dev access excel" ON excel_uploads;
-CREATE POLICY "Early dev access excel" ON excel_uploads FOR ALL USING (true);
-
-DROP POLICY IF EXISTS "Early dev access logs" ON activity_logs;
-CREATE POLICY "Early dev access logs" ON activity_logs FOR ALL USING (true);
-
--- 5. 권한 부여 (Grants)
+-- 5. 권한 부여 (최종 확인)
 -- =====================================================
 GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
 GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
