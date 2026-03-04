@@ -265,6 +265,7 @@ BEGIN
            WHERE table_schema = 'public' AND column_name = 'updated_at' 
            AND table_name NOT IN ('leads', 'ad_inventory', 'floor_plans', 'proposals', 'user_settings', 'organizations', 'tasks')
   LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS trigger_%I_updated_at ON %I', t, t);
     EXECUTE format('CREATE TRIGGER trigger_%I_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()', t, t);
   END LOOP;
 END $$;
@@ -345,6 +346,12 @@ CREATE POLICY "Early dev access flows" ON floor_plans FOR ALL USING (true);
 CREATE POLICY "Early dev access excel" ON excel_uploads FOR ALL USING (true);
 CREATE POLICY "Early dev access logs" ON activity_logs FOR ALL USING (true);
 
--- 5. 완료
+-- 5. 권한 부여 (Grants)
+-- =====================================================
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
+
+-- 6. 완료
 -- =====================================================
 SELECT 'Neo-Seoul Antigravity Database Initialized Successfully!' AS message;
