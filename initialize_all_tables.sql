@@ -261,7 +261,7 @@ DO $$
 DECLARE
   t text;
 BEGIN
-  FOR t IN SELECT table_name FROM information_schema.tables 
+  FOR t IN SELECT table_name FROM information_schema.columns 
            WHERE table_schema = 'public' AND column_name = 'updated_at' 
            AND table_name NOT IN ('leads', 'ad_inventory', 'floor_plans', 'proposals', 'user_settings', 'organizations', 'tasks')
   LOOP
