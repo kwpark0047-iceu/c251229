@@ -44,7 +44,7 @@ class MarkerCluster {
       if (!lead.lat || !lead.lng) return;
 
       const gridKey = this.getGridKey(lead.lat, lead.lng);
-      
+
       if (!this.clusters.has(gridKey)) {
         this.clusters.set(gridKey, {
           leads: [],
@@ -73,10 +73,10 @@ class MarkerCluster {
 }
 
 // 캐싱된 마커 컴포넌트
-const CachedMarker = React.memo(({ 
-  lead, 
-  isSelected, 
-  onSelect 
+const CachedMarker = React.memo(({
+  lead,
+  isSelected,
+  onSelect
 }: {
   lead: Lead;
   isSelected: boolean;
@@ -120,9 +120,9 @@ const CachedMarker = React.memo(({
 CachedMarker.displayName = 'CachedMarker';
 
 // 클러스터 마커 컴포넌트
-const ClusterMarker = React.memo(({ 
-  cluster, 
-  onSelect 
+const ClusterMarker = React.memo(({
+  cluster,
+  onSelect
 }: {
   cluster: { leads: Lead[]; position: [number, number] };
   onSelect: () => void;
@@ -163,6 +163,17 @@ const ClusterMarker = React.memo(({
 
 ClusterMarker.displayName = 'ClusterMarker';
 
+// 지도 이벤트 핸들러 컴포넌트 (MapContainer 자식으로 사용)
+const MapEventsHandler = ({ onEvents }: { onEvents: (map: any) => void }) => {
+  const map = (window as any).L ? (require('react-leaflet').useMap()) : null;
+  useEffect(() => {
+    if (map) {
+      onEvents(map);
+    }
+  }, [map, onEvents]);
+  return null;
+};
+
 export default function OptimizedMap({
   leads,
   selectedLeads,
@@ -189,11 +200,11 @@ export default function OptimizedMap({
     return leads.filter(lead => {
       if (!lead.lat || !lead.lng) return false;
 
-      const matchesSearch = !debouncedSearchQuery || 
+      const matchesSearch = !debouncedSearchQuery ||
         lead.bizName.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        lead.roadAddress.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+        (lead.roadAddress?.toLowerCase() || '').includes(debouncedSearchQuery.toLowerCase());
 
-      const matchesStatus = !statusFilter || statusFilter.length === 0 || 
+      const matchesStatus = !statusFilter || statusFilter.length === 0 ||
         statusFilter.includes(lead.status);
 
       return matchesSearch && matchesStatus;
@@ -203,14 +214,14 @@ export default function OptimizedMap({
   // 쓰로틀된 경계 업데이트
   const updateBounds = useThrottle((newBounds: any) => {
     setBounds(newBounds);
-    
+
     // 경계 내 리드 필터링
     if (newBounds && map) {
       const visible = filteredLeads.filter(lead => {
         return lead.lat! >= newBounds._southWest.lat &&
-               lead.lat! <= newBounds._northEast.lat &&
-               lead.lng! >= newBounds._southWest.lng &&
-               lead.lng! <= newBounds._northEast.lng;
+          lead.lat! <= newBounds._northEast.lat &&
+          lead.lng! >= newBounds._southWest.lng &&
+          lead.lng! <= newBounds._northEast.lng;
       });
       setVisibleLeads(visible);
     }
@@ -260,7 +271,7 @@ export default function OptimizedMap({
   // 리드 선택 핸들러
   const handleLeadSelect = useCallback((leadId: string) => {
     onSelectLead(leadId);
-    
+
     // 선택된 리드로 지도 이동
     const lead = leads.find(l => l.id === leadId);
     if (lead && lead.lat && lead.lng && map) {
@@ -284,11 +295,11 @@ export default function OptimizedMap({
   useEffect(() => {
     if (filteredLeads.length > 0 && map && !bounds) {
       const group = new (window as any).L.featureGroup(
-        filteredLeads.map(lead => 
+        filteredLeads.map(lead =>
           (window as any).L.marker([lead.lat!, lead.lng!])
         )
       );
-      
+
       if (group.getBounds().isValid()) {
         map.fitBounds(group.getBounds(), { padding: [50, 50] });
       }
@@ -303,13 +314,13 @@ export default function OptimizedMap({
           center={center}
           zoom={zoom}
           className="h-full w-full"
-          whenCreated={handleMapEvents}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          
+          <MapEventsHandler onEvents={handleMapEvents} />
+
           {/* 마커 렌더링 */}
           {clusteredMarkers.map((item, index) => {
             if (item.type === 'marker') {
@@ -333,7 +344,7 @@ export default function OptimizedMap({
           })}
         </MapContainer>
       )}
-      
+
       {/* 지도 통계 정보 */}
       <div className="absolute top-4 left-4 bg-white rounded-lg shadow-lg p-3 z-10">
         <div className="text-sm space-y-1">

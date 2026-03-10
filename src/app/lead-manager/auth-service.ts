@@ -117,7 +117,7 @@ export async function getOrganizationMembers(organizationId: string): Promise<{
 
   // 사용자 이메일은 auth.users에서 직접 조회 불가하므로,
   // 실제 구현 시 별도 profiles 테이블 필요
-  const members = (data || []).map(m => ({
+  const members = (data || []).map((m: any) => ({
     id: m.id,
     email: m.user_id, // 실제로는 프로필 테이블에서 조회
     role: m.role,

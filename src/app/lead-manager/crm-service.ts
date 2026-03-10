@@ -125,8 +125,8 @@ export async function getTodayCallbacks(): Promise<Array<{
   }
 
   return data
-    .filter(row => row.leads) // leads가 있는 것만
-    .map(row => {
+    .filter((row: any) => row.leads) // leads가 있는 것만
+    .map((row: any) => {
       const lead = Array.isArray(row.leads) ? row.leads[0] : row.leads;
       return {
         callLog: mapCallLogFromDB(row),
@@ -182,8 +182,8 @@ export async function getWeekCallbacks(): Promise<Array<{
   }
 
   return data
-    .filter(row => row.leads)
-    .map(row => {
+    .filter((row: any) => row.leads)
+    .map((row: any) => {
       const lead = Array.isArray(row.leads) ? row.leads[0] : row.leads;
       return {
         callLog: mapCallLogFromDB(row),
@@ -285,7 +285,7 @@ export async function getProgress(leadId: string): Promise<SalesProgress[]> {
     return [];
   }
 
-  return data.map(row => ({
+  return data.map((row: any) => ({
     id: row.id,
     leadId: row.lead_id,
     step: row.step as ProgressStep,
@@ -319,7 +319,7 @@ export async function getProgressBatch(leadIds: string[]): Promise<Map<string, S
   // leadId별로 그룹화
   leadIds.forEach(id => result.set(id, []));
 
-  data.forEach(row => {
+  data.forEach((row: any) => {
     const progress: SalesProgress = {
       id: row.id,
       leadId: row.lead_id,
@@ -442,7 +442,7 @@ export async function getLeadWithCRM(leadId: string): Promise<LeadWithCRM | null
     .eq('lead_id', leadId)
     .order('created_at', { ascending: false });
 
-  const proposals = (proposalsData || []).map(row => ({
+  const proposals = (proposalsData || []).map((row: any) => ({
     id: row.id,
     leadId: row.lead_id,
     title: row.title,
@@ -619,15 +619,15 @@ export async function getExtendedCRMStats(): Promise<{
   // 2. 제안서 정보 (열람률 계산용)
   const { data: proposals } = await supabase.from('proposals').select('status');
   const totalProposals = proposals?.length || 0;
-  const viewedProposals = proposals?.filter(p => p.status === 'VIEWED' || p.status === 'ACCEPTED').length || 0;
+  const viewedProposals = proposals?.filter((p: any) => p.status === 'VIEWED' || p.status === 'ACCEPTED').length || 0;
   const proposalViewRate = totalProposals > 0 ? (viewedProposals / totalProposals) * 100 : 0;
 
   // 3. Funnel 데이터 구성
   const newLeads = totalLeads;
-  const contacted = leads?.filter(l => ['CONTACTED', 'PROPOSAL_SENT', 'CONTRACTED'].includes(l.status)).length || 0;
+  const contacted = leads?.filter((l: any) => ['CONTACTED', 'PROPOSAL_SENT', 'CONTRACTED'].includes(l.status)).length || 0;
   const sent = totalProposals;
   const viewed = viewedProposals;
-  const contracted = leads?.filter(l => l.status === 'CONTRACTED').length || 0;
+  const contracted = leads?.filter((l: any) => l.status === 'CONTRACTED').length || 0;
 
   const funnelData = [
     { stage: '신규 리드', count: newLeads, rate: 100, color: 'var(--metro-line2)' },
@@ -639,7 +639,7 @@ export async function getExtendedCRMStats(): Promise<{
 
   // 4. 카테고리별 성과
   const categoryMap: Record<string, { leads: number; contracted: number }> = {};
-  leads?.forEach(l => {
+  leads?.forEach((l: any) => {
     const cat = l.category || 'OTHER';
     if (!categoryMap[cat]) categoryMap[cat] = { leads: 0, contracted: 0 };
     categoryMap[cat].leads++;

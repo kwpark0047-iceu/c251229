@@ -24,11 +24,11 @@ class SpatialHashGrid {
     if (!lead.lat || !lead.lng) return;
 
     const key = this.getCellKey(lead.lat, lead.lng);
-    
+
     if (!this.grid.has(key)) {
       this.grid.set(key, []);
     }
-    
+
     this.grid.get(key)!.push(lead);
   }
 
@@ -39,7 +39,7 @@ class SpatialHashGrid {
     maxLng: number;
   }): Lead[] {
     const results: Lead[] = [];
-    
+
     const minX = Math.floor(bounds.minLng / this.cellSize);
     const maxX = Math.floor(bounds.maxLng / this.cellSize);
     const minY = Math.floor(bounds.minLat / this.cellSize);
@@ -49,14 +49,14 @@ class SpatialHashGrid {
       for (let y = minY; y <= maxY; y++) {
         const key = `${x},${y}`;
         const cell = this.grid.get(key);
-        
+
         if (cell) {
           results.push(...cell);
         }
       }
     }
 
-    return results.filter(lead => 
+    return results.filter(lead =>
       lead.lat! >= bounds.minLat &&
       lead.lat! <= bounds.maxLat &&
       lead.lng! >= bounds.minLng &&
@@ -94,14 +94,14 @@ class MarkerClusterer {
       if (processed.has(lead.id)) return;
 
       const nearbyLeads = this.findNearbyLeads(lead, leads, processed);
-      
+
       if (nearbyLeads.length >= this.minClusterSize) {
         const position = this.calculateClusterCenter(nearbyLeads);
         clusters.push({
           leads: nearbyLeads,
           position,
         });
-        
+
         nearbyLeads.forEach(l => processed.add(l.id));
       } else {
         clusters.push({
@@ -130,7 +130,7 @@ class MarkerClusterer {
 
     while (toCheck.length > 0) {
       const current = toCheck.pop()!;
-      
+
       allLeads.forEach(lead => {
         if (checked.has(lead.id) || processed.has(lead.id)) return;
 
@@ -156,10 +156,10 @@ class MarkerClusterer {
     const R = 6371000; // 지구 반지름 (미터)
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
 
@@ -185,7 +185,7 @@ class MapDataCache {
     if (this.cache.size >= this.maxCacheSize) {
       const leastUsed = Array.from(this.cache.entries())
         .sort(([, a], [, b]) => a.accessCount - b.accessCount)[0];
-      
+
       this.cache.delete(leastUsed[0]);
     }
 
@@ -198,7 +198,7 @@ class MapDataCache {
 
   get(key: string): any | null {
     const item = this.cache.get(key);
-    
+
     if (!item) return null;
 
     // 만료 체크
@@ -245,7 +245,7 @@ export class MapDataService {
   setLeads(leads: Lead[]): void {
     this.leads = leads;
     this.spatialGrid.clear();
-    
+
     leads.forEach(lead => {
       this.spatialGrid.insert(lead);
     });
@@ -265,14 +265,14 @@ export class MapDataService {
   }): Lead[] {
     const cacheKey = `bounds-${bounds.minLat}-${bounds.maxLat}-${bounds.minLng}-${bounds.maxLng}`;
     const cached = this.cache.get(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
 
     const leads = this.spatialGrid.query(bounds);
     this.cache.set(cacheKey, leads);
-    
+
     return leads;
   }
 
@@ -294,20 +294,20 @@ export class MapDataService {
   }> {
     const cacheKey = `cluster-${bounds.minLat}-${bounds.maxLat}-${bounds.minLng}-${bounds.maxLng}-${zoom}`;
     const cached = this.cache.get(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
 
     const leadsInBounds = this.getLeadsInBounds(bounds);
-    
+
     // 확대 수준에 따라 클러스터링 조정
     const maxDistance = zoom < 12 ? 0.005 : zoom < 15 ? 0.002 : 0.001;
     const minClusterSize = zoom < 12 ? 10 : zoom < 15 ? 5 : 3;
-    
+
     this.clusterer = new MarkerClusterer(maxDistance, minClusterSize);
     const clusters = this.clusterer.cluster(leadsInBounds);
-    
+
     this.cache.set(cacheKey, clusters);
     return clusters;
   }
@@ -323,7 +323,7 @@ export class MapDataService {
   ): Lead[] {
     const cacheKey = `nearest-${centerLat}-${centerLng}-${radius}-${limit}`;
     const cached = this.cache.get(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
@@ -340,7 +340,7 @@ export class MapDataService {
     };
 
     const candidates = this.getLeadsInBounds(bounds);
-    
+
     // 정확한 거리 계산 및 정렬
     const withDistance = candidates.map(lead => ({
       lead,
@@ -373,7 +373,7 @@ export class MapDataService {
   } {
     const cacheKey = `stats-${bounds ? JSON.stringify(bounds) : 'all'}`;
     const cached = this.cache.get(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
@@ -383,15 +383,18 @@ export class MapDataService {
     const stats = {
       total: leads.length,
       byStatus: leads.reduce((acc, lead) => {
-        acc[lead.status] = (acc[lead.status] || 0) + 1;
+        const status = lead.status;
+        acc[status] = (acc[status] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
       byCategory: leads.reduce((acc, lead) => {
-        acc[lead.category] = (acc[lead.category] || 0) + 1;
+        const cat = lead.category || 'OTHER';
+        acc[cat] = (acc[cat] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
       byStation: leads.reduce((acc, lead) => {
-        acc[lead.nearestStation] = (acc[lead.nearestStation] || 0) + 1;
+        const station = lead.nearestStation || 'UNKNOWN';
+        acc[station] = (acc[station] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
     };
@@ -411,13 +414,13 @@ export class MapDataService {
   }): Array<{ lat: number; lng: number; intensity: number }> {
     const cacheKey = `heatmap-${bounds.minLat}-${bounds.maxLat}-${bounds.minLng}-${bounds.maxLng}`;
     const cached = this.cache.get(cacheKey);
-    
+
     if (cached) {
       return cached;
     }
 
     const leads = this.getLeadsInBounds(bounds);
-    
+
     // 그리드 기반 열맵 데이터 생성
     const gridSize = 0.001; // 약 100m
     const grid = new Map<string, number>();
@@ -426,7 +429,7 @@ export class MapDataService {
       const x = Math.floor(lead.lng! / gridSize);
       const y = Math.floor(lead.lat! / gridSize);
       const key = `${x},${y}`;
-      
+
       grid.set(key, (grid.get(key) || 0) + 1);
     });
 
@@ -461,10 +464,10 @@ export class MapDataService {
     const R = 6371000; // 지구 반지름 (미터)
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng/2) * Math.sin(dLng/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
 }

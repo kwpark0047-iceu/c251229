@@ -80,6 +80,13 @@ export interface Lead {
   assignedAt?: string;       // 담당자 지정 시간
   createdAt?: string;        // 생성일
   updatedAt?: string;        // 수정일
+
+  // 타입 안정성을 위한 별칭 프로퍼티
+  lat?: number;              // latitude의 별칭
+  lng?: number;              // longitude의 별칭
+  distance?: number;         // stationDistance의 별칭
+  bizType?: string;          // medicalSubject 등의 별칭
+  organizationId?: string;   // 조직 ID
 }
 
 

@@ -3,7 +3,7 @@
  * 검색 입력 성능 최적화
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -69,18 +69,20 @@ export function useMemoize<T extends (...args: any[]) => any>(
   return useCallback(
     ((...args: Parameters<T>): ReturnType<T> => {
       const key = getKey ? getKey(...args) : JSON.stringify(args);
-      
+
       if (cache.current.has(key)) {
         return cache.current.get(key)!;
       }
 
       const result = func(...args);
       cache.current.set(key, result);
-      
+
       // 캐시 크기 제한 (100개)
       if (cache.current.size > 100) {
         const firstKey = cache.current.keys().next().value;
-        cache.current.delete(firstKey);
+        if (firstKey !== undefined) {
+          cache.current.delete(firstKey);
+        }
       }
 
       return result;
@@ -178,7 +180,20 @@ export function useAsyncData<T>(
     };
   }, dependencies);
 
-  return { data, loading, error, refetch: () => fetchData() };
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await fetcher();
+      setData(result);
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetcher]);
+
+  return { data, loading, error, refetch };
 }
 
 /**

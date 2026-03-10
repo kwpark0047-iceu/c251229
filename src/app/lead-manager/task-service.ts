@@ -114,7 +114,7 @@ export async function getTasks(filters?: {
     return [];
   }
 
-  return (data || []).map(row => {
+  return (data || []).map((row: any) => {
     const task = dbToTask(row);
     if (row.leads) {
       const lead = row.leads as Record<string, unknown>;
@@ -174,7 +174,7 @@ export async function getTasksByDate(date: string): Promise<TaskWithLead[]> {
     return [];
   }
 
-  return (data || []).map(row => {
+  return (data || []).map((row: any) => {
     const task = dbToTask(row);
     if (row.leads) {
       const lead = row.leads as Record<string, unknown>;
@@ -345,7 +345,7 @@ export async function getCalendarEvents(dateFrom: string, dateTo: string): Promi
     .not('next_contact_date', 'is', null);
 
   if (!error && callbacks) {
-    callbacks.forEach(cb => {
+    callbacks.forEach((cb: any) => {
       const leadData = cb.leads;
       const lead = Array.isArray(leadData) ? leadData[0] : leadData;
       events.push({
@@ -436,7 +436,7 @@ export async function getTaskStats(): Promise<{
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 6);
 
-  data.forEach(row => {
+  data.forEach((row: any) => {
     // 상태별 집계
     if (row.status === 'PENDING') stats.pending++;
     else if (row.status === 'IN_PROGRESS') stats.inProgress++;
@@ -481,7 +481,7 @@ export async function getTasksByAssignee(): Promise<
 
   const assigneeMap = new Map<string, { total: number; completed: number; pending: number }>();
 
-  data.forEach(row => {
+  data.forEach((row: any) => {
     const assignee = row.assignee || '미지정';
     if (!assigneeMap.has(assignee)) {
       assigneeMap.set(assignee, { total: 0, completed: 0, pending: 0 });

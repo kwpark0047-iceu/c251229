@@ -7,8 +7,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { Lead, LeadStatus } from '../types';
-import { STATUS_LABELS, CATEGORY_COLORS } from '../constants';
+import { Lead, LeadStatus, STATUS_LABELS, CATEGORY_COLORS } from '../types';
 
 interface VirtualizedGridProps {
   leads: Lead[];
@@ -24,14 +23,14 @@ interface VirtualizedGridProps {
 }
 
 // 리드 카드 컴포넌트
-const LeadCard = React.memo(({ 
-  lead, 
-  isSelected, 
-  onSelect, 
-  onUpdateStatus, 
-  onDelete, 
-  onCall, 
-  onEdit 
+const LeadCard = React.memo(({
+  lead,
+  isSelected,
+  onSelect,
+  onUpdateStatus,
+  onDelete,
+  onCall,
+  onEdit
 }: {
   lead: Lead;
   isSelected: boolean;
@@ -45,9 +44,8 @@ const LeadCard = React.memo(({
 
   return (
     <div
-      className={`glass-card p-4 cursor-pointer transition-all duration-200 ${
-        isSelected ? 'ring-2 ring-blue-500' : 'hover:shadow-lg'
-      }`}
+      className={`glass-card p-4 cursor-pointer transition-all duration-200 ${isSelected ? 'ring-2 ring-blue-500' : 'hover:shadow-lg'
+        }`}
       onClick={onSelect}
     >
       <div className="flex justify-between items-start mb-2">
@@ -66,7 +64,7 @@ const LeadCard = React.memo(({
               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
             </svg>
           </button>
-          
+
           {isMenuOpen && (
             <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg z-10">
               <button
@@ -109,14 +107,13 @@ const LeadCard = React.memo(({
         <p className="text-gray-500">{lead.bizType}</p>
         <div className="flex items-center justify-between">
           <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${
-              CATEGORY_COLORS[lead.category]
-            }`}
+            className={`px-2 py-1 rounded-full text-xs font-medium ${lead.category ? CATEGORY_COLORS[lead.category] : ''
+              }`}
           >
             {STATUS_LABELS[lead.status]}
           </span>
           <span className="text-gray-500">
-            {lead.nearestStation} ({lead.distance}m)
+            {lead.nearestStation} ({lead.distance ?? 0}m)
           </span>
         </div>
       </div>
@@ -144,11 +141,11 @@ const LeadCard = React.memo(({
 LeadCard.displayName = 'LeadCard';
 
 // 그리드 아이템 컴포넌트
-const GridItem = React.memo(({ 
-  columnIndex, 
-  rowIndex, 
-  style, 
-  data 
+const GridItem = React.memo(({
+  columnIndex,
+  rowIndex,
+  style,
+  data
 }: {
   columnIndex: number;
   rowIndex: number;
@@ -157,7 +154,7 @@ const GridItem = React.memo(({
 }) => {
   const { leads, columns, selectedLeads, onSelectLead, onUpdateStatus, onDeleteLead, onCallLead, onEditLead } = data;
   const leadIndex = rowIndex * columns + columnIndex;
-  
+
   if (leadIndex >= leads.length) {
     return <div style={style} />;
   }
@@ -204,12 +201,12 @@ export default function VirtualizedGrid({
   // 필터링된 데이터 계산
   const filteredLeads = useMemo(() => {
     return leads.filter(lead => {
-      const matchesSearch = !searchQuery || 
+      const matchesSearch = !searchQuery ||
         lead.bizName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.roadAddress.toLowerCase().includes(searchQuery.toLowerCase());
-      
+        (lead.roadAddress?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+
       const matchesStatus = statusFilter.length === 0 || statusFilter.includes(lead.status);
-      const matchesCategory = categoryFilter.length === 0 || categoryFilter.includes(lead.category);
+      const matchesCategory = categoryFilter.length === 0 || (lead.category && categoryFilter.includes(lead.category));
 
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -228,7 +225,7 @@ export default function VirtualizedGrid({
 
     updateDimensions();
     const resizeObserver = new ResizeObserver(updateDimensions);
-    
+
     if (containerRef.current) {
       resizeObserver.observe(containerRef.current);
     }
@@ -250,7 +247,7 @@ export default function VirtualizedGrid({
 
   if (dimensions.width === 0) {
     return (
-      <div 
+      <div
         ref={containerRef}
         className="flex-1 bg-gray-50 rounded-lg"
         style={{ minHeight: '400px' }}

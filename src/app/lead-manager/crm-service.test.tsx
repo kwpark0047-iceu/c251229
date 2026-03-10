@@ -9,13 +9,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockCallLogs = [
   {
     id: '1',
-    leadId: 'lead-1',
-    calledAt: new Date().toISOString(),
+    lead_id: 'lead-1',
+    called_at: new Date().toISOString(),
     outcome: 'INTERESTED',
-    durationSeconds: 300,
+    duration_seconds: 300,
     notes: '초기 상담 완료',
-    nextAction: '제안서 발송',
-    createdAt: new Date().toISOString(),
+    next_action: '제안서 발송',
+    created_at: new Date().toISOString(),
   },
 ];
 

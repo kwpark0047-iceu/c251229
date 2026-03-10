@@ -25,7 +25,7 @@ export function useBreakpoint(): Breakpoint {
   useEffect(() => {
     const updateBreakpoint = () => {
       const width = window.innerWidth;
-      
+
       if (width >= BREAKPOINTS['2xl']) {
         setBreakpoint('2xl');
       } else if (width >= BREAKPOINTS.xl) {
@@ -41,7 +41,7 @@ export function useBreakpoint(): Breakpoint {
 
     updateBreakpoint();
     window.addEventListener('resize', updateBreakpoint);
-    
+
     return () => window.removeEventListener('resize', updateBreakpoint);
   }, []);
 
@@ -56,14 +56,14 @@ export function useMediaQuery(query: string): boolean {
 
   useEffect(() => {
     const media = window.matchMedia(query);
-    
+
     if (media.matches !== matches) {
       setMatches(media.matches);
     }
 
     const listener = () => setMatches(media.matches);
     media.addEventListener('change', listener);
-    
+
     return () => media.removeEventListener('change', listener);
   }, [matches, query]);
 
@@ -75,18 +75,18 @@ export function useMediaQuery(query: string): boolean {
  */
 export function useResponsiveValue<T>(values: Partial<Record<Breakpoint, T>>): T {
   const breakpoint = useBreakpoint();
-  
+
   // 현재 브레이크포인트 이상의 가장 작은 값을 찾음
   const breakpointOrder: Breakpoint[] = ['sm', 'md', 'lg', 'xl', '2xl'];
   const currentIndex = breakpointOrder.indexOf(breakpoint);
-  
+
   for (let i = currentIndex; i >= 0; i--) {
     const bp = breakpointOrder[i];
     if (values[bp] !== undefined) {
       return values[bp]!;
     }
   }
-  
+
   // 기본값 (lg)
   return values.lg as T;
 }
@@ -111,7 +111,7 @@ export function ResponsiveWrapper({
 }: ResponsiveWrapperProps) {
   const currentBreakpoint = useBreakpoint();
   const breakpointOrder: Breakpoint[] = ['sm', 'md', 'lg', 'xl', '2xl'];
-  
+
   // 숨김 조건 확인
   const shouldHide = () => {
     if (hideBelow) {
@@ -119,13 +119,13 @@ export function ResponsiveWrapper({
       const hideIndex = breakpointOrder.indexOf(hideBelow);
       return currentIndex < hideIndex;
     }
-    
+
     if (hideAbove) {
       const currentIndex = breakpointOrder.indexOf(currentBreakpoint);
       const hideIndex = breakpointOrder.indexOf(hideAbove);
       return currentIndex > hideIndex;
     }
-    
+
     return false;
   };
 
@@ -161,15 +161,15 @@ export function ResponsiveGrid({
 
   const gridStyle: React.CSSProperties = autoFit
     ? {
-        display: 'grid',
-        gridTemplateColumns: `repeat(auto-fit, minmax(${minItemWidth}px, 1fr))`,
-        gap: `${gridGap * 0.25}rem`,
-      }
+      display: 'grid',
+      gridTemplateColumns: `repeat(auto-fit, minmax(${minItemWidth}px, 1fr))`,
+      gap: `${gridGap * 0.25}rem`,
+    }
     : {
-        display: 'grid',
-        gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
-        gap: `${gridGap * 0.25}rem`,
-      };
+      display: 'grid',
+      gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
+      gap: `${gridGap * 0.25}rem`,
+    };
 
   return (
     <div className={className} style={gridStyle}>
@@ -274,7 +274,7 @@ export function ResponsiveSidebar({
           onClick={onClose}
         />
       )}
-      
+
       {/* 사이드바 */}
       <div
         className={`
@@ -323,7 +323,7 @@ export function ResponsiveNav({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          
+
           {isCollapsed && (
             <div className="mt-2 space-y-1">
               {children}
@@ -348,6 +348,7 @@ interface ResponsiveCardProps {
   padding?: Partial<Record<Breakpoint, string>>;
   shadow?: Partial<Record<Breakpoint, string>>;
   rounded?: Partial<Record<Breakpoint, string>>;
+  onClick?: () => void;
 }
 
 export function ResponsiveCard({
@@ -356,13 +357,17 @@ export function ResponsiveCard({
   padding = { sm: 'p-4', md: 'p-6', lg: 'p-8' },
   shadow = { sm: 'shadow', md: 'shadow-md', lg: 'shadow-lg' },
   rounded = { sm: 'rounded-lg', md: 'rounded-xl', lg: 'rounded-2xl' },
+  onClick,
 }: ResponsiveCardProps) {
   const cardPadding = useResponsiveValue(padding);
   const cardShadow = useResponsiveValue(shadow);
   const cardRounded = useResponsiveValue(rounded);
 
   return (
-    <div className={`bg-white ${cardShadow} ${cardRounded} ${cardPadding} ${className}`}>
+    <div
+      className={`bg-white ${cardShadow} ${cardRounded} ${cardPadding} ${className}`}
+      onClick={onClick}
+    >
       {children}
     </div>
   );
@@ -387,16 +392,16 @@ export const responsive = {
     const breakpoint = useBreakpoint();
     const breakpointOrder: Breakpoint[] = ['sm', 'md', 'lg', 'xl', '2xl'];
     const currentIndex = breakpointOrder.indexOf(breakpoint);
-    
+
     let style: React.CSSProperties = {};
-    
+
     for (let i = currentIndex; i >= 0; i--) {
       const bp = breakpointOrder[i];
       if (values[bp]) {
         style = { ...style, ...values[bp] };
       }
     }
-    
+
     return style;
   },
 
@@ -414,7 +419,7 @@ export const responsive = {
     const currentIndex = breakpointOrder.indexOf(current);
     const minIndex = breakpointOrder.indexOf(min);
     const maxIndex = breakpointOrder.indexOf(max);
-    
+
     return currentIndex >= minIndex && currentIndex <= maxIndex;
   },
 };

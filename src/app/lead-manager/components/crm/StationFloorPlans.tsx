@@ -21,8 +21,17 @@ export default function StationFloorPlans({ floorPlans }: StationFloorPlansProps
                     {floorPlans.map((plan) => (
                         <div
                             key={plan.id}
+                            role="button"
+                            tabIndex={0}
+                            data-testid="floor-plan-thumbnail"
+                            aria-label={`${plan.stationName} ${plan.floorName || ''} 도면`}
                             className="flex-shrink-0 w-40 h-40 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:border-blue-500 transition-all relative group"
                             onClick={() => setSelectedFloorPlan(plan)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    setSelectedFloorPlan(plan);
+                                }
+                            }}
                         >
                             <img
                                 src={plan.thumbnailUrl || plan.imageUrl}

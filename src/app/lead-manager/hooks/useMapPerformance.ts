@@ -14,7 +14,9 @@ class MarkerCache {
   set(key: string, marker: any): void {
     if (this.cache.size >= this.maxCacheSize) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
     }
     this.cache.set(key, marker);
   }
@@ -44,13 +46,23 @@ class TileCache {
   set(key: string, tile: HTMLImageElement): void {
     if (this.cache.size >= this.maxCacheSize) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
     }
     this.cache.set(key, tile);
   }
 
   get(key: string): HTMLImageElement | undefined {
     return this.cache.get(key);
+  }
+
+  has(key: string): boolean {
+    return this.cache.has(key);
+  }
+
+  size(): number {
+    return this.cache.size;
   }
 
   clear(): void {
@@ -123,11 +135,13 @@ class QuadTree {
   }
 
   private contains(point: Lead): boolean {
+    const lng = point.lng ?? point.longitude ?? 0;
+    const lat = point.lat ?? point.latitude ?? 0;
     return (
-      point.lng! >= this.bounds.x &&
-      point.lng! < this.bounds.x + this.bounds.width &&
-      point.lat! >= this.bounds.y &&
-      point.lat! < this.bounds.y + this.bounds.height
+      lng >= this.bounds.x &&
+      lng < this.bounds.x + this.bounds.width &&
+      lat >= this.bounds.y &&
+      lat < this.bounds.y + this.bounds.height
     );
   }
 
@@ -141,11 +155,13 @@ class QuadTree {
   }
 
   private pointInRange(point: Lead, range: { x: number; y: number; width: number; height: number }): boolean {
+    const lng = point.lng ?? point.longitude ?? 0;
+    const lat = point.lat ?? point.latitude ?? 0;
     return (
-      point.lng! >= range.x &&
-      point.lng! <= range.x + range.width &&
-      point.lat! >= range.y &&
-      point.lat! <= range.y + range.height
+      lng >= range.x &&
+      lng <= range.x + range.width &&
+      lat >= range.y &&
+      lat <= range.y + range.height
     );
   }
 
@@ -231,7 +247,7 @@ export function useMapMarkers(leads: Lead[], maxVisibleMarkers: number = 1000) {
       const sampleSize = maxVisibleMarkers;
       const step = Math.floor(leadsInBounds.length / sampleSize);
       const sampled = leadsInBounds.filter((_, index) => index % step === 0).slice(0, sampleSize);
-      
+
       setVisibleLeads(sampled);
       setHiddenLeadsCount(leadsInBounds.length - sampleSize);
     }
@@ -257,7 +273,7 @@ export function useTilePreloading(map: any, zoomLevels: number[] = [10, 11, 12, 
 
     const tileSize = 256;
     const worldSize = tileSize * Math.pow(2, zoom);
-    
+
     const centerPixelX = ((center[1] + 180) / 360) * worldSize;
     const centerPixelY = ((90 - center[0]) / 180) * worldSize;
 
@@ -274,7 +290,7 @@ export function useTilePreloading(map: any, zoomLevels: number[] = [10, 11, 12, 
 
         if (!tileCache.current.has(key)) {
           preloadQueue.current.push(key);
-          
+
           const img = new Image();
           img.onload = () => {
             tileCache.current.set(key, img);
@@ -317,7 +333,7 @@ export function useMapPerformance() {
     const start = performance.now();
     fn();
     const end = performance.now();
-    
+
     setMetrics(prev => ({
       ...prev,
       renderTime: end - start,
@@ -341,7 +357,7 @@ export function useMapPerformance() {
 
       if (currentTime >= lastTime + 1000) {
         const fps = Math.round((frames * 1000) / (currentTime - lastTime));
-        
+
         setMetrics(prev => ({
           ...prev,
           fps,

@@ -53,13 +53,13 @@ export async function getLeadsOptimized(
 ): Promise<{ leads: Lead[]; total: number; hasMore: boolean }> {
   const cacheKey = `leads-${organizationId}-${JSON.stringify(statuses)}-${searchQuery}-${page}`;
   const cached = dataCache.get(cacheKey);
-  
+
   if (cached) {
     return cached;
   }
 
   const supabase = createClient();
-  
+
   let query = supabase
     .from('leads')
     .select('*', { count: 'exact' })
@@ -102,7 +102,7 @@ export async function saveLeadsBatch(leads: Partial<Lead>[]): Promise<{ success:
   // 배치 단위로 처리
   for (let i = 0; i < leads.length; i += BATCH_SIZE) {
     const batch = leads.slice(i, i + BATCH_SIZE);
-    
+
     try {
       // 중복 체크
       const { data: existing } = await supabase
@@ -112,7 +112,7 @@ export async function saveLeadsBatch(leads: Partial<Lead>[]): Promise<{ success:
         .in('road_address', batch.map(l => l.roadAddress!));
 
       const existingSet = new Set(
-        existing?.map(item => `${item.biz_name}|${item.road_address}`) || []
+        existing?.map((item: any) => `${item.biz_name}|${item.road_address}`) || []
       );
 
       // 중복되지 않은 데이터만 필터링
@@ -226,7 +226,7 @@ export async function updateLeadStatusesBatch(
     });
 
     const results = await Promise.allSettled(promises);
-    
+
     results.forEach((result, index) => {
       if (result.status === 'fulfilled' && result.value.success) {
         updated++;
@@ -257,13 +257,13 @@ export async function searchLeadsIndexed(
 ): Promise<Lead[]> {
   const cacheKey = `search-${organizationId}-${query}-${JSON.stringify(filters)}`;
   const cached = dataCache.get(cacheKey);
-  
+
   if (cached) {
     return cached;
   }
 
   const supabase = createClient();
-  
+
   // 기본 쿼리
   let dbQuery = supabase
     .from('leads')
@@ -323,13 +323,13 @@ export async function getLeadStatsCached(organizationId: string): Promise<{
 }> {
   const cacheKey = `stats-${organizationId}`;
   const cached = dataCache.get(cacheKey);
-  
+
   if (cached) {
     return cached;
   }
 
   const supabase = createClient();
-  
+
   // 병렬로 통계 데이터 조회
   const [
     totalResult,
@@ -351,15 +351,15 @@ export async function getLeadStatsCached(organizationId: string): Promise<{
 
   const stats = {
     total: totalResult.count || 0,
-    byStatus: statusResult.data?.reduce((acc, item) => {
+    byStatus: statusResult.data?.reduce((acc: any, item: any) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
       return acc;
     }, {} as Record<LeadStatus, number>) || {},
-    byCategory: categoryResult.data?.reduce((acc, item) => {
+    byCategory: categoryResult.data?.reduce((acc: any, item: any) => {
       acc[item.category] = (acc[item.category] || 0) + 1;
       return acc;
     }, {} as Record<BusinessCategory, number>) || {},
-    byStation: stationResult.data?.reduce((acc, item) => {
+    byStation: stationResult.data?.reduce((acc: any, item: any) => {
       acc[item.nearest_station] = (acc[item.nearest_station] || 0) + 1;
       return acc;
     }, {} as Record<string, number>) || {},

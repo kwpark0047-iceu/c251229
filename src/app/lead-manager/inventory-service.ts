@@ -579,7 +579,7 @@ export async function getAvailableCountByStation(): Promise<Record<string, numbe
   }
 
   const counts: Record<string, number> = {};
-  data.forEach(row => {
+  data.forEach((row: any) => {
     const station = row.station_name;
     counts[station] = (counts[station] || 0) + 1;
   });
@@ -654,7 +654,7 @@ export async function getFloorPlansForStation(
     const plansData = plansResult.data;
     const inventoryData = inventoryResult.data;
 
-    const dedicatedPlans: FloorPlan[] = (plansData || []).map(row => ({
+    const dedicatedPlans: FloorPlan[] = (plansData || []).map((row: any) => ({
       id: row.id,
       stationName: row.station_name,
       floorName: row.floor_name,
@@ -667,7 +667,7 @@ export async function getFloorPlansForStation(
     const inventoryPlans: FloorPlan[] = [];
     const usedUrls = new Set(dedicatedPlans.map(p => p.imageUrl));
 
-    (inventoryData || []).forEach(item => {
+    (inventoryData || []).forEach((item: any) => {
       if (item.floor_plan_url && !usedUrls.has(item.floor_plan_url)) {
         usedUrls.add(item.floor_plan_url);
         inventoryPlans.push({
@@ -701,7 +701,7 @@ export async function getAllFloorPlans(): Promise<FloorPlan[]> {
     return [];
   }
 
-  return data.map(row => ({
+  return data.map((row: any) => ({
     id: row.id,
     stationName: row.station_name,
     floorName: row.floor_name,
@@ -792,7 +792,7 @@ export async function getAdTypes(): Promise<string[]> {
 
   if (!data) return [];
 
-  const types = [...new Set(data.map(row => row.ad_type))];
+  const types = [...new Set(data.map((row: any) => row.ad_type))] as string[];
   return types;
 }
 
@@ -809,6 +809,6 @@ export async function getStationsWithInventory(): Promise<string[]> {
 
   if (!data) return [];
 
-  const stations = [...new Set(data.map(row => row.station_name))];
+  const stations = [...new Set(data.map((row: any) => row.station_name))] as string[];
   return stations;
 }

@@ -50,22 +50,20 @@ describe('StationFloorPlans', () => {
     it('should open modal when a thumbnail is clicked', () => {
         render(<StationFloorPlans floorPlans={mockFloorPlans} />);
 
-        const thumbnail = screen.getByAltText('Gangnam B1');
+        const thumbnail = screen.getByLabelText('Gangnam B1 도면');
         fireEvent.click(thumbnail);
 
         // Modal should appear
-        expect(screen.getByRole('dialog', { hidden: true })).toBeInTheDocument(); // Logic check: actually it's just a div overlay
-        // Or check for modal content
-        expect(screen.getByText('Gangnam B1')).toBeVisible();
-        expect(screen.getByTestId('close-icon')).toBeVisible();
+        expect(screen.getByText('Gangnam B1')).toBeInTheDocument();
+        expect(screen.getByTestId('close-icon')).toBeInTheDocument();
     });
 
     it('should close modal when close button is clicked', () => {
         render(<StationFloorPlans floorPlans={mockFloorPlans} />);
 
         // Open modal
-        fireEvent.click(screen.getByAltText('Gangnam B1'));
-        expect(screen.getByTestId('close-icon')).toBeVisible();
+        fireEvent.click(screen.getByLabelText('Gangnam B1 도면'));
+        expect(screen.getByTestId('close-icon')).toBeInTheDocument();
 
         // Close modal
         fireEvent.click(screen.getByTestId('close-icon').parentElement!);

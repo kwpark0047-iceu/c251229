@@ -19,6 +19,20 @@ export const SUBWAY_LINE_COLORS: Record<string, string> = {
 };
 
 /**
+ * 노선 코드를 표시용 이름으로 변환합니다.
+ */
+export const getLineDisplayName = (lineCode: string): string => {
+    const names: Record<string, string> = {
+        '1': '1호선', '2': '2호선', '3': '3호선', '4': '4호선',
+        '5': '5호선', '6': '6호선', '7': '7호선', '8': '8호선', '9': '9호선',
+        'S': '신분당', 'B': '수인분당', 'K': '경의중앙', 'G': '경춘', 'A': '공항철도',
+        'I1': '인천1호선', 'I2': '인천2호선', 'Ui': '우이신설', 'Si': '신림', 'Kg': '경강',
+        'W': '서해', 'E': '에버라인', 'U': '의정부', 'GTX-A': 'GTX-A'
+    };
+    return names[lineCode] || lineCode;
+};
+
+/**
  * 역 데이터를 기반으로 노선별 경로 데이터를 생성합니다.
  * line-sequences.ts의 표준 시퀀스를 사용하여 스파이더 웹 현상을 방지합니다.
  */

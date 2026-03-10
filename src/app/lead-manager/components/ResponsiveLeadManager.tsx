@@ -7,25 +7,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { Lead, LeadStatus } from '../types';
-import { 
-  ResponsiveContainer, 
-  ResponsiveGrid, 
-  ResponsiveCard, 
+import {
+  ResponsiveContainer,
+  ResponsiveGrid,
+  ResponsiveCard,
   ResponsiveNav,
   ResponsiveSidebar,
   ResponsiveWrapper,
   ResponsiveText,
   useBreakpoint,
   useMediaQuery,
-  responsive 
+  responsive
 } from '@/app/shared/responsive';
-import { 
-  Search, 
-  Filter, 
-  LayoutGrid, 
-  LayoutList, 
-  Map, 
-  Menu, 
+import {
+  Search,
+  Filter,
+  LayoutGrid,
+  LayoutList,
+  Map,
+  Menu,
   X,
   Plus,
   Download,
@@ -65,7 +65,7 @@ export default function ResponsiveLeadManager({
 }: ResponsiveLeadManagerProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  
+
   const breakpoint = useBreakpoint();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const isTablet = useMediaQuery('(max-width: 1024px)');
@@ -94,19 +94,19 @@ export default function ResponsiveLeadManager({
       <div className="space-y-2">
         <ResponsiveText
           size={{ sm: 'text-sm', md: 'text-base', lg: 'text-lg' }}
-          weight="font-semibold"
+          weight={{ sm: 'font-semibold' }}
           className="text-gray-900 truncate"
         >
           {lead.bizName}
         </ResponsiveText>
-        
+
         <ResponsiveText
           size={{ sm: 'text-xs', md: 'text-sm' }}
           className="text-gray-600 truncate"
         >
           {lead.roadAddress}
         </ResponsiveText>
-        
+
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
             {lead.nearestStation}
@@ -115,7 +115,7 @@ export default function ResponsiveLeadManager({
             {lead.distance}m
           </span>
         </div>
-        
+
         <select
           value={lead.status}
           onChange={(e) => {
@@ -137,13 +137,13 @@ export default function ResponsiveLeadManager({
   // 필터 패널
   const FilterPanel = () => (
     <div className="space-y-4">
-      <ResponsiveText size="text-lg" weight="font-semibold">
+      <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-semibold' }}>
         필터
       </ResponsiveText>
-      
+
       {/* 상태 필터 */}
       <div>
-        <ResponsiveText size="text-sm" weight="font-medium" className="mb-2">
+        <ResponsiveText size={{ sm: 'text-sm' }} weight={{ sm: 'font-medium' }} className="mb-2">
           상태
         </ResponsiveText>
         <div className="space-y-2">
@@ -163,8 +163,8 @@ export default function ResponsiveLeadManager({
               />
               <span className="text-sm">
                 {status === 'NEW' ? '신규' :
-                 status === 'PROPOSAL_SENT' ? '제안서 발송' :
-                 status === 'CONTACTED' ? '연락 완료' : '계약 완료'}
+                  status === 'PROPOSAL_SENT' ? '제안서 발송' :
+                    status === 'CONTACTED' ? '연락 완료' : '계약 완료'}
               </span>
             </label>
           ))}
@@ -189,12 +189,12 @@ export default function ResponsiveLeadManager({
                   <Menu className="w-5 h-5" />
                 </button>
               </ResponsiveWrapper>
-              
-              <ResponsiveText size={{ sm: 'text-lg', md: 'text-xl', lg: 'text-2xl' }} weight="font-bold">
+
+              <ResponsiveText size={{ sm: 'text-lg', md: 'text-xl', lg: 'text-2xl' }} weight={{ sm: 'font-bold' }}>
                 리드 관리
               </ResponsiveText>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               {/* 검색 */}
               <div className="relative">
@@ -211,7 +211,7 @@ export default function ResponsiveLeadManager({
                   })}
                 />
               </div>
-              
+
               {/* 액션 버튼 */}
               <ResponsiveWrapper breakpoint="lg">
                 <button
@@ -221,7 +221,7 @@ export default function ResponsiveLeadManager({
                   <Plus className="w-4 h-4" />
                 </button>
               </ResponsiveWrapper>
-              
+
               <ResponsiveWrapper breakpoint="md">
                 <button
                   onClick={onExportData}
@@ -232,7 +232,7 @@ export default function ResponsiveLeadManager({
               </ResponsiveWrapper>
             </div>
           </div>
-          
+
           {/* 뷰 모드 전환 */}
           <div className="flex items-center justify-between py-2 border-t">
             <div className="flex items-center space-x-2">
@@ -255,7 +255,7 @@ export default function ResponsiveLeadManager({
                 <Map className="w-4 h-4" />
               </button>
             </div>
-            
+
             {/* 필터 버튼 (모바일) */}
             <ResponsiveWrapper breakpoint="md">
               <button
@@ -287,7 +287,7 @@ export default function ResponsiveLeadManager({
               {isFilterPanelOpen && (
                 <div className="mb-4 p-4 bg-white rounded-lg shadow-sm">
                   <div className="flex items-center justify-between mb-4">
-                    <ResponsiveText size="text-lg" weight="font-semibold">
+                    <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-semibold' }}>
                       필터
                     </ResponsiveText>
                     <button
@@ -309,34 +309,34 @@ export default function ResponsiveLeadManager({
                 gap={{ sm: 3, md: 4 }}
               >
                 <div className="text-center">
-                  <ResponsiveText size="text-2xl" weight="font-bold" className="text-blue-600">
+                  <ResponsiveText size={{ sm: 'text-2xl' }} weight={{ sm: 'font-bold' }} className="text-blue-600">
                     {leads.length}
                   </ResponsiveText>
-                  <ResponsiveText size="text-sm" className="text-gray-600">
+                  <ResponsiveText size={{ sm: 'text-sm' }} className="text-gray-600">
                     전체 리드
                   </ResponsiveText>
                 </div>
                 <div className="text-center">
-                  <ResponsiveText size="text-2xl" weight="font-bold" className="text-green-600">
+                  <ResponsiveText size={{ sm: 'text-2xl' }} weight={{ sm: 'font-bold' }} className="text-green-600">
                     {leads.filter(l => l.status === 'NEW').length}
                   </ResponsiveText>
-                  <ResponsiveText size="text-sm" className="text-gray-600">
+                  <ResponsiveText size={{ sm: 'text-sm' }} className="text-gray-600">
                     신규
                   </ResponsiveText>
                 </div>
                 <div className="text-center">
-                  <ResponsiveText size="text-2xl" weight="font-bold" className="text-yellow-600">
+                  <ResponsiveText size={{ sm: 'text-2xl' }} weight={{ sm: 'font-bold' }} className="text-yellow-600">
                     {leads.filter(l => l.status === 'PROPOSAL_SENT').length}
                   </ResponsiveText>
-                  <ResponsiveText size="text-sm" className="text-gray-600">
+                  <ResponsiveText size={{ sm: 'text-sm' }} className="text-gray-600">
                     제안서 발송
                   </ResponsiveText>
                 </div>
                 <div className="text-center">
-                  <ResponsiveText size="text-2xl" weight="font-bold" className="text-purple-600">
+                  <ResponsiveText size={{ sm: 'text-2xl' }} weight={{ sm: 'font-bold' }} className="text-purple-600">
                     {leads.filter(l => l.status === 'CONTRACTED').length}
                   </ResponsiveText>
-                  <ResponsiveText size="text-sm" className="text-gray-600">
+                  <ResponsiveText size={{ sm: 'text-sm' }} className="text-gray-600">
                     계약 완료
                   </ResponsiveText>
                 </div>
@@ -361,10 +361,10 @@ export default function ResponsiveLeadManager({
                   <ResponsiveCard key={lead.id} padding={{ sm: 'p-3', md: 'p-4' }}>
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                       <div className="flex-1">
-                        <ResponsiveText size="text-lg" weight="font-semibold">
+                        <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-semibold' }}>
                           {lead.bizName}
                         </ResponsiveText>
-                        <ResponsiveText size="text-sm" className="text-gray-600">
+                        <ResponsiveText size={{ sm: 'text-sm' }} className="text-gray-600">
                           {lead.roadAddress}
                         </ResponsiveText>
                       </div>
@@ -395,7 +395,7 @@ export default function ResponsiveLeadManager({
             {viewMode === 'map' && (
               <div className="h-96 lg:h-[600px] bg-gray-200 rounded-lg">
                 <div className="flex items-center justify-center h-full">
-                  <ResponsiveText size="text-lg" className="text-gray-600">
+                  <ResponsiveText size={{ sm: 'text-lg' }} className="text-gray-600">
                     지도 뷰 (개발 중)
                   </ResponsiveText>
                 </div>
@@ -431,7 +431,7 @@ export default function ResponsiveLeadManager({
       >
         <div className="p-4">
           <div className="flex items-center justify-between mb-6">
-            <ResponsiveText size="text-lg" weight="font-semibold">
+            <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-semibold' }}>
               메뉴
             </ResponsiveText>
             <button
@@ -441,22 +441,22 @@ export default function ResponsiveLeadManager({
               <X className="w-4 h-4" />
             </button>
           </div>
-          
+
           <nav className="space-y-2">
             <a href="#" className="block p-3 rounded-lg hover:bg-gray-100">
-              <ResponsiveText size="text-base">대시보드</ResponsiveText>
+              <ResponsiveText size={{ sm: 'text-base' }}>대시보드</ResponsiveText>
             </a>
             <a href="#" className="block p-3 rounded-lg hover:bg-gray-100">
-              <ResponsiveText size="text-base">리드 관리</ResponsiveText>
+              <ResponsiveText size={{ sm: 'text-base' }}>리드 관리</ResponsiveText>
             </a>
             <a href="#" className="block p-3 rounded-lg hover:bg-gray-100">
-              <ResponsiveText size="text-base">인벤토리</ResponsiveText>
+              <ResponsiveText size={{ sm: 'text-base' }}>인벤토리</ResponsiveText>
             </a>
             <a href="#" className="block p-3 rounded-lg hover:bg-gray-100">
-              <ResponsiveText size="text-base">통계</ResponsiveText>
+              <ResponsiveText size={{ sm: 'text-base' }}>통계</ResponsiveText>
             </a>
             <a href="#" className="block p-3 rounded-lg hover:bg-gray-100">
-              <ResponsiveText size="text-base">설정</ResponsiveText>
+              <ResponsiveText size={{ sm: 'text-base' }}>설정</ResponsiveText>
             </a>
           </nav>
         </div>

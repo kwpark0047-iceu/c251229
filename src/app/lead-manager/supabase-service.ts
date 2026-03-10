@@ -53,7 +53,7 @@ export async function saveLeads(
     // 기존 데이터 키 세트 생성 (상호명 + 주소 조합)
     const existingSet = new Set<string>();
     const existingBizIds = new Set<string>(); // 사업자 ID도 체크
-    (existingData || []).forEach(row => {
+    (existingData || []).forEach((row: any) => {
       const key = createLeadKey(row.biz_name, row.road_address, row.biz_id);
       existingSet.add(key);
       if (row.biz_id) {
@@ -290,7 +290,7 @@ export async function getLeads(filters?: {
     }
 
     // DB 데이터를 Lead 객체로 변환
-    let leads: Lead[] = (data || []).map(row => ({
+    let leads: Lead[] = (data || []).map((row: any) => ({
       id: row.id,
       bizName: row.biz_name,
       bizId: row.biz_id,
@@ -532,7 +532,7 @@ export async function deleteDuplicateLeadsFromDB(): Promise<{
     const seen = new Map<string, string>(); // key -> first id
     const duplicateIds: string[] = [];
 
-    allLeads.forEach(lead => {
+    allLeads.forEach((lead: any) => {
       const key = createLeadKey(lead.biz_name, lead.road_address);
       if (seen.has(key)) {
         // 이미 있으면 중복 - 삭제 대상
@@ -623,7 +623,7 @@ export async function getLeadStats(): Promise<{
       .not('nearest_station', 'is', null);
 
     const stationCounts: Record<string, number> = {};
-    (stationData || []).forEach(row => {
+    (stationData || []).forEach((row: any) => {
       const station = row.nearest_station;
       if (station) {
         stationCounts[station] = (stationCounts[station] || 0) + 1;

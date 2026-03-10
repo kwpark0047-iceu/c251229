@@ -6,8 +6,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Lead, LeadStatus } from '../types';
-import { STATUS_LABELS, CATEGORY_COLORS } from '../constants';
+import { Lead, LeadStatus, STATUS_LABELS, CATEGORY_COLORS } from '../types';
 
 interface InfiniteListProps {
   leads: Lead[];
@@ -33,14 +32,14 @@ const LoadingSpinner = () => (
 );
 
 // 리드 아이템 컴포넌트
-const LeadItem = React.memo(({ 
-  lead, 
-  isSelected, 
-  onSelect, 
-  onUpdateStatus, 
-  onDelete, 
-  onCall, 
-  onEdit 
+const LeadItem = React.memo(({
+  lead,
+  isSelected,
+  onSelect,
+  onUpdateStatus,
+  onDelete,
+  onCall,
+  onEdit
 }: {
   lead: Lead;
   isSelected: boolean;
@@ -54,16 +53,15 @@ const LeadItem = React.memo(({
 
   return (
     <tr
-      className={`border-b hover:bg-gray-50 cursor-pointer transition-colors ${
-        isSelected ? 'bg-blue-50' : ''
-      }`}
+      className={`border-b hover:bg-gray-50 cursor-pointer transition-colors ${isSelected ? 'bg-blue-50' : ''
+        }`}
       onClick={onSelect}
     >
       <td className="p-4">
         <input
           type="checkbox"
           checked={isSelected}
-          onChange={() => {}}
+          onChange={() => { }}
           className="rounded border-gray-300"
           onClick={(e) => e.stopPropagation()}
         />
@@ -73,17 +71,16 @@ const LeadItem = React.memo(({
       <td className="p-4 text-gray-500">{lead.bizType}</td>
       <td className="p-4">
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${
-            CATEGORY_COLORS[lead.category]
-          }`}
+          className={`px-2 py-1 rounded-full text-xs font-medium ${lead.category ? CATEGORY_COLORS[lead.category] : ''
+            }`}
         >
           {STATUS_LABELS[lead.status]}
         </span>
       </td>
       <td className="p-4 text-gray-500">{lead.nearestStation}</td>
-      <td className="p-4 text-gray-500">{lead.distance}m</td>
+      <td className="p-4 text-gray-500">{lead.distance ?? 0}m</td>
       <td className="p-4 text-gray-500">
-        {new Date(lead.createdAt).toLocaleDateString()}
+        {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : '-'}
       </td>
       <td className="p-4">
         <div className="flex items-center gap-2">
@@ -101,7 +98,7 @@ const LeadItem = React.memo(({
             <option value="CONTACTED">연락 완료</option>
             <option value="CONTRACTED">계약 완료</option>
           </select>
-          
+
           <div className="relative">
             <button
               onClick={(e) => {
@@ -114,7 +111,7 @@ const LeadItem = React.memo(({
                 <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
               </svg>
             </button>
-            
+
             {isMenuOpen && (
               <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg z-10">
                 <button
@@ -181,12 +178,12 @@ export default function InfiniteList({
   // 필터링된 데이터 계산
   const filteredLeads = useMemo(() => {
     return leads.filter(lead => {
-      const matchesSearch = !searchQuery || 
+      const matchesSearch = !searchQuery ||
         lead.bizName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.roadAddress.toLowerCase().includes(searchQuery.toLowerCase());
-      
+        (lead.roadAddress?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+
       const matchesStatus = statusFilter.length === 0 || statusFilter.includes(lead.status);
-      const matchesCategory = categoryFilter.length === 0 || categoryFilter.includes(lead.category);
+      const matchesCategory = categoryFilter.length === 0 || (lead.category && categoryFilter.includes(lead.category));
 
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -281,7 +278,7 @@ export default function InfiniteList({
                 onEdit={() => onEditLead(lead.id)}
               />
             ))}
-            
+
             {/* 마지막 아이템 참조 */}
             {visibleLeads.length > 0 && (
               <tr ref={lastItemRef}>
