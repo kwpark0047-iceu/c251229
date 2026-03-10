@@ -71,7 +71,7 @@ const LeadItem = React.memo(({
       <td className="p-4 text-gray-500">{lead.bizType}</td>
       <td className="p-4">
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium ${lead.category ? CATEGORY_COLORS[lead.category] : ''
+          className={`px-2 py-1 rounded-full text-xs font-medium ${lead.category ? `${CATEGORY_COLORS[lead.category].bg} ${CATEGORY_COLORS[lead.category].text}` : ''
             }`}
         >
           {STATUS_LABELS[lead.status]}

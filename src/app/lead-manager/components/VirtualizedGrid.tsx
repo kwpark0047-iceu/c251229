@@ -107,7 +107,7 @@ const LeadCard = React.memo(({
         <p className="text-gray-500">{lead.bizType}</p>
         <div className="flex items-center justify-between">
           <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${lead.category ? CATEGORY_COLORS[lead.category] : ''
+            className={`px-2 py-1 rounded-full text-xs font-medium ${lead.category ? `${CATEGORY_COLORS[lead.category].bg} ${CATEGORY_COLORS[lead.category].text}` : ''
               }`}
           >
             {STATUS_LABELS[lead.status]}
