@@ -117,18 +117,22 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
   await subwayDataManager.getAllSubwayData();
 
   // 제외 키워드 정의 (의료기관 검색 시 섞이는 비타겟 업종)
-  const excludeKeywords = ['약국', '편의점', '세븐일레븐', '씨유', '지에스', 'GS25', 'CU', '7-ELEVEN', '이마트', '안경'];
+  const excludeKeywords = [
+    '약국', '편의점', '세븐일레븐', '씨유', '지에스', 'GS25', 'CU', '7-ELEVEN', 
+    '이마트', '안경', '콘택트', '안경원', '다이소', '올리브영', '롭스', '랄라블라'
+  ];
 
   const processedLeads = (await Promise.all(rawLeads.map(async (raw) => {
-    // 업종명(medicalSubject) 기반 필터링
-    const subject = raw.medicalSubject || '';
-    const bizName = raw.bizName || '';
+    const subject = (raw.medicalSubject || '').replace(/\s+/g, '');
+    const bizName = (raw.bizName || '').replace(/\s+/g, '');
 
-    // 의료기관(HEALTH) 카테코리일 때만 정밀 필터링 적용
-    if (serviceInfo?.category === 'HEALTH') {
-      const isExcluded = excludeKeywords.some(keyword =>
-        subject.includes(keyword) || bizName.includes(keyword)
-      );
+    // 의료기관 관련 서비스이거나 카테고리가 HEALTH일 때 정밀 필터링 적용
+    const isMedicalService = serviceInfo?.id?.startsWith('01_01') || serviceInfo?.id?.startsWith('01_03');
+    if (isMedicalService || serviceInfo?.category === 'HEALTH' || !serviceInfo) {
+      const isExcluded = excludeKeywords.some(keyword => {
+        const k = keyword.replace(/\s+/g, '');
+        return subject.includes(k) || bizName.includes(k);
+      });
       if (isExcluded) return null;
     }
 

@@ -35,10 +35,30 @@ export async function saveLeads(
   try {
     const supabase = getSupabase();
 
+    // 제외 키워드 정의 (의료기관 검색 시 섞이는 비타겟 업종)
+    const excludeKeywords = [
+      '약국', '편의점', '세븐일레븐', '씨유', '지에스', 'GS25', 'CU', '7-ELEVEN', 
+      '이마트', '안경', '콘택트', '안경원', '다이소', '올리브영', '롭스', '랄라블라'
+    ];
+
     // 조직 ID 가져오기 (전달되지 않은 경우)
     const orgId = organizationId ?? await getOrganizationId();
 
-    onProgress?.(0, leads.length, '기존 데이터 확인 중...');
+    onProgress?.(0, leads.length, '비타겟 업종 필터링 중...');
+
+    // 0. 비타겟 업종 필터링 (HEALTH 카테고리만 적용)
+    const filteredLeads = leads.filter(lead => {
+      if (lead.category !== 'HEALTH') return true;
+      const bizName = (lead.bizName || '').replace(/\s+/g, '');
+      const subject = (lead.medicalSubject || '').replace(/\s+/g, '');
+      const isExcluded = excludeKeywords.some(keyword => {
+        const k = keyword.replace(/\s+/g, '');
+        return bizName.includes(k) || subject.includes(k);
+      });
+      return !isExcluded;
+    });
+
+    onProgress?.(0, filteredLeads.length, '기존 데이터 확인 중...');
 
     // 기존 데이터 조회 (상호명 + 주소로 중복 체크)
     const { data: existingData, error: fetchError } = await supabase
@@ -62,7 +82,7 @@ export async function saveLeads(
     });
 
     // 신규 데이터만 필터링 (상호명 + 주소 기준 중복 체크)
-    const deduplicationResult = removeDuplicateLeads(leads, {
+    const deduplicationResult = removeDuplicateLeads(filteredLeads, {
       checkBizId: true,
       checkSimilarity: false // 유사도 체크는 성능상 비활성화
     });

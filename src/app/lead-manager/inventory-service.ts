@@ -642,12 +642,12 @@ export async function getFloorPlansForStation(
       supabase
         .from('floor_plans')
         .select('*')
-        .or(`station_name.ilike.${cleanStationName},station_name.ilike.${cleanStationName}역,station_name.ilike.${cleanStationName} (%,station_name.ilike.${cleanStationName}역 (%,station_name.ilike.${cleanStationName}%,station_name.ilike.${cleanStationName}역%`)
+        .or(`station_name.ilike.%${cleanStationName}%`)
         .order('floor_name'),
       supabase
         .from('ad_inventory')
         .select('floor_plan_url, station_name, location_code')
-        .or(`station_name.eq.${cleanStationName},station_name.eq.${cleanStationName}역`)
+        .or(`station_name.ilike.%${cleanStationName}%`)
         .not('floor_plan_url', 'is', null)
     ]);
 
