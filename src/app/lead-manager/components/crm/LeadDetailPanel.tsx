@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import {
   LeadWithCRM,
+  AdInventory,
   CallLog,
   Proposal,
   ProposalStatus,
@@ -68,6 +69,7 @@ export default function LeadDetailPanel({
   const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
+  const [inventory, setInventory] = useState<AdInventory[]>([]);
 
   const loadLead = useCallback(async () => {
     setLoading(true);
@@ -81,9 +83,10 @@ export default function LeadDetailPanel({
         ? getFloorPlansForStation(data.nearestStation)
         : Promise.resolve([]);
 
-      const [inventory, plans] = await Promise.all([inventoryPromise, plansPromise]);
+      const [inventoryData, plans] = await Promise.all([inventoryPromise, plansPromise]);
 
-      setInventoryCount(inventory.length);
+      setInventory(inventoryData);
+      setInventoryCount(inventoryData.length);
       setFloorPlans(plans);
     }
 
@@ -292,7 +295,7 @@ export default function LeadDetailPanel({
               )}
 
               {/* 역사 도면 - 맨 아래에 추가 */}
-              <StationFloorPlans floorPlans={floorPlans} />
+              <StationFloorPlans floorPlans={floorPlans} inventory={inventory} />
             </div>
           )}
 

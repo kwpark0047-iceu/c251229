@@ -479,7 +479,7 @@ export async function getSettings(): Promise<{ success: boolean; settings: Setti
       query = query.is('user_id', null);
     }
 
-    const { data, error } = await query.limit(1).single();
+    const { data, error } = await query.maybeSingle();
 
     if (error || !data) {
       // 설정이 없으면 기본값 반환

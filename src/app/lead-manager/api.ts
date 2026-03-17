@@ -113,10 +113,25 @@ export async function fetchLocalDataAPI(
 async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo): Promise<Lead[]> {
   const { subwayDataManager } = await import('./kric-data-manager');
 
-  // 캐시 워밍: 대량 처리 전 지하철 데이터를 미리 로드하여 Thundering Herd 방지
+  // 캐시 워밍
   await subwayDataManager.getAllSubwayData();
 
-  const processedLeads = await Promise.all(rawLeads.map(async (raw) => {
+  // 제외 키워드 정의 (의료기관 검색 시 섞이는 비타겟 업종)
+  const excludeKeywords = ['약국', '편의점', '세븐일레븐', '씨유', '지에스', 'GS25', 'CU', '7-ELEVEN', '이마트', '안경'];
+
+  const processedLeads = (await Promise.all(rawLeads.map(async (raw) => {
+    // 업종명(medicalSubject) 기반 필터링
+    const subject = raw.medicalSubject || '';
+    const bizName = raw.bizName || '';
+
+    // 의료기관(HEALTH) 카테코리일 때만 정밀 필터링 적용
+    if (serviceInfo?.category === 'HEALTH') {
+      const isExcluded = excludeKeywords.some(keyword =>
+        subject.includes(keyword) || bizName.includes(keyword)
+      );
+      if (isExcluded) return null;
+    }
+
     let latitude: number | undefined;
     let longitude: number | undefined;
     let nearestStation: string | undefined;
@@ -132,8 +147,6 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
         latitude = converted.lat;
         longitude = converted.lng;
 
-        // 가장 가까운 역 찾기 (고도화된 로직 적용)
-        // 도로명 주소 또는 지번 주소를 기반으로 가중치 검색
         const bizAddress = raw.roadAddress || raw.lotAddress;
         const nearest = await subwayDataManager.findNearbyStation(latitude, longitude, bizAddress);
 
@@ -164,9 +177,9 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
       nearestStation,
       stationDistance,
       stationLines,
-      status: 'NEW' as const,
-    };
-  }));
+      status: 'NEW',
+    } as Lead;
+  }))).filter((lead): lead is Lead => lead !== null);
 
   return processedLeads;
 }
