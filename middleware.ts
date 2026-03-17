@@ -87,7 +87,20 @@ export async function middleware(request: NextRequest) {
     console.log('[Middleware] Passing through')
     return supabaseResponse
   } catch (error) {
-    console.error('[Middleware] Error:', error)
+    console.error('[Middleware] Auth Error:', error)
+    
+    // 보호된 라우트에서 오류 발생 시 로그인 페이지로 강제 이동
+    const protectedRoutes = ['/lead-manager']
+    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+    
+    if (isProtectedRoute) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/auth'
+      url.searchParams.set('redirect', pathname)
+      url.searchParams.set('error', 'session_expired')
+      return NextResponse.redirect(url)
+    }
+    
     return NextResponse.next()
   }
 }

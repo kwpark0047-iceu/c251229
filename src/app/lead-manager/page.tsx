@@ -361,15 +361,55 @@ export default function LeadManagerPage() {
   };
 
 
-  // 필터링된 리드 목록 (화면 표시용 중복 제거 적용)
+  // 필터링된 리드 목록 (카테고리, 상태, 검색어, 서비스 ID 및 노이즈 필터링 통합 적용)
   const filteredLeads = useMemo(() => {
-    // 강력한 중복 제거 로직 적용 (상호명, 주소, 사업자 ID 기준)
-    return removeDuplicateLeads(leads, {
+    // 1. 노이즈 키워드 정의
+    const excludeKeywords = [
+      '약국', '편의점', '세븐일레븐', '씨유', '지에스', 'GS25', 'CU', '7-ELEVEN', 
+      '이마트', '안경', '콘택트', '안경원', '다이소', '올리브영', '롭스', '랄라블라'
+    ];
+
+    // 2. 기본 필터링 (카테고리, 상태, 서비스 ID, 검색어)
+    let filtered = leads.filter(lead => {
+      // 카테고리 필터
+      if (categoryFilter !== 'ALL' && lead.category !== categoryFilter) return false;
+      
+      // 상태 필터
+      if (statusFilter !== 'ALL' && lead.status !== statusFilter) return false;
+      
+      // 서비스 ID 필터 (세부항목)
+      if (selectedServiceIds.length > 0 && !selectedServiceIds.includes(lead.serviceId || '')) return false;
+      
+      // 검색어 필터
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const isInName = lead.bizName.toLowerCase().includes(query);
+        const isInAddress = (lead.roadAddress || '').toLowerCase().includes(query);
+        const isInStation = (lead.nearestStation || '').toLowerCase().includes(query);
+        if (!isInName && !isInAddress && !isInStation) return false;
+      }
+
+      // 3. HEALTH 카테고리 전용 노이즈 필터링 (강력 적용)
+      if (lead.category === 'HEALTH' || categoryFilter === 'HEALTH') {
+        const bizName = (lead.bizName || '').replace(/\s+/g, '');
+        const subject = (lead.medicalSubject || '').replace(/\s+/g, '');
+        const isExcluded = excludeKeywords.some(keyword => {
+          const k = keyword.replace(/\s+/g, '');
+          return bizName.includes(k) || subject.includes(k);
+        });
+        if (isExcluded) return false;
+      }
+
+      return true;
+    });
+
+    // 4. 강력한 중복 제거 로직 적용
+    return removeDuplicateLeads(filtered, {
       checkBizId: true,
       checkSimilarity: true,
       similarityThreshold: 0.8
     }).uniqueLeads;
-  }, [leads]);
+  }, [leads, categoryFilter, statusFilter, selectedServiceIds, searchQuery]);
 
   // 리드 상태 변경
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {

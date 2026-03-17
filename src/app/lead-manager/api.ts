@@ -31,6 +31,9 @@ interface FetchResult {
 interface RawLead {
   bizName: string;
   bizId?: string;
+  mgtNo?: string;         // 관리번호
+  trdStateNm?: string;    // 영업상태명
+  dtlStateNm?: string;    // 상세영업상태명
   licenseDate?: string;
   roadAddress?: string;
   lotAddress?: string;
@@ -126,9 +129,12 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
     const subject = (raw.medicalSubject || '').replace(/\s+/g, '');
     const bizName = (raw.bizName || '').replace(/\s+/g, '');
 
-    // 의료기관 관련 서비스이거나 카테고리가 HEALTH일 때 정밀 필터링 적용
+    // 의료기관 관련 서비스이거나 카테고리가 HEALTH일 때만 정밀 필터링 적용
+    // 체육시설(SPORTS) 등 다른 카테고리는 필터링 제외 (상호명에 '안경' 등이 포함될 수 있음)
     const isMedicalService = serviceInfo?.id?.startsWith('01_01') || serviceInfo?.id?.startsWith('01_03');
-    if (isMedicalService || serviceInfo?.category === 'HEALTH' || !serviceInfo) {
+    const isHealthCategory = serviceInfo?.category === 'HEALTH';
+    
+    if (isMedicalService || isHealthCategory) {
       const isExcluded = excludeKeywords.some(keyword => {
         const k = keyword.replace(/\s+/g, '');
         return subject.includes(k) || bizName.includes(k);
@@ -175,9 +181,12 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
       longitude,
       phone: raw.phone,
       medicalSubject: raw.medicalSubject,
-      category: serviceInfo?.category || 'HEALTH',
-      serviceId: serviceInfo?.id || '01_01_02_P',
-      serviceName: serviceInfo?.name || '병원',
+      mgtNo: raw.mgtNo,
+      operatingStatus: raw.trdStateNm,
+      detailedStatus: raw.dtlStateNm,
+      category: serviceInfo?.category || 'OTHER',
+      serviceId: serviceInfo?.id || 'UNKNOWN',
+      serviceName: serviceInfo?.name || '기타',
       nearestStation,
       stationDistance,
       stationLines,

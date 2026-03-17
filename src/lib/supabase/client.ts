@@ -23,7 +23,6 @@ export function createClient() {
     supabaseAnonKey || 'placeholder-key',
     {
       auth: {
-        lockType: 'memory',
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true

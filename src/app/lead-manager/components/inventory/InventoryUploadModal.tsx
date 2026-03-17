@@ -126,11 +126,12 @@ export default function InventoryUploadModal({
               }`}
           >
             <input
+              id="inventory-file-input"
+              name="file"
               ref={fileInputRef}
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileChange}
-              title="엑셀 파일 선택"
               className="hidden"
             />
 

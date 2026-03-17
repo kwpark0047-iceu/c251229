@@ -169,6 +169,9 @@ function parseXMLResponse(xmlText: string): {
 interface RawLead {
   bizName: string;
   bizId?: string;
+  mgtNo?: string;         // 관리번호
+  trdStateNm?: string;    // 영업상태명
+  dtlStateNm?: string;    // 상세영업상태명
   licenseDate?: string;
   roadAddress?: string;
   lotAddress?: string;
@@ -194,6 +197,9 @@ function parseRowXml(rowXml: string): RawLead | null {
   return {
     bizName,
     bizId: getValue('brno') || undefined,
+    mgtNo: getValue('mgtNo') || undefined,
+    trdStateNm: getValue('trdStateNm') || undefined,
+    dtlStateNm: getValue('dtlStateNm') || undefined,
     licenseDate: getValue('apvPermYmd') || getValue('dcbYmd') || undefined,
     roadAddress: getValue('rdnWhlAddr') || undefined,
     lotAddress: getValue('sitWhlAddr') || undefined,

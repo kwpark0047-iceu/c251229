@@ -234,11 +234,10 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
               name="regionCode"
               value={formData.regionCode}
               onChange={(e) => setFormData({ ...formData, regionCode: e.target.value })}
-              title="지역 선택"
               className="metro-input"
             >
               {Object.entries(REGION_CODES).map(([code, name]) => (
-                <option key={code} value={code}>
+                <option key={code} value={code} id={`region-opt-${code}`}>
                   {name}
                 </option>
               ))}

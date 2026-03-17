@@ -78,6 +78,9 @@ export interface Lead {
   assignedTo?: string;       // 담당 영업사원 ID
   assignedToName?: string;   // 담당 영업사원 이름/이메일
   assignedAt?: string;       // 담당자 지정 시간
+  mgtNo?: string;            // 관리번호 (LocalData 식별자)
+  operatingStatus?: string;   // 영업상태 (영업중, 폐업 등)
+  detailedStatus?: string;    // 상세영업상태
   createdAt?: string;        // 생성일
   updatedAt?: string;        // 수정일
 
@@ -170,17 +173,15 @@ export interface ServiceIdInfo {
 export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
   ALL: [], // 전체 카테고리는 개별 카테고리들을 순회하며 처리함
   HEALTH: [
+    { id: '01_01_01_P', name: '의료기관(병원)', category: 'HEALTH' },
+    { id: '01_01_02_P', name: '의원', category: 'HEALTH' },
+    { id: '01_01_03_P', name: '치과', category: 'HEALTH' },
+    { id: '01_01_04_P', name: '한의원', category: 'HEALTH' },
     { id: '01_01_06_P', name: '의료기관/병원부속', category: 'HEALTH' },
-    { id: '01_01_02_P', name: '의료기관(병원)', category: 'HEALTH' },
-    { id: '01_03_02_P', name: '산후조리업', category: 'HEALTH' },
-    { id: '01_03_03_P', name: '안전상비의약품 판매업소', category: 'HEALTH' },
     { id: '01_03_01_P', name: '응급환자이송업', category: 'HEALTH' },
+    { id: '01_03_02_P', name: '산후조리업', category: 'HEALTH' },
     { id: '01_04_01_P', name: '의료법인', category: 'HEALTH' },
     { id: '01_02_02_P', name: '의료유사업', category: 'HEALTH' },
-    { id: '01_01_03_P', name: '의원', category: 'HEALTH' },
-    { id: '01_01_04_P', name: '치과', category: 'HEALTH' },
-    { id: '01_01_05_P', name: '한의원', category: 'HEALTH' },
-    { id: '01_02_01_P', name: '안경업', category: 'HEALTH' },
   ],
   ANIMAL: [
     { id: '07_01_01_P', name: '동물병원', category: 'ANIMAL' },
