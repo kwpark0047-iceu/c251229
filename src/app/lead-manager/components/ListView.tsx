@@ -462,7 +462,11 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       <td className="px-5 py-4">
         {lead.nearestStation ? (
           <div className="flex items-center gap-2">
-            <span className="font-medium text-[var(--text-primary)]"><HighlightText text={lead.nearestStation || ''} searchQuery={searchQuery} /></span>
+            <span className="font-medium text-[var(--text-primary)]">
+              <HighlightText text={lead.nearestStation || ''} searchQuery={searchQuery} />
+              {lead.nearestExitNo && ` ${lead.nearestExitNo}번 출구`}
+            </span>
+
             {lead.stationLines && (
               <div className="flex gap-1">
                 {lead.stationLines.slice(0, 2).map(line => (

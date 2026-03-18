@@ -415,6 +415,7 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
             <span className="text-xs">🚉</span>
             <p className="text-xs font-semibold text-slate-300">
               {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'}
+              {lead.nearestExitNo && ` ${lead.nearestExitNo}번 출구`}
               <span className="text-[10px] text-slate-500 font-normal ml-1">
                 ({lead.stationDistance && formatDistance(lead.stationDistance)})
               </span>

@@ -14,6 +14,7 @@ import {
   Proposal,
 } from './types';
 import { getOrganizationId } from './auth-service';
+import { findInventoryForLead } from './inventory-service';
 
 // ============================================
 // 통화 기록
@@ -460,6 +461,16 @@ export async function getLeadWithCRM(leadId: string): Promise<LeadWithCRM | null
     updatedAt: row.updated_at,
   }));
 
+  // 인근 광고 매체 조회 (추가)
+  const leadForMatching: Lead = {
+    id: leadData.id,
+    bizName: leadData.biz_name,
+    latitude: leadData.latitude,
+    longitude: leadData.longitude,
+    status: leadData.status as any,
+  };
+  const matchingInventory = await findInventoryForLead(leadForMatching);
+
   return {
     id: leadData.id,
     bizName: leadData.biz_name,
@@ -474,6 +485,7 @@ export async function getLeadWithCRM(leadId: string): Promise<LeadWithCRM | null
     phone: leadData.phone,
     medicalSubject: leadData.medical_subject,
     nearestStation: leadData.nearest_station,
+    nearestExitNo: leadData.nearest_exit_no,
     stationDistance: leadData.station_distance,
     stationLines: leadData.station_lines,
     status: leadData.status,
@@ -487,6 +499,7 @@ export async function getLeadWithCRM(leadId: string): Promise<LeadWithCRM | null
     callLogs,
     proposals,
     salesProgress,
+    matchingInventory,
   };
 }
 

@@ -273,10 +273,17 @@ export async function uploadInventoryExcel(
       if (dbRows.length > 0) {
         const { error } = await supabase
           .from('ad_inventory')
-          .upsert(dbRows, { onConflict: 'station_name,location_code' });
+          .upsert(dbRows, { 
+            onConflict: 'station_name,location_code',
+            ignoreDuplicates: false 
+          });
 
         if (error) {
-          errors.push({ row: i + 1, message: error.message });
+          console.error(`Batch upload error (rows ${i} to ${i + BATCH_SIZE}):`, error);
+          errors.push({ 
+            row: i + 1, 
+            message: `DB 저장 오류: ${error.message} (코드: ${error.code})` 
+          });
         } else {
           successCount += dbRows.length;
         }

@@ -13,10 +13,10 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
 
     if (floorPlans.length === 0) return null;
 
-    // 현재 선택된 도면의 인벤토리 필터링 (역 이름 매칭 강화)
+    // 현재 선택된 도면의 인벤토리 및 마커 필터링
     const currentInventory = selectedFloorPlan 
         ? inventory.filter(item => {
-            // 1. URL 직접 매칭
+            // 1. floor_plan_id 직접 매칭 (가장 정확)
             if (item.floorPlanUrl === selectedFloorPlan.imageUrl) return true;
             
             // 2. 역 이름 매칭 (공백 제거, '역' 접미사 통일)
@@ -24,6 +24,7 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
             const itemStation = cleanName(item.stationName);
             const planStation = cleanName(selectedFloorPlan.stationName);
             
+            // 3. 위치 좌표가 도면에 매핑되어 있는지 확인
             return itemStation === planStation && item.spotPositionX && item.spotPositionY;
           })
         : [];

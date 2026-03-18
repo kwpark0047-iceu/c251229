@@ -12,11 +12,12 @@ import {
   generateLineRoutes,
   getKRICServiceKey,
   validateServiceKey,
-  KRICStation,
   KRICStationInfo,
   LINE_COLORS,
   LINE_CODES
 } from './kric-api';
+import { SUBWAY_EXITS } from './data/subway-exits';
+
 
 // 캐시 관리
 interface CacheData {
@@ -365,7 +366,38 @@ export class KRICSubwayDataManager {
 
     return bestMatch ? { station: bestMatch.station, distance: bestMatch.distance } : null;
   }
+
+  /**
+   * 특정 역사와 좌표를 기준으로 가장 가까운 출구 번호 검색
+   */
+  async findNearestExit(
+    stationName: string,
+    lat: number,
+    lng: number
+  ): Promise<string | null> {
+    const stationExits = SUBWAY_EXITS.filter(exit => 
+      exit.stationName === stationName || 
+      exit.stationName === stationName.replace(/역$/, '')
+    );
+
+    if (stationExits.length === 0) return null;
+
+    const { calculateDistance } = await import('./utils');
+    let nearestExit: string | null = null;
+    let minDistance = Infinity;
+
+    for (const exit of stationExits) {
+      const distance = calculateDistance(lat, lng, exit.lat, exit.lng);
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestExit = exit.exitNo;
+      }
+    }
+
+    return nearestExit;
+  }
 }
+
 
 // 싱글톤 인스턴스
 export const subwayDataManager = KRICSubwayDataManager.getInstance();

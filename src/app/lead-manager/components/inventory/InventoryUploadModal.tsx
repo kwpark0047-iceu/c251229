@@ -80,11 +80,14 @@ export default function InventoryUploadModal({
     setResult(uploadResult);
     setUploading(false);
 
-    if (uploadResult.success) {
+    if (uploadResult.success && uploadResult.errorCount === 0) {
       setTimeout(() => {
         onSuccess();
         onClose();
-      }, 2000);
+      }, 3000);
+    } else if (uploadResult.successCount > 0) {
+      // 일부 성공한 경우 데이터 갱신은 하되 모달은 열어둠 (에러 확인용)
+      onSuccess();
     }
   };
 

@@ -164,7 +164,14 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
           nearestStation = nearest.station.name;
           stationDistance = nearest.distance;
           stationLines = nearest.station.lines;
+
+          // 가장 가까운 출구 번호 계산
+          const nearestExit = await subwayDataManager.findNearestExit(nearestStation, latitude, longitude);
+          if (nearestExit) {
+            (raw as any).nearestExitNo = nearestExit;
+          }
         }
+
       }
     }
 
@@ -188,7 +195,9 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
       serviceId: serviceInfo?.id || 'UNKNOWN',
       serviceName: serviceInfo?.name || '기타',
       nearestStation,
+      nearestExitNo: (raw as any).nearestExitNo,
       stationDistance,
+
       stationLines,
       status: 'NEW',
     } as Lead;

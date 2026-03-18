@@ -380,7 +380,7 @@ export async function getFloorPlanCounts(): Promise<Record<MetroLine, { station_
     counts[line] = { station_layout: 0, psd: 0 };
   });
 
-  (data || []).forEach(row => {
+  (data || []).forEach((row: { line_number: string; plan_type: string }) => {
     const line = row.line_number as MetroLine;
     const type = row.plan_type as PlanType;
     if (line && counts[line] && type) {

@@ -71,7 +71,9 @@ export interface Lead {
   serviceId?: string;        // API 서비스 ID
   serviceName?: string;      // 서비스명 (병원, 약국 등)
   nearestStation?: string;   // 가장 가까운 역
+  nearestExitNo?: string;    // 가장 가까운 출구 번호
   stationDistance?: number;  // 역까지 거리 (미터)
+
   stationLines?: string[];   // 해당 역 노선들
   status: LeadStatus;        // 리드 상태
   notes?: string;            // 메모

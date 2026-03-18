@@ -20,6 +20,7 @@ import {
   Download,
   MoreVertical,
   User,
+  Tag,
 } from 'lucide-react';
 import {
   LeadWithCRM,
@@ -33,6 +34,7 @@ import {
   STATUS_COLORS,
   PROPOSAL_STATUS_LABELS,
   PROPOSAL_STATUS_COLORS,
+  AD_TYPE_LABELS,
 } from '../../types';
 import { getLeadWithCRM, generateTelLink } from '../../crm-service';
 import { findInventoryForLead } from '../../inventory-service';
@@ -205,6 +207,7 @@ export default function LeadDetailPanel({
                       <div className="flex-1">
                         <span className="text-sm text-slate-600 group-hover:text-blue-600">
                           {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'}
+                          {lead.nearestExitNo && ` ${lead.nearestExitNo}번 출구`}
                         </span>
                         {lead.stationDistance && (
                           <span className="text-sm text-slate-400 ml-2">
@@ -256,16 +259,37 @@ export default function LeadDetailPanel({
               {/* 인근 광고매체 */}
               {inventoryCount > 0 && (
                 <section className="p-4 bg-blue-50 rounded-lg">
-                  <div className="flex items-center justify-between">
+                  <button 
+                    onClick={() => setShowStationInfo(true)}
+                    className="w-full flex items-center justify-between text-left group"
+                  >
                     <div>
-                      <h3 className="text-sm font-semibold text-blue-800">
+                      <h3 className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                        <Tag className="w-4 h-4" />
                         인근 광고매체
                       </h3>
                       <p className="text-sm text-blue-600">
-                        {inventoryCount}개의 가용 광고 위치
+                        {inventoryCount}개의 가용 광고 위치가 있습니다.
                       </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-blue-600" />
+                    <div className="flex items-center gap-1 text-blue-500 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      목록보기
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
+                  </button>
+                  
+                  {/* 간이 리스트 (3개까지만) */}
+                  <div className="mt-3 space-y-2">
+                    {inventory.slice(0, 3).map(item => (
+                      <div key={item.id} className="text-xs bg-white/50 p-2 rounded border border-blue-100 flex justify-between items-center">
+                        <span className="font-medium text-slate-700">{AD_TYPE_LABELS[item.adType] || item.adType}</span>
+                        <span className="text-slate-500">{item.locationCode}</span>
+                        <span className="text-blue-600 font-bold">{item.priceMonthly?.toLocaleString()}원</span>
+                      </div>
+                    ))}
+                    {inventoryCount > 3 && (
+                      <p className="text-[10px] text-blue-400 text-center">외 {inventoryCount - 3}개 더 있음</p>
+                    )}
                   </div>
                 </section>
               )}
