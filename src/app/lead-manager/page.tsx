@@ -823,7 +823,7 @@ export default function LeadManagerPage() {
 
                   {/* 업종 카테고리 */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    {(['ALL', 'HEALTH', 'ANIMAL', 'FOOD', 'CULTURE', 'LIVING', 'ENVIRONMENT', 'OTHER'] as BusinessCategory[]).map(category => {
+                    {(Object.keys(CATEGORY_LABELS) as BusinessCategory[]).map(category => {
                       const colors = CATEGORY_COLORS[category];
                       const count = category === 'ALL' ? leads.length : leads.filter(l => l.category === category).length;
                       const getCategoryColor = () => {
@@ -833,6 +833,10 @@ export default function LeadManagerPage() {
                         if (colors.bg.includes('purple')) return 'var(--metro-line5)';
                         if (colors.bg.includes('cyan')) return 'var(--metro-line4)';
                         if (colors.bg.includes('emerald')) return 'var(--metro-line2)';
+                        if (colors.bg.includes('lime')) return 'var(--metro-line7)';
+                        if (colors.bg.includes('pink')) return 'var(--metro-line8)';
+                        if (colors.bg.includes('yellow')) return 'var(--metro-line9)';
+                        if (colors.bg.includes('rose')) return 'var(--metro-line6)';
                         return 'var(--metro-line9)';
                       };
                       return (

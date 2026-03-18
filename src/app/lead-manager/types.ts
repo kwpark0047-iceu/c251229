@@ -134,8 +134,12 @@ export type BusinessCategory =
   | 'ANIMAL'      // 동물
   | 'FOOD'        // 식품
   | 'CULTURE'     // 문화
-  | 'SPORTS'      // 체육 (신규)
+  | 'SPORTS'      // 체육
   | 'LIVING'      // 생활
+  | 'EDUCATION'   // 교육 (신규)
+  | 'TOURISM'     // 관광 (신규)
+  | 'CONSTRUCTION' // 건설/기술 (신규)
+  | 'DISTRIBUTION' // 유통/판매 (신규)
   | 'ENVIRONMENT' // 자원환경
   | 'OTHER';      // 기타
 
@@ -145,8 +149,12 @@ export const CATEGORY_LABELS: Record<BusinessCategory, string> = {
   ANIMAL: '동물',
   FOOD: '식품',
   CULTURE: '문화',
-  SPORTS: '체육',
+  SPORTS: '생활-체육',
   LIVING: '생활',
+  EDUCATION: '교육',
+  TOURISM: '관광',
+  CONSTRUCTION: '건설/기술',
+  DISTRIBUTION: '유통/판매',
   ENVIRONMENT: '자원환경',
   OTHER: '기타',
 };
@@ -159,6 +167,10 @@ export const CATEGORY_COLORS: Record<BusinessCategory, { bg: string; text: strin
   CULTURE: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
   SPORTS: { bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-300' },
   LIVING: { bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-300' },
+  EDUCATION: { bg: 'bg-lime-100', text: 'text-lime-700', border: 'border-lime-300' },
+  TOURISM: { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-300' },
+  CONSTRUCTION: { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-300' },
+  DISTRIBUTION: { bg: 'bg-rose-100', text: 'text-rose-700', border: 'border-rose-300' },
   ENVIRONMENT: { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300' },
   OTHER: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' },
 };
@@ -206,21 +218,21 @@ export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
     { id: '06_04_01_P', name: '노래연습장업', category: 'CULTURE' },
   ],
   SPORTS: [
-    { id: '10_39_01_P', name: '골프연습장업', category: 'SPORTS' },
-    { id: '10_41_01_P', name: '골프장', category: 'SPORTS' },
-    { id: '10_42_01_P', name: '당구장업', category: 'SPORTS' },
-    { id: '10_51_01_P', name: '등록체육시설업', category: 'SPORTS' },
-    { id: '10_53_01_P', name: '무도장업', category: 'SPORTS' },
-    { id: '10_54_01_P', name: '무도학원업', category: 'SPORTS' },
-    { id: '10_31_01_P', name: '빙상장업', category: 'SPORTS' },
-    { id: '10_32_01_P', name: '수영장업', category: 'SPORTS' },
-    { id: '10_33_01_P', name: '스키장', category: 'SPORTS' },
-    { id: '10_34_01_P', name: '승마장업', category: 'SPORTS' },
-    { id: '10_35_01_P', name: '썰매장업', category: 'SPORTS' },
-    { id: '10_36_01_P', name: '요트장업', category: 'SPORTS' },
+    { id: '10_31_01_P', name: '골프연습장업', category: 'SPORTS' },
+    { id: '10_31_02_P', name: '골프장', category: 'SPORTS' },
+    { id: '10_31_03_P', name: '등록체육시설업', category: 'SPORTS' },
+    { id: '10_32_01_P', name: '당구장업', category: 'SPORTS' },
+    { id: '10_33_01_P', name: '무도장업', category: 'SPORTS' },
+    { id: '10_33_02_P', name: '무도학원업', category: 'SPORTS' },
+    { id: '10_34_01_P', name: '빙상장업', category: 'SPORTS' },
+    { id: '10_35_01_P', name: '수영장업', category: 'SPORTS' },
+    { id: '10_36_01_P', name: '스키장', category: 'SPORTS' },
     { id: '10_37_01_P', name: '종합체육시설업', category: 'SPORTS' },
-    { id: '10_44_01_P', name: '체력단련장업', category: 'SPORTS' },
-    { id: '10_45_01_P', name: '체육도장업', category: 'SPORTS' },
+    { id: '10_38_01_P', name: '승마장업', category: 'SPORTS' },
+    { id: '10_39_01_P', name: '썰매장업', category: 'SPORTS' },
+    { id: '10_40_01_P', name: '요트장업', category: 'SPORTS' },
+    { id: '10_41_01_P', name: '체육도장업', category: 'SPORTS' },
+    { id: '10_42_01_P', name: '체력단련장업', category: 'SPORTS' },
   ],
   LIVING: [
     { id: '08_01_01_P', name: '숙박업', category: 'LIVING' },
@@ -228,14 +240,49 @@ export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
     { id: '08_02_02_P', name: '이용업', category: 'LIVING' },
     { id: '08_02_03_P', name: '미용업', category: 'LIVING' },
     { id: '08_02_04_P', name: '세탁업', category: 'LIVING' },
-    { id: '08_03_01_P', name: '체육시설업', category: 'LIVING' },
+    { id: '08_03_01_P', name: '체육시설업(기타)', category: 'LIVING' },
+    { id: '10_42_01_P', name: '체력단련장업(헬스장)', category: 'SPORTS' },
+    { id: '10_41_01_P', name: '체육도장업', category: 'SPORTS' },
+    { id: '08_05_01_P', name: '의료기기판매업', category: 'LIVING' },
+    { id: '08_05_02_P', name: '의료기기수리업', category: 'LIVING' },
+  ],
+  EDUCATION: [
+    { id: '05_01_01_P', name: '학원', category: 'EDUCATION' },
+    { id: '05_02_01_P', name: '교습소', category: 'EDUCATION' },
+    { id: '05_03_01_P', name: '평생교육시설', category: 'EDUCATION' },
+  ],
+  TOURISM: [
+    { id: '03_06_01_P', name: '관광숙박업', category: 'TOURISM' },
+    { id: '03_07_01_P', name: '관광객이용시설업', category: 'TOURISM' },
+    { id: '03_08_01_P', name: '국제회의업', category: 'TOURISM' },
+    { id: '03_09_01_P', name: '유원시설업', category: 'TOURISM' },
+    { id: '03_11_01_P', name: '관광사업자', category: 'TOURISM' },
+  ],
+  CONSTRUCTION: [
+    { id: '09_02_01_P', name: '주택관리업', category: 'CONSTRUCTION' },
+    { id: '09_03_01_P', name: '건설기계대여업', category: 'CONSTRUCTION' },
+    { id: '09_04_01_P', name: '건설기계정비업', category: 'CONSTRUCTION' },
+    { id: '09_05_01_P', name: '건설기계매매업', category: 'CONSTRUCTION' },
+    { id: '09_06_01_P', name: '건설기계폐기업', category: 'CONSTRUCTION' },
+  ],
+  DISTRIBUTION: [
+    { id: '07_21_01_P', name: '통신판매업', category: 'DISTRIBUTION' },
+    { id: '07_22_01_P', name: '방문판매업', category: 'DISTRIBUTION' },
+    { id: '07_22_02_P', name: '전화권유판매업', category: 'DISTRIBUTION' },
+    { id: '07_23_01_P', name: '다단계판매업', category: 'DISTRIBUTION' },
+    { id: '11_43_01_P', name: '대규모점포', category: 'DISTRIBUTION' },
   ],
   ENVIRONMENT: [
     { id: '03_01_01_P', name: '대기배출시설', category: 'ENVIRONMENT' },
     { id: '03_02_01_P', name: '폐기물처리업', category: 'ENVIRONMENT' },
+    { id: '03_03_01_P', name: '수질정화시설', category: 'ENVIRONMENT' },
+    { id: '03_04_02_P', name: '분뇨수집운반업', category: 'ENVIRONMENT' },
   ],
   OTHER: [
-    { id: '09_01_01_P', name: '기타', category: 'OTHER' },
+    { id: '09_01_01_P', name: '건설업', category: 'OTHER' },
+    { id: '11_01_01_P', name: '담배소매업', category: 'OTHER' },
+    { id: '12_01_01_P', name: '직업소개소', category: 'OTHER' },
+    { id: '12_02_01_P', name: '무료직업소개소', category: 'OTHER' },
   ],
 };
 
