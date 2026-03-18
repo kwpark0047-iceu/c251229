@@ -44,7 +44,9 @@ export async function getFloorPlansByLine(
   }
 
   if (!data || data.length === 0) {
-    console.warn(`[getFloorPlansByLine] No plans found for line: ${lineNumber}, type: ${planType}`);
+    const typeLabel = planType || 'all';
+    console.warn(`[getFloorPlansByLine] No plans found for line: ${lineNumber}, type: ${typeLabel}. ` +
+      `Please ensure the database is populated and schema is up to date.`);
   }
 
   return (data || []).map(mapDbToFloorPlan);

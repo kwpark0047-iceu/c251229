@@ -20,8 +20,8 @@ UPDATE public.floor_plans SET line_number = '2' WHERE line_number IS NULL;
 UPDATE public.floor_plans SET plan_type = 'station_layout' WHERE plan_type IS NULL;
 
 -- 4. 복합 UNIQUE 제약 조건 추가 (역명, 노선, 도면유형, 층수 조합)
--- 기존에 중복된 데이터가 있을 경우 에러가 발생할 수 있으므로 주의가 필요하지만, 
--- 신규 시스템 구축 단계이므로 강제 적용합니다.
+-- 기존 제약 조건이 있을 경우 제거 후 재등록하여 42P07 에러 방지
+ALTER TABLE public.floor_plans DROP CONSTRAINT IF EXISTS floor_plans_composite_key;
 ALTER TABLE public.floor_plans 
 ADD CONSTRAINT floor_plans_composite_key UNIQUE (station_name, line_number, plan_type, floor_name);
 
