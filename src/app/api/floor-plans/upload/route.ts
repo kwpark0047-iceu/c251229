@@ -14,6 +14,9 @@ import {
 
 const BUCKET_NAME = 'floor-plans';
 
+export const maxDuration = 60; // 60초 타임아웃 (Vercel Pro/Hobby 기준 최대)
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

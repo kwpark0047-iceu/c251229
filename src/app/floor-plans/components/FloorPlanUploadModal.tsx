@@ -91,6 +91,15 @@ export default function FloorPlanUploadModal({
         body: formData,
       });
 
+      // JSON 파싱 전 상태 확인 (413 등 HTML 에러 대응)
+      const contentType = response.headers.get('content-type');
+      if (!response.ok && (!contentType || !contentType.includes('application/json'))) {
+        if (response.status === 413) {
+          throw new Error('파일 용량이 너무 큽니다 (Vercel 제한: 4.5MB). 대용량 파일은 scripts/bulk-upload-floor-plans.js를 이용해 주세요.');
+        }
+        throw new Error(`서버 오류 (${response.status}): 업로드를 완료할 수 없습니다.`);
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
