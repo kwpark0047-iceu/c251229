@@ -38,7 +38,8 @@ import {
 } from '../../types';
 import { getLeadWithCRM, generateTelLink } from '../../crm-service';
 import { findInventoryForLead } from '../../inventory-service';
-import { downloadProposalPDF, updateProposal } from '../../proposal-service';
+import { downloadProposalPDF, updateProposal, logProposalAccess } from '../../proposal-service';
+import { getCurrentUser, getOrganizationId, UserInfo } from '../../auth-service';
 import { formatDistance } from '../../utils';
 import ProgressChecklist from './ProgressChecklist';
 import CallLogModal from './CallLogModal';
@@ -72,6 +73,11 @@ export default function LeadDetailPanel({
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [inventory, setInventory] = useState<AdInventory[]>([]);
+  const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    getCurrentUser().then(user => setCurrentUser(user));
+  }, []);
 
   const loadLead = useCallback(async () => {
     setLoading(true);
@@ -365,6 +371,7 @@ export default function LeadDetailPanel({
                       setSelectedProposal(proposal);
                       setShowEmailModal(true);
                     }}
+                    currentUser={currentUser}
                   />
                 ))
               ) : (
@@ -498,11 +505,13 @@ function ProposalCard({
   onStatusChange,
   onDownloadPDF,
   onSendEmail,
+  currentUser,
 }: {
   proposal: Proposal;
   onStatusChange: (status: ProposalStatus) => void;
   onDownloadPDF: () => void;
   onSendEmail: () => void;
+  currentUser?: UserInfo | null;
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const statusColor = PROPOSAL_STATUS_COLORS[proposal.status];
@@ -512,13 +521,33 @@ function ProposalCard({
   const isExternal = proposal.isExternal;
   const fileType = proposal.fileType?.toUpperCase() || 'PDF';
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
+    // 로그 기록
+    await logProposalAccess(proposal.id, 'DOWNLOAD', {
+      email: currentUser?.email,
+      userId: currentUser?.id
+    });
+
     if (isExternal && proposal.pdfUrl) {
       // 외부 파일은 저장소 URL로 직접 열기
       window.open(proposal.pdfUrl, '_blank');
     } else {
       // 자동 생성 파일은 기존 다운로드 로직 수행
       onDownloadPDF();
+    }
+  };
+
+  const handleView = async () => {
+    // 로그 기록
+    await logProposalAccess(proposal.id, 'VIEW', {
+      email: currentUser?.email,
+      userId: currentUser?.id
+    });
+    
+    if (isExternal && proposal.pdfUrl) {
+      window.open(proposal.pdfUrl, '_blank');
+    } else {
+      onDownloadPDF(); // 상세 뷰어가 따로 없으므로 다운로드/열기 동일하게 처리
     }
   };
 
@@ -620,6 +649,13 @@ function ProposalCard({
 
       {/* 액션 버튼 */}
       <div className="mt-4 flex gap-2">
+        <button
+          onClick={handleView}
+          className="flex-1 flex items-center justify-center gap-1 py-2 text-sm text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+        >
+          <FileText className="w-4 h-4" />
+          열람
+        </button>
         <button
           onClick={handleDownload}
           className="flex-1 flex items-center justify-center gap-1 py-2 text-sm text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"

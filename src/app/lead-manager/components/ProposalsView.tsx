@@ -11,16 +11,25 @@ import {
   User,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Activity,
+  History,
+  X
 } from 'lucide-react';
 import { Proposal, ProposalStatus, STATUS_METRO_COLORS } from '../types';
-import { getProposals } from '../proposal-service';
+import { getProposals, getProposalLogs } from '../proposal-service';
 
 export default function ProposalsView() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | 'ALL'>('ALL');
+  
+  // 로그 관련 상태
+  const [selectedLogProposal, setSelectedLogProposal] = useState<Proposal | null>(null);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [isLogsLoading, setIsLogsLoading] = useState(false);
+  const [showLogModal, setShowLogModal] = useState(false);
 
   useEffect(() => {
     const fetchProposals = async () => {
@@ -40,6 +49,18 @@ export default function ProposalsView() {
     const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleShowLogs = async (proposal: Proposal) => {
+    setSelectedLogProposal(proposal);
+    setIsLogsLoading(true);
+    setShowLogModal(true);
+    
+    const result = await getProposalLogs(proposal.id);
+    if (result.success) {
+      setLogs(result.logs);
+    }
+    setIsLogsLoading(false);
+  };
 
   const getStatusIcon = (status: ProposalStatus) => {
     switch (status) {
@@ -178,6 +199,13 @@ export default function ProposalsView() {
                             <Download className="w-4 h-4" />
                           </a>
                         )}
+                        <button
+                          onClick={() => handleShowLogs(proposal)}
+                          className="p-2 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--metro-line4)] transition-all"
+                          title="접근 로그 확인"
+                        >
+                          <History className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -193,6 +221,79 @@ export default function ProposalsView() {
           </table>
         </div>
       </div>
+      {/* 접근 로그 모달 */}
+      {showLogModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[var(--bg-secondary)] w-full max-w-lg rounded-2xl border border-[var(--border-subtle)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-[var(--metro-line4)]/10 text-[var(--metro-line4)]">
+                  <History className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[var(--text-primary)]">접근 로그 확인</h3>
+                  <p className="text-xs text-[var(--text-muted)] truncate max-w-[200px]">{selectedLogProposal?.title}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowLogModal(false)}
+                className="p-2 hover:bg-[var(--bg-tertiary)] rounded-full transition-colors text-[var(--text-muted)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 max-h-[400px] overflow-y-auto">
+              {isLogsLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--metro-line4)]"></div>
+                  <p className="text-sm text-[var(--text-muted)]">로그를 불러오는 중...</p>
+                </div>
+              ) : logs.length > 0 ? (
+                <div className="space-y-4">
+                  {logs.map((log) => (
+                    <div key={log.id} className="flex items-start gap-4 p-4 rounded-xl bg-[var(--bg-tertiary)]/50 border border-[var(--border-subtle)] hover:border-[var(--metro-line4)]/30 transition-all group">
+                      <div className={`mt-1 p-2 rounded-lg ${
+                        log.action_type === 'DOWNLOAD' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'
+                      }`}>
+                        {log.action_type === 'DOWNLOAD' ? <Download className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-bold text-[var(--text-primary)]">
+                            {log.user_email || '익명 사용자'}
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-muted)]">
+                            {log.action_type === 'DOWNLOAD' ? '다운로드' : '열람함'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(log.created_at).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
+                  <Activity className="w-12 h-12 mb-3 opacity-20" />
+                  <p className="text-sm">아직 접근 기록이 없습니다.</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="px-6 py-4 bg-[var(--bg-tertiary)]/30 border-t border-[var(--border-subtle)] flex justify-end">
+              <button 
+                onClick={() => setShowLogModal(false)}
+                className="px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-xl border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-all font-bold text-sm"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
