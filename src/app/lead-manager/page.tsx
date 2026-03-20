@@ -854,7 +854,7 @@ export default function LeadManagerPage() {
                             background: getCategoryColor(),
                           } : {}}
                         >
-                          {CATEGORY_LABELS[category]}
+                          {category === 'ALL' ? '전체 업종' : CATEGORY_LABELS[category]}
                           {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
                         </button>
                       );
