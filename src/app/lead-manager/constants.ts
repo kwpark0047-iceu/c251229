@@ -13,6 +13,7 @@ export const METRO_TAB_COLORS = {
   schedule: { active: 'var(--metro-line5)', glow: 'rgba(153, 108, 172, 0.3)' },
   proposals: { active: 'var(--metro-line3)', glow: 'rgba(239, 122, 53, 0.3)' },
   'floor-plans': { active: 'var(--metro-line1)', glow: 'rgba(238, 45, 66, 0.3)' },
+  'admin': { active: '#1e293b', glow: 'rgba(30, 41, 59, 0.3)' },
 };
 
 // 지역 선택 옵션

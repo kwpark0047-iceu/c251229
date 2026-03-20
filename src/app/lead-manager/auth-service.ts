@@ -12,6 +12,8 @@ export interface UserInfo {
   role: 'owner' | 'admin' | 'member' | null;
   inviteCode: string | null;
   permissions: UserPermissions;
+  isApproved: boolean;
+  isSuperAdmin: boolean;
 }
 
 export interface UserPermissions {
@@ -58,6 +60,16 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
   const orgData = memberData?.organizations as unknown
   const org = orgData as { id: string; name: string; invite_code: string } | null
 
+  // 프로필 정보 조회 (승인 여부, 슈퍼 어드민 여부)
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_approved, is_super_admin')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  // kwpark0047@gmail.com 하드코딩 백업 (DB에 반영 전 보안용)
+  const isSuperAdminAccount = user.email === 'kwpark0047@gmail.com'
+
   return {
     id: user.id,
     email: user.email || '',
@@ -66,6 +78,8 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     role: memberData?.role as UserInfo['role'] || null,
     inviteCode: org?.invite_code || null,
     permissions: { ...DEFAULT_PERMISSIONS, ...((memberData as any)?.permissions || {}) },
+    isApproved: profile?.is_approved || isSuperAdminAccount || false,
+    isSuperAdmin: profile?.is_super_admin || isSuperAdminAccount || false,
   }
 }
 
@@ -274,4 +288,132 @@ export async function checkPermission(permission: keyof UserPermissions): Promis
   if (user.role === 'owner' || user.role === 'admin') return true;
 
   return !!user.permissions[permission];
+}
+
+/**
+ * [슈퍼 어드민 전용] 전체 사용자 프로필 목록 조회
+ */
+export async function getAllProfiles(): Promise<{
+  success: boolean;
+  profiles: any[];
+}> {
+  const supabase = createClient();
+  const user = await getCurrentUser();
+
+  if (!user?.isSuperAdmin) {
+    return { success: false, profiles: [] };
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(`
+      *,
+      organization_members (
+        role,
+        organization_id,
+        organizations (
+          name
+        )
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Failed to fetch profiles:', error);
+    return { success: false, profiles: [] };
+  }
+
+  // 데이터 평탄화 (멤버 정보가 여러 개일 수 있으나 보통 1개)
+  const expandedProfiles = (data || []).map((p: any) => ({
+    id: p.id,
+    email: p.email,
+    fullName: p.full_name,
+    isApproved: p.is_approved,
+    isSuperAdmin: p.is_super_admin,
+    createdAt: p.created_at,
+    membership: p.organization_members?.[0] ? {
+      role: p.organization_members[0].role,
+      organizationId: p.organization_members[0].organization_id,
+      organizationName: p.organization_members[0].organizations?.name
+    } : null
+  }));
+
+  return { success: true, profiles: expandedProfiles };
+}
+
+/**
+ * [슈퍼 어드민 전용] 사용자 승인 및 권한 상태 업데이트
+ */
+export async function updateProfileStatus(
+  userId: string,
+  updates: { isApproved?: boolean; isSuperAdmin?: boolean }
+): Promise<{ success: boolean; message: string }> {
+  const supabase = createClient();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser?.isSuperAdmin) {
+    return { success: false, message: '권한이 없습니다.' };
+  }
+
+  const payload: any = {};
+  if (updates.isApproved !== undefined) payload.is_approved = updates.isApproved;
+  if (updates.isSuperAdmin !== undefined) payload.is_super_admin = updates.isSuperAdmin;
+  payload.updated_at = new Date().toISOString();
+
+  const { error } = await supabase
+    .from('profiles')
+    .update(payload)
+    .eq('id', userId);
+
+  if (error) return { success: false, message: error.message };
+  return { success: true, message: '상태가 업데이트되었습니다.' };
+}
+
+/**
+ * [슈퍼 어드민 전용] 사용자 조직 및 역할 강제 변경
+ */
+export async function updateUserOrganization(
+  userId: string,
+  organizationId: string | null,
+  role: 'owner' | 'admin' | 'member' = 'member'
+): Promise<{ success: boolean; message: string }> {
+  const supabase = createClient();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser?.isSuperAdmin) {
+    return { success: false, message: '권한이 없습니다.' };
+  }
+
+  // 1. 기존 멤버십 삭제
+  await supabase
+    .from('organization_members')
+    .delete()
+    .eq('user_id', userId);
+
+  // 2. 새 조직이 지정된 경우 추가
+  if (organizationId) {
+    const { error } = await supabase
+      .from('organization_members')
+      .insert({
+        user_id: userId,
+        organization_id: organizationId,
+        role: role
+      });
+
+    if (error) return { success: false, message: error.message };
+  }
+
+  return { success: true, message: '조직 정보가 업데이트되었습니다.' };
+}
+
+/**
+ * 전체 조직 목록 조회
+ */
+export async function getAllOrganizations(): Promise<any[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from('organizations')
+    .select('id, name')
+    .order('name');
+  return data || [];
 }

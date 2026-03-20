@@ -6,10 +6,10 @@
  */
 
 import React from 'react';
-import { Users, Package, Calendar, Map, Settings } from 'lucide-react';
+import { Users, Package, Calendar, Map, Settings, FileText, FileImage, Shield } from 'lucide-react';
+import { MainTab } from '../types';
 import './MobileNavBar.css';
 
-type MainTab = 'leads' | 'inventory' | 'schedule';
 
 interface MobileNavBarProps {
     activeTab: MainTab | 'map' | 'settings';

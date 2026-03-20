@@ -1,13 +1,11 @@
 /**
- * 지하철 역사 도면 대량 업로드 스크립트
- * 사용법: node scripts/bulk-upload-floor-plans.js [디렉토리경로]
+ * 지하철 역사 도면 대량 업로드 스크립트 (V8 - 정교한 파싱 로직 적용)
  */
 
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
-// .env.local 직접 읽기 (dotenv 미설치 대비)
 const envPath = path.join(process.cwd(), '.env.local');
 if (fs.existsSync(envPath)) {
   const envConfig = fs.readFileSync(envPath, 'utf8');
@@ -20,80 +18,117 @@ if (fs.existsSync(envPath)) {
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; 
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('환경 변수가 설정되지 않았습니다 (.env.local 확인)');
-  process.exit(1);
-}
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; 
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 const BUCKET_NAME = 'floor-plans';
 
-// 노선 정보 매핑 (파일명 파싱용)
-const METRO_LINES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'K', 'A', 'B'];
+function getSafeStorageKey(lineNumber, typeFolder, fileName, stationName) {
+  const ext = path.extname(fileName).toLowerCase();
+  const input = `${lineNumber}_${stationName}_${fileName}`;
+  const hash = Buffer.from(input).toString('hex').substring(0, 16);
+  return `line-${lineNumber}/${typeFolder}/${hash}${ext}`;
+}
 
-/**
- * 파일명에서 정보를 추출합니다.
- * 형식 예: 2호선_강남_B1.jpg, 2호선_역삼_station_layout.jpg
- */
-function parseFileInfo(fileName) {
+function parseFileInfo(fileName, parentDirName) {
   const name = path.parse(fileName).name;
-  const parts = name.split('_');
   
   let lineNumber = '';
   let stationName = '';
   let planType = 'station_layout';
   let floorName = 'B1';
 
-  // "2호선" -> "2"
-  const lineMatch = parts[0]?.match(/(\d+|[A-Z])호선/);
-  if (lineMatch) {
-    lineNumber = lineMatch[1];
+  // 1. 노선 판별
+  if (parentDirName && parentDirName.includes('신분당선')) {
+    lineNumber = 'S';
+  } else if (parentDirName) {
+    const lineMatch = parentDirName.match(/(\d+|[A-Z])호선/);
+    if (lineMatch) lineNumber = lineMatch[1];
   }
 
-  stationName = parts[1] || '';
-  
-  if (parts[2]) {
-    if (parts[2].toLowerCase() === 'psd' || parts[2].toLowerCase() === '스크린도어') {
-      planType = 'psd';
-    } else {
-      floorName = parts[2];
+  // 2. 층 정보 추출 (지하N층, 지상N층, BF, 1F 등)
+  const floorMatch = name.match(/(지하\d+층|지상\d+층|[B]\d|[1-9]F)/i);
+  if (floorMatch) {
+    floorName = floorMatch[1].toUpperCase()
+      .replace('지하', 'B')
+      .replace('지상', '')
+      .replace('층', '');
+    if (!floorName.startsWith('B') && !floorName.endsWith('F')) {
+      floorName = floorName + 'F';
     }
+  }
+
+  // 3. 역명 및 파일 유형 파싱
+  if (name.includes('신분당선_도면_첨부파일')) {
+    lineNumber = 'S';
+    const numPart = name.split('_').pop();
+    stationName = `신분당선_첨부파일_${numPart}`;
+  } else {
+    const parts = name.split('_');
+    if (parts.length >= 1) {
+      // 첫 번째 파트가 숫자(정렬용)인 경우 두 번째 파트를 역명으로 사용
+      if (/^\d+$/.test(parts[0]) && parts.length >= 2) {
+        stationName = parts[1];
+      } else {
+        stationName = parts[0];
+      }
+    }
+    // 역명 정리 (특수기호 제거)
+    stationName = stationName.split('-')[0].split('(')[0].replace('역', '').trim();
+  }
+
+  // 4. 도면 유형 (PSD 여부)
+  if (name.includes('PSD') || name.includes('스크린도어') || parentDirName.includes('PSD')) {
+    planType = 'psd';
   }
 
   return { lineNumber, stationName, planType, floorName };
 }
 
+function getAllFiles(dirPath, arrayOfFiles) {
+  const files = fs.readdirSync(dirPath);
+  arrayOfFiles = arrayOfFiles || [];
+  files.forEach(function(file) {
+    const fullPath = path.join(dirPath, file);
+    if (fs.statSync(fullPath).isDirectory()) {
+      arrayOfFiles = getAllFiles(fullPath, arrayOfFiles);
+    } else {
+      if (/\.(jpg|jpeg|png)$/i.test(file)) {
+        arrayOfFiles.push(fullPath);
+      }
+    }
+  });
+  return arrayOfFiles;
+}
+
 async function bulkUpload(targetDir) {
   if (!fs.existsSync(targetDir)) {
-    console.error(`디렉토리를 찾을 수 없습니다: ${targetDir}`);
+    console.error(`Directory not found: ${targetDir}`);
     return;
   }
 
-  const files = fs.readdirSync(targetDir).filter(f => 
-    /\.(jpg|jpeg|png)$/i.test(f)
-  );
+  const allFilePaths = getAllFiles(targetDir);
+  console.log(`Starting upload for ${allFilePaths.length} files...`);
 
-  console.log(`총 ${files.length}개의 파일을 발견했습니다. 업로드를 시작합니다...`);
+  let success = 0;
+  let failed = 0;
+  let skipped = 0;
 
-  for (const fileName of files) {
-    const filePath = path.join(targetDir, fileName);
-    const { lineNumber, stationName, planType, floorName } = parseFileInfo(fileName);
+  for (const filePath of allFilePaths) {
+    const fileName = path.basename(filePath);
+    const parentDir = path.basename(path.dirname(filePath));
+    const { lineNumber, stationName, planType, floorName } = parseFileInfo(fileName, parentDir);
 
-    if (!lineNumber || !stationName) {
-      console.warn(`[SKIP] 파일명 파싱 불가: ${fileName}`);
+    if (!lineNumber || !stationName || stationName === '표지' || stationName === '노선도') {
+      skipped++;
       continue;
     }
-
-    console.log(`[PROCESS] ${stationName} (${lineNumber}호선) - ${planType}...`);
 
     try {
       const fileBuffer = fs.readFileSync(filePath);
       const typeFolder = planType === 'psd' ? 'psd' : 'station-layout';
-      const storagePath = `line-${lineNumber}/${typeFolder}/${fileName}`;
+      const storagePath = getSafeStorageKey(lineNumber, typeFolder, fileName, stationName);
 
-      // 1. Storage 업로드
       const { error: uploadError } = await supabase.storage
         .from(BUCKET_NAME)
         .upload(storagePath, fileBuffer, {
@@ -102,45 +137,39 @@ async function bulkUpload(targetDir) {
         });
 
       if (uploadError) {
-        console.error(`   Storage 오류 (${fileName}):`, uploadError.message);
+        console.error(`[ERR] ${fileName} -> ${uploadError.message}`);
+        failed++;
         continue;
       }
 
-      // 2. URL 획득
-      const { data: urlData } = supabase.storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(storagePath);
+      const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(storagePath);
 
-      // 3. DB 저장 (Upsert)
-      const { error: dbError } = await supabase
-        .from('floor_plans')
-        .upsert({
-          station_name: stationName,
-          line_number: lineNumber,
-          plan_type: planType,
-          floor_name: floorName,
-          image_url: urlData.publicUrl,
-          storage_path: storagePath,
-          file_name: fileName,
-          file_size: fileBuffer.length,
-          sort_order: 0
-        }, {
-          onConflict: 'station_name,line_number,plan_type,floor_name'
-        });
+      const { error: dbError } = await supabase.from('floor_plans').upsert({
+        station_name: stationName,
+        line_number: lineNumber,
+        plan_type: planType,
+        floor_name: floorName,
+        image_url: urlData.publicUrl,
+        storage_path: storagePath,
+        file_name: fileName,
+        file_size: fileBuffer.length,
+        sort_order: 0
+      }, { onConflict: 'station_name,line_number,plan_type,floor_name' });
 
       if (dbError) {
-        console.error(`   DB 오류 (${fileName}):`, dbError.message);
+        console.error(`[DB_ERR] ${fileName} -> ${dbError.message}`);
+        failed++;
       } else {
-        console.log(`   ✅ 완료: ${fileName}`);
+        console.log(`[OK] ${stationName} (${lineNumber}) ${floorName}`);
+        success++;
       }
     } catch (err) {
-      console.error(`   처리 중 치명적 오류 (${fileName}):`, err.message);
+      console.error(`[FATAL] ${fileName} -> ${err.message}`);
+      failed++;
     }
   }
 
-  console.log('--- 모든 작업이 완료되었습니다 ---');
+  console.log(`\nFinal: Success ${success}, Failed ${failed}, Skipped ${skipped}`);
 }
 
-// 실행
-const targetPath = process.argv[2] || './public/subway-plans';
-bulkUpload(targetPath);
+bulkUpload('./public/subway-plans');

@@ -36,14 +36,15 @@ import {
   FileText,
   Search,
   X,
+  Shield,
 } from 'lucide-react';
 
-import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS } from './types';
+import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS, MainTab } from './types';
 import { DEFAULT_SETTINGS, METRO_TAB_COLORS } from './constants';
 import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
 import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings } from './supabase-service';
-import { getCurrentUser, signOut, UserInfo } from './auth-service';
+import { getCurrentUser, signOut, UserInfo, logActivity } from './auth-service';
 import { getProgressBatch } from './crm-service';
 import { SalesProgress } from './types';
 import { isAddressInRegions, RegionCode } from './region-utils';
@@ -61,6 +62,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { ScheduleCalendar, TaskBoard, TaskFormModal } from './components/schedule';
 import ProposalsView from './components/ProposalsView';
 import FloorPlansView from './components/FloorPlansView';
+import UserManagementView from './components/admin/UserManagementView';
 import { TaskWithLead } from './types';
 import CallbackNotification from './components/CallbackNotification';
 import RoleGuard from '@/components/RoleGuard';
@@ -69,7 +71,6 @@ import BackgroundEffect from './components/BackgroundEffect';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotification } from '@/context/NotificationContext';
 
-type MainTab = 'leads' | 'inventory' | 'schedule';
 
 
 
@@ -523,6 +524,7 @@ export default function LeadManagerPage() {
                 { key: 'schedule' as MainTab, icon: Calendar, label: '스케줄' },
                 { key: 'proposals' as MainTab, icon: FileText, label: '제안서' },
                 { key: 'floor-plans' as MainTab, icon: FileImage, label: '도면' },
+                ...(userInfo?.isSuperAdmin ? [{ key: 'admin' as MainTab, icon: Shield, label: '관리' }] : []),
               ].map(({ key, icon: Icon, label }) => (
                 <button
                   key={key}
@@ -1011,7 +1013,34 @@ export default function LeadManagerPage() {
 
       {/* 메인 컨텐츠 */}
       <main className="max-w-[1400px] mx-auto px-6 py-8 pb-24 md:pb-8 relative z-10">
-        {mainTab === 'leads' ? (
+        {!userInfo?.isApproved ? (
+          <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-amber-200 shadow-2xl p-12 text-center max-w-2xl mx-auto mt-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-8 rotate-3 shadow-lg">
+              <Shield className="w-10 h-10 animate-pulse" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">승인 대기 중</h2>
+            <p className="text-slate-600 mb-10 leading-relaxed text-lg">
+              현재 가입 승인 대기 단계입니다.<br />
+              관리자가 승인한 후 시스템을 이용하실 수 있습니다.<br />
+              잠시만 기다려 주시거나 관리자에게 문의하세요.
+            </p>
+            <div className="flex flex-col gap-4">
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-indigo-100 flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-5 h-5" />
+                새로고침하여 상태 확인
+              </button>
+              <button 
+                onClick={handleSignOut}
+                className="px-8 py-4 text-slate-500 hover:bg-slate-100 rounded-2xl transition-colors font-medium"
+              >
+                다른 계정으로 로그인
+              </button>
+            </div>
+          </div>
+        ) : mainTab === 'leads' ? (
           <>
             {initialLoading ? (
               <div className="flex flex-col items-center justify-center py-24">
@@ -1177,10 +1206,12 @@ export default function LeadManagerPage() {
           </div>
         ) : mainTab === 'proposals' ? (
           <ProposalsView />
-        ) : (
+        ) : mainTab === 'floor-plans' ? (
           <div className="-mx-6 -my-8 h-[calc(100vh-140px)]">
             <FloorPlansView />
           </div>
+        ) : (
+          <UserManagementView />
         )}
       </main>
 
