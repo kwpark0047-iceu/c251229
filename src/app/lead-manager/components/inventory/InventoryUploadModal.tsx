@@ -39,12 +39,13 @@ export default function InventoryUploadModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // 엑셀 파일 확인
-      const validTypes = [
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      ];
-      if (!validTypes.includes(selectedFile.type) && !selectedFile.name.endsWith('.xlsx')) {
-        alert('엑셀 파일(.xlsx)만 업로드 가능합니다. 구버전 엑셀(.xls)이나 다른 형식은 지원하지 않습니다.');
+      // 업로드 가능한 파일 확장자 및 타입 정의
+      const validExtensions = ['.xlsx', '.xls', '.csv'];
+      const fileName = selectedFile.name.toLowerCase();
+      const isValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
+
+      if (!isValidExtension) {
+        alert('지원되지 않는 파일 형식입니다. .xlsx, .xls, .csv 파일만 업로드 가능합니다.');
         return;
       }
       setFile(selectedFile);
@@ -55,11 +56,17 @@ export default function InventoryUploadModal({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && droppedFile.name.endsWith('.xlsx')) {
-      setFile(droppedFile);
-      setResult(null);
-    } else if (droppedFile) {
-      alert('.xlsx 형식의 엑셀 파일만 업로드 가능합니다.');
+    if (droppedFile) {
+      const fileName = droppedFile.name.toLowerCase();
+      const validExtensions = ['.xlsx', '.xls', '.csv'];
+      const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+
+      if (isValid) {
+        setFile(droppedFile);
+        setResult(null);
+      } else {
+        alert('.xlsx, .xls, .csv 형식의 파일만 업로드 가능합니다.');
+      }
     }
   };
 
@@ -133,7 +140,7 @@ export default function InventoryUploadModal({
               name="file"
               ref={fileInputRef}
               type="file"
-              accept=".xlsx,.xls"
+              accept=".xlsx,.xls,.csv"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -153,7 +160,7 @@ export default function InventoryUploadModal({
                   엑셀 파일을 드래그하거나 클릭하여 선택
                 </p>
                 <p className="text-sm text-slate-500">
-                  .xlsx 형식만 지원됩니다
+                  .xlsx, .xls, .csv 형식을 지원합니다
                 </p>
               </div>
             )}

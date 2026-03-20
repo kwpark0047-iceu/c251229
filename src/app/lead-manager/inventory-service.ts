@@ -28,7 +28,7 @@ import { getOrganizationId } from './auth-service';
  * @param defaultMediaType - 기본 매체 유형 (광고유형 컬럼이 없을 때 사용)
  */
 export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?: string): Promise<ExcelInventoryRow[]> {
-  // 브라우저에서도 사용 가능하도록 Uint8Array로 체크
+  // 브라우저에서도 사용 가능하도록 Uint8Array로 체크 (매직 넘버 확인)
   const uint8 = new Uint8Array(buffer.slice(0, 8));
 
   // .xlsx 매직 넘버 (PK...)
@@ -36,31 +36,53 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
   // .xls 매직 넘버 (D0 CF 11 E0...)
   const isXls = uint8[0] === 0xD0 && uint8[1] === 0xCF && uint8[2] === 0x11 && uint8[3] === 0xE0;
 
-  if (!isXlsx && !isXls) {
-    throw new Error('올바른 Excel 파일(.xlsx 또는 .xls)이 아닙니다. 파일 형식을 확인해주세요.');
-  }
+  // CSV는 별도의 매직 넘버가 없으므로 PK(xlsx)나 CF(xls)가 아니면 
+  // 일단 XLSX(SheetJS) 라이브러리가 자동 감지하여 처리하도록 시도합니다.
 
   let rawData: any[][] = [];
 
-  if (isXlsx) {
-    // .xlsx 처리 (기존 ExcelJS 사용)
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(buffer);
-    const worksheet = workbook.worksheets[0];
+  try {
+    if (isXlsx) {
+      // .xlsx 처리 (기존 ExcelJS 사용 - 스타일/포맷 유지 강점)
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+      const worksheet = workbook.worksheets[0];
 
-    worksheet.eachRow((row) => {
-      const values = row.values as any[];
-      // ExcelJS는 1-indexed 배열을 반환하므로 첫 번째 요소(undefined) 제거
-      rawData.push(values.slice(1));
-    });
-  } else {
-    // .xls 처리 (SheetJS 사용)
-    const workbook = XLSX.read(buffer, { type: 'array' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
+      worksheet.eachRow((row) => {
+        const values = row.values as any[];
+        // ExcelJS는 1-indexed 배열을 반환하므로 첫 번째 요소(undefined) 제거
+        rawData.push(values.slice(1));
+      });
+    } else {
+      // .xls, .csv 및 기타 형식 처리 (SheetJS 사용)
+      let workbook;
+      
+      if (!isXls) {
+        // 매직 넘버가 없으면 텍스트(CSV)일 가능성이 높음
+        try {
+          const decoder = new TextDecoder('utf-8');
+          const text = decoder.decode(buffer);
+          // 텍스트로 변환 성공 시 문자열 타입으로 읽기
+          workbook = XLSX.read(text, { type: 'string' });
+        } catch {
+          // 바이너리 데이터인 경우 기존 방식 유지
+          workbook = XLSX.read(buffer, { type: 'array' });
+        }
+      } else {
+        // .xls 등 바이너리 엑셀 형식
+        workbook = XLSX.read(buffer, { type: 'array' });
+      }
 
-    // 이중 배열 형식으로 변환
-    rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      // 이중 배열 형식으로 변환 (header: 1 옵션은 모든 행을 배열로 가져옴)
+      rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+      // console.log('Parsed rawData:', JSON.stringify(rawData)); // 디버깅용
+    }
+  } catch (err) {
+    console.error('Excel 파싱 오류:', err);
+    throw new Error('파일을 파싱하는 중 오류가 발생했습니다. 올바른 엑셀 또는 CSV 파일인지 확인해주세요.');
   }
 
   // 헤더 행 찾기 (역사, 유형, 위치명 등이 포함된 행)

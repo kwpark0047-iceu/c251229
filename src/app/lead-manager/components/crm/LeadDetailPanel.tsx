@@ -509,12 +509,32 @@ function ProposalCard({
 
   const statusOptions: ProposalStatus[] = ['DRAFT', 'SENT', 'VIEWED', 'ACCEPTED', 'REJECTED'];
 
+  const isExternal = proposal.isExternal;
+  const fileType = proposal.fileType?.toUpperCase() || 'PDF';
+
+  const handleDownload = () => {
+    if (isExternal && proposal.pdfUrl) {
+      // 외부 파일은 저장소 URL로 직접 열기
+      window.open(proposal.pdfUrl, '_blank');
+    } else {
+      // 자동 생성 파일은 기존 다운로드 로직 수행
+      onDownloadPDF();
+    }
+  };
+
   return (
-    <div className="p-4 bg-white border border-slate-200 rounded-lg">
+    <div className="p-4 bg-white border border-slate-200 rounded-lg animate-in fade-in slide-in-from-right-4 duration-300">
       {/* 헤더 */}
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <h4 className="font-medium text-slate-800">{proposal.title}</h4>
+          <h4 className="font-medium text-slate-800 flex items-center gap-2">
+            {proposal.title}
+            {isExternal && (
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 uppercase">
+                {fileType} 업로드
+              </span>
+            )}
+          </h4>
           {proposal.createdAt && (
             <p className="text-xs text-slate-400 mt-1">
               {new Date(proposal.createdAt).toLocaleDateString('ko-KR')}
@@ -558,27 +578,42 @@ function ProposalCard({
 
       {/* 정보 */}
       <div className="mt-3 space-y-2">
-        {proposal.inventoryIds && proposal.inventoryIds.length > 0 && (
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <FileText className="w-4 h-4 text-slate-400" />
-            <span>광고 매체 {proposal.inventoryIds.length}개</span>
-          </div>
-        )}
-        {proposal.finalPrice && (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-slate-600">월 광고비:</span>
-            <span className="font-semibold text-blue-600">
-              {proposal.finalPrice.toLocaleString()}원
-            </span>
-            {proposal.discountRate && proposal.discountRate > 0 && (
-              <span className="text-xs text-red-500">(-{proposal.discountRate}%)</span>
+        {!isExternal ? (
+          <>
+            {proposal.inventoryIds && proposal.inventoryIds.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <FileText className="w-4 h-4 text-slate-400" />
+                <span>광고 매체 {proposal.inventoryIds.length}개</span>
+              </div>
             )}
+            {proposal.finalPrice && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-slate-600">월 광고비:</span>
+                <span className="font-semibold text-blue-600">
+                  {proposal.finalPrice.toLocaleString()}원
+                </span>
+                {proposal.discountRate && proposal.discountRate > 0 && (
+                  <span className="text-xs text-red-500">(-{proposal.discountRate}%)</span>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100">
+            <div className={`p-1.5 rounded ${fileType === 'PDF' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'}`}>
+              <FileText className="w-4 h-4" />
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-xs font-medium text-slate-500 mb-0.5">업로드된 파일</p>
+              <p className="truncate text-slate-700">{proposal.originalFilename || '제안서 파일'}</p>
+            </div>
           </div>
         )}
+        
         {proposal.sentAt && (
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <Send className="w-3 h-3" />
-            <span>발송: {new Date(proposal.sentAt).toLocaleString('ko-KR')}</span>
+            <span>최종 상태 일시: {new Date(proposal.sentAt).toLocaleString('ko-KR')}</span>
           </div>
         )}
       </div>
@@ -586,15 +621,21 @@ function ProposalCard({
       {/* 액션 버튼 */}
       <div className="mt-4 flex gap-2">
         <button
-          onClick={onDownloadPDF}
+          onClick={handleDownload}
           className="flex-1 flex items-center justify-center gap-1 py-2 text-sm text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
         >
           <Download className="w-4 h-4" />
-          PDF
+          {fileType}
         </button>
         <button
           onClick={onSendEmail}
-          className="flex-1 flex items-center justify-center gap-1 py-2 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+          disabled={isExternal} // 외부 파일 이메일 발송은 추가 구현 필요 (현재는 비활성)
+          className={`flex-1 flex items-center justify-center gap-1 py-2 text-sm rounded-lg transition-colors ${
+            isExternal 
+              ? 'bg-slate-50 text-slate-300 cursor-not-allowed' 
+              : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+          }`}
+          title={isExternal ? "업로드된 파일의 이메일 발송은 아직 지원되지 않습니다." : ""}
         >
           <Mail className="w-4 h-4" />
           {proposal.status === 'SENT' ? '재발송' : '이메일 발송'}

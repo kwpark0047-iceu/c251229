@@ -391,12 +391,16 @@ export interface Proposal {
   finalPrice?: number;
   effectAnalysis?: EffectAnalysis;
   pdfUrl?: string;
+  isExternal?: boolean;
+  originalFilename?: string;
+  fileType?: string;
   status: ProposalStatus;
   sentAt?: string;
   viewedAt?: string;
   emailRecipient?: string;
   createdAt?: string;
   updatedAt?: string;
+  organizationId?: string;
 }
 
 // ============================================

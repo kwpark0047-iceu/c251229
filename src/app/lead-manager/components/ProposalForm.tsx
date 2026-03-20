@@ -18,13 +18,16 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
+  FileUp,
+  FilePlus,
+  ArrowRight,
 } from 'lucide-react';
 
 import { useNotification } from '@/context/NotificationContext';
 import { Lead, AdInventory } from '../types';
 import { SUBWAY_STATIONS, METRO_LINE_COLORS as LINE_COLORS, STATION_MARKETING_INFO as STATION_INFO, MetroLine } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/client';
-import { getDefaultGreeting } from '../proposal-service';
+import { getDefaultGreeting, uploadProposalFile } from '../proposal-service';
 
 interface ProposalFormProps {
   lead: Lead;
@@ -64,6 +67,12 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
   // 모달 상태
   const [showPreview, setShowPreview] = useState(false);
   const [showConfirmSend, setShowConfirmSend] = useState(false);
+
+  // 제안서 유형 및 업로드 상태
+  const [proposalType, setProposalType] = useState<'AUTO' | 'UPLOAD'>('AUTO');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   // 초기 설정
   useEffect(() => {
@@ -262,6 +271,56 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     }
   };
 
+  // 파일 업로드 처리
+  const handleUpload = async () => {
+    if (!uploadFile) return;
+
+    setUploading(true);
+    try {
+      const title = `${lead.bizName} 제안서 (${uploadFile.name})`;
+      const result = await uploadProposalFile(uploadFile, lead.id, title);
+
+      if (result.success) {
+        showNotification('success', '제안서 파일이 성공적으로 업로드되었습니다.');
+        setTimeout(() => {
+          onSuccess?.();
+          onClose();
+        }, 1500);
+      } else {
+        showNotification('error', `업로드 실패: ${result.message}`);
+      }
+    } catch (error) {
+      showNotification('error', `업로드 오류: ${(error as Error).message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (['pdf', 'ppt', 'pptx'].includes(ext || '')) {
+        setUploadFile(file);
+      } else {
+        showNotification('error', 'PDF 또는 PPT 파일만 업로드 가능합니다.');
+      }
+    }
+  };
+
   const emailValid = recipientEmail && isValidEmail(recipientEmail);
   const emailInvalid = recipientEmail && !isValidEmail(recipientEmail);
 
@@ -293,12 +352,40 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
           </button>
         </div>
 
+        {/* 제안서 유형 선택 탭 */}
+        <div className="flex px-6 pt-6 gap-2">
+          <button
+            onClick={() => setProposalType('AUTO')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
+              proposalType === 'AUTO'
+                ? 'border-[var(--metro-line2)] bg-[var(--metro-line2)]/5 text-[var(--metro-line2)]'
+                : 'border-transparent bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
+            }`}
+          >
+            <FilePlus className="w-5 h-5" />
+            <span className="font-bold">자동 제안서 생성</span>
+          </button>
+          <button
+            onClick={() => setProposalType('UPLOAD')}
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
+              proposalType === 'UPLOAD'
+                ? 'border-[var(--metro-line4)] bg-[var(--metro-line4)]/5 text-[var(--metro-line4)]'
+                : 'border-transparent bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
+            }`}
+          >
+            <FileUp className="w-5 h-5" />
+            <span className="font-bold">제안서 파일 업로드</span>
+          </button>
+        </div>
+
         <div className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
-              <Mail className="w-4 h-4 inline mr-2" />
-              수신자 이메일
-            </label>
+          {proposalType === 'AUTO' ? (
+            <>
+              <div>
+                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                  <Mail className="w-4 h-4 inline mr-2" />
+                  수신자 이메일
+                </label>
             <div className="relative">
               <input
                 id="recipient-email"
@@ -394,7 +481,76 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               광고 매체 선택
             </label>
             {/* ... 매체 목록 렌더링 ... */}
-          </div>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="text-center p-8 border-2 border-dashed rounded-2xl transition-colors bg-[var(--bg-secondary)]"
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                style={{ 
+                  borderColor: dragActive ? 'var(--metro-line4)' : 'var(--border-subtle)',
+                  background: dragActive ? 'var(--bg-tertiary)' : 'var(--bg-secondary)'
+                }}
+              >
+                {!uploadFile ? (
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center mb-4">
+                      <FileUp className="w-8 h-8 text-[var(--metro-line4)]" />
+                    </div>
+                    <p className="text-lg font-bold text-[var(--text-primary)] mb-1">
+                      제안서 파일을 여기에 드래그하세요
+                    </p>
+                    <p className="text-sm text-[var(--text-muted)] mb-6">
+                      PDF, PPT, PPTX 파일 지원 (최대 50MB)
+                    </p>
+                    <input
+                      type="file"
+                      id="file-upload"
+                      className="hidden"
+                      accept=".pdf,.ppt,.pptx"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) setUploadFile(e.target.files[0]);
+                      }}
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className="px-6 py-2.5 rounded-xl bg-[var(--metro-line4)] text-white font-bold cursor-pointer hover:opacity-90 transition-opacity"
+                    >
+                      파일 선택하기
+                    </label>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
+                      <CheckCircle className="w-8 h-8 text-green-500" />
+                    </div>
+                    <div className="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-subtle)] w-full max-w-sm mb-4">
+                      <p className="font-bold text-[var(--text-primary)] truncate">{uploadFile.name}</p>
+                      <p className="text-xs text-[var(--text-muted)]">{(uploadFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                    </div>
+                    <button 
+                      onClick={() => setUploadFile(null)}
+                      className="text-sm text-red-400 hover:text-red-300 transition-colors font-medium flex items-center gap-1"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      다른 파일 선택
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 flex gap-3">
+                <Info className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-200/80 leading-relaxed">
+                  <p className="font-bold text-amber-500 mb-1">매체사 권한 및 파일 관리</p>
+                  업로드된 파일은 매체사 권한(`organization_id`)으로 관리되며, 로그인한 사용자는 해당 리드의 상세 화면에서 언제든 조회하고 다운로드할 수 있습니다.
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div
@@ -407,24 +563,47 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
           <button onClick={onClose} className="px-5 py-2.5 rounded-xl font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors">
             취소
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !selectedStation}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
-            style={{ background: 'var(--metro-line4)' }}
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            저장
-          </button>
-          <button
-            onClick={handleSendClick}
-            disabled={sending || !selectedStation || !emailValid}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
-            style={{ background: 'var(--metro-line2)' }}
-          >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            이메일 발송
-          </button>
+          {proposalType === 'AUTO' ? (
+            <>
+              <button
+                onClick={handleSave}
+                disabled={saving || !selectedStation}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
+                style={{ background: 'var(--metro-line4)' }}
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                저장
+              </button>
+              <button
+                onClick={handleSendClick}
+                disabled={sending || !selectedStation || !emailValid}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
+                style={{ background: 'var(--metro-line2)' }}
+              >
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                이메일 발송
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleUpload}
+              disabled={uploading || !uploadFile}
+              className="flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold text-white transition-all disabled:opacity-50"
+              style={{ background: 'var(--metro-line4)' }}
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  업로드 중...
+                </>
+              ) : (
+                <>
+                  <FileUp className="w-5 h-5" />
+                  제안서 업로드 완료하기
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

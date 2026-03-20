@@ -12,7 +12,7 @@ import {
   AdInventory,
   EffectAnalysis,
 } from './types';
-import { getOrganizationId } from './auth-service';
+import { getOrganizationId, UserInfo } from './auth-service';
 
 // 한글 폰트 로드 상태
 let koreanFontLoaded = false;
@@ -268,6 +268,9 @@ export async function updateProposal(
     if (updates.effectAnalysis) dbUpdates.effect_analysis = updates.effectAnalysis;
     if (updates.pdfUrl !== undefined) dbUpdates.pdf_url = updates.pdfUrl;
     if (updates.status) dbUpdates.status = updates.status;
+    if (updates.isExternal !== undefined) dbUpdates.is_external = updates.isExternal;
+    if (updates.originalFilename !== undefined) dbUpdates.original_filename = updates.originalFilename;
+    if (updates.fileType !== undefined) dbUpdates.file_type = updates.fileType;
 
     const { error } = await supabase
       .from('proposals')
@@ -305,6 +308,82 @@ export async function markProposalSent(
   }
 
   return { success: true, message: '발송 완료 처리되었습니다.' };
+}
+
+/**
+ * 외부 제안서 파일 업로드
+ */
+export async function uploadProposalFile(
+  file: File,
+  leadId: string,
+  title: string
+): Promise<{ success: boolean; proposal?: Proposal; message: string }> {
+  try {
+    const orgId = await getOrganizationId();
+    if (!orgId) {
+      return { success: false, message: '매체사 권한이 필요합니다. 로그인 상태를 확인해주세요.' };
+    }
+
+    const supabase = getSupabase();
+    
+    // 1. 고유 ID 생성 및 경로 설정
+    const proposalId = crypto.randomUUID();
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+    const filePath = `${orgId}/${proposalId}/${file.name}`;
+
+    // 2. Storage 업로드
+    const { error: uploadError } = await supabase.storage
+      .from('proposals')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError);
+      throw new Error(`파일 업로드 실패: ${uploadError.message}`);
+    }
+
+    // 3. 공용 URL 가져오기
+    const { data: { publicUrl } } = supabase.storage
+      .from('proposals')
+      .getPublicUrl(filePath);
+
+    // 4. DB 저장
+    const { data, error: dbError } = await supabase
+      .from('proposals')
+      .insert({
+        id: proposalId,
+        lead_id: leadId,
+        title,
+        pdf_url: publicUrl,
+        is_external: true,
+        original_filename: file.name,
+        file_type: fileExt,
+        organization_id: orgId,
+        status: 'SENT',
+        sent_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('DB insert error:', dbError);
+      throw dbError;
+    }
+
+    // 5. 리드 상태를 '제안 발송'으로 변경
+    await supabase
+      .from('leads')
+      .update({ status: 'PROPOSAL_SENT' })
+      .eq('id', leadId);
+
+    return {
+      success: true,
+      proposal: mapProposalFromDB(data),
+      message: '제안서 파일이 성공적으로 업로드되었습니다.',
+    };
+  } catch (error) {
+    console.error('uploadProposalFile error:', error);
+    return { success: false, message: (error as Error).message };
+  }
 }
 
 // ============================================
@@ -807,10 +886,14 @@ function mapProposalFromDB(row: Record<string, unknown>): Proposal {
     finalPrice: row.final_price ? Number(row.final_price) : undefined,
     effectAnalysis: row.effect_analysis as EffectAnalysis | undefined,
     pdfUrl: row.pdf_url ? String(row.pdf_url) : undefined,
+    isExternal: Boolean(row.is_external),
+    originalFilename: row.original_filename ? String(row.original_filename) : undefined,
+    fileType: row.file_type ? String(row.file_type) : undefined,
     status: (row.status as ProposalStatus) || 'DRAFT',
     sentAt: row.sent_at ? String(row.sent_at) : undefined,
     viewedAt: row.viewed_at ? String(row.viewed_at) : undefined,
     emailRecipient: row.email_recipient ? String(row.email_recipient) : undefined,
+    organizationId: row.organization_id ? String(row.organization_id) : undefined,
     createdAt: row.created_at ? String(row.created_at) : undefined,
     updatedAt: row.updated_at ? String(row.updated_at) : undefined,
   };
