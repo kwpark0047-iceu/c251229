@@ -11,6 +11,8 @@ export const METRO_TAB_COLORS = {
   leads: { active: 'var(--metro-line2)', glow: 'rgba(60, 181, 74, 0.3)' },
   inventory: { active: 'var(--metro-line4)', glow: 'rgba(50, 164, 206, 0.3)' },
   schedule: { active: 'var(--metro-line5)', glow: 'rgba(153, 108, 172, 0.3)' },
+  proposals: { active: 'var(--metro-line3)', glow: 'rgba(239, 122, 53, 0.3)' },
+  'floor-plans': { active: 'var(--metro-line1)', glow: 'rgba(238, 45, 66, 0.3)' },
 };
 
 // 지역 선택 옵션

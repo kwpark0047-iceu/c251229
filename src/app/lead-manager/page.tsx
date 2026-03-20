@@ -33,6 +33,7 @@ import {
   Train,
   Zap,
   FileImage,
+  FileText,
   Search,
   X,
 } from 'lucide-react';
@@ -58,6 +59,8 @@ import InventoryUploadModal from './components/inventory/InventoryUploadModal';
 import BackupButton from './components/BackupButton';
 import ThemeToggle from '@/components/ThemeToggle';
 import { ScheduleCalendar, TaskBoard, TaskFormModal } from './components/schedule';
+import ProposalsView from './components/ProposalsView';
+import FloorPlansView from './components/FloorPlansView';
 import { TaskWithLead } from './types';
 import CallbackNotification from './components/CallbackNotification';
 import RoleGuard from '@/components/RoleGuard';
@@ -518,6 +521,8 @@ export default function LeadManagerPage() {
                 { key: 'leads' as MainTab, icon: Users, label: '리드' },
                 { key: 'inventory' as MainTab, icon: Package, label: '인벤토리' },
                 { key: 'schedule' as MainTab, icon: Calendar, label: '스케줄' },
+                { key: 'proposals' as MainTab, icon: FileText, label: '제안서' },
+                { key: 'floor-plans' as MainTab, icon: FileImage, label: '도면' },
               ].map(({ key, icon: Icon, label }) => (
                 <button
                   key={key}
@@ -535,13 +540,6 @@ export default function LeadManagerPage() {
                   <span className="hidden sm:inline">{label}</span>
                 </button>
               ))}
-              <button
-                onClick={() => router.push('/floor-plans')}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-all"
-              >
-                <FileImage className="w-4 h-4" />
-                <span className="hidden sm:inline">도면</span>
-              </button>
             </div>
 
             {/* 우측 컨트롤 */}
@@ -1135,13 +1133,11 @@ export default function LeadManagerPage() {
             )}
           </>
         ) : mainTab === 'inventory' ? (
-          // 인벤토리 뷰
           <InventoryTable
             key={inventoryRefreshKey}
             onRefresh={() => setInventoryRefreshKey(k => k + 1)}
           />
-        ) : (
-          // 스케줄 뷰
+        ) : mainTab === 'schedule' ? (
           <div key={scheduleRefreshKey}>
             {scheduleView === 'calendar' ? (
               <ScheduleCalendar
@@ -1150,9 +1146,7 @@ export default function LeadManagerPage() {
                 }}
                 onEventClick={(event) => {
                   if (event.type === 'task') {
-                    // 업무 상세로 이동 또는 편집
                     const taskId = event.id.replace('task-', '');
-                    // 여기서 task를 로드해서 편집
                     setSelectedTask({
                       id: taskId,
                       taskType: event.taskType || 'OTHER',
@@ -1180,6 +1174,12 @@ export default function LeadManagerPage() {
                 }}
               />
             )}
+          </div>
+        ) : mainTab === 'proposals' ? (
+          <ProposalsView />
+        ) : (
+          <div className="-mx-6 -my-8 h-[calc(100vh-140px)]">
+            <FloorPlansView />
           </div>
         )}
       </main>

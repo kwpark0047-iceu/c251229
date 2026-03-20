@@ -629,13 +629,7 @@ function ProposalCard({
         </button>
         <button
           onClick={onSendEmail}
-          disabled={isExternal} // 외부 파일 이메일 발송은 추가 구현 필요 (현재는 비활성)
-          className={`flex-1 flex items-center justify-center gap-1 py-2 text-sm rounded-lg transition-colors ${
-            isExternal 
-              ? 'bg-slate-50 text-slate-300 cursor-not-allowed' 
-              : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-          }`}
-          title={isExternal ? "업로드된 파일의 이메일 발송은 아직 지원되지 않습니다." : ""}
+          className="flex-1 flex items-center justify-center gap-1 py-2 text-sm rounded-lg transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100"
         >
           <Mail className="w-4 h-4" />
           {proposal.status === 'SENT' ? '재발송' : '이메일 발송'}
