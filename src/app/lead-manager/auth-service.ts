@@ -417,3 +417,54 @@ export async function getAllOrganizations(): Promise<any[]> {
     .order('name');
   return data || [];
 }
+
+// ----------------------------------------------------------------------------
+// SUPER ADMIN: 활동 로그(Audit Log) 및 통계 관련 로직 추가
+// ----------------------------------------------------------------------------
+
+export async function getAllUserLogs(limit = 100) {
+  try {
+    const supabase = createClient();
+    const currentUser = await getCurrentUser();
+    
+    if (!currentUser?.isSuperAdmin) {
+      return { success: false, message: '권한이 없습니다.', logs: [] };
+    }
+
+    const { data: proposalLogs, error } = await supabase
+      .from('proposal_logs')
+      .select('*, proposals(title)')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return { success: true, logs: proposalLogs || [] };
+  } catch (error: any) {
+    console.error('Error fetching all logs:', error);
+    return { success: false, message: error.message, logs: [] };
+  }
+}
+
+export async function getUserLogs(userId: string, limit = 50) {
+  try {
+    const supabase = createClient();
+    const currentUser = await getCurrentUser();
+    
+    if (!currentUser?.isSuperAdmin) {
+      return { success: false, message: '권한이 없습니다.', logs: [] };
+    }
+
+    const { data: proposalLogs, error } = await supabase
+      .from('proposal_logs')
+      .select('*, proposals(title)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return { success: true, logs: proposalLogs || [] };
+  } catch (error: any) {
+    console.error('Error fetching logs for user:', error);
+    return { success: false, message: error.message, logs: [] };
+  }
+}

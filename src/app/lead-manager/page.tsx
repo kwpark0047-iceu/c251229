@@ -62,7 +62,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { ScheduleCalendar, TaskBoard, TaskFormModal } from './components/schedule';
 import ProposalsView from './components/ProposalsView';
 import FloorPlansView from './components/FloorPlansView';
-import UserManagementView from './components/admin/UserManagementView';
+import SuperAdminDashboard from './components/admin/SuperAdminDashboard';
 import { TaskWithLead } from './types';
 import CallbackNotification from './components/CallbackNotification';
 import RoleGuard from '@/components/RoleGuard';
@@ -1211,7 +1211,7 @@ export default function LeadManagerPage() {
             <FloorPlansView />
           </div>
         ) : (
-          <UserManagementView />
+          <SuperAdminDashboard />
         )}
       </main>
 
