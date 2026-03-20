@@ -174,7 +174,7 @@ export default function LeadDetailPanel({
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as typeof activeTab)}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === tab.key
+              className={`flex-1 py-4 text-sm font-medium transition-colors ${activeTab === tab.key
                 ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-slate-500 hover:text-slate-700'
                 }`}
@@ -185,7 +185,7 @@ export default function LeadDetailPanel({
         </div>
 
         {/* 컨텐츠 */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'info' && (
             <div className="space-y-6">
               {/* 기본 정보 */}

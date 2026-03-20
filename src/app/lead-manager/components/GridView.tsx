@@ -339,7 +339,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
 
         {/* 하단 액션 버튼 - 필드 모드에서 더 크게 표시 */}
         <div
-          className={`relative px-4 border-t flex gap-2 ${isFieldMode ? 'py-4' : 'py-3'}`}
+          className={`relative px-4 border-t flex gap-4 ${isFieldMode ? 'py-4' : 'py-3'}`}
           style={{
             background: 'var(--bg-tertiary)',
             borderColor: 'var(--border-subtle)',

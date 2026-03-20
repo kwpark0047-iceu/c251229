@@ -634,7 +634,7 @@ export default function LeadManagerPage() {
         {mainTab === 'leads' && (
           <div className="border-t border-[var(--border-subtle)]/50 bg-[var(--bg-secondary)]/30">
             <div className="max-w-[1400px] mx-auto px-6 py-2.5">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-4">
                 {/* 왼쪽: 날짜 + 지역 */}
                 <div className="flex items-center gap-3">
                   {/* 날짜 범위 */}
@@ -847,7 +847,7 @@ export default function LeadManagerPage() {
                             setSelectedServiceIds([]);
                           }}
                           className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${categoryFilter === category
-                            ? 'text-white shadow-md animate-float'
+                            ? 'text-white shadow-md'
                             : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'
                             }`}
                           style={categoryFilter === category ? {
@@ -877,7 +877,7 @@ export default function LeadManagerPage() {
                             }`}
                           style={statusFilter === status ? { background: statusColors[idx] } : {}}
                         >
-                          {status === 'ALL' ? '전체' : STATUS_LABELS[status]}
+                          {status === 'ALL' ? '전체 상태' : STATUS_LABELS[status]}
                           {status !== 'ALL' && <span className="ml-1 opacity-70">({leads.filter(l => l.status === status).length})</span>}
                         </button>
                       );
@@ -901,7 +901,7 @@ export default function LeadManagerPage() {
                       : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                       }`}
                   >
-                    전체
+                    전체 서비스
                   </button>
                   {CATEGORY_SERVICE_IDS[categoryFilter].map(service => {
                     const isSelected = selectedServiceIds.includes(service.id);
