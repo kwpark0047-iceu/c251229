@@ -12,7 +12,7 @@ import {
   AdInventory,
   EffectAnalysis,
 } from './types';
-import { getOrganizationId, UserInfo } from './auth-service';
+import { getOrganizationId, UserInfo, getCurrentUser, logActivity } from './auth-service';
 
 // 한글 폰트 로드 상태
 let koreanFontLoaded = false;
@@ -99,54 +99,55 @@ export async function createProposal(
   }
 ): Promise<{ success: boolean; proposal?: Proposal; message: string }> {
   try {
-    const orgId = await getOrganizationId();
-    const supabase = getSupabase();
+      const user = await getCurrentUser();
+      const orgId = user?.organizationId || null;
+      const supabase = getSupabase();
 
-    // 리드 정보 조회
-    const { data: leadData } = await supabase
-      .from('leads')
-      .select('biz_name, nearest_station')
-      .eq('id', leadId)
-      .single();
+      // 리드 정보 조회
+      const { data: leadData } = await supabase
+        .from('leads')
+        .select('biz_name, nearest_station')
+        .eq('id', leadId)
+        .single();
 
-    // 인벤토리 정보 조회
-    const { data: inventoryData } = await supabase
-      .from('ad_inventory')
-      .select('*')
-      .in('id', inventoryIds);
+      // 인벤토리 정보 조회
+      const { data: inventoryData } = await supabase
+        .from('ad_inventory')
+        .select('*')
+        .in('id', inventoryIds);
 
-    // 총 금액 계산
-    const totalPrice = (inventoryData || []).reduce(
-      (sum: number, item: any) => sum + (item.price_monthly || 0),
-      0
-    );
+      // 총 금액 계산
+      const totalPrice = (inventoryData || []).reduce(
+        (sum: number, item: any) => sum + (item.price_monthly || 0),
+        0
+      );
 
-    const discountRate = options?.discountRate || 0;
-    const finalPrice = totalPrice * (1 - discountRate / 100);
+      const discountRate = options?.discountRate || 0;
+      const finalPrice = totalPrice * (1 - discountRate / 100);
 
-    // 기본 제목 생성
-    const title = options?.title ||
-      `${leadData?.biz_name || '고객'}님을 위한 ${leadData?.nearest_station || '지하철'}역 광고 제안서`;
+      // 기본 제목 생성
+      const title = options?.title ||
+        `${leadData?.biz_name || '고객'}님을 위한 ${leadData?.nearest_station || '지하철'}역 광고 제안서`;
 
-    // 기본 인사말 생성
-    const greetingMessage = options?.greetingMessage ||
-      getDefaultGreeting(leadData?.biz_name, leadData?.nearest_station);
+      // 기본 인사말 생성
+      const greetingMessage = options?.greetingMessage ||
+        getDefaultGreeting(leadData?.biz_name, leadData?.nearest_station);
 
-    const { data, error } = await supabase
-      .from('proposals')
-      .insert({
-        lead_id: leadId,
-        title,
-        greeting_message: greetingMessage,
-        inventory_ids: inventoryIds,
-        total_price: totalPrice,
-        discount_rate: discountRate,
-        final_price: finalPrice,
-        status: 'DRAFT',
-        organization_id: orgId,
-      })
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from('proposals')
+        .insert({
+          lead_id: leadId,
+          title,
+          greeting_message: greetingMessage,
+          inventory_ids: inventoryIds,
+          total_price: totalPrice,
+          discount_rate: discountRate,
+          final_price: finalPrice,
+          status: 'DRAFT',
+          organization_id: orgId, // 최고관리자는 null일 수 있음
+        })
+        .select()
+        .single();
 
     if (error) {
       return { success: false, message: error.message };
@@ -179,17 +180,23 @@ export async function getProposals(options?: {
 }): Promise<{ success: boolean; proposals: Proposal[]; message: string }> {
   try {
     const supabase = getSupabase();
-    const orgId = await getOrganizationId();
+    const user = await getCurrentUser();
+    const isSuperAdmin = user?.isSuperAdmin || false;
+    const orgId = user?.organizationId || null;
 
-    if (!orgId) {
+    if (!isSuperAdmin && !orgId) {
       return { success: false, proposals: [], message: '조직 정보를 찾을 수 없습니다.' };
     }
 
     let query = supabase
       .from('proposals')
       .select('*')
-      .eq('organization_id', orgId)
       .order('created_at', { ascending: false });
+
+    // 최고관리자가 아니면 자기 조직 데이터만 필터링
+    if (!isSuperAdmin) {
+      query = query.eq('organization_id', orgId);
+    }
 
     if (options?.leadId) {
       query = query.eq('lead_id', options.leadId);
@@ -335,7 +342,7 @@ export async function markProposalSent(
  */
 export async function uploadProposalFile(
   file: File,
-  leadId: string,
+  leadId: string | null,
   title: string,
   status: ProposalStatus = 'SENT'
 ): Promise<{ success: boolean; proposal?: Proposal; message: string }> {
@@ -392,16 +399,15 @@ export async function uploadProposalFile(
     }
 
     // 5. 활동 로그 기록
-    const { logActivity } = await import('./auth-service');
     await logActivity('PROPOSAL_UPLOAD', {
       proposal_id: proposalId,
       title,
       file_name: file.name,
       status: status
-    }, leadId);
+    }, leadId || undefined);
 
-    // 6. 리드 상태 변경 (상태가 발송인 경우에만)
-    if (status === 'SENT') {
+    // 6. 리드 상태 변경 (상태가 발송이고 리드 ID가 있는 경우에만)
+    if (status === 'SENT' && leadId) {
       await supabase
         .from('leads')
         .update({ status: 'PROPOSAL_SENT' })

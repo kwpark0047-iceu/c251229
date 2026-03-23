@@ -43,7 +43,7 @@ const AD_TYPE_LABELS: Record<string, string> = {
 };
 
 interface ProposalFormProps {
-  lead: Lead;
+  lead: Lead | null;
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -83,7 +83,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
   const [showConfirmSend, setShowConfirmSend] = useState(false);
 
   // 제안서 유형 및 업로드 상태
-  const [proposalType, setProposalType] = useState<'AUTO' | 'UPLOAD'>('AUTO');
+  const [proposalType, setProposalType] = useState<'AUTO' | 'UPLOAD'>(lead ? 'AUTO' : 'UPLOAD');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadStatus, setUploadStatus] = useState<'SENT' | 'DRAFT'>('SENT');
@@ -103,21 +103,25 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     });
 
     // 기본 인사말 설정
-    setGreetingMessage(getDefaultGreeting(lead.bizName, lead.nearestStation));
+    if (lead) {
+      setGreetingMessage(getDefaultGreeting(lead.bizName, lead.nearestStation));
 
-    // 가장 가까운 역 자동 선택
-    if (lead.nearestStation) {
-      const stationData = SUBWAY_STATIONS.find((s) => s.name === lead.nearestStation);
-      const extraInfo = STATION_INFO[lead.nearestStation] || { trafficDaily: 50000, characteristics: '지하철역 인근 상권' };
+      // 가장 가까운 역 자동 선택
+      if (lead.nearestStation) {
+        const stationData = SUBWAY_STATIONS.find((s) => s.name === lead.nearestStation);
+        const extraInfo = STATION_INFO[lead.nearestStation] || { trafficDaily: 50000, characteristics: '지하철역 인근 상권' };
 
-      if (stationData) {
-        setSelectedStation({
-          name: stationData.name,
-          lines: stationData.lines,
-          trafficDaily: extraInfo.trafficDaily,
-          characteristics: extraInfo.characteristics,
-        });
+        if (stationData) {
+          setSelectedStation({
+            name: stationData.name,
+            lines: stationData.lines,
+            trafficDaily: extraInfo.trafficDaily,
+            characteristics: extraInfo.characteristics,
+          });
+        }
       }
+    } else {
+      setUploadTitle(`매체사 공용 제안서 (${new Date().toLocaleDateString()})`);
     }
 
     // 매체사 제안서(외부 파일) 로드
@@ -138,9 +142,13 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
   // 파일 선택 시 기본 제목 설정
   useEffect(() => {
     if (uploadFile && !uploadTitle) {
-      setUploadTitle(`${lead.bizName} 광고 제안서 (${uploadFile.name.split('.')[0]})`);
+      if (lead) {
+        setUploadTitle(`${lead.bizName} 광고 제안서 (${uploadFile.name.split('.')[0]})`);
+      } else {
+        setUploadTitle(`${uploadFile.name.split('.')[0]}`);
+      }
     }
-  }, [uploadFile, lead.bizName, uploadTitle]);
+  }, [uploadFile, lead, uploadTitle]);
 
   // ... (loadInventory, toggleInventory, handleStationChange, handleSave, handleSendClick, handleSend는 기존 로직 유지) ...
 
@@ -216,7 +224,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
       const supabase = createClient();
 
       const { error } = await supabase.from('proposals').insert({
-        lead_id: lead.id,
+        lead_id: lead?.id || null,
         title: `${selectedStation.name}역 광고 제안서`,
         greeting_message: greetingMessage,
         inventory_ids: selectedInventory.map((i) => i.id),
@@ -266,7 +274,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
       // 1. 제안서 정보 DB에 먼저 저장 (DRAFT로)
       const supabase = createClient();
       const { data: proposal, error: pError } = await supabase.from('proposals').insert({
-        lead_id: lead.id,
+        lead_id: lead?.id || null,
         title: `${selectedStation!.name}역 광고 제안서`,
         greeting_message: greetingMessage,
         inventory_ids: selectedInventory.map((i) => i.id),
@@ -285,7 +293,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
         proposal.id,
         {
           to: recipientEmail,
-          subject: `[서울 지하철 광고 제안] ${lead.bizName} 원장님께 드리는 제안서입니다.`,
+          subject: `[서울 지하철 광고 제안] ${lead?.bizName || '고객'}님께 드리는 제안서입니다.`,
           body: greetingMessage,
         },
         selectedAttachmentIds
@@ -317,7 +325,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
     setUploading(true);
     try {
-      const result = await uploadProposalFile(uploadFile, lead.id, uploadTitle, uploadStatus as any);
+      const result = await uploadProposalFile(uploadFile, lead?.id || null, uploadTitle, uploadStatus as any);
 
       if (result.success) {
         showNotification('success', `제안서가 ${uploadStatus === 'SENT' ? '업로드 및 발송' : '임시 저장'}되었습니다.`);
@@ -387,7 +395,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
         >
           <div>
             <h2 className="text-xl font-bold text-[var(--text-primary)]">광고 제안서 작성</h2>
-            <p className="text-sm text-[var(--text-muted)]">{lead.bizName}</p>
+            <p className="text-sm text-[var(--text-muted)]">{lead?.bizName || '공용 매체 보관함'}</p>
           </div>
           <button onClick={onClose} title="닫기" className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
             <X className="w-5 h-5 text-[var(--text-muted)]" />
@@ -396,17 +404,24 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
         {/* 제안서 유형 선택 탭 */}
         <div className="flex px-6 pt-6 gap-2">
-          <button
-            onClick={() => setProposalType('AUTO')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
-              proposalType === 'AUTO'
-                ? 'border-[var(--metro-line2)] bg-[var(--metro-line2)]/5 text-[var(--metro-line2)]'
-                : 'border-transparent bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
-            }`}
-          >
-            <FilePlus className="w-5 h-5" />
-            <span className="font-bold">자동 제안서 생성</span>
-          </button>
+          {lead ? (
+            <button
+              onClick={() => setProposalType('AUTO')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
+                proposalType === 'AUTO'
+                  ? 'border-[var(--metro-line2)] bg-[var(--metro-line2)]/5 text-[var(--metro-line2)]'
+                  : 'border-transparent bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
+              }`}
+            >
+              <FilePlus className="w-5 h-5" />
+              <span className="font-bold">자동 제안서 생성</span>
+            </button>
+          ) : (
+            <div className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] opacity-50 border-2 border-transparent">
+              <Info className="w-5 h-5" />
+              <span className="font-medium text-sm">업체 선택 시 자동생성 가능</span>
+            </div>
+          )}
           
           {canUpload ? (
             <button

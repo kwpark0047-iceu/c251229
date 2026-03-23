@@ -162,9 +162,8 @@ export default function ProposalsView() {
           
           <button
             onClick={() => {
-              setLeadSearchQuery('');
-              setShowLeadSelectModal(true);
-              fetchLeadsForSelect('');
+              setSelectedLead(null);
+              setShowUploadModal(true);
             }}
             className="flex items-center gap-2 px-4 py-2 bg-[var(--metro-line4)] text-white text-xs font-bold rounded-xl shadow-lg shadow-[var(--metro-line4)]/20 hover:scale-105 active:scale-95 transition-all animate-float-subtle"
           >
