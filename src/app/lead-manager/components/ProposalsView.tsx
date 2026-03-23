@@ -14,10 +14,16 @@ import {
   AlertCircle,
   Activity,
   History,
-  X
+  X,
+  FileUp,
+  Plus,
+  Users as UsersIcon,
+  Loader2
 } from 'lucide-react';
-import { Proposal, ProposalStatus, STATUS_METRO_COLORS } from '../types';
+import { Proposal, ProposalStatus, Lead, STATUS_METRO_COLORS } from '../types';
 import { getProposals, getProposalLogs } from '../proposal-service';
+import { getLeads } from '../supabase-service';
+import ProposalForm from './ProposalForm';
 
 export default function ProposalsView() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
@@ -30,6 +36,14 @@ export default function ProposalsView() {
   const [logs, setLogs] = useState<any[]>([]);
   const [isLogsLoading, setIsLogsLoading] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
+  
+  // 업로드 모달 관련 상태
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showLeadSelectModal, setShowLeadSelectModal] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [leadSearchQuery, setLeadSearchQuery] = useState('');
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLeadsLoading, setIsLeadsLoading] = useState(false);
 
   useEffect(() => {
     const fetchProposals = async () => {
@@ -42,6 +56,24 @@ export default function ProposalsView() {
     };
     fetchProposals();
   }, []);
+
+  const fetchLeadsForSelect = async (query: string) => {
+    setIsLeadsLoading(true);
+    const result = await getLeads({ searchQuery: query, pageSize: 10 });
+    if (result.success) {
+      setLeads(result.leads);
+    }
+    setIsLeadsLoading(false);
+  };
+
+  useEffect(() => {
+    if (showLeadSelectModal) {
+      const timer = setTimeout(() => {
+        fetchLeadsForSelect(leadSearchQuery);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [leadSearchQuery, showLeadSelectModal]);
 
   const filteredProposals = proposals.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -124,6 +156,20 @@ export default function ProposalsView() {
               {status === 'ALL' ? '전체 상태' : getStatusLabel(status)}
             </button>
           ))}
+          
+          <div className="h-6 w-px bg-[var(--border-subtle)] mx-2 hidden md:block" />
+          
+          <button
+            onClick={() => {
+              setLeadSearchQuery('');
+              setShowLeadSelectModal(true);
+              fetchLeadsForSelect('');
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-[var(--metro-line4)] text-white text-xs font-bold rounded-xl shadow-lg shadow-[var(--metro-line4)]/20 hover:scale-105 active:scale-95 transition-all animate-float-subtle"
+          >
+            <FileUp className="w-4 h-4" />
+            제안서 직접 업로드
+          </button>
         </div>
       </div>
 
@@ -293,6 +339,76 @@ export default function ProposalsView() {
             </div>
           </div>
         </div>
+      )}
+      {/* 리드 선택 모달 */}
+      {showLeadSelectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[var(--bg-secondary)] w-full max-w-md rounded-2xl border border-[var(--border-subtle)] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-[var(--metro-line2)]/10 text-[var(--metro-line2)]">
+                  <UsersIcon className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-[var(--text-primary)]">업로드할 리드 선택</h3>
+              </div>
+              <button onClick={() => setShowLeadSelectModal(false)} className="p-2 hover:bg-[var(--bg-tertiary)] rounded-full transition-colors text-[var(--text-muted)]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4">
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                <input 
+                  type="text"
+                  placeholder="업체명 또는 지역 검색..."
+                  className="w-full pl-10 pr-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--metro-line2)]/30 transition-all"
+                  value={leadSearchQuery}
+                  onChange={(e) => setLeadSearchQuery(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {isLeadsLoading ? (
+                  <div className="py-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-[var(--metro-line2)]" /></div>
+                ) : leads.length > 0 ? (
+                  leads.map(lead => (
+                    <button
+                      key={lead.id}
+                      onClick={() => {
+                        setSelectedLead(lead);
+                        setShowLeadSelectModal(false);
+                        setShowUploadModal(true);
+                      }}
+                      className="w-full text-left p-3 rounded-xl border border-transparent hover:border-[var(--metro-line2)]/30 hover:bg-[var(--metro-line2)]/5 transition-all group"
+                    >
+                      <div className="font-bold text-[var(--text-primary)] group-hover:text-[var(--metro-line2)]">{lead.bizName}</div>
+                      <div className="text-xs text-[var(--text-muted)] mt-1 truncate">{lead.roadAddress || lead.lotAddress}</div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="py-12 text-center text-sm text-[var(--text-muted)] italic">검색 결과가 없습니다.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 제안서 업로드 모달 */}
+      {showUploadModal && selectedLead && (
+        <ProposalForm 
+          lead={selectedLead}
+          onClose={() => {
+            setShowUploadModal(false);
+            setSelectedLead(null);
+          }}
+          onSuccess={async () => {
+            const result = await getProposals();
+            if (result.success) setProposals(result.proposals);
+          }}
+        />
       )}
     </div>
   );
