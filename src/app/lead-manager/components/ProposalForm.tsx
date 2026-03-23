@@ -21,6 +21,7 @@ import {
   FileUp,
   FilePlus,
   ArrowRight,
+  FileText
 } from 'lucide-react';
 
 import { useNotification } from '@/context/NotificationContext';
@@ -28,7 +29,8 @@ import { Lead, AdInventory } from '../types';
 import { SUBWAY_STATIONS, METRO_LINE_COLORS as LINE_COLORS, STATION_MARKETING_INFO as STATION_INFO } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/client';
 import { getCurrentUser, UserInfo } from '../auth-service';
-import { getDefaultGreeting, uploadProposalFile } from '../proposal-service';
+import { Proposal } from '../types';
+import { getDefaultGreeting, uploadProposalFile, getProposals, sendProposalEmail } from '../proposal-service';
 
 // 매체 유형 한글 라벨
 const AD_TYPE_LABELS: Record<string, string> = {
@@ -88,6 +90,11 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+  // 고도화: 다중 첨부 관련 상태
+  const [externalProposals, setExternalProposals] = useState<Proposal[]>([]);
+  const [selectedAttachmentIds, setSelectedAttachmentIds] = useState<string[]>([]);
+  const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
+
   // 초기 설정 및 권한 확인
   useEffect(() => {
     // 권한 확인
@@ -112,6 +119,20 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
         });
       }
     }
+
+    // 매체사 제안서(외부 파일) 로드
+    const loadExternalProposals = async () => {
+      setIsLoadingAttachments(true);
+      const result = await getProposals();
+      if (result.success) {
+        // 현재 리드에 이미 업로드된 파일이나, 조직 전체에서 올린 공용 파일들을 가져옴
+        // 여기서는 편의상 조직 전체의 외부 파일을 대상으로 함
+        setExternalProposals(result.proposals.filter(p => p.isExternal));
+      }
+      setIsLoadingAttachments(false);
+    };
+
+    loadExternalProposals();
   }, [lead]);
 
   // 파일 선택 시 기본 제목 설정
@@ -242,36 +263,36 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     setSending(true);
 
     try {
-      const response = await fetch('/api/send-proposal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leadId: lead.id,
-          recipientEmail,
-          recipientName: lead.bizName,
-          stationName: selectedStation!.name,
-          stationLines: selectedStation!.lines,
-          trafficDaily: selectedStation!.trafficDaily,
-          stationCharacteristics: selectedStation!.characteristics,
-          inventoryItems: selectedInventory.map((item) => ({
-            id: item.id,
-            stationName: item.stationName,
-            adType: item.adType,
-            locationCode: item.locationCode,
-            priceMonthly: item.priceMonthly,
-            floorPlanUrl: item.floorPlanUrl,
-          })),
-          totalPrice,
-          discountRate,
-          finalPrice,
-          greetingMessage,
-        }),
-      });
+      // 1. 제안서 정보 DB에 먼저 저장 (DRAFT로)
+      const supabase = createClient();
+      const { data: proposal, error: pError } = await supabase.from('proposals').insert({
+        lead_id: lead.id,
+        title: `${selectedStation!.name}역 광고 제안서`,
+        greeting_message: greetingMessage,
+        inventory_ids: selectedInventory.map((i) => i.id),
+        total_price: totalPrice,
+        discount_rate: discountRate,
+        final_price: finalPrice,
+        status: 'DRAFT',
+        email_recipient: recipientEmail,
+        organization_id: currentUser?.organizationId || null,
+      }).select().single();
 
-      const result = await response.json();
+      if (pError || !proposal) throw new Error(`제안서 생성 실패: ${pError?.message}`);
+
+      // 2. 고도화된 이메일 발송 서비스 호출 (다중 첨부 포함)
+      const result = await sendProposalEmail(
+        proposal.id,
+        {
+          to: recipientEmail,
+          subject: `[서울 지하철 광고 제안] ${lead.bizName} 원장님께 드리는 제안서입니다.`,
+          body: greetingMessage,
+        },
+        selectedAttachmentIds
+      );
 
       if (result.success) {
-        showNotification('success', '제안서가 성공적으로 발송되었습니다!');
+        showNotification('success', '제안서와 첨부파일이 성공적으로 발송되었습니다!');
         setTimeout(() => {
           onSuccess?.();
           onClose();
@@ -547,6 +568,78 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* 고도화: 매체 제안서 추가 첨부 섹션 */}
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-3">
+                  <FilePlus className="w-4 h-4 inline mr-2 text-[var(--metro-line2)]" />
+                  매체 제안서 추가 첨부 (기존 업로드 파일)
+                </label>
+                <div className="bg-[var(--bg-tertiary)] p-4 rounded-2xl border border-[var(--border-subtle)] space-y-3">
+                  {isLoadingAttachments ? (
+                    <div className="py-4 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-[var(--metro-line2)]" /></div>
+                  ) : externalProposals.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-2">
+                      {externalProposals.map(prop => (
+                        <div 
+                          key={prop.id}
+                          onClick={() => {
+                            if (selectedAttachmentIds.includes(prop.id)) {
+                              setSelectedAttachmentIds(selectedAttachmentIds.filter(id => id !== prop.id));
+                            } else {
+                              setSelectedAttachmentIds([...selectedAttachmentIds, prop.id]);
+                            }
+                          }}
+                          className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                            selectedAttachmentIds.includes(prop.id)
+                            ? 'border-[var(--metro-line2)] bg-[var(--metro-line2)]/5 ring-1 ring-[var(--metro-line2)]/20'
+                            : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--text-muted)]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-1.5 rounded-lg ${selectedAttachmentIds.includes(prop.id) ? 'bg-[var(--metro-line2)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'}`}>
+                              <Check className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-bold text-[var(--text-primary)]">{prop.title}</span>
+                              <span className="text-[10px] text-[var(--text-muted)]">{prop.originalFilename}</span>
+                            </div>
+                          </div>
+                          <div className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)] font-medium">
+                            {prop.fileType || 'PDF'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center text-xs text-[var(--text-muted)] italic">
+                      먼저 '제안서 파일 직접 업로드' 탭에서 매체 제안서를 올려보세요.
+                    </div>
+                  )}
+                  {selectedAttachmentIds.length > 0 && (
+                    <div className="pt-2 flex items-center gap-2 text-[10px] text-[var(--metro-line2)] font-bold">
+                      <CheckCircle className="w-3 h-3" />
+                      {selectedAttachmentIds.length}개의 매체 제안서가 추가로 첨부됩니다.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 인사말 입력 */}
+              <div>
+                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                  <FileText className="w-4 h-4 inline mr-2" />
+                  인사말 및 제안 내용
+                </label>
+                <textarea
+                  id="greeting-message"
+                  name="greetingMessage"
+                  value={greetingMessage}
+                  onChange={(e) => setGreetingMessage(e.target.value)}
+                  rows={8}
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)] resize-none"
+                />
               </div>
             </>
           ) : (

@@ -18,7 +18,8 @@ import {
   FileUp,
   Plus,
   Users as UsersIcon,
-  Loader2
+  Loader2,
+  Eye
 } from 'lucide-react';
 import { Proposal, ProposalStatus, Lead, STATUS_METRO_COLORS } from '../types';
 import { getProposals, getProposalLogs } from '../proposal-service';
@@ -235,15 +236,25 @@ export default function ProposalsView() {
                     <td className="px-6 py-4 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         {proposal.pdfUrl && (
-                          <a 
-                            href={proposal.pdfUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="p-2 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--metro-line3)] transition-all"
-                            title="다운로드"
-                          >
-                            <Download className="w-4 h-4" />
-                          </a>
+                          <>
+                            <a 
+                              href={proposal.pdfUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="p-2 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--metro-line2)] transition-all"
+                              title="미리보기"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </a>
+                            <a 
+                              href={proposal.pdfUrl} 
+                              download={proposal.originalFilename || 'proposal.pdf'}
+                              className="p-2 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--metro-line3)] transition-all"
+                              title="다운로드"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
+                          </>
                         )}
                         <button
                           onClick={() => handleShowLogs(proposal)}

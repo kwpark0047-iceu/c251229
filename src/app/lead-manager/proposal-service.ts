@@ -718,7 +718,8 @@ export async function sendProposalEmail(
     to: string;
     subject: string;
     body: string;
-  }
+  },
+  additionalProposalIds?: string[]
 ): Promise<{ success: boolean; message: string }> {
   try {
     const supabase = getSupabase();
@@ -755,7 +756,33 @@ export async function sendProposalEmail(
       filename = `${pdfResult.bizName || '제안서'}_${dateStr}.pdf`;
     }
 
-    // 3. API 호출하여 이메일 발송
+    const attachments = [
+      {
+        filename: filename,
+        content: base64Content,
+      },
+    ];
+
+    // 3. 추가 첨부 파일 처리
+    if (additionalProposalIds && additionalProposalIds.length > 0) {
+      for (const id of additionalProposalIds) {
+        try {
+          const { data: prop } = await supabase.from('proposals').select('*').eq('id', id).single();
+          if (prop && prop.pdf_url) {
+            const res = await fetch(prop.pdf_url);
+            const buf = await res.arrayBuffer();
+            attachments.push({
+              filename: prop.original_filename || '추가첨부파일',
+              content: Buffer.from(buf).toString('base64'),
+            });
+          }
+        } catch (err) {
+          console.warn(`추가 첨부 파일(${id}) 로드 실패:`, err);
+        }
+      }
+    }
+
+    // 4. API 호출하여 이메일 발송
     const response = await fetch('/api/email/send', {
       method: 'POST',
       headers: {
@@ -765,12 +792,7 @@ export async function sendProposalEmail(
         to: emailData.to,
         subject: emailData.subject,
         html: emailData.body.replace(/\n/g, '<br>'),
-        attachments: [
-          {
-            filename: filename,
-            content: base64Content,
-          },
-        ],
+        attachments: attachments,
       }),
     });
 
