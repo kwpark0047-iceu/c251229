@@ -63,11 +63,20 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
   const org = orgData as { id: string; name: string; invite_code: string } | null
 
   // 프로필 정보 조회 (승인 여부, 슈퍼 어드민 여부, 등급 정보)
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_approved, is_super_admin, tier, trial_expires_at')
-    .eq('id', user.id)
-    .maybeSingle()
+  let profile: any = null;
+  try {
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('is_approved, is_super_admin, tier, trial_expires_at')
+      .eq('id', user.id)
+      .maybeSingle()
+    
+    if (!profileError) {
+      profile = profileData;
+    }
+  } catch (e) {
+    console.warn('Profiles table not found or inaccessible, using fallback roles.');
+  }
 
   // kwpark0047@gmail.com 하드코딩 백업 (DB에 반영 전 보안용)
   const isSuperAdminAccount = user.email === 'kwpark0047@gmail.com'

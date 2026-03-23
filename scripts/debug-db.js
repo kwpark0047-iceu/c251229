@@ -1,29 +1,39 @@
+
 const { createClient } = require('@supabase/supabase-js');
-require('dotenv').config({ path: '.env.local' });
 
-async function debug() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321';
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-key';
+const SUPABASE_URL = 'https://yreoeqmcebnosmtlyump.supabase.co';
+// 이 키는 check-schema.js에 있던 것과 동일함
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlyZW9lcW1jZWJub3NtdGx5dW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NzM4NzQsImV4cCI6MjA4MjU0OTg3NH0.Uv-c9TlQlv0yvNJemPQX-_MR4Ndn8A50rS2omGjySNI';
 
-    console.log('Connecting to:', url);
-    const supabase = createClient(url, key);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    console.log('--- Step 1: List all tables ---');
-    const { data: tables, error: tableError } = await supabase.rpc('get_tables'); // 만약 RPC가 없다면 직접 쿼리
-    if (tableError) console.log('RPC get_tables error:', tableError.message);
-
-    console.log('--- Step 2: Test Organization Insert ---');
-    const { data, error } = await supabase.from('organizations').insert({ name: 'DEBUG_ORG' }).select();
+async function checkProfiles() {
+    console.log('--- profiles 테이블 조회 테스트 ---');
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .limit(5);
 
     if (error) {
-        console.error('INSERT ERROR DETAIL:');
-        console.error('Message:', error.message);
-        console.error('Code:', error.code);
-        console.error('Hint:', error.hint);
-        console.error('Details:', error.details);
+        console.error('조회 오류:', error.message);
+        console.error('코드:', error.code);
     } else {
-        console.log('INSERT SUCCESS:', data);
+        console.log('조회 성공! 데이터 건수:', data.length);
+        if (data.length > 0) {
+            console.log('샘플 데이터:', data[0]);
+        } else {
+            console.log('데이터가 비어 있습니다.');
+        }
     }
+
+    console.log('\n--- organization_members 테이블 조회 테스트 ---');
+    const { data: memberData, error: memberError } = await supabase
+        .from('organization_members')
+        .select('*')
+        .limit(1);
+    
+    if (memberError) console.error('조회 오류:', memberError.message);
+    else console.log('성공 건수:', memberData.length);
 }
 
-debug();
+checkProfiles();
