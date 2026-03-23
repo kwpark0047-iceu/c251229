@@ -139,16 +139,22 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     loadExternalProposals();
   }, [lead]);
 
-  // 파일 선택 시 기본 제목 설정
+  // 파일 선택 시 기본 제목 설정 (초기값이 기본 리드 제안서 형식이거나 공용 제안서 형식인 경우에만 덮어씀)
   useEffect(() => {
-    if (uploadFile && !uploadTitle) {
-      if (lead) {
-        setUploadTitle(`${lead.bizName} 광고 제안서 (${uploadFile.name.split('.')[0]})`);
-      } else {
-        setUploadTitle(`${uploadFile.name.split('.')[0]}`);
+    if (uploadFile) {
+      const isDefaultTitle = !uploadTitle || 
+                            uploadTitle.startsWith('매체사 공용 제안서') || 
+                            (lead && uploadTitle === `${lead.bizName} 광고 제안서`);
+      
+      if (isDefaultTitle) {
+        if (lead) {
+          setUploadTitle(`${lead.bizName} 광고 제안서 (${uploadFile.name.split('.')[0]})`);
+        } else {
+          setUploadTitle(`${uploadFile.name.split('.')[0]}`);
+        }
       }
     }
-  }, [uploadFile, lead, uploadTitle]);
+  }, [uploadFile, lead]);
 
   // ... (loadInventory, toggleInventory, handleStationChange, handleSave, handleSendClick, handleSend는 기존 로직 유지) ...
 
@@ -362,6 +368,8 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
       const ext = file.name.split('.').pop()?.toLowerCase();
       if (['pdf', 'ppt', 'pptx'].includes(ext || '')) {
         setUploadFile(file);
+        // 파일 제목 자동 설정
+        setUploadTitle(file.name.split('.')[0]);
       } else {
         showNotification('error', 'PDF 또는 PPT 파일만 업로드 가능합니다.');
       }
@@ -701,7 +709,11 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                       className="hidden"
                       accept=".pdf,.ppt,.pptx"
                       onChange={(e) => {
-                        if (e.target.files?.[0]) setUploadFile(e.target.files[0]);
+                        if (e.target.files?.[0]) {
+                          const file = e.target.files[0];
+                          setUploadFile(file);
+                          setUploadTitle(file.name.split('.')[0]);
+                        }
                       }}
                     />
                     <label

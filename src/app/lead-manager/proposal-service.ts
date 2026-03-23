@@ -381,7 +381,7 @@ export async function uploadProposalFile(
       .insert({
         id: proposalId,
         lead_id: leadId,
-        title,
+        title: title || file.name.split('.')[0],
         pdf_url: publicUrl,
         is_external: true,
         original_filename: file.name,
