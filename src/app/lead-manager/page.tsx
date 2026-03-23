@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
 
   Settings as SettingsIcon,
@@ -74,8 +74,13 @@ import { useNotification } from '@/context/NotificationContext';
 
 
 
-export default function LeadManagerPage() {
+function LeadManagerContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // URL에서 탭 및 액션 정보 추출
+  const initialTab = (searchParams.get('tab') as MainTab) || 'leads';
+  const initialAction = searchParams.get('action');
 
   // 상태 관리
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -93,7 +98,7 @@ export default function LeadManagerPage() {
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);  // 선택된 세부 서비스 ID들
   const [searchQuery, setSearchQuery] = useState<string>('');  // 검색 기능
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
-  const [mainTab, setMainTab] = useState<MainTab>('leads');
+  const [mainTab, setMainTab] = useState<MainTab>(initialTab);
   const [showInventoryUpload, setShowInventoryUpload] = useState(false);
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
   const [loadingStatus, setLoadingStatus] = useState<string>('');
@@ -1205,7 +1210,7 @@ export default function LeadManagerPage() {
             )}
           </div>
         ) : mainTab === 'proposals' ? (
-          <ProposalsView />
+          <ProposalsView defaultOpenUpload={initialTab === 'proposals' && initialAction === 'upload'} />
         ) : mainTab === 'floor-plans' ? (
           <div className="-mx-6 -my-8 h-[calc(100vh-140px)]">
             <FloorPlansView />
@@ -1268,5 +1273,20 @@ export default function LeadManagerPage() {
         className="anchored-bottom"
       />
     </div>
+  );
+}
+
+export default function LeadManagerPage() {
+  return (
+    <React.Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+          <p className="text-indigo-300 font-medium animate-pulse">시스템 로딩 중...</p>
+        </div>
+      </div>
+    }>
+      <LeadManagerContent />
+    </React.Suspense>
   );
 }

@@ -26,7 +26,11 @@ import { getProposals, getProposalLogs } from '../proposal-service';
 import { getLeads } from '../supabase-service';
 import ProposalForm from './ProposalForm';
 
-export default function ProposalsView() {
+interface ProposalsViewProps {
+  defaultOpenUpload?: boolean;
+}
+
+export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps) {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +49,13 @@ export default function ProposalsView() {
   const [leadSearchQuery, setLeadSearchQuery] = useState('');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLeadsLoading, setIsLeadsLoading] = useState(false);
+
+  useEffect(() => {
+    if (defaultOpenUpload) {
+      setShowUploadModal(true);
+      setSelectedLead(null);
+    }
+  }, [defaultOpenUpload]);
 
   useEffect(() => {
     const fetchProposals = async () => {
@@ -407,7 +418,7 @@ export default function ProposalsView() {
       )}
 
       {/* 제안서 업로드 모달 */}
-      {showUploadModal && selectedLead && (
+      {showUploadModal && (
         <ProposalForm 
           lead={selectedLead}
           onClose={() => {
