@@ -6,6 +6,7 @@ import * as supabaseClient from '@/lib/supabase/client';
 // 모킹 설정
 vi.mock('./auth-service', () => ({
   getOrganizationId: vi.fn(),
+  logActivity: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock('@/lib/supabase/client', () => ({

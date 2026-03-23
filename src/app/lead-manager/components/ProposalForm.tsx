@@ -25,9 +25,20 @@ import {
 
 import { useNotification } from '@/context/NotificationContext';
 import { Lead, AdInventory } from '../types';
-import { SUBWAY_STATIONS, METRO_LINE_COLORS as LINE_COLORS, STATION_MARKETING_INFO as STATION_INFO, MetroLine } from '@/lib/constants';
+import { SUBWAY_STATIONS, METRO_LINE_COLORS as LINE_COLORS, STATION_MARKETING_INFO as STATION_INFO } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/client';
+import { getCurrentUser, UserInfo } from '../auth-service';
 import { getDefaultGreeting, uploadProposalFile } from '../proposal-service';
+
+// 매체 유형 한글 라벨
+const AD_TYPE_LABELS: Record<string, string> = {
+  'SCREEN_DOOR': '스크린도어(PSD)',
+  'LIGHT_BOX': '와이드컬러(조명)',
+  'POSTER': '포스터 광고',
+  'DIGITAL_POSTER': '디지털 포스터',
+  'CM_BOARD': 'CM 보드',
+  'ESCALATOR': '에스컬레이터 광고',
+};
 
 interface ProposalFormProps {
   lead: Lead;
@@ -52,6 +63,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
   const { showNotification } = useNotification();
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
 
   // 폼 상태
   const [recipientEmail, setRecipientEmail] = useState('');
@@ -71,11 +83,18 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
   // 제안서 유형 및 업로드 상태
   const [proposalType, setProposalType] = useState<'AUTO' | 'UPLOAD'>('AUTO');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadStatus, setUploadStatus] = useState<'SENT' | 'DRAFT'>('SENT');
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
-  // 초기 설정
+  // 초기 설정 및 권한 확인
   useEffect(() => {
+    // 권한 확인
+    getCurrentUser().then(user => {
+      setCurrentUser(user);
+    });
+
     // 기본 인사말 설정
     setGreetingMessage(getDefaultGreeting(lead.bizName, lead.nearestStation));
 
@@ -95,13 +114,14 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     }
   }, [lead]);
 
-  // 선택된 역의 인벤토리 로드
+  // 파일 선택 시 기본 제목 설정
   useEffect(() => {
-    if (selectedStation) {
-      loadInventory(selectedStation.name);
+    if (uploadFile && !uploadTitle) {
+      setUploadTitle(`${lead.bizName} 광고 제안서 (${uploadFile.name.split('.')[0]})`);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedStation만 의존
-  }, [selectedStation]);
+  }, [uploadFile, lead.bizName, uploadTitle]);
+
+  // ... (loadInventory, toggleInventory, handleStationChange, handleSave, handleSendClick, handleSend는 기존 로직 유지) ...
 
   const loadInventory = async (stationName: string) => {
     setLoadingInventory(true);
@@ -138,11 +158,9 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     }
   };
 
-  // 금액 계산
   const totalPrice = selectedInventory.reduce((sum, item) => sum + (item.priceMonthly || 0), 0);
   const finalPrice = Math.round(totalPrice * (1 - discountRate / 100));
 
-  // 인벤토리 선택/해제
   const toggleInventory = (item: AdInventory) => {
     if (selectedInventory.find((i) => i.id === item.id)) {
       setSelectedInventory(selectedInventory.filter((i) => i.id !== item.id));
@@ -151,7 +169,6 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     }
   };
 
-  // 역사 변경
   const handleStationChange = (stationName: string) => {
     const stationData = SUBWAY_STATIONS.find((s) => s.name === stationName);
     const extraInfo = STATION_INFO[stationName] || { trafficDaily: 50000, characteristics: '지하철역 인근 상권' };
@@ -167,7 +184,6 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     }
   };
 
-  // 저장 (발송 없이)
   const handleSave = async () => {
     if (!selectedStation) {
       showNotification('error', '역사를 선택해주세요.');
@@ -188,6 +204,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
         final_price: finalPrice,
         status: 'DRAFT',
         email_recipient: recipientEmail || null,
+        organization_id: currentUser?.organizationId || null,
       });
 
       if (error) throw error;
@@ -204,7 +221,6 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     }
   };
 
-  // 발송 확인 모달 열기
   const handleSendClick = () => {
     if (!recipientEmail) {
       showNotification('error', '수신자 이메일을 입력해주세요.');
@@ -221,7 +237,6 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     setShowConfirmSend(true);
   };
 
-  // 이메일 발송
   const handleSend = async () => {
     setShowConfirmSend(false);
     setSending(true);
@@ -244,7 +259,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             adType: item.adType,
             locationCode: item.locationCode,
             priceMonthly: item.priceMonthly,
-            floorPlanUrl: item.floorPlanUrl, // 도면 URL 추가
+            floorPlanUrl: item.floorPlanUrl,
           })),
           totalPrice,
           discountRate,
@@ -271,17 +286,20 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     }
   };
 
-  // 파일 업로드 처리
+  // 파일 업로드 처리 고도화
   const handleUpload = async () => {
     if (!uploadFile) return;
+    if (!uploadTitle.trim()) {
+      showNotification('error', '제안서 제목을 입력해주세요.');
+      return;
+    }
 
     setUploading(true);
     try {
-      const title = `${lead.bizName} 제안서 (${uploadFile.name})`;
-      const result = await uploadProposalFile(uploadFile, lead.id, title);
+      const result = await uploadProposalFile(uploadFile, lead.id, uploadTitle, uploadStatus as any);
 
       if (result.success) {
-        showNotification('success', '제안서 파일이 성공적으로 업로드되었습니다.');
+        showNotification('success', `제안서가 ${uploadStatus === 'SENT' ? '업로드 및 발송' : '임시 저장'}되었습니다.`);
         setTimeout(() => {
           onSuccess?.();
           onClose();
@@ -320,6 +338,9 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
       }
     }
   };
+
+  // 권한 확인: SuperAdmin 이거나 Admin/Owner 인 경우에만 업로드 가능
+  const canUpload = currentUser?.isSuperAdmin || currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
   const emailValid = recipientEmail && isValidEmail(recipientEmail);
   const emailInvalid = recipientEmail && !isValidEmail(recipientEmail);
@@ -365,17 +386,25 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             <FilePlus className="w-5 h-5" />
             <span className="font-bold">자동 제안서 생성</span>
           </button>
-          <button
-            onClick={() => setProposalType('UPLOAD')}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
-              proposalType === 'UPLOAD'
-                ? 'border-[var(--metro-line4)] bg-[var(--metro-line4)]/5 text-[var(--metro-line4)]'
-                : 'border-transparent bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
-            }`}
-          >
-            <FileUp className="w-5 h-5" />
-            <span className="font-bold">제안서 파일 업로드</span>
-          </button>
+          
+          {canUpload ? (
+            <button
+              onClick={() => setProposalType('UPLOAD')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all animate-float-subtle ${
+                proposalType === 'UPLOAD'
+                  ? 'border-[var(--metro-line4)] bg-[var(--metro-line4)]/5 text-[var(--metro-line4)]'
+                  : 'border-transparent bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
+              }`}
+            >
+              <FileUp className="w-5 h-5" />
+              <span className="font-bold">제안서 파일 직접 업로드</span>
+            </button>
+          ) : (
+            <div title="관리자 권한이 필요합니다" className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100/10 text-slate-500 cursor-not-allowed opacity-50 grayscale border-2 border-transparent">
+              <FileUp className="w-5 h-5" />
+              <span className="font-bold">매체사 권한 전용</span>
+            </div>
+          )}
         </div>
 
         <div className="p-6 space-y-6">
@@ -386,106 +415,158 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                   <Mail className="w-4 h-4 inline mr-2" />
                   수신자 이메일
                 </label>
-            <div className="relative">
-              <input
-                id="recipient-email"
-                name="recipientEmail"
-                type="email"
-                value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
-                placeholder="example@email.com"
-                className={`w-full px-4 py-3 pr-12 rounded-xl border text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 ${emailValid
-                  ? 'border-green-500 focus:ring-green-500/50'
-                  : emailInvalid
-                    ? 'border-red-500 focus:ring-red-500/50'
-                    : 'border-[var(--border-subtle)] focus:ring-[var(--metro-line4)]'
-                  }`}
-                style={{
-                  background: 'var(--bg-secondary)',
-                }}
-              />
-              {emailValid && <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />}
-              {emailInvalid && <AlertCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />}
-            </div>
-            {emailInvalid && <p className="mt-1 text-sm text-red-400">올바른 이메일 형식을 입력해주세요.</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
-              <Train className="w-4 h-4 inline mr-2" />
-              추천 역사 선택
-            </label>
-            <select
-              id="selected-station"
-              name="selectedStation"
-              value={selectedStation?.name || ''}
-              onChange={(e) => handleStationChange(e.target.value)}
-              title="역사 선택"
-              className="w-full px-4 py-3 rounded-xl border text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)]"
-              style={{
-                background: 'var(--bg-secondary)',
-                borderColor: 'var(--border-subtle)',
-              }}
-            >
-              <option value="">역사를 선택하세요</option>
-              {SUBWAY_STATIONS.map((station) => (
-                <option key={station.name} value={station.name}>
-                  {station.name}역 ({station.lines.join(', ')}호선)
-                </option>
-              ))}
-            </select>
-
-            {selectedStation && (
-              <div
-                className="mt-4 p-4 rounded-xl border animate-scale-in"
-                style={{
-                  background: 'var(--bg-tertiary)',
-                  borderColor: 'var(--border-subtle)',
-                }}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-lg font-bold text-[var(--text-primary)]">{selectedStation.name}역</span>
-                  <div className="flex gap-1">
-                    {selectedStation.lines.map((line) => (
-                      <span
-                        key={line}
-                        className="w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-bold"
-                        style={{ backgroundColor: LINE_COLORS[line] || '#888' }}
-                      >
-                        {line}
-                      </span>
-                    ))}
-                  </div>
+                <div className="relative">
+                  <input
+                    id="recipient-email"
+                    name="recipientEmail"
+                    type="email"
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    placeholder="example@email.com"
+                    className={`w-full px-4 py-3 pr-12 rounded-xl border text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:ring-2 ${emailValid
+                      ? 'border-green-500 focus:ring-green-500/50'
+                      : emailInvalid
+                        ? 'border-red-500 focus:ring-red-500/50'
+                        : 'border-[var(--border-subtle)] focus:ring-[var(--metro-line4)]'
+                      }`}
+                    style={{
+                      background: 'var(--bg-secondary)',
+                    }}
+                  />
+                  {emailValid && <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />}
+                  {emailInvalid && <AlertCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />}
                 </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-                    <Users className="w-4 h-4 text-[var(--metro-line2)]" />
-                    <span>일일 유동인구: </span>
-                    <span className="font-semibold text-[var(--text-primary)]">
-                      {selectedStation.trafficDaily.toLocaleString()}명
-                    </span>
-                  </div>
-                  <div className="flex items-start gap-2 text-[var(--text-secondary)]">
-                    <Info className="w-4 h-4 mt-0.5 text-[var(--metro-line4)]" />
-                    <span>{selectedStation.characteristics}</span>
-                  </div>
-                </div>
+                {emailInvalid && <p className="mt-1 text-sm text-red-400">올바른 이메일 형식을 입력해주세요.</p>}
               </div>
-            )}
-          </div>
 
-          {/* 광고 매체 선택 영역 (기존 로직 유지) */}
-          <div>
-            <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
-              <MapPin className="w-4 h-4 inline mr-2" />
-              광고 매체 선택
-            </label>
-            {/* ... 매체 목록 렌더링 ... */}
+              <div>
+                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                  <Train className="w-4 h-4 inline mr-2" />
+                  추천 역사 선택
+                </label>
+                <select
+                  id="selected-station"
+                  name="selectedStation"
+                  value={selectedStation?.name || ''}
+                  onChange={(e) => handleStationChange(e.target.value)}
+                  title="역사 선택"
+                  className="w-full px-4 py-3 rounded-xl border text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)]"
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    borderColor: 'var(--border-subtle)',
+                  }}
+                >
+                  <option value="">역사를 선택하세요</option>
+                  {SUBWAY_STATIONS.map((station) => (
+                    <option key={station.name} value={station.name}>
+                      {station.name}역 ({station.lines.join(', ')}호선)
+                    </option>
+                  ))}
+                </select>
+
+                {selectedStation && (
+                  <div
+                    className="mt-4 p-4 rounded-xl border animate-scale-in"
+                    style={{
+                      background: 'var(--bg-tertiary)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-lg font-bold text-[var(--text-primary)]">{selectedStation.name}역</span>
+                      <div className="flex gap-1">
+                        {selectedStation.lines.map((line) => (
+                          <span
+                            key={line}
+                            className="w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-bold"
+                            style={{ backgroundColor: LINE_COLORS[line] || '#888' }}
+                          >
+                            {line}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+                        <Users className="w-4 h-4 text-[var(--metro-line2)]" />
+                        <span>일일 유동인구: </span>
+                        <span className="font-semibold text-[var(--text-primary)]">
+                          {selectedStation.trafficDaily.toLocaleString()}명
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2 text-[var(--text-secondary)]">
+                        <Info className="w-4 h-4 mt-0.5 text-[var(--metro-line4)]" />
+                        <span>{selectedStation.characteristics}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                  <MapPin className="w-4 h-4 inline mr-2" />
+                  광고 매체 선택
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {loadingInventory ? (
+                    <div className="col-span-full py-8 flex flex-col items-center justify-center text-[var(--text-muted)]">
+                      <Loader2 className="w-6 h-6 animate-spin mb-2" />
+                      <span>매체 목록을 불러오는 중...</span>
+                    </div>
+                  ) : availableInventory.length > 0 ? (
+                    availableInventory.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => toggleInventory(item)}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          selectedInventory.find((i) => i.id === item.id)
+                            ? 'border-[var(--metro-line4)] bg-[var(--metro-line4)]/5 ring-1 ring-[var(--metro-line4)]'
+                            : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--text-muted)]'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className="text-sm font-bold text-[var(--text-primary)]">
+                            {AD_TYPE_LABELS[item.adType] || item.adType}
+                          </span>
+                          <span className="text-[10px] text-[var(--text-muted)] border px-1 rounded">
+                            {item.locationCode}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-[var(--text-muted)]">{item.adSize || '표준 규격'}</span>
+                          <span className="font-bold text-[var(--metro-line4)]">
+                            {item.priceMonthly?.toLocaleString()}원
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="col-span-full py-8 text-center text-[var(--text-muted)] italic">
+                      {selectedStation ? '가용한 매체가 없습니다.' : '역사를 먼저 선택해주세요.'}
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="text-center p-8 border-2 border-dashed rounded-2xl transition-colors bg-[var(--bg-secondary)]"
+              {/* 제목 입력 필드 추가 */}
+              <div>
+                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                  제안서 제목
+                </label>
+                <input
+                  type="text"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  placeholder="예: 강남역 광고 제안서 - XX성형외과"
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)]"
+                />
+              </div>
+
+              {/* 드래그 앤 드롭 영역 */}
+              <div className="text-center p-8 border-2 border-dashed rounded-2xl transition-colors bg-[var(--bg-secondary)] group overflow-hidden"
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
@@ -496,8 +577,8 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                 }}
               >
                 {!uploadFile ? (
-                  <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center mb-4">
+                  <div className="flex flex-col items-center animate-float">
+                    <div className="w-16 h-16 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                       <FileUp className="w-8 h-8 text-[var(--metro-line4)]" />
                     </div>
                     <p className="text-lg font-bold text-[var(--text-primary)] mb-1">
@@ -517,13 +598,13 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     />
                     <label
                       htmlFor="file-upload"
-                      className="px-6 py-2.5 rounded-xl bg-[var(--metro-line4)] text-white font-bold cursor-pointer hover:opacity-90 transition-opacity"
+                      className="px-6 py-2.5 rounded-xl bg-[var(--metro-line4)] text-white font-bold cursor-pointer hover:shadow-lg hover:shadow-[var(--metro-line4)]/20 transition-all active:scale-95"
                     >
                       파일 선택하기
                     </label>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center">
+                  <div className="flex flex-col items-center animate-float">
                     <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
                       <CheckCircle className="w-8 h-8 text-green-500" />
                     </div>
@@ -532,7 +613,10 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                       <p className="text-xs text-[var(--text-muted)]">{(uploadFile.size / (1024 * 1024)).toFixed(2)} MB</p>
                     </div>
                     <button 
-                      onClick={() => setUploadFile(null)}
+                      onClick={() => {
+                        setUploadFile(null);
+                        setUploadTitle('');
+                      }}
                       className="text-sm text-red-400 hover:text-red-300 transition-colors font-medium flex items-center gap-1"
                     >
                       <XCircle className="w-4 h-4" />
@@ -542,11 +626,40 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                 )}
               </div>
 
-              <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 flex gap-3">
-                <Info className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-amber-200/80 leading-relaxed">
-                  <p className="font-bold text-amber-500 mb-1">매체사 권한 및 파일 관리</p>
-                  업로드된 파일은 매체사 권한(`organization_id`)으로 관리되며, 로그인한 사용자는 해당 리드의 상세 화면에서 언제든 조회하고 다운로드할 수 있습니다.
+              {/* 업로드 시 상태 선택 */}
+              <div className="flex flex-col gap-3">
+                <label className="text-sm font-semibold text-[var(--text-secondary)]">업로드 후 상태 설정</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setUploadStatus('SENT')}
+                    className={`flex-1 p-4 rounded-xl border text-center transition-all ${
+                      uploadStatus === 'SENT'
+                        ? 'border-blue-500 bg-blue-500/10 text-blue-500'
+                        : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-muted)]'
+                    }`}
+                  >
+                    <div className="font-bold mb-1">업로드 및 발송 처리</div>
+                    <div className="text-[10px] opacity-70">시스템에서 제안서 발송 완료로 처리됩니다.</div>
+                  </button>
+                  <button
+                    onClick={() => setUploadStatus('DRAFT')}
+                    className={`flex-1 p-4 rounded-xl border text-center transition-all ${
+                      uploadStatus === 'DRAFT'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-500'
+                        : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-muted)]'
+                    }`}
+                  >
+                    <div className="font-bold mb-1">임시 저장</div>
+                    <div className="text-[10px] opacity-70">업로드만 하고 발송 처리는 나중에 합니다.</div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[var(--metro-line4)]/5 border border-[var(--metro-line4)]/20 flex gap-3 animate-float-subtle">
+                <Info className="w-5 h-5 text-[var(--metro-line4)] flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-[var(--text-muted)] leading-relaxed">
+                  <p className="font-bold text-[var(--text-primary)] mb-1">직접 업로드 기능 고도화</p>
+                  업로드된 제안서는 담당 리드와 자동으로 연결되며, 조직 내 다른 관리자들과도 보관함에서 공유됩니다.
                 </div>
               </div>
             </div>
@@ -568,7 +681,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               <button
                 onClick={handleSave}
                 disabled={saving || !selectedStation}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50 hover:scale-105"
                 style={{ background: 'var(--metro-line4)' }}
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -577,7 +690,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               <button
                 onClick={handleSendClick}
                 disabled={sending || !selectedStation || !emailValid}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50 hover:scale-105"
                 style={{ background: 'var(--metro-line2)' }}
               >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -588,18 +701,18 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             <button
               onClick={handleUpload}
               disabled={uploading || !uploadFile}
-              className="flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold text-white transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold text-white transition-all disabled:opacity-50 hover:scale-105 active:scale-95"
               style={{ background: 'var(--metro-line4)' }}
             >
               {uploading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  업로드 중...
+                  파일 처리 중...
                 </>
               ) : (
                 <>
-                  <FileUp className="w-5 h-5" />
-                  제안서 업로드 완료하기
+                  <FilePlus className="w-5 h-5" />
+                  제안서 업로드 완료
                 </>
               )}
             </button>
@@ -617,7 +730,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowConfirmSend(false)} className="flex-1 px-4 py-3 rounded-xl font-semibold text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">취소</button>
-              <button onClick={handleSend} className="flex-1 px-4 py-3 rounded-xl font-semibold text-white bg-[var(--metro-line2)]">발송하기</button>
+              <button onClick={handleSend} className="flex-1 px-4 py-3 rounded-xl font-semibold text-white bg-[var(--metro-line2)] hover:scale-105 transition-transform">발송하기</button>
             </div>
           </div>
         </div>

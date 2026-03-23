@@ -65,6 +65,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 1. 제안서 DB에 먼저 저장 (DRAFT 상태로 시작)
+    const { data: proposalData, error: proposalError } = await supabase
+      .from('proposals')
+      .insert({
+        lead_id: body.leadId,
+        title: `${body.stationName}역 광고 제안서`,
+        greeting_message: body.greetingMessage,
+        inventory_ids: body.inventoryItems.map((item) => item.id),
+        total_price: body.totalPrice,
+        discount_rate: body.discountRate,
+        final_price: body.finalPrice,
+        status: 'DRAFT',
+        email_recipient: body.recipientEmail,
+      })
+      .select()
+      .single();
+
+    if (proposalError) {
+      console.error('Supabase error:', proposalError);
+      return NextResponse.json(
+        { success: false, message: `제안서 저장 실패: ${proposalError.message}` },
+        { status: 500 }
+      );
+    }
+
     // 이메일 유효성 검사
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(body.recipientEmail)) {
@@ -244,6 +269,14 @@ export async function POST(request: NextRequest) {
         </div>
       </div>
 
+      <!-- 제안서 온라인 뷰어 버튼 영역 (신규 추가) -->
+      <div style="margin-top: 40px; text-align: center;">
+        <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://c251229.vercel.app'}/proposal/${proposalData.id}" style="display: inline-block; background: #38bdf8; color: #0f172a; padding: 18px 40px; border-radius: 100px; font-size: 18px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 25px rgba(56, 189, 248, 0.4);">
+          온라인 제안서 확인 및 다운로드
+        </a>
+        <p style="margin-top: 16px; color: #94a3b8; font-size: 14px;">클릭하시면 고화질 원본 제안서 및 각인된 도면이 포함된 전용 안내 웹 뷰어 페이지로 이동합니다.</p>
+      </div>
+
     </div>
 
     <!-- 푸터부 -->
@@ -263,31 +296,6 @@ export async function POST(request: NextRequest) {
 </body>
 </html>
 `;
-
-    // 1. 제안서 DB에 먼저 저장 (DRAFT 상태로 시작)
-    const { data: proposalData, error: proposalError } = await supabase
-      .from('proposals')
-      .insert({
-        lead_id: body.leadId,
-        title: `${body.stationName}역 광고 제안서`,
-        greeting_message: body.greetingMessage,
-        inventory_ids: body.inventoryItems.map((item) => item.id),
-        total_price: body.totalPrice,
-        discount_rate: body.discountRate,
-        final_price: body.finalPrice,
-        status: 'DRAFT',
-        email_recipient: body.recipientEmail,
-      })
-      .select()
-      .single();
-
-    if (proposalError) {
-      console.error('Supabase error:', proposalError);
-      return NextResponse.json(
-        { success: false, message: `제안서 저장 실패: ${proposalError.message}` },
-        { status: 500 }
-      );
-    }
 
     // 2. 서버 사이드에서 PDF 생성
     let attachments: any[] = [];

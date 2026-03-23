@@ -155,6 +155,8 @@ function AuthContent() {
     }
   }
 
+  const [tier, setTier] = useState<'FREE' | 'DEMO' | 'MEDIA' | 'SALES'>('FREE')
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -184,6 +186,10 @@ function AuthContent() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            tier,
+            full_name: email.split('@')[0], // 기본 이름 설정
+          }
         },
       })
 
@@ -224,7 +230,11 @@ function AuthContent() {
         console.error('멤버 추가 오류:', memberError)
       }
 
-      setMessage('회원가입이 완료되었습니다. 이메일을 확인해주세요.')
+      const approvalMessage = (tier === 'MEDIA' || tier === 'SALES') 
+        ? '회원가입 신청이 완료되었습니다. 관리자 승인 후 이용 가능합니다. 이메일을 확인해주세요.'
+        : '회원가입이 완료되었습니다. 이메일을 확인해주세요.';
+        
+      setMessage(approvalMessage)
       setLoading(false)
     } catch (err) {
       console.error('회원가입 오류:', err)
@@ -268,6 +278,10 @@ function AuthContent() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            tier, // 조직 가입 시에도 등급 적용 가능성 대비
+            full_name: email.split('@')[0],
+          }
         },
       })
 
@@ -498,6 +512,41 @@ function AuthContent() {
                   placeholder="비밀번호 재입력"
                 />
               </div>
+              <div className="animate-fade-in-up delay-[350ms]" style={{ opacity: 0 }}>
+                <label className="metro-input-label">가입 등급 선택</label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {[
+                    { id: 'FREE', label: '일반', desc: '즉시 승인' },
+                    { id: 'DEMO', label: '데모', desc: '1주일 체험' },
+                    { id: 'MEDIA', label: '매체사', desc: '관리자 승인' },
+                    { id: 'SALES', label: '영업', desc: '관리자 승인' },
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTier(t.id as any)}
+                      className={`p-3 rounded-xl border text-left transition-all duration-300 group ${
+                        tier === t.id 
+                          ? 'bg-emerald-50 border-emerald-500 shadow-sm shadow-emerald-200/50' 
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs font-bold ${tier === t.id ? 'text-emerald-700' : 'text-slate-700'}`}>
+                          {t.label}
+                        </span>
+                        {tier === t.id && (
+                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        )}
+                      </div>
+                      <p className={`text-[10px] ${tier === t.id ? 'text-emerald-600/70' : 'text-slate-400'}`}>
+                        {t.desc}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="animate-fade-in-up delay-400" style={{ opacity: 0 }}>
                 <label className="metro-input-label">
                   조직명 <span style={{ color: 'var(--text-tertiary)' }}>(선택)</span>
@@ -516,7 +565,7 @@ function AuthContent() {
               <button
                 type="submit"
                 disabled={loading}
-                className="metro-btn w-full mt-2 animate-fade-in-up delay-500"
+                className="metro-btn w-full mt-2 animate-float-subtle delay-500"
                 style={{
                   opacity: 0,
                   background: 'linear-gradient(135deg, #00A84D 0%, #008840 100%)',
@@ -579,10 +628,45 @@ function AuthContent() {
                   placeholder="비밀번호 재입력"
                 />
               </div>
+              <div className="animate-fade-in-up delay-[450ms]" style={{ opacity: 0 }}>
+                <label className="metro-input-label">가입 등급 선택</label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {[
+                    { id: 'FREE', label: '일반', desc: '즉시 승인' },
+                    { id: 'DEMO', label: '데모', desc: '1주일 체험' },
+                    { id: 'MEDIA', label: '매체사', desc: '관리자 승인' },
+                    { id: 'SALES', label: '영업', desc: '관리자 승인' },
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setTier(t.id as any)}
+                      className={`p-3 rounded-xl border text-left transition-all duration-300 group ${
+                        tier === t.id 
+                          ? 'bg-orange-50 border-orange-500 shadow-sm shadow-orange-200/50' 
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs font-bold ${tier === t.id ? 'text-orange-700' : 'text-slate-700'}`}>
+                          {t.label}
+                        </span>
+                        {tier === t.id && (
+                          <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                        )}
+                      </div>
+                      <p className={`text-[10px] ${tier === t.id ? 'text-orange-600/70' : 'text-slate-400'}`}>
+                        {t.desc}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
-                className="metro-btn w-full mt-2 animate-fade-in-up delay-500"
+                className="metro-btn w-full mt-2 animate-float-subtle delay-[500ms]"
                 style={{
                   opacity: 0,
                   background: 'linear-gradient(135deg, #EF7C1C 0%, #D06A15 100%)',

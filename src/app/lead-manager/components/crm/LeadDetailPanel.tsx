@@ -21,6 +21,7 @@ import {
   MoreVertical,
   User,
   Tag,
+  Check,
 } from 'lucide-react';
 import {
   LeadWithCRM,
@@ -552,27 +553,32 @@ function ProposalCard({
   };
 
   return (
-    <div className="p-4 bg-white border border-slate-200 rounded-lg animate-in fade-in slide-in-from-right-4 duration-300">
+    <div className={`p-4 rounded-xl border transition-all duration-300 animate-float-subtle ${
+      isExternal 
+        ? 'bg-amber-50/10 border-amber-200/30' 
+        : 'bg-white border-slate-200 shadow-sm'
+    }`}>
       {/* 헤더 */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h4 className="font-medium text-slate-800 flex items-center gap-2">
-            {proposal.title}
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-bold text-slate-800 leading-tight">
+              {proposal.title}
+            </h4>
             {isExternal && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 uppercase">
-                {fileType} 업로드
+              <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white uppercase tracking-tighter shadow-sm shadow-amber-500/20">
+                {fileType}
               </span>
             )}
-          </h4>
-          {proposal.createdAt && (
-            <p className="text-xs text-slate-400 mt-1">
-              {new Date(proposal.createdAt).toLocaleDateString('ko-KR')}
-            </p>
-          )}
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-slate-400">
+            <Calendar className="w-3 h-3" />
+            {proposal.createdAt ? new Date(proposal.createdAt).toLocaleDateString('ko-KR') : '날짜 없음'}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`px-2 py-1 text-xs font-medium rounded ${statusColor.bg} ${statusColor.text}`}
+            className={`px-2 py-1 text-[10px] font-bold rounded-lg border shadow-sm ${statusColor.bg} ${statusColor.text} border-slate-200/50`}
           >
             {PROPOSAL_STATUS_LABELS[proposal.status]}
           </span>
@@ -580,12 +586,15 @@ function ProposalCard({
             <button
               onClick={() => setShowMenu(!showMenu)}
               title="상태 변경 메뉴"
-              className="p-1 hover:bg-slate-100 rounded transition-colors"
+              className="p-1.5 hover:bg-slate-100 rounded-full transition-colors"
             >
               <MoreVertical className="w-4 h-4 text-slate-400" />
             </button>
             {showMenu && (
-              <div className="absolute right-0 mt-1 w-32 bg-white border border-slate-200 rounded-lg shadow-lg z-10">
+              <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 py-1 overflow-hidden animate-scale-in">
+                <div className="px-3 py-1.5 border-b border-slate-50 mb-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">상태 변경</span>
+                </div>
                 {statusOptions.map(status => (
                   <button
                     key={status}
@@ -593,10 +602,14 @@ function ProposalCard({
                       onStatusChange(status);
                       setShowMenu(false);
                     }}
-                    className={`w-full px-3 py-2 text-left text-sm hover:bg-slate-50 first:rounded-t-lg last:rounded-b-lg ${proposal.status === status ? 'bg-slate-100 font-medium' : ''
-                      }`}
+                    className={`w-full px-3 py-2 text-left text-xs transition-colors flex items-center justify-between group ${
+                      proposal.status === status 
+                        ? 'bg-slate-50 text-[var(--metro-line2)] font-bold' 
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
                   >
                     {PROPOSAL_STATUS_LABELS[status]}
+                    {proposal.status === status && <Check className="w-3 h-3" />}
                   </button>
                 ))}
               </div>

@@ -14,6 +14,8 @@ export interface UserInfo {
   permissions: UserPermissions;
   isApproved: boolean;
   isSuperAdmin: boolean;
+  tier: 'FREE' | 'DEMO' | 'MEDIA' | 'SALES' | null;
+  trialExpiresAt: string | null;
 }
 
 export interface UserPermissions {
@@ -60,10 +62,10 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
   const orgData = memberData?.organizations as unknown
   const org = orgData as { id: string; name: string; invite_code: string } | null
 
-  // 프로필 정보 조회 (승인 여부, 슈퍼 어드민 여부)
+  // 프로필 정보 조회 (승인 여부, 슈퍼 어드민 여부, 등급 정보)
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_approved, is_super_admin')
+    .select('is_approved, is_super_admin, tier, trial_expires_at')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -78,8 +80,11 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     role: memberData?.role as UserInfo['role'] || null,
     inviteCode: org?.invite_code || null,
     permissions: { ...DEFAULT_PERMISSIONS, ...((memberData as any)?.permissions || {}) },
-    isApproved: profile?.is_approved || isSuperAdminAccount || false,
+    isApproved: (profile?.is_approved || isSuperAdminAccount || false) && 
+                (!profile?.trial_expires_at || new Date(profile.trial_expires_at) > new Date()),
     isSuperAdmin: profile?.is_super_admin || isSuperAdminAccount || false,
+    tier: (profile?.tier as UserInfo['tier']) || (isSuperAdminAccount ? 'FREE' : null),
+    trialExpiresAt: profile?.trial_expires_at || null,
   }
 }
 
@@ -331,6 +336,8 @@ export async function getAllProfiles(): Promise<{
     isApproved: p.is_approved,
     isSuperAdmin: p.is_super_admin,
     createdAt: p.created_at,
+    tier: p.tier,
+    trialExpiresAt: p.trial_expires_at,
     membership: p.organization_members?.[0] ? {
       role: p.organization_members[0].role,
       organizationId: p.organization_members[0].organization_id,

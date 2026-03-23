@@ -1,6 +1,7 @@
 import { SubwayStation } from '../types';
 import { TOTAL_SUBWAY_STATIONS } from '../data/stations';
 import { LINE_SEQUENCES } from '../data/line-sequences';
+import { SUBWAY_LINE_ROUTES } from '@/lib/constants';
 
 export type RouteData = {
     color: string;
@@ -39,8 +40,19 @@ export const getLineDisplayName = (lineCode: string): string => {
 export const generateSubwayRoutes = (): Record<string, RouteData> => {
     const routes: Record<string, RouteData> = {};
 
-    // 1~9호선 및 주요 지선 처리 (시퀀스 기반)
+    // 1. 고정밀 외부 좌표 데이터(1~9호선 본선)를 우선 적용
+    Object.entries(SUBWAY_LINE_ROUTES).forEach(([key, routeData]) => {
+        routes[key] = {
+            color: routeData.color,
+            coords: routeData.coords
+        };
+    });
+
+    // 2. 1~9호선의 지선 및 기타 시퀀스 명시 노선 처리 (시퀀스 기반)
     Object.entries(LINE_SEQUENCES).forEach(([key, sequence]) => {
+        // 이미 SUBWAY_LINE_ROUTES로 채워진 본선은 건너뜀 (지선은 key가 '1-incheon' 등이라 넘어감)
+        if (routes[key]) return;
+
         // baseLineCode: '1-incheon' -> '1', '2-main' -> '2'
         const baseLineCode = key.split('-')[0];
         const color = SUBWAY_LINE_COLORS[baseLineCode] || '#999999';

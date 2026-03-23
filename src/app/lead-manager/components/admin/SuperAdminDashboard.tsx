@@ -23,6 +23,8 @@ interface Profile {
   isApproved: boolean;
   isSuperAdmin: boolean;
   createdAt: string;
+  tier: 'FREE' | 'DEMO' | 'MEDIA' | 'SALES' | null;
+  trialExpiresAt: string | null;
   membership: {
     role: string;
     organizationId: string;
@@ -44,6 +46,7 @@ export default function SuperAdminDashboard() {
   // Filtering States
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'PENDING'>('ALL');
+  const [tierFilter, setTierFilter] = useState<'ALL' | 'FREE' | 'DEMO' | 'MEDIA' | 'SALES'>('ALL');
   
   // Modal States
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
@@ -123,13 +126,14 @@ export default function SuperAdminDashboard() {
     const matchesStatus = statusFilter === 'ALL' || 
                          (statusFilter === 'APPROVED' && p.isApproved) || 
                          (statusFilter === 'PENDING' && !p.isApproved);
-    return matchesSearch && matchesStatus;
+    const matchesTier = tierFilter === 'ALL' || p.tier === tierFilter;
+    return matchesSearch && matchesStatus && matchesTier;
   });
 
   // KPI Metrics
   const totalUsers = profiles.length;
   const pendingUsers = profiles.filter(p => !p.isApproved).length;
-  const totalOrganizations = orgs.length;
+  const demoUsers = profiles.filter(p => p.tier === 'DEMO').length;
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -147,7 +151,7 @@ export default function SuperAdminDashboard() {
 
         {/* 핵심 KPI 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl flex items-center gap-4">
+          <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl flex items-center gap-4 animate-float-subtle shadow-lg shadow-blue-500/5">
             <div className="p-3 bg-blue-500/20 text-blue-400 rounded-lg">
               <Users className="w-6 h-6" />
             </div>
@@ -156,22 +160,22 @@ export default function SuperAdminDashboard() {
               <h3 className="text-2xl font-bold">{totalUsers}명</h3>
             </div>
           </div>
-          <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl flex items-center gap-4">
+          <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl flex items-center gap-4 animate-float-subtle delay-100 shadow-lg shadow-amber-500/5">
             <div className="p-3 bg-amber-500/20 text-amber-400 rounded-lg">
               <UserCheck className="w-6 h-6" />
             </div>
             <div>
               <p className="text-slate-400 text-sm font-medium">승인 대기 회원</p>
-              <h3 className="text-2xl font-bold">{pendingUsers}명</h3>
+              <h3 className="text-2xl font-bold text-amber-400">{pendingUsers}명</h3>
             </div>
           </div>
-          <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl flex items-center gap-4">
-            <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-lg">
-              <Building className="w-6 h-6" />
+          <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl flex items-center gap-4 animate-float-subtle delay-200 shadow-lg shadow-purple-500/5">
+            <div className="p-3 bg-purple-500/20 text-purple-400 rounded-lg">
+              <Calendar className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-slate-400 text-sm font-medium">등록된 조직</p>
-              <h3 className="text-2xl font-bold">{totalOrganizations}개</h3>
+              <p className="text-slate-400 text-sm font-medium">데모 체험 회원</p>
+              <h3 className="text-2xl font-bold text-purple-400">{demoUsers}명</h3>
             </div>
           </div>
         </div>
@@ -228,8 +232,19 @@ export default function SuperAdminDashboard() {
                   <option value="APPROVED">승인 완료</option>
                   <option value="PENDING">승인 대기</option>
                 </select>
+                <select
+                  className="px-3 py-2 border rounded-lg text-sm bg-slate-50 outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={tierFilter}
+                  onChange={(e) => setTierFilter(e.target.value as any)}
+                >
+                  <option value="ALL">전체 등급</option>
+                  <option value="FREE">일반 (FREE)</option>
+                  <option value="DEMO">데모 (DEMO)</option>
+                  <option value="MEDIA">매체사 (MEDIA)</option>
+                  <option value="SALES">영업 (SALES)</option>
+                </select>
               </div>
-              <button onClick={loadData} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg">
+              <button onClick={loadData} className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
                 <Settings className="w-5 h-5" />
               </button>
             </div>
@@ -245,6 +260,7 @@ export default function SuperAdminDashboard() {
                     <tr className="bg-slate-50 border-b text-slate-600 text-sm font-medium">
                       <th className="px-6 py-4">사용자</th>
                       <th className="px-6 py-4">소속 / 역할</th>
+                      <th className="px-6 py-4">등급 / 혜택</th>
                       <th className="px-6 py-4">승인 상태</th>
                       <th className="px-6 py-4">가입일</th>
                       <th className="px-6 py-4 text-right">보안 액션</th>
@@ -263,7 +279,7 @@ export default function SuperAdminDashboard() {
                               <p className="text-xs text-slate-500">{p.email}</p>
                             </div>
                             {p.isSuperAdmin && (
-                              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-bold">SUPER</span>
+                              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-bold shadow-sm shadow-purple-500/10">SUPER</span>
                             )}
                           </div>
                         </td>
@@ -281,12 +297,29 @@ export default function SuperAdminDashboard() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter shadow-sm ${
+                              p.tier === 'DEMO' ? 'bg-purple-500 text-white shadow-purple-500/20' :
+                              p.tier === 'MEDIA' ? 'bg-blue-500 text-white shadow-blue-500/20' :
+                              p.tier === 'SALES' ? 'bg-amber-500 text-white shadow-amber-500/20' :
+                              'bg-slate-500 text-white shadow-slate-500/20'
+                            }`}>
+                              {p.tier || 'FREE'}
+                            </span>
+                            {p.tier === 'DEMO' && p.trialExpiresAt && (
+                              <p className="text-[10px] font-medium text-purple-600">
+                                D-{Math.max(0, Math.ceil((new Date(p.trialExpiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}일 남음
+                              </p>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
                           {p.isApproved ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-100">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-100 shadow-sm shadow-emerald-500/5">
                               <CheckCircle className="w-3 h-3" /> 승인됨
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium border border-amber-100">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium border border-amber-100 shadow-sm shadow-amber-500/5">
                               <Filter className="w-3 h-3" /> 대기중
                             </span>
                           )}

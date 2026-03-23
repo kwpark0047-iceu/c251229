@@ -336,7 +336,8 @@ export async function markProposalSent(
 export async function uploadProposalFile(
   file: File,
   leadId: string,
-  title: string
+  title: string,
+  status: ProposalStatus = 'SENT'
 ): Promise<{ success: boolean; proposal?: Proposal; message: string }> {
   try {
     const orgId = await getOrganizationId();
@@ -344,7 +345,8 @@ export async function uploadProposalFile(
       return { success: false, message: '매체사 권한이 필요합니다. 로그인 상태를 확인해주세요.' };
     }
 
-    const supabase = getSupabase();
+    const { createClient } = await import('@/lib/supabase/client');
+    const supabase = createClient();
     
     // 1. 고유 ID 생성 및 경로 설정
     const proposalId = crypto.randomUUID();
@@ -378,8 +380,8 @@ export async function uploadProposalFile(
         original_filename: file.name,
         file_type: fileExt,
         organization_id: orgId,
-        status: 'SENT',
-        sent_at: new Date().toISOString()
+        status: status,
+        sent_at: status === 'SENT' ? new Date().toISOString() : null
       })
       .select()
       .single();
@@ -389,11 +391,22 @@ export async function uploadProposalFile(
       throw dbError;
     }
 
-    // 5. 리드 상태를 '제안 발송'으로 변경
-    await supabase
-      .from('leads')
-      .update({ status: 'PROPOSAL_SENT' })
-      .eq('id', leadId);
+    // 5. 활동 로그 기록
+    const { logActivity } = await import('./auth-service');
+    await logActivity('PROPOSAL_UPLOAD', {
+      proposal_id: proposalId,
+      title,
+      file_name: file.name,
+      status: status
+    }, leadId);
+
+    // 6. 리드 상태 변경 (상태가 발송인 경우에만)
+    if (status === 'SENT') {
+      await supabase
+        .from('leads')
+        .update({ status: 'PROPOSAL_SENT' })
+        .eq('id', leadId);
+    }
 
     return {
       success: true,
