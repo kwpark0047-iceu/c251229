@@ -10,6 +10,7 @@ interface StationInfoModalProps {
   onClose: () => void;
   stationName: string;
   stationLines: string[];
+  nearestExitNo?: string;
 }
 
 export default function StationInfoModal({
@@ -17,6 +18,7 @@ export default function StationInfoModal({
   onClose,
   stationName,
   stationLines,
+  nearestExitNo,
 }: StationInfoModalProps) {
   const [loading, setLoading] = useState(false);
   const [stationInfo, setStationInfo] = useState<StationInfo | null>(null);
@@ -158,7 +160,7 @@ export default function StationInfoModal({
                   </div>
                 )}
                 {stationInfo.telNo && (
-                  <div className="col-span-2 flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <Phone className="w-5 h-5 text-gray-400" />
                     <a
                       href={`tel:${stationInfo.telNo}`}
@@ -166,6 +168,17 @@ export default function StationInfoModal({
                     >
                       {stationInfo.telNo}
                     </a>
+                  </div>
+                )}
+                {nearestExitNo && (
+                  <div className="col-span-2 flex items-center gap-3 p-4 bg-blue-600 text-white rounded-xl shadow-lg animate-float-subtle">
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                      <Train className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-white/70 font-medium">추천 출구</p>
+                      <p className="text-lg font-bold">{nearestExitNo}번 출구 (가장 가까움)</p>
+                    </div>
                   </div>
                 )}
               </div>

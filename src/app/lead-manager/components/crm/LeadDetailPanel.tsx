@@ -209,24 +209,39 @@ export default function LeadDetailPanel({
                   {lead.nearestStation && (
                     <button
                       onClick={() => setShowStationInfo(true)}
-                      className="flex items-start gap-3 w-full text-left hover:bg-slate-50 -mx-2 px-2 py-1 rounded-lg transition-colors group"
+                      className="flex items-start gap-3 w-full text-left hover:bg-slate-50 -mx-2 px-2 py-2 rounded-xl transition-all group border border-transparent hover:border-blue-100"
                     >
-                      <Train className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0 group-hover:text-blue-500" />
-                      <div className="flex-1">
-                        <span className="text-sm text-slate-600 group-hover:text-blue-600">
-                          {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'}
-                          {lead.nearestExitNo && ` ${lead.nearestExitNo}번 출구`}
-                        </span>
-                        {lead.stationDistance && (
-                          <span className="text-sm text-slate-400 ml-2">
-                            ({formatDistance(lead.stationDistance)})
-                          </span>
-                        )}
-                        <span className="text-xs text-blue-500 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          편의시설 보기
-                        </span>
+                      <div className="p-2 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
+                        <Train className="w-5 h-5 text-blue-500" />
                       </div>
-                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-800">
+                            {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'}
+                          </span>
+                          {lead.nearestExitNo ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full animate-pulse-subtle">
+                              <Plus className="w-3 h-3" />
+                              {lead.nearestExitNo}번 출구 인근
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                              출구 정보 확인 중
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {lead.stationDistance && (
+                            <span className="text-sm text-slate-500">
+                              거리: {formatDistance(lead.stationDistance)}
+                            </span>
+                          )}
+                          <span className="text-xs text-blue-500 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                            • 상세 정보 및 편의시설 보기
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 mt-2 transition-transform group-hover:translate-x-1" />
                     </button>
                   )}
                   {lead.licenseDate && (
@@ -444,6 +459,7 @@ export default function LeadDetailPanel({
           onClose={() => setShowStationInfo(false)}
           stationName={lead.nearestStation}
           stationLines={lead.stationLines || ['1']}
+          nearestExitNo={lead.nearestExitNo}
         />
       )}
     </>

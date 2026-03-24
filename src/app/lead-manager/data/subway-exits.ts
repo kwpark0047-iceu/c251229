@@ -56,4 +56,66 @@ export const SUBWAY_EXITS: SubwayExit[] = [
   { stationName: '삼성', exitNo: '6', lat: 37.51035, lng: 127.06235 },
   { stationName: '삼성', exitNo: '7', lat: 37.50975, lng: 127.06102 },
   { stationName: '삼성', exitNo: '8', lat: 37.50908, lng: 127.06168 },
+  
+  // 서울역 (Seoul Station)
+  { stationName: '서울역', exitNo: '1', lat: 37.5532, lng: 126.9726 },
+  { stationName: '서울역', exitNo: '2', lat: 37.5548, lng: 126.9712 },
+  { stationName: '서울역', exitNo: '14', lat: 37.5524, lng: 126.9715 },
+
+  // 홍대입구역 (Hongik Univ.)
+  { stationName: '홍대입구', exitNo: '1', lat: 37.5552, lng: 126.9213 },
+  { stationName: '홍대입구', exitNo: '8', lat: 37.5574, lng: 126.9244 },
+  { stationName: '홍대입구', exitNo: '9', lat: 37.5568, lng: 126.9238 },
+
+  // 명동역 (Myeong-dong)
+  { stationName: '명동', exitNo: '5', lat: 37.5606, lng: 126.9835 },
+  { stationName: '명동', exitNo: '6', lat: 37.5609, lng: 126.9858 },
+  { stationName: '명동', exitNo: '8', lat: 37.5615, lng: 126.9863 },
+
+  // 여의도역 (Yeouido)
+  { stationName: '여의도', exitNo: '1', lat: 37.5218, lng: 126.9241 },
+  { stationName: '여의도', exitNo: '3', lat: 37.5228, lng: 126.9231 },
+  { stationName: '여의도', exitNo: '5', lat: 37.5215, lng: 126.9232 },
+
+  // 광화문역 (Gwanghwamun)
+  { stationName: '광화문', exitNo: '1', lat: 37.5726, lng: 126.9754 },
+  { stationName: '광화문', exitNo: '6', lat: 37.5701, lng: 126.9763 },
+  { stationName: '광화문', exitNo: '7', lat: 37.5714, lng: 126.9761 },
+
+  // 잠실역 (Jamsil)
+  { stationName: '잠실', exitNo: '1', lat: 37.5146, lng: 127.1009 },
+  { stationName: '잠실', exitNo: '7', lat: 37.5149, lng: 127.1002 },
+  { stationName: '잠실', exitNo: '8', lat: 37.5141, lng: 127.1018 },
+
+  // 성수역 (Seongsu)
+  { stationName: '성수', exitNo: '1', lat: 37.5451, lng: 127.0545 },
+  { stationName: '성수', exitNo: '2', lat: 37.5453, lng: 127.0569 },
+  { stationName: '성수', exitNo: '3', lat: 37.5435, lng: 127.0567 },
+  { stationName: '성수', exitNo: '4', lat: 37.5432, lng: 127.0544 },
+
+  // 신논현역 (Sinnonhyeon)
+  { stationName: '신논현', exitNo: '1', lat: 37.5042, lng: 127.0238 },
+  { stationName: '신논현', exitNo: '6', lat: 37.5041, lng: 127.0254 },
+  { stationName: '신논현', exitNo: '7', lat: 37.5048, lng: 127.0252 },
+  { stationName: '신논현', exitNo: '9', lat: 37.5054, lng: 127.0248 },
+
+  // 압구정역 (Apgujeong)
+  { stationName: '압구정', exitNo: '2', lat: 37.5273, lng: 127.0289 },
+  { stationName: '압구정', exitNo: '3', lat: 37.5265, lng: 127.0282 },
+  { stationName: '압구정', exitNo: '4', lat: 37.5262, lng: 127.0271 },
+
+  // 신사역 (Sinsa)
+  { stationName: '신사', exitNo: '1', lat: 37.5174, lng: 127.0199 },
+  { stationName: '신사', exitNo: '4', lat: 37.5158, lng: 127.0195 },
+  { stationName: '신사', exitNo: '8', lat: 37.5169, lng: 127.0211 },
+
+  // 고속터미널역 (Express Bus Terminal)
+  { stationName: '고속터미널', exitNo: '1', lat: 37.5055, lng: 127.0041 },
+  { stationName: '고속터미널', exitNo: '8', lat: 37.5052, lng: 127.0069 },
+  { stationName: '고속터미널', exitNo: '9', lat: 37.5042, lng: 127.0051 },
+
+  // 종로3가역 (Jongno 3-ga)
+  { stationName: '종로3가', exitNo: '1', lat: 37.5702, lng: 126.9904 },
+  { stationName: '종로3가', exitNo: '5', lat: 37.5714, lng: 126.9918 },
+  { stationName: '종로3가', exitNo: '15', lat: 37.5706, lng: 126.9925 },
 ];
