@@ -358,7 +358,8 @@ export async function uploadProposalFile(
     // 1. 고유 ID 생성 및 경로 설정
     const proposalId = crypto.randomUUID();
     const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
-    const filePath = `${orgId}/${proposalId}/${file.name}`;
+    // 파일명에 한글/공백이 포함될 경우 Storage 키 오류가 발생하므로 영문 고정명 사용
+    const filePath = `${orgId}/${proposalId}/proposal.${fileExt}`;
 
     // 2. Storage 업로드
     const { error: uploadError } = await supabase.storage
