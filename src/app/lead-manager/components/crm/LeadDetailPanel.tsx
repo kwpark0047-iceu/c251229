@@ -220,7 +220,7 @@ export default function LeadDetailPanel({
                             {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'}
                           </span>
                           {lead.nearestExitNo ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full animate-pulse-subtle">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-600 text-white text-xs font-bold rounded-full">
                               <Plus className="w-3 h-3" />
                               {lead.nearestExitNo}번 출구 인근
                             </span>

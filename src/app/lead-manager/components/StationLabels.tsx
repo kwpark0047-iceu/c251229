@@ -64,7 +64,7 @@ export default function StationLabel({
 
       const newIcon = L.divIcon({
         html: `
-          <div class="station-label-container animate-antigravity" style="--line-color: ${color};">
+          <div class="station-label-container" style="--line-color: ${color};">
             <div class="station-marker ${size} ${transferClass}" style="border-color: ${color};"></div>
             ${showLabel ? `
               <div class="station-name ${size}" style="border-color: ${color}66;">

@@ -171,7 +171,7 @@ export default function StationInfoModal({
                   </div>
                 )}
                 {nearestExitNo && (
-                  <div className="col-span-2 flex items-center gap-3 p-4 bg-blue-600 text-white rounded-xl shadow-lg animate-float-subtle">
+                  <div className="col-span-2 flex items-center gap-3 p-4 bg-blue-600 text-white rounded-xl shadow-lg">
                     <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                       <Train className="w-6 h-6" />
                     </div>

@@ -30,6 +30,7 @@ import {
   getLineDisplayName as getKRICDisplayName
 } from '../kric-data-manager';
 import { generateSubwayRoutes, SUBWAY_LINE_COLORS } from '../utils/subway-utils';
+import MapSearchBar from './MapSearchBar';
 import './MapView.css';
 
 interface MapViewProps {
@@ -78,6 +79,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   const [showStationLabels, setShowStationLabels] = useState(true);
   const [subwayData, setSubwayData] = useState<any>(null);
   const [isLoadingSubwayData, setIsLoadingSubwayData] = useState(false);
+  const [searchTarget, setSearchTarget] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -156,10 +158,10 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
 
   if (!isClient) {
     return (
-      <div className="bg-slate-900 rounded-xl h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[400px] flex items-center justify-center border border-slate-800">
+      <div className="bg-gray-100 rounded-xl h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[400px] flex items-center justify-center border border-gray-200">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-slate-700 animate-spin" />
-          <p className="text-slate-400 font-medium">네오-서울 수송망 동기화 중...</p>
+          <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-gray-300 animate-spin" />
+          <p className="text-gray-500 font-medium">지도 데이터를 동기화 중...</p>
         </div>
       </div>
     );
@@ -171,7 +173,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   return (
     <div className="relative group/map">
       <div 
-        className="bg-[#0b0c10] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[450px]"
+        className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[450px]"
       >
         {mapReady && isClient ? (
           <MapContainer
@@ -179,15 +181,22 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
             center={[center.lat, center.lng]}
             zoom={defaultZoom}
             scrollWheelZoom={true}
-            style={{ height: '100%', width: '100%', background: '#0b0c10' }}
+            style={{ height: '100%', width: '100%', background: '#f8f9fa' }}
           >
             <MapEvents onZoomEnd={setCurrentZoom} />
             {/* 지도 포커스 컨트롤러 */}
-            <MapFocusController focusLead={focusLead} onFocusClear={onFocusClear} />
+            <MapFocusController 
+              focusLead={focusLead} 
+              targetLocation={searchTarget}
+              onFocusClear={() => {
+                onFocusClear?.();
+                setSearchTarget(null);
+              }} 
+            />
   
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
               subdomains="abcd"
               maxZoom={20}
             />
@@ -223,7 +232,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                       color: route.color,
                       weight: currentZoom >= 15 ? 5 : 3,
                       opacity: 0.8,
-                      className: 'subway-line-glow',
+                      className: 'subway-line-clean',
                     }}
                     eventHandlers={{
                       mouseover: (e) => {
@@ -281,43 +290,70 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
       )}
       </div>
 
-      {/* 모바일 최적화된 컨트롤 레이어 */}
-      <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
-        {/* KRIC 데이터 로딩 상태 */}
-        {isLoadingSubwayData && (
-          <div className="bg-black/60 backdrop-blur-md rounded-lg border border-blue-500/30 p-2.5 flex items-center gap-2 shadow-lg animate-pulse">
-            <div className="relative w-3.5 h-3.5">
-              <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
-              <div className="absolute inset-0 rounded-full border-2 border-t-blue-500 animate-spin" />
-            </div>
-            <span className="text-[10px] sm:text-xs font-bold text-blue-400 tracking-tight">STATION DATA SYNC...</span>
-          </div>
-        )}
+      {/* 상단 검색 바 */}
+      <MapSearchBar 
+        onSearch={(query) => {
+          const lowerQuery = query.toLowerCase().trim();
+          
+          // 1. 지하철역 검색
+          if (subwayData?.stations) {
+            const stationMatch = subwayData.stations.find((s: any) => 
+              s.name.toLowerCase().includes(lowerQuery) || 
+              (s.name + '역').toLowerCase() === lowerQuery
+            );
+            if (stationMatch) {
+              console.log('Moving to station:', stationMatch.name);
+              setSearchTarget({ lat: stationMatch.lat, lng: stationMatch.lng, zoom: 16 });
+              setSelectedLead(null);
+              return;
+            }
+          }
 
-        {/* 지도 표시 통계 (모바일에서는 작게) */}
-        <div className="bg-black/60 backdrop-blur-md rounded-lg border border-slate-700 p-2 shadow-lg">
-          <p className="text-[10px] font-mono text-slate-400 leading-tight">
-            NODES: <span className="text-white font-bold">{validLeads.length}</span><br />
-            LINES: <span className="text-white font-bold">{subwayData?.stations.length || 0}</span>
-          </p>
-        </div>
-      </div>
+          // 2. 리드(업체) 검색
+          const leadMatch = leads.find(l => 
+            l.bizName.toLowerCase().includes(lowerQuery) || 
+            (l.roadAddress || '').toLowerCase().includes(lowerQuery)
+          );
+          
+          if (leadMatch) {
+            console.log('Moving to lead:', leadMatch.bizName);
+            setSearchTarget({ lat: leadMatch.latitude!, lng: leadMatch.longitude!, zoom: 17 });
+            setSelectedLead(leadMatch);
+          }
+        }}
+      />
 
-      {/* 우상단 조작 패널 */}
-      <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2 items-end">
-        <div className="bg-black/60 backdrop-blur-md rounded-xl border border-slate-700 p-1.5 shadow-xl">
+      {/* 우상단 조작 패널 - 수직 스택 */}
+      <div className="map-right-controls">
+        <div className="bg-white rounded-lg border border-gray-200 p-1 shadow-lg">
           <StationToggle
             showLabels={showStationLabels}
             onToggle={setShowStationLabels}
           />
         </div>
+        
+        {/* KRIC 데이터 로딩 상태 - 간소화 */}
+        {isLoadingSubwayData && (
+          <div className="bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 p-2 flex items-center gap-2 shadow-md">
+            <div className="w-3 h-3 border-2 border-t-blue-500 border-gray-200 rounded-full animate-spin" />
+            <span className="text-[10px] font-bold text-gray-500">SYNCING</span>
+          </div>
+        )}
+
+        {/* 지도 표시 통계 - 간소화 */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 p-2 shadow-md">
+          <p className="text-[10px] font-mono text-gray-400 leading-tight">
+            N: <span className="text-gray-700 font-bold">{validLeads.length}</span><br />
+            L: <span className="text-gray-700 font-bold">{subwayData?.stations.length || 0}</span>
+          </p>
+        </div>
       </div>
 
-      {/* 하단 통합 컨트롤 패널 (모바일 대응) */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-2rem)] max-w-2xl px-4">
-        <div className="bg-black/80 backdrop-blur-xl rounded-2xl border border-slate-700 p-3 shadow-2xl flex flex-col gap-3">
+      {/* 하단 노선 필터 및 범례 - 하단 바 스타일로 정돈 */}
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-2rem)] max-w-3xl">
+        <div className="bg-white/95 backdrop-blur-md rounded-xl border border-gray-200 p-2.5 shadow-xl flex flex-col gap-2">
           {/* 노선 필터 */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar scroll-smooth">
+          <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
             {subwayData?.routes && (() => {
               const sortOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'B', 'K', 'G', 'A', 'I1', 'I2', 'Ui', 'Si', 'Kg', 'W', 'E', 'U', 'GTX-A'];
               const allLineKeys = Object.keys(subwayData.routes).map(k => k.split('-')[0]);
@@ -339,12 +375,11 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                       setVisibleLines(prev => isActive ? prev.filter(l => l !== displayName) : [...prev, displayName]);
                     }}
                     className={`
-                      flex-shrink-0 min-w-[28px] h-[28px] rounded-full flex items-center justify-center text-[10px] font-bold transition-all border
-                      ${isActive ? 'text-white shadow-[0_0_10px_rgba(255,255,255,0.2)] scale-110' : 'bg-slate-800 text-slate-500 border-slate-700'}
+                      flex-shrink-0 min-w-[26px] h-[26px] rounded-full flex items-center justify-center text-[10px] font-bold transition-all
+                      ${isActive ? 'text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}
                     `}
                     style={{
-                      backgroundColor: isActive ? color : undefined,
-                      borderColor: isActive ? color : undefined
+                      backgroundColor: isActive ? color : undefined
                     }}
                   >
                     {displayName}
@@ -354,25 +389,21 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
             })()}
           </div>
 
-          {/* 범례 및 상태 요약 */}
-          <div className="flex items-center justify-between px-1 border-t border-slate-700/50 pt-2.5">
-            <div className="flex gap-3">
+          {/* 범례 */}
+          <div className="flex items-center justify-between border-t border-gray-100 pt-2 px-1">
+            <div className="flex gap-4">
               {(['NEW', 'PROPOSAL_SENT', 'CONTACTED'] as LeadStatus[]).map(status => (
-                <div key={status} className="flex items-center gap-1.5 focus:outline-none transition-transform hover:scale-105">
+                <div key={status} className="flex items-center gap-1.5">
                   <div 
-                    className="w-2.5 h-2.5 rounded-full ring-2 ring-white/10" 
-                    style={{ 
-                      background: getStatusColor(status),
-                      boxShadow: `0 0 12px ${getStatusColor(status)}`
-                    }} 
+                    className="w-2.5 h-2.5 rounded-full border border-white" 
+                    style={{ background: getStatusColor(status) }} 
                   />
-                  <span className="text-[10px] font-bold text-slate-400 tracking-tighter">{STATUS_LABELS[status].split(' ')[0]}</span>
+                  <span className="text-[10px] font-semibold text-gray-500 uppercase">{STATUS_LABELS[status].split(' ')[0]}</span>
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-2 bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-              <span className="text-[9px] font-mono tracking-[0.2em] text-blue-400 font-bold uppercase">Antigravity Geo-System</span>
+            <div className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">
+              Standard Map Engine v2.0
             </div>
           </div>
         </div>

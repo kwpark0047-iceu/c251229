@@ -1,5 +1,5 @@
 /**
- * 지하철 역사명 CSS 스타일 - Antigravity Premium Edition
+ * 지하철 역사명 CSS 스타일 - Professional Clean UI
  */
 
 .station-label-container {
@@ -8,127 +8,74 @@
   flex-direction: column;
   align-items: center;
   transform: translate(-50%, -100%);
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
 }
 
-/* 반중력 부유 애니메이션 클래스 */
-.animate-antigravity {
-  animation: premium-float 4s ease-in-out infinite;
-}
-
-/* 역사 마커 - 프리미엄 링 효과 */
+/* 역사 마커 - 정적인 클린 링 */
 .station-marker {
   background: #ffffff;
-  border: 3px solid;
+  border: 2px solid;
   border-radius: 50%;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 2;
 }
 
-/* 환승역 특수 효과 */
+/* 환승역 */
 .station-marker.transfer {
-  border-width: 4px;
-  background: #f8fafc;
-  animation: transfer-pulse 2s infinite;
+  border-width: 3px;
+  background: #fdfdfd;
 }
 
 .station-marker.small {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 .station-marker.medium {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 .station-marker.large {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
-/* 역사명 레이블 - 부유하는 텍스트 */
+/* 역사명 레이블 - 깔끔한 텍스트 배지 */
 .station-name {
-  background: rgba(10, 10, 15, 0.7);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-weight: 800;
+  background: #ffffff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-  margin-top: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 4px;
+  border: 1px solid #d1d5db;
+  color: #374151;
   font-size: 11px;
   letter-spacing: -0.02em;
-  transition: all 0.3s ease;
 }
 
 .station-name.large {
-  font-size: 13px;
-  padding: 4px 12px;
+  font-size: 12px;
+  padding: 3px 10px;
 }
 
-/* 호버 시 상호작용 */
+/* 호버 시 상합작용 */
 .station-label-container:hover .station-marker {
-  transform: scale(1.3);
-  box-shadow: 0 0 20px var(--line-color);
+  transform: scale(1.2);
+  box-shadow: 0 0 8px var(--line-color);
 }
 
 .station-label-container:hover .station-name {
-  background: rgba(30, 30, 50, 0.9);
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: #f9fafb;
+  border-color: #9ca3af;
 }
 
-/* 애니메이션 키프레임 */
-@keyframes premium-float {
-
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-
-  33% {
-    transform: translateY(-6px) rotate(1deg);
-  }
-
-  66% {
-    transform: translateY(-2px) rotate(-1deg);
-  }
-}
-
-@keyframes transfer-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
-  }
-
-  70% {
-    box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
-  }
-}
-
-/* 역사명 토글 스위치 고도화 */
-.station-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  background: rgba(20, 20, 30, 0.75);
-  border-radius: 12px;
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.station-toggle-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: #e2e8f0;
+/* 역사명 토글 및 기타 UI */
+.station-tooltip {
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  color: #111827 !important;
 }
