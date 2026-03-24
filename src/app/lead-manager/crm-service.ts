@@ -15,6 +15,8 @@ import {
 } from './types';
 import { getOrganizationId } from './auth-service';
 import { findInventoryForLead } from './inventory-service';
+import { mapCallLogFromDB, mapSalesProgressFromDB } from './utils/mapping-utils';
+import { updateLeadStatus } from './lead-service';
 
 // ============================================
 // 통화 기록
@@ -59,10 +61,7 @@ export async function logCall(
 
     // 통화 결과에 따라 리드 상태 업데이트
     if (outcome === 'INTERESTED' || outcome === 'MEETING_SCHEDULED') {
-      await supabase
-        .from('leads')
-        .update({ status: 'CONTACTED' })
-        .eq('id', leadId);
+      await updateLeadStatus(leadId, 'CONTACTED');
     }
 
     return {
@@ -233,10 +232,7 @@ export async function updateProgress(
 
     // 마지막 단계면 리드 상태를 계약성사로 변경
     if (step === 'CONTRACT_SIGNED') {
-      await supabase
-        .from('leads')
-        .update({ status: 'CONTRACTED' })
-        .eq('id', leadId);
+      await updateLeadStatus(leadId, 'CONTRACTED');
     }
 
     return { success: true, message: '진행 상황이 업데이트되었습니다.' };
@@ -686,21 +682,4 @@ export async function getExtendedCRMStats(): Promise<{
   };
 }
 
-// ============================================
-// 헬퍼 함수
-// ============================================
-
-function mapCallLogFromDB(row: Record<string, unknown>): CallLog {
-  return {
-    id: String(row.id),
-    leadId: String(row.lead_id),
-    calledAt: String(row.called_at),
-    durationSeconds: row.duration_seconds ? Number(row.duration_seconds) : undefined,
-    outcome: row.outcome as CallOutcome,
-    contactPerson: row.contact_person ? String(row.contact_person) : undefined,
-    notes: row.notes ? String(row.notes) : undefined,
-    nextAction: row.next_action ? String(row.next_action) : undefined,
-    nextContactDate: row.next_contact_date ? String(row.next_contact_date) : undefined,
-    createdAt: row.created_at ? String(row.created_at) : undefined,
-  };
-}
+// mapCallLogFromDB 함수는 utils/mapping-utils.ts로 이동됨

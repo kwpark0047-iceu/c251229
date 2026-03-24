@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { useState, useCallback } from 'react';
 
 // 이미지 최적화 옵션
 interface ImageOptimizationOptions {

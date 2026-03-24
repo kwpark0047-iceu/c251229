@@ -30,43 +30,35 @@ const mockProgressItems = [
   },
 ];
 
-// Supabase 클라이언트 모킹
+// Supabase 클라이언트 모킹 보완
 const mockSupabaseClient = {
-  from: vi.fn(() => ({
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        order: vi.fn(() => ({
-          data: mockCallLogs,
-          error: null,
-        })),
-        single: vi.fn(() => ({
-          data: mockCallLogs[0],
-          error: null,
-        })),
-      })),
-      in: vi.fn(() => ({
-        data: mockProgressItems,
-        error: null,
-      })),
-    })),
-    insert: vi.fn(() => ({
-      select: vi.fn(() => ({
-        single: vi.fn(() => ({
-          data: mockCallLogs[0],
-          error: null,
-        })),
-      })),
-    })),
-    update: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        data: mockCallLogs[0],
-        error: null,
-      })),
-    })),
-    upsert: vi.fn(() => ({
-      error: null,
-    })),
-  })),
+  from: vi.fn().mockReturnThis(),
+  select: vi.fn().mockReturnThis(),
+  insert: vi.fn().mockReturnThis(),
+  update: vi.fn().mockReturnThis(),
+  upsert: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  in: vi.fn().mockReturnThis(),
+  order: vi.fn().mockReturnThis(),
+  range: vi.fn().mockReturnThis(),
+  not: vi.fn().mockReturnThis(),
+  gte: vi.fn().mockReturnThis(),
+  lte: vi.fn().mockReturnThis(),
+  is: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  single: vi.fn().mockReturnThis(),
+  // then 메서드를 통해 await 시 결과 반환
+  then: vi.fn().mockImplementation((onfulfilled) => {
+    return Promise.resolve({ data: mockCallLogs, count: mockCallLogs.length, error: null }).then(onfulfilled);
+  }),
+};
+
+// 특정 시나리오를 위한 수동 해결 기능 (필요한 경우)
+const setMockResponse = (data: any, count: number = 0, error: any = null) => {
+  (mockSupabaseClient.then as any).mockImplementationOnce((onfulfilled: any) => {
+    return Promise.resolve({ data, count, error }).then(onfulfilled);
+  });
 };
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -111,6 +103,9 @@ describe('CRM 서비스', () => {
 
   describe('영업 진행상황 관리', () => {
     it('리드별 진행상황을 조회할 수 있다', async () => {
+      // 진행 상황 조회를 위한 특수 모킹
+      setMockResponse(mockProgressItems);
+      
       const { getProgressBatch } = await import('./crm-service');
       const progressMap = await getProgressBatch(['lead-1']);
 
@@ -131,6 +126,11 @@ describe('CRM 서비스', () => {
 
   describe('CRM 통계', () => {
     it('CRM 통계를 계산할 수 있다', async () => {
+      // 통계 조회를 위한 반복적인 카운트 응답 설정
+      (mockSupabaseClient.then as any).mockImplementation((onfulfilled: any) => {
+        return Promise.resolve({ count: 10, error: null }).then(onfulfilled);
+      });
+      
       const { getCRMStats } = await import('./crm-service');
       const stats = await getCRMStats();
 

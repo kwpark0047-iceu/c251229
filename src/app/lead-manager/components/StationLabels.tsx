@@ -16,7 +16,11 @@ import './station-labels.css';
 // 클라이언트 사이드에서만 안전하게 실행되도록 처리
 let L: any;
 if (typeof window !== 'undefined') {
-  L = require('leaflet');
+  try {
+    L = require('leaflet');
+  } catch (e) {
+    console.error('Failed to load leaflet in StationLabels:', e);
+  }
 }
 
 interface StationLabelProps {

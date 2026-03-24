@@ -12,6 +12,7 @@ import {
     UserPermissions
 } from '../auth-service';
 import RoleGuard from '@/components/RoleGuard';
+import { applyThemeVariables, ThemeType } from '../utils/design-tokens';
 
 interface ActivityLog {
     id: string;
@@ -36,10 +37,23 @@ export default function AdminDashboardPage() {
     const [members, setMembers] = useState<MemberWithPermissions[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [systemStatus, setSystemStatus] = useState<'healthy' | 'issue'>('healthy');
+    const [selectedTheme, setSelectedTheme] = useState<ThemeType>('glass');
 
     useEffect(() => {
         loadDashboardData();
+        // Load saved theme
+        const savedTheme = localStorage.getItem('leadManager_activeTheme') as ThemeType;
+        if (savedTheme) {
+            setSelectedTheme(savedTheme);
+            applyThemeVariables(savedTheme);
+        }
     }, []);
+
+    const handleThemeChange = (theme: ThemeType) => {
+        setSelectedTheme(theme);
+        localStorage.setItem('leadManager_activeTheme', theme);
+        applyThemeVariables(theme);
+    };
 
     const loadDashboardData = async () => {
         setIsLoading(true);
@@ -220,8 +234,42 @@ export default function AdminDashboardPage() {
                             </table>
                         </div>
                     </section>
+                </div>
 
-                    {/* Activity Feed */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                    {/* Design Theme Management */}
+                    <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                        <h2 className="text-xl font-bold text-slate-800 mb-4">시스템 디자인 테마 (3D 효과)</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {[
+                                { id: 'glass', name: 'Glassmorphism', desc: '투명하고 세련된 유리 질감' },
+                                { id: 'neo', name: 'Neumorphism', desc: '부드러운 입체 조각 느낌' },
+                                { id: 'antigravity', name: 'Floating 3D', desc: '반중력 부유 및 깊은 그림자' },
+                            ].map((theme) => (
+                                <button
+                                    key={theme.id}
+                                    onClick={() => handleThemeChange(theme.id as any)}
+                                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                                        selectedTheme === theme.id 
+                                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' 
+                                            : 'border-slate-100 hover:border-slate-200 bg-slate-50'
+                                    }`}
+                                >
+                                    <div className={`w-full h-12 rounded-lg mb-3 flex items-center justify-center font-bold text-[10px] ${
+                                        theme.id === 'glass' ? 'bg-white/40 backdrop-blur-md border border-white/20' :
+                                        theme.id === 'neo' ? 'shadow-[inset_5px_5px_10px_#bebebe,inset_-5px_-5px_10px_#ffffff] bg-[#e0e0e0]' :
+                                        'shadow-2xl translate-y-[-4px] bg-slate-800 text-white'
+                                    }`}>
+                                        PREVIEW
+                                    </div>
+                                    <h4 className="font-bold text-slate-800 text-sm">{theme.name}</h4>
+                                    <p className="text-[10px] text-slate-500 mt-1">{theme.desc}</p>
+                                </button>
+                            ))}
+                        </div>
+                    </section>
+
+                    {/* Activity Feed is now below or side-by-side depending on grid */}
                     <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 overflow-hidden flex flex-col max-h-[600px]">
                         <h2 className="text-xl font-bold text-slate-800 mb-4">활동 로그 (최근 50건)</h2>
                         <div className="overflow-y-auto flex-1 space-y-4 pr-2">

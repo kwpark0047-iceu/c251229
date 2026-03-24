@@ -6,7 +6,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useFocusManagement, useKeyboardNavigation, useScreenReader, useFocusIndicator } from './hooks/useAccessibility';
+import { useFocusManagement, useKeyboardNavigation, useScreenReader, useFocusIndicator } from '../hooks/useAccessibility';
+import type { RefObject } from 'react';
 
 // 접근성 버튼 컴포넌트
 interface AccessibleButtonProps {
@@ -140,9 +141,8 @@ export function AccessibleModal({
         aria-hidden="true"
       />
       
-      {/* 모달 */}
       <div
-        ref={containerRef}
+        ref={containerRef as RefObject<HTMLDivElement>}
         className={`
           relative bg-white rounded-lg shadow-xl w-full mx-4
           ${sizeClasses[size]}

@@ -5,13 +5,22 @@
  * Leaflet 지도에 병원 위치 표시
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { 
+  MapContainer, 
+  TileLayer, 
+  Popup, 
+  CircleMarker, 
+  Polyline, 
+  Tooltip 
+} from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS, STATUS_METRO_COLORS } from '../types';
 import { SUBWAY_STATIONS } from '../constants';
 import { formatDistance, formatPhoneNumber } from '../utils';
-import StationLabels, { StationLayer, StationToggle } from './StationLabels';
+// StationLabels은 하단에서 동적 임포트 처리
 import { MessageSquare, ChevronDown } from 'lucide-react';
 import {
   getRealtimeSubwayData,
@@ -31,40 +40,23 @@ interface MapViewProps {
   onFocusClear?: () => void;  // 포커스 해제 콜백
 }
 
-// Leaflet은 SSR에서 작동하지 않으므로 동적 임포트
-const MapContainer = dynamic(
-  () => import('react-leaflet').then(mod => mod.MapContainer),
-  { ssr: false }
-);
-const TileLayer = dynamic(
-  () => import('react-leaflet').then(mod => mod.TileLayer),
-  { ssr: false }
-);
-
-const Popup = dynamic(
-  () => import('react-leaflet').then(mod => mod.Popup),
-  { ssr: false }
-);
-const CircleMarker = dynamic(
-  () => import('react-leaflet').then(mod => mod.CircleMarker),
-  { ssr: false }
-);
-const Polyline = dynamic(
-  () => import('react-leaflet').then(mod => mod.Polyline),
-  { ssr: false }
-);
-const Tooltip = dynamic(
-  () => import('react-leaflet').then(mod => mod.Tooltip),
-  { ssr: false }
-);
-
-// 신규 생성한 MapEvents 컴포닉트 동적 임포트
+// 신규 생성한 MapEvents 컴포넌트 동적 임포트 (이들은 내부에서 useMap을 쓰므로 dynamic 유지하거나 일반 import 가능)
+// 여기서는 안전을 위해 leafet 의존성이 있는 하위 컴포넌트들도 함께 정리합니다.
 const MapEvents = dynamic(
   () => import('./MapEvents'),
   { ssr: false }
 );
 
-// 지도 포커스 컨트롤러 컴포넌트 (useMap 사용)
+const StationLayer = dynamic(
+  () => import('./StationLabels').then(mod => mod.StationLayer),
+  { ssr: false }
+);
+
+const StationToggle = dynamic(
+  () => import('./StationLabels').then(mod => mod.StationToggle),
+  { ssr: false }
+);
+
 const MapFocusController = dynamic(
   () => import('./MapFocusController'),
   { ssr: false }
@@ -80,6 +72,7 @@ const DEFAULT_VISIBLE_LINES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'S',
 
 export default function MapView({ leads, onStatusChange, onListView, focusLead, onFocusClear }: MapViewProps) {
   const [isClient, setIsClient] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   const [, setSelectedLead] = useState<Lead | null>(null);
   const [visibleLines, setVisibleLines] = useState<string[]>(DEFAULT_VISIBLE_LINES);
   const [showStationLabels, setShowStationLabels] = useState(true);
@@ -87,9 +80,21 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   const [isLoadingSubwayData, setIsLoadingSubwayData] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 클라이언트 hydration 감지용
     setIsClient(true);
+    
+    // 마운트 후 아주 짧은 지연을 주어 DOM 세팅과 이전 인스턴스 정리가 완료되도록 함
+    const timer = setTimeout(() => {
+      setMapReady(true);
+    }, 50);
+    
+    return () => {
+      setMapReady(false);
+      clearTimeout(timer);
+    };
   }, []);
+
+  // 지도 컴포넌트 초기화 에러 방지를 위한 고유 키 생성 (마운트 시점 고정)
+  const mapKey = useMemo(() => `map-root-${Math.random().toString(36).substring(2, 9)}`, []);
 
   // 지도 초기 줌 레벨
   const defaultZoom = focusLead?.latitude && focusLead?.longitude ? 17 : 14;
@@ -165,20 +170,27 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
 
   return (
     <div className="relative group/map">
-      <div className="bg-[#0b0c10] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[450px]">
-        <MapContainer
-          center={[center.lat, center.lng]}
-          zoom={defaultZoom}
-          scrollWheelZoom={true}
-        >
-          <MapEvents onZoomEnd={setCurrentZoom} />
-          {/* 지도 포커스 컨트롤러 */}
-          <MapFocusController focusLead={focusLead} onFocusClear={onFocusClear} />
-
-          <TileLayer
-            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          />
+      <div 
+        className="bg-[#0b0c10] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[450px]"
+      >
+        {mapReady && isClient ? (
+          <MapContainer
+            key={mapKey}
+            center={[center.lat, center.lng]}
+            zoom={defaultZoom}
+            scrollWheelZoom={true}
+            style={{ height: '100%', width: '100%', background: '#0b0c10' }}
+          >
+            <MapEvents onZoomEnd={setCurrentZoom} />
+            {/* 지도 포커스 컨트롤러 */}
+            <MapFocusController focusLead={focusLead} onFocusClear={onFocusClear} />
+  
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              subdomains="abcd"
+              maxZoom={20}
+            />
 
           {/* 지하철역 레이블 */}
           {showStationLabels && subwayData && (
@@ -261,6 +273,12 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
             );
           })}
         </MapContainer>
+      ) : (
+        <div className="flex flex-col items-center justify-center h-full gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-slate-700 animate-spin" />
+          <p className="text-slate-400 font-medium">지반 안정화 중...</p>
+        </div>
+      )}
       </div>
 
       {/* 모바일 최적화된 컨트롤 레이어 */}
@@ -340,13 +358,22 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
           <div className="flex items-center justify-between px-1 border-t border-slate-700/50 pt-2.5">
             <div className="flex gap-3">
               {(['NEW', 'PROPOSAL_SENT', 'CONTACTED'] as LeadStatus[]).map(status => (
-                <div key={status} className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full" style={{ background: getStatusColor(status) }} />
-                  <span className="text-[10px] font-bold text-slate-400">{STATUS_LABELS[status].split(' ')[0]}</span>
+                <div key={status} className="flex items-center gap-1.5 focus:outline-none transition-transform hover:scale-105">
+                  <div 
+                    className="w-2.5 h-2.5 rounded-full ring-2 ring-white/10" 
+                    style={{ 
+                      background: getStatusColor(status),
+                      boxShadow: `0 0 12px ${getStatusColor(status)}`
+                    }} 
+                  />
+                  <span className="text-[10px] font-bold text-slate-400 tracking-tighter">{STATUS_LABELS[status].split(' ')[0]}</span>
                 </div>
               ))}
             </div>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Antigravity Geo-System</p>
+            <div className="flex items-center gap-2 bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+              <span className="text-[9px] font-mono tracking-[0.2em] text-blue-400 font-bold uppercase">Antigravity Geo-System</span>
+            </div>
           </div>
         </div>
       </div>

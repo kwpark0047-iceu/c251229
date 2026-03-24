@@ -53,13 +53,16 @@ export const GlobalAntigravityRules = {
         defaultTheme: 'dark',
     },
 
-    // 4. 이스터 에그
+    // 4. 이스터 에그 및 테마 설정
     anomalies: [
         {
             trigger: 'konami-code',
             effect: 'invert-page',
         }
-    ]
+    ],
+    presentation: {
+        currentTheme: 'glass' as 'glass' | 'neo' | 'antigravity',
+    }
 } as const;
 
 export type AntigravityConfig = typeof GlobalAntigravityRules;

@@ -149,6 +149,12 @@ export function useAsyncData<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const fetcherRef = useRef(fetcher);
+
+  // fetcher 참조 최신화
+  useEffect(() => {
+    fetcherRef.current = fetcher;
+  }, [fetcher]);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,7 +164,7 @@ export function useAsyncData<T>(
       setError(null);
 
       try {
-        const result = await fetcher();
+        const result = await fetcherRef.current();
         if (!cancelled) {
           setData(result);
         }
@@ -178,20 +184,23 @@ export function useAsyncData<T>(
     return () => {
       cancelled = true;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, dependencies);
 
   const refetch = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetcher();
+      const result = await fetcherRef.current();
       setData(result);
+      return result;
     } catch (err) {
       setError(err as Error);
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, [fetcher]);
+  }, []);
 
   return { data, loading, error, refetch };
 }

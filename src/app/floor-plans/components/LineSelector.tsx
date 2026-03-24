@@ -12,7 +12,7 @@ import { MetroLine, METRO_LINES, METRO_LINE_NAMES, METRO_LINE_COLORS } from '../
 interface LineSelectorProps {
   selectedLine: MetroLine;
   onLineChange: (line: MetroLine) => void;
-  planCounts?: Record<MetroLine, { station_layout: number; psd: number }>;
+  planCounts?: Partial<Record<MetroLine, { station_layout: number; psd: number }>>;
 }
 
 export default function LineSelector({

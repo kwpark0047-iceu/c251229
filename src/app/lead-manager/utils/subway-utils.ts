@@ -20,9 +20,24 @@ export const SUBWAY_LINE_COLORS: Record<string, string> = {
 };
 
 /**
- * 노선 코드를 표시용 이름으로 변환합니다.
+ * KRIC 노선 코드를 표준 짧은 코드로 변환 (예: 1001 -> 1)
+ */
+export const normalizeLineCode = (kricCode: string): string => {
+    const kricToShort: Record<string, string> = {
+        '1001': '1', '1002': '2', '1003': '3', '1004': '4',
+        '1005': '5', '1006': '6', '1007': '7', '1008': '8', '1009': '9',
+        '1077': 'S', '1085': 'B', '1063': 'K', '1067': 'G', '1065': 'A',
+        '1099': 'U', '1086': 'E', '1087': 'G', '1090': 'W', '1061': 'I1',
+        '1069': 'I2', '1092': 'Ui', '1093': 'Si', '1081': 'Kg'
+    };
+    return kricToShort[kricCode] || kricCode;
+};
+
+/**
+ * 노선 코드를 표시용 이름으로 변환합니다 (예: 1 -> 1호선).
  */
 export const getLineDisplayName = (lineCode: string): string => {
+    const standardizedCode = normalizeLineCode(lineCode);
     const names: Record<string, string> = {
         '1': '1호선', '2': '2호선', '3': '3호선', '4': '4호선',
         '5': '5호선', '6': '6호선', '7': '7호선', '8': '8호선', '9': '9호선',
@@ -30,7 +45,7 @@ export const getLineDisplayName = (lineCode: string): string => {
         'I1': '인천1호선', 'I2': '인천2호선', 'Ui': '우이신설', 'Si': '신림', 'Kg': '경강',
         'W': '서해', 'E': '에버라인', 'U': '의정부', 'GTX-A': 'GTX-A'
     };
-    return names[lineCode] || lineCode;
+    return names[standardizedCode] || standardizedCode;
 };
 
 /**

@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import LineSelector from './LineSelector';
-import { METRO_LINE_NAMES } from '@/app/shared/constants';
+import { METRO_LINE_NAMES } from '@/lib/constants';
 
 describe('LineSelector', () => {
     const mockOnLineChange = vi.fn();

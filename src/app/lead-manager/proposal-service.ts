@@ -13,6 +13,8 @@ import {
   EffectAnalysis,
 } from './types';
 import { getOrganizationId, UserInfo, getCurrentUser, logActivity } from './auth-service';
+import { mapProposalFromDB } from './utils/mapping-utils';
+import { updateLeadStatus } from './lead-service';
 
 // 한글 폰트 로드 상태
 let koreanFontLoaded = false;
@@ -154,10 +156,7 @@ export async function createProposal(
     }
 
     // 리드 상태를 '제안 발송'으로 변경
-    await supabase
-      .from('leads')
-      .update({ status: 'PROPOSAL_SENT' })
-      .eq('id', leadId);
+    await updateLeadStatus(leadId, 'PROPOSAL_SENT');
 
     return {
       success: true,
@@ -409,10 +408,7 @@ export async function uploadProposalFile(
 
     // 6. 리드 상태 변경 (상태가 발송이고 리드 ID가 있는 경우에만)
     if (status === 'SENT' && leadId) {
-      await supabase
-        .from('leads')
-        .update({ status: 'PROPOSAL_SENT' })
-        .eq('id', leadId);
+      await updateLeadStatus(leadId, 'PROPOSAL_SENT');
     }
 
     return {
@@ -1006,27 +1002,4 @@ export async function getProposalLogs(proposalId: string): Promise<{
   return { success: true, logs: data || [] };
 }
 
-function mapProposalFromDB(row: Record<string, unknown>): Proposal {
-  return {
-    id: String(row.id),
-    leadId: String(row.lead_id),
-    title: String(row.title),
-    greetingMessage: row.greeting_message ? String(row.greeting_message) : undefined,
-    inventoryIds: (row.inventory_ids as string[]) || [],
-    totalPrice: row.total_price ? Number(row.total_price) : undefined,
-    discountRate: row.discount_rate ? Number(row.discount_rate) : undefined,
-    finalPrice: row.final_price ? Number(row.final_price) : undefined,
-    effectAnalysis: row.effect_analysis as EffectAnalysis | undefined,
-    pdfUrl: row.pdf_url ? String(row.pdf_url) : undefined,
-    isExternal: Boolean(row.is_external),
-    originalFilename: row.original_filename ? String(row.original_filename) : undefined,
-    fileType: row.file_type ? String(row.file_type) : undefined,
-    status: (row.status as ProposalStatus) || 'DRAFT',
-    sentAt: row.sent_at ? String(row.sent_at) : undefined,
-    viewedAt: row.viewed_at ? String(row.viewed_at) : undefined,
-    emailRecipient: row.email_recipient ? String(row.email_recipient) : undefined,
-    organizationId: row.organization_id ? String(row.organization_id) : undefined,
-    createdAt: row.created_at ? String(row.created_at) : undefined,
-    updatedAt: row.updated_at ? String(row.updated_at) : undefined,
-  };
-}
+// mapProposalFromDB 함수는 utils/mapping-utils.ts로 이동됨

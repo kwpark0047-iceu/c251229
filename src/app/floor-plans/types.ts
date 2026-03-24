@@ -96,6 +96,7 @@ export interface StorageResult {
   success: boolean;
   storagePath?: string;
   publicUrl?: string;
+  floorPlan?: FloorPlan;
   error?: string;
 }
 

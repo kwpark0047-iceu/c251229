@@ -18,7 +18,7 @@ interface OptimizedImageProps {
   placeholder?: 'blur' | 'empty' | 'color';
   blurDataURL?: string;
   quality?: number;
-  format?: 'webp' | 'avif' | 'auto';
+  format?: 'webp' | 'avif' | 'jpeg' | 'png' | 'auto';
   sizes?: string;
   onLoad?: () => void;
   onError?: () => void;

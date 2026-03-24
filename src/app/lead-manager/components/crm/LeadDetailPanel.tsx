@@ -48,6 +48,7 @@ import ProposalForm from '../ProposalForm';
 import StationInfoModal from '../StationInfoModal';
 import { getFloorPlansForStation } from '../../inventory-service';
 import { FloorPlan } from '../../types';
+import { getCardClass } from '../../utils/design-tokens';
 import StationFloorPlans from './StationFloorPlans';
 import SendEmailModal from './SendEmailModal';
 import { sendProposalEmail } from '../../proposal-service';
@@ -109,7 +110,7 @@ export default function LeadDetailPanel({
 
   if (loading || !lead) {
     return (
-      <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex items-center justify-center">
+      <div className={`fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 flex items-center justify-center ${getCardClass()}`}>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -119,7 +120,7 @@ export default function LeadDetailPanel({
 
   return (
     <>
-      <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[60] flex flex-col pb-[env(safe-area-inset-bottom)]">
+      <div className={`fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-[60] flex flex-col pb-[env(safe-area-inset-bottom)] ${getCardClass()}`}>
         {/* 헤더 */}
         <div className={`${statusColor.bg} px-6 py-4 border-b ${statusColor.border}`}>
           <div className="flex items-start justify-between">

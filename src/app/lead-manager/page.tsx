@@ -52,8 +52,21 @@ import { removeDuplicateLeads } from './deduplication-utils';
 
 import GridView from './components/GridView';
 import ListView from './components/ListView';
-import MapView from './components/MapView';
 import SettingsModal from './components/SettingsModal';
+
+// MapView를 dynamic 임포트 (SSR 방지)
+import dynamic from 'next/dynamic';
+const MapView = dynamic(() => import('./components/MapView'), { 
+  ssr: false,
+  loading: () => (
+    <div className="bg-[#0b0c10] rounded-2xl border border-slate-800 h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[450px] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-slate-700 animate-spin" />
+        <p className="text-slate-400 font-medium">네오-서울 수송망 동기화 중...</p>
+      </div>
+    </div>
+  )
+});
 import StatsDashboard from './components/StatsDashboard';
 import InventoryTable from './components/inventory/InventoryTable';
 import InventoryUploadModal from './components/inventory/InventoryUploadModal';
@@ -70,6 +83,8 @@ import MobileNavBar from './components/MobileNavBar';
 import BackgroundEffect from './components/BackgroundEffect';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotification } from '@/context/NotificationContext';
+import './design.css';
+import { applyThemeVariables, ThemeType, getCardClass } from './utils/design-tokens';
 
 
 
@@ -190,6 +205,15 @@ function LeadManagerContent() {
       setUserInfo(user);
       await loadSettings();
       await loadLeadsFromDB();
+
+      // Load saved theme
+      if (typeof window !== 'undefined') {
+        const savedTheme = localStorage.getItem('leadManager_activeTheme') as ThemeType;
+        if (savedTheme) {
+          applyThemeVariables(savedTheme);
+        }
+      }
+
       setInitialLoading(false);
     };
     init();
@@ -1025,7 +1049,7 @@ function LeadManagerContent() {
       {/* 메인 컨텐츠 */}
       <main className="max-w-[1400px] mx-auto px-6 py-8 pb-24 md:pb-8 relative z-10">
         {!userInfo?.isApproved ? (
-          <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-amber-200 shadow-2xl p-12 text-center max-w-2xl mx-auto mt-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className={`rounded-3xl border border-amber-200 shadow-2xl p-12 text-center max-w-2xl mx-auto mt-20 animate-in fade-in slide-in-from-bottom-4 duration-500 ${getCardClass()}`}>
             <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-8 rotate-3 shadow-lg">
               <Shield className="w-10 h-10 animate-pulse" />
             </div>

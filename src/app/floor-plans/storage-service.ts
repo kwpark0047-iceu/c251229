@@ -72,12 +72,13 @@ export async function uploadFloorPlanImage(
       sortOrder,
     };
 
-    await saveFloorPlan(input);
+    const savedPlan = await saveFloorPlan(input);
 
     return {
       success: true,
       storagePath,
       publicUrl: urlData.publicUrl,
+      floorPlan: savedPlan,
     };
   } catch (error) {
     console.error('이미지 업로드 오류:', error);
@@ -268,7 +269,7 @@ export async function ensureBucketExists(): Promise<boolean> {
     }
 
     // 이미 존재하는지 확인
-    const exists = buckets?.some(b => b.name === BUCKET_NAME);
+    const exists = buckets?.some((b: any) => b.name === BUCKET_NAME);
     if (exists) {
       return true;
     }

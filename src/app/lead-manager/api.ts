@@ -166,7 +166,7 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
           stationLines = nearest.station.lines;
 
           // 가장 가까운 출구 번호 계산
-          const nearestExit = await subwayDataManager.findNearestExit(nearestStation, latitude, longitude);
+          const nearestExit = await subwayDataManager.findNearestExit(nearest.station.name, latitude, longitude);
           if (nearestExit) {
             (raw as any).nearestExitNo = nearestExit;
           }

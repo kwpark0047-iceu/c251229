@@ -8,29 +8,41 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function checkSchema() {
   console.log('--- leads 테이블 컬럼 확인 ---');
-  
-  const { data, error } = await supabase
+  const { data: leadsData, error: leadsError } = await supabase
     .from('leads')
     .select('*')
     .limit(1);
 
-  if (error) {
-    console.error('조회 오류:', error);
-    return;
+  if (leadsError) {
+    console.error('leads 조회 오류:', leadsError);
+  } else if (leadsData && leadsData.length > 0) {
+    console.log('leads 컬럼들:', Object.keys(leadsData[0]));
   }
 
-  if (data && data.length > 0) {
-    console.log('기존 컬럼들:', Object.keys(data[0]));
-  } else {
-    console.log('데이터가 없어 컬럼을 확인할 수 없습니다. RPC 또는 별도 쿼리 필요.');
+  console.log('\n--- proposals 테이블 컬럼 확인 ---');
+  const { data: proposalsData, error: proposalsError } = await supabase
+    .from('proposals')
+    .select('*')
+    .limit(1);
+
+  if (proposalsError) {
+    console.error('proposals 조회 오류:', proposalsError);
+  } else if (proposalsData && proposalsData.length > 0) {
+    console.log('proposals 컬럼들:', Object.keys(proposalsData[0]));
     
-    // 더 확실한 방법: 정보 스키마 쿼리 (권한에 따라 안 될 수도 있음)
-    const { data: cols, error: colError } = await supabase.rpc('get_table_columns', { table_name: 'leads' });
-    if (colError) {
-        console.log('RPC get_table_columns 실패 (정상임).');
+    // lead_id가 null인 레코드 수 확인
+    const { count, error: countError } = await supabase
+      .from('proposals')
+      .select('*', { count: 'exact', head: true })
+      .is('lead_id', null);
+      
+    if (countError) {
+      console.error('lead_id null 카운트 오류:', countError);
     } else {
-        console.log('컬럼 정보:', cols);
+      console.log(`proposals 테이블 내 lead_id가 null인 레코드 수: ${count}`);
     }
+  } else {
+    console.log('proposals 데이터가 없습니다.');
   }
 }
 

@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useThemeContext, useThemeToggle, useThemeColors } from '../hooks/useTheme';
+import { useThemeContext, useThemeToggle, useThemeColors, THEME_COLORS } from '../hooks/useTheme';
 import { Sun, Moon, Monitor, Check, Palette } from 'lucide-react';
 
 // 테마 전환 버튼 컴포넌트
@@ -292,7 +292,7 @@ export function ThemeSettings() {
 
 // 테마 전환 애니메이션 컴포넌트
 export function ThemeTransition({ children }: { children: React.ReactNode }) {
-  const { isDark } = useThemeColors();
+  const { isDark, colors } = useThemeColors();
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleThemeChange = () => {

@@ -12,11 +12,13 @@ import {
   generateLineRoutes,
   getKRICServiceKey,
   validateServiceKey,
+  KRICStation,
   KRICStationInfo,
   LINE_COLORS,
   LINE_CODES
 } from './kric-api';
 import { SUBWAY_EXITS } from './data/subway-exits';
+import { normalizeLineCode } from './utils/subway-utils';
 
 
 // 캐시 관리
@@ -463,39 +465,10 @@ export const KRIC_LINE_COLORS = {
 } as const;
 
 /**
- * 노선코드를 간단한 라인명으로 변환
+ * 노선코드를 간단한 라인명으로 변환 (subway-utils의 normalizeLineCode로 대체)
  */
 export function getLineDisplayName(lineCode: string): string {
-  const lineNames: Record<string, string> = {
-    '1001': '1',      // 1호선
-    '1002': '2',      // 2호선
-    '1003': '3',      // 3호선
-    '1004': '4',      // 4호선
-    '1005': '5',      // 5호선
-    '1006': '6',      // 6호선
-    '1007': '7',      // 7호선
-    '1008': '8',      // 8호선
-    '1009': '9',      // 9호선
-    '1077': 'S',      // 신분당선
-    '1085': 'B',      // 수인분당선
-    '1063': 'K',      // 경의중앙선
-    '1067': 'G',      // 경춘선
-    '1065': 'A',      // 공항철도
-    '1099': 'U',      // 의정부경전철
-    '1086': 'E',      // 에버라인
-    '1087': 'G',      // 김포골드라인
-    '1090': 'W',      // 서해선
-    '1061': 'I1',     // 인천 1호선
-    '1069': 'I2',     // 인천 2호선
-    '1092': 'Ui',     // 우이신설선
-    '1093': 'Si',     // 신림선
-    '1081': 'Kg',     // 경강선
-    'S': 'S', 'B': 'B', 'K': 'K', 'G': 'G', 'A': 'A',
-    'Ui': 'Ui', 'Si': 'Si', 'Kg': 'Kg', 'W': 'W', 'E': 'E', 'U': 'U',
-    'I1': 'I1', 'I2': 'I2'
-  };
-
-  return lineNames[lineCode] || lineCode;
+  return normalizeLineCode(lineCode);
 }
 
 /**

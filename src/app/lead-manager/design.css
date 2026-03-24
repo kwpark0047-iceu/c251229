@@ -1,0 +1,54 @@
+/* design.css */
+
+/* 1. Glassmorphism */
+.theme-glass .glass-card {
+  background: var(--glass-bg, rgba(255, 255, 255, 0.1));
+  backdrop-filter: blur(var(--glass-blur, 15px));
+  -webkit-backdrop-filter: blur(var(--glass-blur, 15px));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  box-shadow: var(--glass-shadow, 0 8px 32px 0 rgba(31, 38, 135, 0.37));
+}
+
+/* 2. Neumorphism */
+.theme-neo .neo-card {
+  background: var(--neo-bg, #e0e5ec);
+  border-radius: 20px;
+  box-shadow: var(--neo-shadow-light, 9px 9px 16px rgb(163,177,198,0.6)),
+              var(--neo-shadow-dark, -9px -9px 16px rgba(255,255,255, 0.5));
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.theme-neo .neo-card:hover {
+  box-shadow: inset 4px 4px 8px rgb(163,177,198,0.6),
+              inset -4px -4px 8px rgba(255,255,255, 0.5);
+}
+
+/* 3. Antigravity 3D */
+.theme-antigravity .float-card {
+  animation: var(--float-animation, float 3s ease-in-out infinite);
+  box-shadow: var(--layer-shadow, 0 20px 40px rgba(0,0,0,0.3));
+  transform: var(--card-3d-transform, translateY(-10px));
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.theme-antigravity .float-card:hover {
+  transform: translateY(-15px) scale(1.02);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(1deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+/* Base 3D Effect utilities */
+.perspective-container {
+  perspective: 1000px;
+}
+
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.5s;
+}

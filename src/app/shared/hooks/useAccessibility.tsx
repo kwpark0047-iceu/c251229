@@ -121,12 +121,12 @@ export function useKeyboardNavigation(
       
       case prevKey:
         e.preventDefault();
-        setActiveIndex(prev => {
-          const prev = prev - 1;
-          if (prev < 0) {
+        setActiveIndex(prevVal => {
+          const newPrev = prevVal - 1;
+          if (newPrev < 0) {
             return loop ? items.length - 1 : 0;
           }
-          return prev;
+          return newPrev;
         });
         break;
       

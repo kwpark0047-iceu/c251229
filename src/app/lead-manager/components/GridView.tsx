@@ -21,6 +21,7 @@ import { formatDistance, truncateString, getHighlightParts } from '../utils';
 import CallLogModal from './crm/CallLogModal';
 import LeadDetailPanel from './crm/LeadDetailPanel';
 import { ProgressDots } from './crm/ProgressChecklist';
+import { getCardClass } from '../utils/design-tokens';
 
 interface GridViewProps {
   leads: Lead[];
@@ -179,7 +180,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
   return (
     <>
       <div
-        className="parallax-card group relative rounded-pro border overflow-hidden cursor-pointer"
+        className={`parallax-card group relative rounded-pro border overflow-hidden cursor-pointer ${getCardClass()}`}
         style={{
           background: 'var(--glass-bg)',
           borderColor: 'var(--glass-border)',
