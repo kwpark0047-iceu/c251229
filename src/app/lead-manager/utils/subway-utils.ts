@@ -65,11 +65,15 @@ export const generateSubwayRoutes = (): Record<string, RouteData> => {
 
     // 2. 1~9호선의 지선 및 기타 시퀀스 명시 노선 처리 (시퀀스 기반)
     Object.entries(LINE_SEQUENCES).forEach(([key, sequence]) => {
-        // 이미 SUBWAY_LINE_ROUTES로 채워진 본선은 건너뜀 (지선은 key가 '1-incheon' 등이라 넘어감)
-        if (routes[key]) return;
-
         // baseLineCode: '1-incheon' -> '1', '2-main' -> '2'
         const baseLineCode = key.split('-')[0];
+        
+        // 이미 SUBWAY_LINE_ROUTES로 채워진 본선은 건너뜀
+        // 1, 3, 4 등은 key가 동일하여 routes[key]로 걸러지지만,
+        // 2호선은 '2'와 '2-main'으로 되어 있어 baseLineCode로 체크 필요
+        if (routes[baseLineCode] && (key === baseLineCode || key.endsWith('-main'))) return;
+        if (routes[key]) return;
+
         const color = SUBWAY_LINE_COLORS[baseLineCode] || '#999999';
 
         const coords = (sequence as string[])
