@@ -703,7 +703,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                       제안서 파일을 여기에 드래그하세요
                     </p>
                     <p className="text-sm text-[var(--text-muted)] mb-6">
-                      PDF, PPT, PPTX 파일 지원 (최대 50MB)
+                      PDF, PPT, PPTX 파일 지원 (최대 100MB)
                     </p>
                     <input
                       type="file"
