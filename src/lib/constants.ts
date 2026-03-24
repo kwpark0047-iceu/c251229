@@ -57,7 +57,7 @@ export interface SubwayStation {
 
 export const SUBWAY_STATIONS: SubwayStation[] = [
     // 2호선 주요역
-    { name: '강남', lat: 37.497945, lng: 127.027621, lines: ['2', 'S'] },
+    { name: '강남', lat: 37.497175, lng: 127.027926, lines: ['2', 'S'] },
     { name: '역삼', lat: 37.500622, lng: 127.036456, lines: ['2'] },
     { name: '선릉', lat: 37.504503, lng: 127.049008, lines: ['2', 'K'] },
     { name: '삼성', lat: 37.508844, lng: 127.063214, lines: ['2'] },
@@ -71,7 +71,7 @@ export const SUBWAY_STATIONS: SubwayStation[] = [
     { name: '시청', lat: 37.565712, lng: 126.977041, lines: ['1', '2'] },
 
     // 1호선 & 4호선
-    { name: '서울역', lat: 37.554648, lng: 126.970702, lines: ['1', '4', 'A', 'K'] },
+    { name: '서울역', lat: 37.554648, lng: 126.972559, lines: ['1', '4', 'A', 'K'] },
     { name: '명동', lat: 37.560830, lng: 126.985797, lines: ['4'] },
     { name: '용산', lat: 37.529849, lng: 126.964561, lines: ['1', 'K'] },
 

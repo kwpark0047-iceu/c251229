@@ -64,18 +64,18 @@ export default function StationLabel({
 
       const newIcon = L.divIcon({
         html: `
-          <div class="station-label-container" style="--line-color: ${color};">
-            <div class="station-marker ${size} ${transferClass}" style="border-color: ${color};"></div>
+          <div class="station-label-fixed" style="--line-color: ${color};">
+            <div class="station-marker-dot ${size} ${transferClass}" style="background-color: ${color};"></div>
             ${showLabel ? `
-              <div class="station-name ${size}" style="border-color: ${color}66;">
+              <div class="station-name-badge ${size}">
                 ${station.name}
               </div>
             ` : ''}
           </div>
         `,
-        className: 'station-label-icon',
-        iconSize: [100, 100],
-        iconAnchor: [50, 50],
+        className: 'station-label-leaflet-icon',
+        iconSize: [12, 12],
+        iconAnchor: [6, 6],
       });
       setIcon(newIcon);
     }

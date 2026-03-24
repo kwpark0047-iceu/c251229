@@ -1,81 +1,97 @@
 /**
- * 지하철 역사명 CSS 스타일 - Professional Clean UI
+ * 지하철 역사명 CSS 스타일 - 고정형 전문 UI (Naver Map Style)
  */
 
-.station-label-container {
+/* 리플렛 아이콘 컨테이너 오버라이드 */
+.station-label-leaflet-icon {
+  background: transparent !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.station-label-fixed {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  transform: translate(-50%, -100%);
+  pointer-events: none;
+  /* 어떤 무중력 애니메이션도 허용하지 않음 */
+  animation: none !important;
+  transform: none !important;
 }
 
-/* 역사 마커 - 정적인 클린 링 */
-.station-marker {
+/* 역사 마커 - 정적인 고정 닷(Dot) */
+.station-marker-dot {
+  width: 10px;
+  height: 10px;
   background: #ffffff;
   border: 2px solid;
   border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 2px #ffffff;
   z-index: 2;
+  transition: none !important;
+  animation: none !important;
 }
 
-/* 환승역 */
-.station-marker.transfer {
+/* 환승역 - 더 굵은 원 */
+.station-marker-dot.transfer {
+  width: 14px;
+  height: 14px;
   border-width: 3px;
-  background: #fdfdfd;
+  box-shadow: 0 0 0 2px #ffffff;
 }
 
-.station-marker.small {
+.station-marker-dot.small {
   width: 8px;
   height: 8px;
 }
 
-.station-marker.medium {
-  width: 12px;
-  height: 12px;
-}
-
-.station-marker.large {
+.station-marker-dot.large {
   width: 16px;
   height: 16px;
 }
 
-/* 역사명 레이블 - 깔끔한 텍스트 배지 */
-.station-name {
-  background: #ffffff;
-  padding: 2px 8px;
-  border-radius: 4px;
+/* 역사명 레이블 - 마커 바로 위에 고정된 배지 */
+.station-name-badge {
+  position: absolute;
+  bottom: 12px; /* 마커 위에 배치 */
+  left: 50%;
+  transform: translateX(-50%) !important;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1px 6px;
+  border-radius: 3px;
   font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-top: 4px;
-  border: 1px solid #d1d5db;
-  color: #374151;
-  font-size: 11px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 1px solid #999;
+  color: #111;
+  font-size: 10px;
   letter-spacing: -0.02em;
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+  transition: none !important;
+  animation: none !important;
 }
 
-.station-name.large {
-  font-size: 12px;
-  padding: 3px 10px;
+.station-marker-dot.transfer + .station-name-badge {
+  bottom: 16px; /* 환승역은 조금 더 높게 */
 }
 
-/* 호버 시 상합작용 */
-.station-label-container:hover .station-marker {
-  transform: scale(1.2);
-  box-shadow: 0 0 8px var(--line-color);
+.station-name-badge.large {
+  font-size: 11px;
+  padding: 2px 8px;
+  bottom: 18px;
 }
 
-.station-label-container:hover .station-name {
-  background: #f9fafb;
-  border-color: #9ca3af;
-}
-
-/* 역사명 토글 및 기타 UI */
+/* 툴팁 스타일 고정 */
 .station-tooltip {
   background: #ffffff !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 6px !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-  color: #111827 !important;
+  border: 1px solid #999 !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  color: #111 !important;
+  animation: none !important;
 }
