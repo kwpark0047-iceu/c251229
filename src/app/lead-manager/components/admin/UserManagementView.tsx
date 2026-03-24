@@ -97,6 +97,8 @@ export default function UserManagementView() {
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
+              id="user-search"
+              name="userSearch"
               type="text"
               placeholder="이메일, 이름 검색..."
               className="pl-9 pr-4 py-2 border rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none w-64"
@@ -105,6 +107,8 @@ export default function UserManagementView() {
             />
           </div>
           <select
+            id="status-filter"
+            name="statusFilter"
             className="px-3 py-2 border rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
@@ -249,6 +253,7 @@ export default function UserManagementView() {
                 <div className="space-y-1.5">
                   <label className="font-semibold block">소속 조직</label>
                   <select 
+                    id="edit-org-id"
                     name="orgId"
                     className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
                     defaultValue={selectedProfile.membership?.organizationId || ''}
@@ -262,6 +267,7 @@ export default function UserManagementView() {
                 <div className="space-y-1.5">
                   <label className="font-semibold block">역할</label>
                   <select 
+                    id="edit-role"
                     name="role"
                     className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
                     defaultValue={selectedProfile.membership?.role || 'member'}

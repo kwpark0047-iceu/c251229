@@ -65,6 +65,8 @@ export default function SendEmailModal({
                             받는 사람 <span className="text-red-500">*</span>
                         </label>
                         <input
+                            id="email-to"
+                            name="emailTo"
                             type="email"
                             required
                             value={to}
@@ -79,6 +81,8 @@ export default function SendEmailModal({
                             제목 <span className="text-red-500">*</span>
                         </label>
                         <input
+                            id="email-subject"
+                            name="emailSubject"
                             type="text"
                             required
                             value={subject}
@@ -93,6 +97,8 @@ export default function SendEmailModal({
                             내용
                         </label>
                         <textarea
+                            id="email-body"
+                            name="emailBody"
                             rows={6}
                             value={body}
                             onChange={(e) => setBody(e.target.value)}

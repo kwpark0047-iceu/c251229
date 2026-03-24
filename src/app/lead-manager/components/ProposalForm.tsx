@@ -673,6 +673,8 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                   제안서 제목
                 </label>
                 <input
+                  id="upload-title"
+                  name="uploadTitle"
                   type="text"
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}

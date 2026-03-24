@@ -646,6 +646,8 @@ function LeadManagerContent() {
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                     <Calendar className="w-4 h-4 text-[var(--metro-line5)]" />
                     <input
+                      id="start-date"
+                      name="startDate"
                       type="date"
                       title="시작 날짜"
                       value={dateRange.start.toISOString().split('T')[0]}
@@ -654,6 +656,8 @@ function LeadManagerContent() {
                     />
                     <span className="text-[var(--text-muted)] text-xs">~</span>
                     <input
+                      id="end-date"
+                      name="endDate"
                       type="date"
                       title="종료 날짜"
                       value={dateRange.end.toISOString().split('T')[0]}
@@ -807,6 +811,8 @@ function LeadManagerContent() {
                   <div className="relative hidden sm:block">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                     <input
+                      id="lead-search-main"
+                      name="leadSearchMain"
                       ref={searchInputRef}
                       type="text"
                       placeholder="병원명, 주소, 역이름 검색... ('/' 키로 포커스)"
