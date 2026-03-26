@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, Shield, CheckCircle, XCircle, Building, 
   ChevronRight, Search, Filter, MoreHorizontal,
-  Mail, Settings, UserPlus, Trash2
+  Mail, Settings, UserPlus, Trash2, RefreshCw
 } from 'lucide-react';
 import { 
   getAllProfiles, 
@@ -19,6 +19,8 @@ interface Profile {
   fullName: string | null;
   isApproved: boolean;
   isSuperAdmin: boolean;
+  tier: string;
+  trialExpiresAt: string | null;
   createdAt: string;
   membership: {
     role: string;
@@ -33,6 +35,7 @@ export default function UserManagementView() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'PENDING'>('ALL');
+  const [tierFilter, setTierFilter] = useState<string>('ALL');
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [showOrgModal, setShowOrgModal] = useState(false);
 
@@ -61,6 +64,15 @@ export default function UserManagementView() {
     }
   };
 
+  const handleTierChange = async (userId: string, tier: string) => {
+    const result = await updateProfileStatus(userId, { tier });
+    if (result.success) {
+      loadData();
+    } else {
+      alert(result.message);
+    }
+  };
+
   const handleOrgUpdate = async (userId: string, orgId: string | null, role: any) => {
     const result = await updateUserOrganization(userId, orgId, role);
     if (result.success) {
@@ -72,13 +84,33 @@ export default function UserManagementView() {
   };
 
   const filteredProfiles = profiles.filter(p => {
+    // 최고관리자 본인은 목록에서 제외 (요청 사항: kwpark0047@gmail.com 이외)
+    if (p.email === 'kwpark0047@gmail.com') return false;
+
     const matchesSearch = p.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          (p.fullName || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || 
                          (statusFilter === 'APPROVED' && p.isApproved) || 
                          (statusFilter === 'PENDING' && !p.isApproved);
-    return matchesSearch && matchesStatus;
+    const matchesTier = tierFilter === 'ALL' || p.tier === tierFilter;
+    
+    return matchesSearch && matchesStatus && matchesTier;
   });
+
+  const getTierBadge = (tier: string) => {
+    const tierConfig: Record<string, { label: string; class: string }> = {
+      'FREE': { label: '일반(FREE)', class: 'bg-slate-100 text-slate-700 border-slate-200' },
+      'DEMO': { label: '데모(DEMO)', class: 'bg-blue-50 text-blue-700 border-blue-100' },
+      'MEDIA': { label: '매체사(MEDIA)', class: 'bg-purple-50 text-purple-700 border-purple-100' },
+      'SALES': { label: '영업(SALES)', class: 'bg-amber-50 text-amber-700 border-amber-100' },
+    };
+    const config = tierConfig[tier] || { label: tier, class: 'bg-gray-100 text-gray-700 border-gray-200' };
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${config.class}`}>
+        {config.label}
+      </span>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
@@ -109,19 +141,34 @@ export default function UserManagementView() {
           <select
             id="status-filter"
             name="statusFilter"
-            className="px-3 py-2 border rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-2 border rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500 min-w-[120px]"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
           >
-            <option value="ALL">전체 상태</option>
+            <option value="ALL">승인 상태 (전체)</option>
             <option value="APPROVED">승인 완료</option>
             <option value="PENDING">승인 대기</option>
           </select>
+          <select
+            id="tier-filter"
+            name="tierFilter"
+            className="px-3 py-2 border rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500 min-w-[140px]"
+            value={tierFilter}
+            onChange={(e) => setTierFilter(e.target.value)}
+          >
+            <option value="ALL">등급 필터 (전체)</option>
+            <option value="FREE">FREE (일반)</option>
+            <option value="DEMO">DEMO (데모)</option>
+            <option value="MEDIA">MEDIA (매체사)</option>
+            <option value="SALES">SALES (영업)</option>
+          </select>
           <button 
             onClick={loadData}
-            className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1.5 border"
+            title="데이터 새로고침"
           >
-            <Settings className="w-5 h-5" />
+            <RefreshCw className="w-4 h-4" />
+            <span className="text-xs font-medium">새로고침</span>
           </button>
         </div>
       </div>
@@ -135,13 +182,13 @@ export default function UserManagementView() {
           <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b text-slate-600 text-sm font-medium">
-                  <th className="px-6 py-4">사용자</th>
-                  <th className="px-6 py-4">소속 조직</th>
-                  <th className="px-6 py-4">역할</th>
+                <tr className="bg-slate-50 border-b text-slate-600 text-xs font-bold uppercase tracking-wider">
+                  <th className="px-6 py-4">사용자 정보</th>
+                  <th className="px-6 py-4">서비스 등급</th>
+                  <th className="px-6 py-4">소속 조직 / 역할</th>
                   <th className="px-6 py-4">승인 상태</th>
-                  <th className="px-6 py-4">가입일</th>
-                  <th className="px-6 py-4">액션</th>
+                  <th className="px-6 py-4">가입일시</th>
+                  <th className="px-6 py-4">권한 제어</th>
                 </tr>
               </thead>
               <tbody className="divide-y text-sm">
@@ -161,13 +208,30 @@ export default function UserManagementView() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">
-                      {p.membership?.organizationName || (
-                        <span className="text-slate-300 italic text-xs">소속 없음</span>
-                      )}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1.5">
+                        {getTierBadge(p.tier)}
+                        <select
+                          className="text-[10px] border-none bg-slate-100 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                          value={p.tier}
+                          onChange={(e) => handleTierChange(p.id, e.target.value)}
+                        >
+                          <option value="FREE">FREE 변경</option>
+                          <option value="DEMO">DEMO 변경</option>
+                          <option value="MEDIA">MEDIA 변경</option>
+                          <option value="SALES">SALES 변경</option>
+                        </select>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 capitalize text-slate-600">
-                      {p.membership?.role || '-'}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-slate-900 font-medium">
+                          {p.membership?.organizationName || '소속 없음'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 uppercase font-bold">
+                          {p.membership?.role || '정의되지 않음'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       {p.isApproved ? (

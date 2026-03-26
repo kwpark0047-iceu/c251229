@@ -89,10 +89,15 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     role: memberData?.role as UserInfo['role'] || null,
     inviteCode: org?.invite_code || null,
     permissions: { ...DEFAULT_PERMISSIONS, ...((memberData as any)?.permissions || {}) },
-    isApproved: user.email === 'kwpark0047@gmail.com' || ((profile?.is_approved || isSuperAdminAccount || false) && 
-                (!profile?.trial_expires_at || new Date(profile.trial_expires_at) > new Date())),
+    isApproved: 
+      user.email === 'kwpark0047@gmail.com' || 
+      (profile ? 
+        (profile.is_approved && (!profile.trial_expires_at || new Date(profile.trial_expires_at) > new Date())) :
+        // Fallback: 프로필이 아직 생성되지 않았거나 조회 실패 시 가입 시점의 metadata(tier) 확인
+        (['FREE', 'DEMO'].includes(user.user_metadata?.tier || ''))
+      ),
     isSuperAdmin: profile?.is_super_admin || isSuperAdminAccount || false,
-    tier: (profile?.tier as UserInfo['tier']) || (isSuperAdminAccount ? 'MEDIA' : null),
+    tier: (profile?.tier as UserInfo['tier']) || (user.user_metadata?.tier as UserInfo['tier']) || (isSuperAdminAccount ? 'MEDIA' : null),
     trialExpiresAt: profile?.trial_expires_at || null,
   }
 }
@@ -362,7 +367,7 @@ export async function getAllProfiles(): Promise<{
  */
 export async function updateProfileStatus(
   userId: string,
-  updates: { isApproved?: boolean; isSuperAdmin?: boolean }
+  updates: { isApproved?: boolean; isSuperAdmin?: boolean; tier?: string }
 ): Promise<{ success: boolean; message: string }> {
   const supabase = createClient();
   const currentUser = await getCurrentUser();
@@ -374,6 +379,7 @@ export async function updateProfileStatus(
   const payload: any = {};
   if (updates.isApproved !== undefined) payload.is_approved = updates.isApproved;
   if (updates.isSuperAdmin !== undefined) payload.is_super_admin = updates.isSuperAdmin;
+  if (updates.tier !== undefined) payload.tier = updates.tier;
   payload.updated_at = new Date().toISOString();
 
   const { error } = await supabase
