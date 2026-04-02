@@ -15,6 +15,7 @@ import {
   getAllUserLogs,
   getUserLogs
 } from '../../auth-service';
+import { createClient } from '@/lib/supabase/client';
 
 interface Profile {
   id: string;
@@ -42,6 +43,8 @@ export default function SuperAdminDashboard() {
   
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [isLive, setIsLive] = useState(false);
+  const [onlineUsersCount, setOnlineUsersCount] = useState(0);
   
   // Filtering States
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,10 +62,56 @@ export default function SuperAdminDashboard() {
 
   useEffect(() => {
     loadData();
+    
+    // 실시간 구독 설정 (Realtime + Presence)
+    const supabase = createClient();
+    const channel = supabase
+      .channel('admin-profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE 모두 감지
+          schema: 'public',
+          table: 'profiles'
+        },
+        (payload: any) => {
+          console.log('Realtime update received:', payload);
+          setIsLive(true);
+          loadData();
+          // 2초 후 라이브 표시 초기화
+          setTimeout(() => setIsLive(false), 2000);
+        }
+      )
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const count = Object.keys(state).length;
+        setOnlineUsersCount(count || 1); // 현재 본인 포함
+      })
+      .on('presence', { event: 'join' }, ({ newPresences }: { newPresences: any[] }) => {
+        console.log('New users joined:', newPresences);
+      })
+      .on('presence', { event: 'leave' }, ({ leftPresences }: { leftPresences: any[] }) => {
+        console.log('Users left:', leftPresences);
+      })
+      .subscribe(async (status: string) => {
+        if (status === 'SUBSCRIBED') {
+          // Presence에 자신을 등록
+          await channel.track({
+            user_id: 'admin-' + Math.random().toString(36).substring(7),
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const loadData = async () => {
-    setLoading(true);
+    // 최초 로딩 시에만 스피너 표시
+    if (profiles.length === 0) setLoading(true);
+    
     const [pResult, oData] = await Promise.all([
       getAllProfiles(),
       getAllOrganizations()
@@ -91,6 +140,7 @@ export default function SuperAdminDashboard() {
     if (!confirm(isApproved ? '이 사용자를 승인하시겠습니까?' : '승인을 취소하시겠습니까?')) return;
     const result = await updateProfileStatus(userId, { isApproved });
     if (result.success) {
+      // Realtime에서 처리되지만 즉시 반영을 위해 호출 가능
       loadData();
     } else {
       alert(result.message);
@@ -131,51 +181,119 @@ export default function SuperAdminDashboard() {
   });
 
   // KPI Metrics
-  const totalUsers = profiles.length;
-  const pendingUsers = profiles.filter(p => !p.isApproved).length;
-  const demoUsers = profiles.filter(p => p.tier === 'DEMO').length;
+  const allMembersCount = profiles.length;
+  const registeredUsersCount = profiles.filter(p => p.tier !== null).length;
+  const pendingUsersCount = profiles.filter(p => !p.isApproved).length;
+  const demoUsersCount = profiles.filter(p => p.tier === 'DEMO').length;
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
       {/* 최고 관리자 헤더 */}
-      <div className="bg-slate-900 px-8 py-8 text-white grid gap-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-3">
-            <Shield className="w-7 h-7 text-indigo-400" />
-            최고 관리자 대시보드 (Super Admin)
-          </h1>
-          <p className="text-slate-400 mt-2 text-sm">
-            시스템 내 모든 사용자의 계정 승인, 조직 권한을 관리하고 활동 내역을 감사(Audit)합니다.
-          </p>
+      <div className="bg-slate-900 px-8 py-8 text-white grid gap-6 relative overflow-hidden">
+        {/* 배경 장식 (Antigravity 느낌) */}
+        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-700"></div>
+
+        <div className="relative z-10 flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-3">
+              <Shield className="w-7 h-7 text-indigo-400" />
+              최고 관리자 대시보드 <span className="text-slate-500 font-normal">Super Admin</span>
+            </h1>
+            <p className="text-slate-400 mt-2 text-sm max-w-2xl">
+              시스템 내 모든 사용자의 계정 승인, 조직 권한을 관리하고 활동 내역을 실시간으로 모니터링합니다.
+            </p>
+          </div>
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 ${
+            isLive ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-500 animate-ping' : 'bg-slate-600'}`}></span>
+            <span className="text-xs font-bold uppercase tracking-widest">{isLive ? 'Live Syncing' : 'Realtime Active'}</span>
+          </div>
         </div>
 
-        {/* 핵심 KPI 카드 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl flex items-center gap-4 animate-float-subtle shadow-lg shadow-blue-500/5">
-            <div className="p-3 bg-blue-500/20 text-blue-400 rounded-lg">
-              <Users className="w-6 h-6" />
+        {/* 핵심 KPI 카드 - 5대 지표 고도화 */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 relative z-10">
+          <div className="group bg-slate-800/40 backdrop-blur-md border border-slate-700/50 p-5 rounded-2xl flex flex-col gap-3 animate-float shadow-2xl hover:bg-slate-800/60 transition-all hover:border-blue-500/30 hover:shadow-blue-500/10">
+            <div className="flex justify-between items-start">
+              <div className="p-3 bg-blue-500/20 text-blue-400 rounded-xl group-hover:scale-110 transition-transform shadow-inner">
+                <Users className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full font-bold">TOTAL</span>
             </div>
             <div>
-              <p className="text-slate-400 text-sm font-medium">총 가입 회원</p>
-              <h3 className="text-2xl font-bold">{totalUsers}명</h3>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">모든 회원</p>
+              <div className="flex items-baseline gap-1">
+                <h3 className="text-2xl font-black">{allMembersCount.toLocaleString()}</h3>
+                <span className="text-xs font-medium text-slate-500">명</span>
+              </div>
             </div>
           </div>
-          <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl flex items-center gap-4 animate-float-subtle delay-100 shadow-lg shadow-amber-500/5">
-            <div className="p-3 bg-amber-500/20 text-amber-400 rounded-lg">
-              <UserCheck className="w-6 h-6" />
+
+          <div className="group bg-slate-800/40 backdrop-blur-md border border-slate-700/50 p-5 rounded-2xl flex flex-col gap-3 animate-float delay-100 shadow-2xl hover:bg-slate-800/60 transition-all hover:border-emerald-500/30 hover:shadow-emerald-500/10">
+            <div className="flex justify-between items-start">
+              <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl group-hover:scale-110 transition-transform shadow-inner">
+                <Activity className="w-5 h-5 animate-pulse" />
+              </div>
+              <span className="flex items-center gap-1 text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
+                ACTIVE
+              </span>
             </div>
             <div>
-              <p className="text-slate-400 text-sm font-medium">승인 대기 회원</p>
-              <h3 className="text-2xl font-bold text-amber-400">{pendingUsers}명</h3>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">현재 사용자계정</p>
+              <div className="flex items-baseline gap-1">
+                <h3 className="text-2xl font-black text-emerald-400">{onlineUsersCount.toLocaleString()}</h3>
+                <span className="text-xs font-medium text-slate-500">명</span>
+              </div>
             </div>
           </div>
-          <div className="bg-slate-800/50 border border-slate-700 p-4 rounded-xl flex items-center gap-4 animate-float-subtle delay-200 shadow-lg shadow-purple-500/5">
-            <div className="p-3 bg-purple-500/20 text-purple-400 rounded-lg">
-              <Calendar className="w-6 h-6" />
+
+          <div className="group bg-slate-800/40 backdrop-blur-md border border-slate-700/50 p-5 rounded-2xl flex flex-col gap-3 animate-float delay-200 shadow-2xl hover:bg-slate-800/60 transition-all hover:border-indigo-500/30 hover:shadow-indigo-500/10">
+            <div className="flex justify-between items-start">
+              <div className="p-3 bg-indigo-500/20 text-indigo-400 rounded-xl group-hover:scale-110 transition-transform shadow-inner">
+                <Shield className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full font-bold">REGS</span>
             </div>
             <div>
-              <p className="text-slate-400 text-sm font-medium">데모 체험 회원</p>
-              <h3 className="text-2xl font-bold text-purple-400">{demoUsers}명</h3>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">총 가입회원</p>
+              <div className="flex items-baseline gap-1">
+                <h3 className="text-2xl font-black">{registeredUsersCount.toLocaleString()}</h3>
+                <span className="text-xs font-medium text-slate-500">명</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="group bg-slate-800/40 backdrop-blur-md border border-slate-700/50 p-5 rounded-2xl flex flex-col gap-3 animate-float delay-300 shadow-2xl hover:bg-slate-800/60 transition-all hover:border-amber-500/30 hover:shadow-amber-500/10">
+            <div className="flex justify-between items-start">
+              <div className="p-3 bg-amber-500/20 text-amber-400 rounded-xl group-hover:scale-110 transition-transform shadow-inner">
+                <UserCheck className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full font-bold">WAITING</span>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">승인 대기 회원</p>
+              <div className="flex items-baseline gap-1">
+                <h3 className="text-2xl font-black text-amber-400">{pendingUsersCount.toLocaleString()}</h3>
+                <span className="text-xs font-medium text-slate-500">명</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="group bg-slate-800/40 backdrop-blur-md border border-slate-700/50 p-5 rounded-2xl flex flex-col gap-3 animate-float delay-450 shadow-2xl hover:bg-slate-800/60 transition-all hover:border-purple-500/30 hover:shadow-purple-500/10">
+            <div className="flex justify-between items-start">
+              <div className="p-3 bg-purple-500/20 text-purple-400 rounded-xl group-hover:scale-110 transition-transform shadow-inner">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full font-bold">DEMO</span>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">데모 체험 회원</p>
+              <div className="flex items-baseline gap-1">
+                <h3 className="text-2xl font-black text-purple-400">{demoUsersCount.toLocaleString()}</h3>
+                <span className="text-xs font-medium text-slate-500">명</span>
+              </div>
             </div>
           </div>
         </div>

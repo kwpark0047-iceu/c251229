@@ -13,6 +13,7 @@ import {
 } from '../auth-service';
 import RoleGuard from '@/components/RoleGuard';
 import { applyThemeVariables, ThemeType } from '../utils/design-tokens';
+import SuperAdminDashboard from '../components/admin/SuperAdminDashboard';
 
 interface ActivityLog {
     id: string;
@@ -134,6 +135,22 @@ export default function AdminDashboardPage() {
             alert('역할 변경 실패: ' + result.message);
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                    <p className="text-slate-500 font-medium">관리자 데이터 로딩 중...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // 슈퍼 어드민인 경우 전용 대시보드 표시
+    if (currentUser?.isSuperAdmin) {
+        return <SuperAdminDashboard />;
+    }
 
     return (
         <RoleGuard allowedRoles={['owner', 'admin']}>

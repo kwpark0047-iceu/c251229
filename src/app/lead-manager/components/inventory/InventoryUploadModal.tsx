@@ -203,6 +203,36 @@ export default function InventoryUploadModal({
             </ul>
           </div>
 
+          {/* 상태 판별 기준 안내 (신규 추가) */}
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+              <h3 className="text-sm font-semibold text-amber-800">
+                인벤토리 상태 자동 판별 기준
+              </h3>
+            </div>
+            <p className="text-xs text-amber-700 mb-3 leading-relaxed">
+              업로드 시점 <strong>오늘 기준 15일 후</strong>의 날짜 컬럼 데이터를 분석하여 상태를 결정합니다.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="flex flex-col items-center p-2 bg-white rounded border border-amber-100">
+                <div className="w-4 h-4 rounded-full bg-pink-400 mb-1" />
+                <span className="text-[10px] font-bold text-slate-700">분홍색</span>
+                <span className="text-[10px] text-pink-600">사용중</span>
+              </div>
+              <div className="flex flex-col items-center p-2 bg-white rounded border border-amber-100">
+                <div className="w-4 h-4 rounded-full bg-yellow-300 mb-1" />
+                <span className="text-[10px] font-bold text-slate-700">노란형광</span>
+                <span className="text-[10px] text-amber-600">예약중</span>
+              </div>
+              <div className="flex flex-col items-center p-2 bg-white rounded border border-amber-100">
+                <div className="w-4 h-4 rounded-full bg-slate-100 border border-slate-200 mb-1" />
+                <span className="text-[10px] font-bold text-slate-700">공란</span>
+                <span className="text-[10px] text-green-600">사용가능</span>
+              </div>
+            </div>
+          </div>
+
           {/* 진행 상태 */}
           {uploading && (
             <div className="space-y-2">

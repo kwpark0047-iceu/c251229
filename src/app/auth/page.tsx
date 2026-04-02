@@ -15,7 +15,7 @@ function getErrorMessage(error: Error | unknown): string {
     return '서버 설정 오류입니다. 관리자에게 문의해주세요.'
   }
   if (message.includes('User already registered')) {
-    return '이미 등록된 이메일입니다.'
+    return '이미 등록된 이메일입니다. 해당 이메일로 로그인을 시도해 주세요.'
   }
   if (message.includes('Invalid login credentials')) {
     return '이메일 또는 비밀번호가 올바르지 않습니다.'
@@ -189,12 +189,21 @@ function AuthContent() {
           data: {
             tier,
             full_name: email.split('@')[0], // 기본 이름 설정
+            org_name: orgName || `${email.split('@')[0]}의 조직`, // 트리거에서 조직 생성 시 사용
           }
         },
       })
-
+      
       if (signUpError) {
-        setError(getErrorMessage(signUpError))
+        const errorMsg = getErrorMessage(signUpError)
+        // 중복 이메일 에러 발생 시 자동으로 로그인 모드로 전환
+        if (errorMsg.includes('이미 등록된 이메일')) {
+          setMode('login')
+          setError(null)
+          setMessage('이미 등록된 계정입니다. 해당 이메일로 로그인을 진행해 주세요.')
+        } else {
+          setError(errorMsg)
+        }
         setLoading(false)
         return
       }
@@ -205,34 +214,12 @@ function AuthContent() {
         return
       }
 
-      const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .insert({ name: orgName || `${email.split('@')[0]}의 조직` })
-        .select()
-        .single()
-
-      if (orgError) {
-        console.error('조직 생성 오류:', orgError)
-        setError(getErrorMessage(orgError))
-        setLoading(false)
-        return
-      }
-
-      const { error: memberError } = await supabase
-        .from('organization_members')
-        .insert({
-          organization_id: orgData.id,
-          user_id: authData.user.id,
-          role: 'owner',
-        })
-
-      if (memberError) {
-        console.error('멤버 추가 오류:', memberError)
-      }
+      // [중요] 조직 및 멤버십 생성은 이제 DB 트리거(handle_new_user)가 담당함
+      // 클라이언트 사이드 INSERT는 RLS 충돌 위험이 있어 제거됨
 
       const approvalMessage = (tier === 'MEDIA' || tier === 'SALES') 
-        ? '회원가입 신청이 완료되었습니다. 관리자 승인 후 이용 가능합니다. 이메일을 확인해주세요.'
-        : '회원가입이 완료되었습니다. 이메일을 확인해주세요.';
+        ? '회원가입 신청이 완료되었습니다. 관리자 승인 후 이용 가능합니다. 전송된 인증 메일을 확인해주세요.'
+        : '회원가입이 성공적으로 완료되었습니다. 전송된 인증 메일을 확인하신 후 로그인해 주세요.';
         
       setMessage(approvalMessage)
       setLoading(false)

@@ -17,6 +17,7 @@ import {
 import { calculateDistance } from './utils';
 import { SUBWAY_STATIONS } from './constants';
 import { getOrganizationId } from './auth-service';
+import { mapColorToStatus, findTargetDateColumnIndex } from './utils/excel-color-utils';
 
 // ============================================
 // 엑셀 파싱 및 업로드
@@ -39,7 +40,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
   // CSV는 별도의 매직 넘버가 없으므로 PK(xlsx)나 CF(xls)가 아니면 
   // 일단 XLSX(SheetJS) 라이브러리가 자동 감지하여 처리하도록 시도합니다.
 
-  let rawData: any[][] = [];
+  let rawData: any[] = [];
 
   try {
     if (isXlsx) {
@@ -48,11 +49,78 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
       await workbook.xlsx.load(buffer);
       const worksheet = workbook.worksheets[0];
 
-      worksheet.eachRow((row) => {
-        const values = row.values as any[];
-        // ExcelJS는 1-indexed 배열을 반환하므로 첫 번째 요소(undefined) 제거
-        rawData.push(values.slice(1));
+      // 오늘 날짜 기준 15일 후 계산
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + 15);
+
+      // 헤더 행 찾기
+      let headerRowIndex = -1;
+      let headers: string[] = [];
+      let targetColumnIndex = -1; // 15일 후 날짜 컬럼 인덱스 (1-based)
+
+      worksheet.eachRow((row, rowNumber) => {
+        if (headerRowIndex === -1 && rowNumber <= 10) {
+          const values = row.values as any[];
+          const rowStr = values.join(',').toLowerCase();
+          if (rowStr.includes('역사') || rowStr.includes('역명')) {
+            headerRowIndex = rowNumber;
+            headers = values.slice(1).map(v => String(v || '').trim());
+            
+            // 날짜 컬럼 찾기
+            targetColumnIndex = findTargetDateColumnIndex(headers, targetDate) + 1; // getCell은 1-based
+          }
+        }
       });
+
+      if (headerRowIndex === -1) {
+        headerRowIndex = 1;
+        headers = (worksheet.getRow(1).values as any[]).slice(1).map(v => String(v || '').trim());
+        targetColumnIndex = findTargetDateColumnIndex(headers, targetDate) + 1;
+      }
+
+      // 데이터 추출
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber > headerRowIndex) {
+          const obj: Record<string, any> = {};
+          const values = row.values as any[];
+
+          headers.forEach((header, idx) => {
+            if (header && values[idx + 1] !== undefined) {
+              obj[header] = values[idx + 1];
+            }
+          });
+
+          // 색상 기반 상태 분석 (사용자 요청 사항)
+          if (targetColumnIndex > 0) {
+            const targetCell = row.getCell(targetColumnIndex);
+            
+            // 셀이 비어있는지 확인
+            const isBlank = !targetCell.value || String(targetCell.value).trim() === '';
+            
+            if (isBlank) {
+              // 15일 이후 공란은 '사용가능'
+              obj['_status_override'] = 'AVAILABLE';
+            } else {
+              // 배경색 추출 (ExcelJS: fill.fgColor.argb)
+              let argb: string | undefined;
+              const fill = targetCell.fill;
+              if (fill && fill.type === 'pattern' && fill.fgColor && fill.fgColor.argb) {
+                argb = fill.fgColor.argb;
+              }
+              
+              // 색상 매핑 (노랑: RESERVED, 분홍: OCCUPIED)
+              obj['_status_override'] = mapColorToStatus(argb);
+            }
+          }
+
+          if (Object.keys(obj).length > 0) {
+            rawData.push(obj);
+          }
+        }
+      });
+
+      // 이미 객체화 되었으므로 rwaData 포맷 플래그 설정
+      (rawData as any).isObjectMapped = true;
     } else {
       // .xls, .csv 및 기타 형식 처리 (SheetJS 사용)
       let workbook;
@@ -85,7 +153,44 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
     throw new Error('파일을 파싱하는 중 오류가 발생했습니다. 올바른 엑셀 또는 CSV 파일인지 확인해주세요.');
   }
 
-  // 헤더 행 찾기 (역사, 유형, 위치명 등이 포함된 행)
+  // 이미 객체화 된 경우 (ExcelJS 경로)
+  if ((rawData as any).isObjectMapped) {
+    return rawData.map(row => {
+      const getVal = (keys: string[]) => {
+        for (const k of keys) {
+          if ((row as any)[k]) return String((row as any)[k]).trim();
+        }
+        return '';
+      };
+
+      const stationName = getVal(['역사', '역명', 'station_name']);
+      const locationCode = getVal(['위치명', '위치코드', 'location_code']);
+      const adType = getVal(['유형', '광고유형', 'ad_type']) || defaultMediaType || '';
+      const line = getVal(['호선']);
+      const grade = getVal(['등급']);
+      const memo = getVal(['메모', '설명', 'description']);
+
+      const statusValue = (row as any)._status_override || 'AVAILABLE';
+
+      const descParts = [];
+      if (line) descParts.push(`${line}호선`);
+      if (grade) descParts.push(`${grade}등급`);
+      if (memo) descParts.push(memo);
+
+      return {
+        stationName,
+        locationCode,
+        adType,
+        adSize: getVal(['크기(mm)', '크기', 'ad_size']) || undefined,
+        priceMonthly: parseFloat(String(getVal(['단가(월)', '월단가'])).replace(/,/g, '')) || undefined,
+        priceWeekly: parseFloat(String(getVal(['단가(주)', '주단가'])).replace(/,/g, '')) || undefined,
+        availabilityStatus: statusValue as AvailabilityStatus,
+        description: descParts.length > 0 ? descParts.join(' / ') : undefined,
+      };
+    });
+  }
+
+  // 기존 헤더 찾기 로직 (CSV/XLS 용)
   let headerRowIndex = -1;
   let headers: string[] = [];
 
@@ -93,7 +198,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
     const row = rawData[i];
     if (!row || !Array.isArray(row)) continue;
 
-    const rowStr = row.map(cell => String(cell || '').toLowerCase()).join(',');
+    const rowStr = row.map((cell: any) => String(cell || '').toLowerCase()).join(',');
     // 역사, 유형, 위치명, 단가 중 2개 이상 포함하면 헤더 행
     const hasStation = rowStr.includes('역사') || rowStr.includes('역명');
     const hasType = rowStr.includes('유형') || rowStr.includes('광고유형');
@@ -102,7 +207,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
 
     if ((hasStation && hasType) || (hasStation && hasLocation) || (hasType && hasLocation) || (hasStation && hasPrice)) {
       headerRowIndex = i;
-      headers = row.map(cell => String(cell || '').trim());
+      headers = row.map((cell: any) => String(cell || '').trim());
       // 헤더 발견
       break;
     }
@@ -111,7 +216,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
   if (headerRowIndex === -1) {
     console.error('헤더 행을 찾을 수 없습니다. 첫 번째 행을 헤더로 사용합니다.');
     headerRowIndex = 0;
-    headers = (rawData[0] || []).map(cell => String(cell || '').trim());
+    headers = (rawData[0] || []).map((cell: any) => String(cell || '').trim());
   }
 
   // 헤더 이후의 데이터를 객체 배열로 변환
