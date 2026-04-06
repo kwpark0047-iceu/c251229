@@ -12,9 +12,13 @@ import {
   Train,
   Building2,
   Target,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  MousePointer2
 } from 'lucide-react';
 import ThemeToggle from '@/components/ThemeToggle';
+import AiRecommendWidget from '@/components/AiRecommendWidget';
+import SubwayNetworkMap from '@/components/SubwayNetworkMap';
 
 export default function Home() {
   const features = [
@@ -22,244 +26,136 @@ export default function Home() {
     { icon: MapPin, title: '위치 기반 분석', description: '지하철역 인근 병원, 상가 정보를 지도에서 한눈에 확인', color: '#00A84D' },
     { icon: Phone, title: '통화 기록', description: '고객별 통화 이력과 메모를 기록하고 팔로업 관리', color: '#EF7C1C' },
     { icon: BarChart3, title: '영업 현황', description: '영업 파이프라인과 성과를 시각적으로 분석', color: '#9B6DD6' },
-    { icon: Shield, title: '안전한 데이터', description: '조직별 데이터 분리와 역할 기반 접근 제어', color: '#E6186C' },
-    { icon: Zap, title: '실시간 동기화', description: '팀원들과 실시간으로 데이터를 공유하고 협업', color: '#00A5DE' }
-  ];
-
-  const steps = [
-    { step: 1, icon: Target, title: '리드 발굴', desc: '지역 데이터 API로 잠재 고객을 자동 수집', color: '#00A5DE' },
-    { step: 2, icon: Building2, title: '영업 관리', desc: '상태 추적, 통화 기록, 메모로 체계적 관리', color: '#00A84D' },
-    { step: 3, icon: BarChart3, title: '성과 분석', desc: '파이프라인 분석으로 전환율 향상', color: '#EF7C1C' },
   ];
 
   const stats = [
-    { value: '서울교통공사', label: '광고 매체', color: '#00A5DE' },
-    { value: '한국철도공사', label: '광고 매체', color: '#003DA5' },
-    { value: '300+', label: '지하철역', color: '#00A84D' },
-    { value: '실시간', label: '데이터 동기화', color: '#EF7C1C' },
-    { value: '100%', label: '클라우드 기반', color: '#9B6DD6' },
+    { value: '서울교통공사', label: '공식 광고 매체', color: '#00A5DE' },
+    { value: '300+', label: '지하철 역사 데이터', color: '#00A84D' },
+    { value: 'AI 자동화', label: '광고주 맞춤 추천', color: '#EF7C1C' },
+    { value: '실시간', label: '유동인구 분석', color: '#9B6DD6' },
   ];
 
   return (
-    <div style={{ minHeight: '100vh', width: '100%', background: 'var(--bg-primary)' }}>
-      {/* 네비게이션 */}
-      <nav style={{
-        width: '100%',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--border-subtle)',
-        background: 'var(--glass-bg)'
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxSizing: 'border-box'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(0, 165, 222, 0.3)'
-            }}>
-              <Train size={20} color="white" />
+    <div className="min-h-screen w-full bg-void overflow-x-hidden">
+      {/* 프리미엄 네비게이션 */}
+      <nav className="header-blur sticky top-0 z-50 border-b border-white/5">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <Train size={22} className="text-white" />
             </div>
-            <span style={{ fontWeight: 700, fontSize: '20px', color: 'var(--text-primary)' }}>
-              위마켓
+            <span className="font-display text-2xl tracking-tight text-white group-hover:text-blue-400 transition-colors">
+              WE MARKET
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <ThemeToggle />
-            <Link
-              href="/auth"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 20px',
-                borderRadius: '12px',
-                fontWeight: 500,
-                background: 'var(--bg-tertiary)',
-                color: 'var(--text-primary)',
-                textDecoration: 'none'
-              }}
-            >
-              로그인
-              <ChevronRight size={16} />
-            </Link>
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex gap-8 text-sm font-medium text-gray-400">
+              <Link href="#features" className="hover:text-blue-400 transition-colors">기능소개</Link>
+              <Link href="#subway-map" className="hover:text-blue-400 transition-colors">실시간 데이터</Link>
+              <Link href="#ai-recommend" className="hover:text-blue-400 transition-colors">AI 추천</Link>
+            </div>
+            <div className="h-6 w-px bg-white/10 hidden md:block" />
+            <div className="flex items-center gap-4">
+              <ThemeToggle />
+              <Link
+                href="/auth"
+                className="metro-btn-ghost px-5 py-2 text-sm flex items-center gap-2 group"
+              >
+                관리자 로그인
+                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* 히어로 섹션 */}
-      <section style={{
-        width: '100%',
-        padding: '60px 16px',
-        textAlign: 'center',
-        background: 'linear-gradient(180deg, rgba(0,165,222,0.05) 0%, transparent 100%)',
-        boxSizing: 'border-box'
-      }}>
-        <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto' }}>
-          {/* 호선 배지 */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', marginBottom: '32px' }}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((line) => (
-              <div
-                key={line}
-                className={`line-badge line-badge-${line}`}
-                style={{ fontSize: '12px', minWidth: '28px', height: '28px' }}
-              >
-                {line}
-              </div>
-            ))}
+      {/* 히어로 섹션 (Antigravity Zero-G) */}
+      <section className="relative pt-24 pb-32 px-6 overflow-hidden">
+        {/* 배경 애니메이션 오브 */}
+        <div className="gradient-orb orb-green top-20 -left-40 w-[500px] h-[500px] opacity-20 animate-pulse" />
+        <div className="gradient-orb orb-blue bottom-0 -right-40 w-[600px] h-[600px] opacity-10" />
+        
+        <div className="max-w-5xl mx-auto text-center relative z-10">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-semibold mb-8 animate-fade-in-down">
+            <Sparkles size={16} />
+            AI 기반 데이터 플랫폼 위마켓 2.0 정식 출시
           </div>
-
-          {/* 메인 타이틀 */}
-          <h1 style={{
-            fontSize: 'clamp(28px, 5vw, 52px)',
-            fontWeight: 700,
-            marginBottom: '20px',
-            lineHeight: 1.3,
-            color: 'var(--text-primary)'
-          }}>
-            <span className="text-gradient-accent">당신에게 맞는</span> 광고를
-            <br />확인하세요
+          
+          <h1 className="text-display-lg mb-8 animate-fade-in-up">
+            지하철 광고의 표준,<br />
+            <span className="text-gradient-metro">데이터로 증명합니다.</span>
           </h1>
-
-          {/* 서브 타이틀 */}
-          <p style={{
-            fontSize: 'clamp(14px, 3vw, 18px)',
-            marginBottom: '32px',
-            lineHeight: 1.7,
-            color: 'var(--text-secondary)'
-          }}>
-            당신에게 맞는 광고매체를 찾아드리고 매칭하겠습니다.
+          
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed animate-fade-in-up delay-100">
+            서울교통공사 실시간 유동인구와 업종별 타겟 분석을 바탕으로 <br />
+            당신의 비즈니스에 가장 완벽한 지하철 광고를 추천합니다.
           </p>
 
-          {/* CTA 버튼 */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px' }}>
-            <Link
-              href="/contact"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '14px 28px',
-                borderRadius: '12px',
-                fontWeight: 600,
-                fontSize: '16px',
-                color: 'white',
-                background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-                boxShadow: '0 8px 24px rgba(0, 165, 222, 0.3)',
-                textDecoration: 'none'
-              }}
-            >
-              AI자동추천
-              <ArrowRight size={18} />
+          <div className="flex flex-wrap justify-center gap-6 animate-fade-in-up delay-200">
+            <Link href="#ai-recommend" className="metro-btn-primary px-10 py-5 text-lg group">
+              AI 자동 추천 시작하기
+              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              href="/lead-manager"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '14px 28px',
-                borderRadius: '12px',
-                fontWeight: 600,
-                fontSize: '16px',
-                color: 'var(--text-primary)',
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-subtle)',
-                textDecoration: 'none'
-              }}
-            >
-              데모 보기
+            <Link href="/contact" className="glass-card flex items-center gap-3 px-10 py-5 text-lg font-semibold text-white hover:bg-white/5 border border-white/10">
+              광고 매체 문의
+              <MousePointer2 size={18} className="text-blue-400" />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* 통계 섹션 */}
-      <section style={{ width: '100%', padding: '40px 16px', boxSizing: 'border-box' }}>
-        <div style={{
-          maxWidth: '900px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '24px',
-          borderRadius: '16px',
-          background: 'var(--bg-secondary)',
-          border: '1px solid var(--border-subtle)',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-          gap: '16px',
-          boxSizing: 'border-box'
-        }}>
-          {stats.map((stat, index) => (
-            <div key={index} style={{ textAlign: 'center', padding: '8px' }}>
-              <div style={{ fontSize: 'clamp(14px, 3vw, 20px)', fontWeight: 700, marginBottom: '4px', color: stat.color, whiteSpace: 'nowrap' }}>
-                {stat.value}
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                {stat.label}
-              </div>
+      {/* 통계 섹션 (Floating Cards) */}
+      <section className="max-w-7xl mx-auto px-6 -mt-16 relative z-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {stats.map((stat, i) => (
+            <div key={i} className="glass-card p-8 animate-float-subtle" style={{ animationDelay: `${i * 150}ms` }}>
+              <div className="text-3xl font-black mb-2" style={{ color: stat.color }}>{stat.value}</div>
+              <div className="text-sm font-bold text-gray-500 uppercase tracking-widest">{stat.label}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 기능 섹션 */}
-      <section style={{ width: '100%', padding: '48px 16px', boxSizing: 'border-box' }}>
-        <div style={{ maxWidth: '1000px', width: '100%', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>
-              강력한 기능
-            </h2>
-            <p style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>
-              지하철 광고 영업에 필요한 모든 도구를 한 곳에서
-            </p>
+      {/* 스마트 노선도 섹션 */}
+      <section id="subway-map" className="pt-32 pb-20">
+        <SubwayNetworkMap />
+      </section>
+
+      {/* AI 추천 위젯 섹션 (핵심 영역) */}
+      <section id="ai-recommend" className="py-24 bg-gradient-to-b from-transparent via-blue-500/5 to-transparent">
+        <div className="max-w-4xl mx-auto text-center mb-12 px-6">
+          <h2 className="text-display text-4xl mb-4 text-white">데이터가 말해주는 최적의 위치</h2>
+          <p className="text-gray-400">간단한 정보 입력만으로 서울교통공사 1-8호선의 수만 가지 데이터 중 <br />귀하의 업체에 가장 적합한 TOP 2 역사를 제안합니다.</p>
+        </div>
+        <AiRecommendWidget />
+      </section>
+
+      {/* 기능 하이라이트 */}
+      <section id="features" className="py-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8">
+            <div className="max-w-xl">
+              <h2 className="text-display text-4xl mb-4 text-white">압도적인 비즈니스 툴</h2>
+              <p className="text-gray-400 text-lg">단순한 광고 집행을 넘어, 영업 파이프라인 관리와 성과 분석까지 하나의 플랫폼에서 해결하세요.</p>
+            </div>
+            <div className="text-blue-400 font-bold flex items-center gap-2 cursor-pointer hover:underline">
+              모든 기능 상세히 보기 <ArrowRight size={18} />
+            </div>
           </div>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '16px'
-          }}>
-            {features.map((feature) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, i) => (
               <div
                 key={feature.title}
-                style={{
-                  padding: '24px',
-                  borderRadius: '16px',
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-subtle)'
-                }}
+                className="glass-card-elevated p-8 group hover:scale-[1.03] transition-transform duration-500"
               >
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: '16px',
-                  background: `${feature.color}20`
-                }}>
-                  <feature.icon size={24} color={feature.color} />
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-8" style={{ background: `${feature.color}15` }}>
+                  <feature.icon size={28} style={{ color: feature.color }} />
                 </div>
-                <h3 style={{ fontSize: '17px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-primary)' }}>
+                <h3 className="text-xl font-bold mb-4 text-white group-hover:text-blue-400 transition-colors">
                   {feature.title}
                 </h3>
-                <p style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+                <p className="text-gray-400 leading-relaxed">
                   {feature.description}
                 </p>
               </div>
@@ -268,154 +164,43 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 워크플로우 섹션 */}
-      <section style={{ width: '100%', padding: '48px 16px', background: 'var(--bg-secondary)', boxSizing: 'border-box' }}>
-        <div style={{ maxWidth: '900px', width: '100%', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-            <h2 style={{ fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>
-              간단한 3단계
-            </h2>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '32px'
-          }}>
-            {steps.map((item) => (
-              <div key={item.step} style={{ textAlign: 'center' }}>
-                <div style={{
-                  width: '72px',
-                  height: '72px',
-                  borderRadius: '18px',
-                  margin: '0 auto 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  position: 'relative',
-                  background: `${item.color}15`,
-                  border: `2px solid ${item.color}30`
-                }}>
-                  <item.icon size={28} color={item.color} />
-                  <div style={{
-                    position: 'absolute',
-                    top: '-8px',
-                    right: '-8px',
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    fontWeight: 700,
-                    fontSize: '13px',
-                    background: item.color
-                  }}>
-                    {item.step}
-                  </div>
-                </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--text-primary)' }}>
-                  {item.title}
-                </h3>
-                <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                  {item.desc}
-                </p>
-              </div>
-            ))}
+      {/* 최종 CTA */}
+      <section className="py-32 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-blue-600/5 backdrop-blur-3xl" />
+        <div className="max-w-4xl mx-auto glass-card p-16 text-center animate-float relative z-10 border-blue-500/20">
+          <h2 className="text-display text-4xl mb-6 text-white">서울교통공사 공식 광고 대행 시스템</h2>
+          <p className="text-xl text-gray-400 mb-10">귀하의 브랜드 가치를 올바른 장소에서 증명하세요.</p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link href="/contact" className="metro-btn-primary px-12 py-5 text-lg">
+              광고 상담 받기
+            </Link>
+            <Link href="/auth" className="metro-btn-ghost px-12 py-5 text-lg border border-white/10">
+              이미 계정이 있으신가요?
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* CTA 섹션 */}
-      <section style={{ width: '100%', padding: '60px 16px', boxSizing: 'border-box' }}>
-        <div style={{
-          maxWidth: '560px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '40px 24px',
-          borderRadius: '20px',
-          textAlign: 'center',
-          background: 'linear-gradient(135deg, rgba(0, 165, 222, 0.1) 0%, rgba(0, 168, 77, 0.1) 100%)',
-          border: '1px solid rgba(0, 165, 222, 0.2)',
-          boxSizing: 'border-box'
-        }}>
-          <h2 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 700, marginBottom: '12px', color: 'var(--text-primary)' }}>
-            광고 문의하기
-          </h2>
-          <p style={{ fontSize: '15px', marginBottom: '24px', color: 'var(--text-secondary)' }}>
-            서울교통공사 지하철 광고에 대해 문의해 주세요.
-          </p>
-          <Link
-            href="/contact"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '14px 28px',
-              borderRadius: '12px',
-              fontWeight: 600,
-              fontSize: '16px',
-              color: 'white',
-              background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-              boxShadow: '0 8px 24px rgba(0, 165, 222, 0.3)',
-              textDecoration: 'none'
-            }}
-          >
-            광고문의하기
-            <ArrowRight size={18} />
-          </Link>
-        </div>
-      </section>
-
-      {/* 푸터 */}
-      <footer style={{
-        width: '100%',
-        padding: '24px 16px',
-        borderTop: '1px solid var(--border-subtle)',
-        boxSizing: 'border-box'
-      }}>
-        <div style={{
-          maxWidth: '1000px',
-          width: '100%',
-          margin: '0 auto',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '16px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '6px',
-              background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Train size={14} color="white" />
+      {/* 푸터 (Anchored) */}
+      <footer className="footer-copyright py-12 border-t border-white/5 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <Train size={16} className="text-blue-400" />
             </div>
-            <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)' }}>
-              위마켓
-            </span>
+            <span className="font-display text-lg text-white">WE MARKET</span>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((line) => (
-              <div
-                key={line}
-                className={`line-badge line-badge-${line}`}
-                style={{ fontSize: '8px', minWidth: '16px', height: '16px', opacity: 0.6 }}
-              >
-                {line}
+          
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(l => (
+              <div key={l} className={`line-badge line-badge-${l} opacity-40 hover:opacity-100 transition-opacity`}>
+                {l}
               </div>
             ))}
           </div>
 
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            © 2024 Seoul Metro Advertising Platform
+          <p className="text-sm text-gray-500">
+            © 2026 WeMarket Platform for Seoul Metro Advertising. All rights reserved.
           </p>
         </div>
       </footer>
