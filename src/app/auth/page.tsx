@@ -92,6 +92,7 @@ function AuthContent() {
   const redirect = searchParams.get('redirect') || '/lead-manager'
 
   const [mode, setMode] = useState<AuthMode>('login')
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -188,8 +189,8 @@ function AuthContent() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             tier,
-            full_name: email.split('@')[0], // 기본 이름 설정
-            org_name: orgName || `${email.split('@')[0]}의 조직`, // 트리거에서 조직 생성 시 사용
+            full_name: fullName || email.split('@')[0], 
+            org_name: orgName || `${fullName || email.split('@')[0]}의 조직`,
           }
         },
       })
@@ -267,7 +268,7 @@ function AuthContent() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             tier, // 조직 가입 시에도 등급 적용 가능성 대비
-            full_name: email.split('@')[0],
+            full_name: fullName || email.split('@')[0],
           }
         },
       })
@@ -463,9 +464,20 @@ function AuthContent() {
             </form>
           )}
 
-          {/* Signup Form */}
+           {/* Signup Form */}
           {mode === 'signup' && (
             <form onSubmit={handleSignup} className="space-y-5">
+              <div className="animate-fade-in-up delay-75" style={{ opacity: 0 }}>
+                <label className="metro-input-label">사용자 이름</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  className="metro-input"
+                  placeholder="실명을 입력해 주세요"
+                />
+              </div>
               <div className="animate-fade-in-up delay-100" style={{ opacity: 0 }}>
                 <label className="metro-input-label">이메일</label>
                 <input
@@ -549,18 +561,20 @@ function AuthContent() {
                   미입력시 자동으로 생성됩니다
                 </p>
               </div>
-              <button
+               <button
                 type="submit"
                 disabled={loading}
-                className="metro-btn w-full mt-2 animate-float-subtle delay-500"
+                className="metro-btn w-full mt-2 animate-float-subtle delay-500 scale-[1.02] hover:scale-[1.05]"
                 style={{
                   opacity: 0,
                   background: 'linear-gradient(135deg, #00A84D 0%, #008840 100%)',
                   color: 'white',
-                  boxShadow: '0 4px 16px rgba(0, 168, 77, 0.3)'
+                  fontWeight: 'bold',
+                  letterSpacing: '0.05em',
+                  boxShadow: '0 8px 32px rgba(0, 168, 77, 0.4)'
                 }}
               >
-                {loading ? '가입 중...' : '회원가입'}
+                {loading ? '가입 신청 중...' : '회원가입 확인'}
               </button>
             </form>
           )}
@@ -581,6 +595,17 @@ function AuthContent() {
                 <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                   조직 관리자에게 초대 코드를 받으세요
                 </p>
+              </div>
+              <div className="animate-fade-in-up delay-150" style={{ opacity: 0 }}>
+                <label className="metro-input-label">사용자 이름</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  className="metro-input"
+                  placeholder="실명을 입력해 주세요"
+                />
               </div>
               <div className="animate-fade-in-up delay-200" style={{ opacity: 0 }}>
                 <label className="metro-input-label">이메일</label>
@@ -650,18 +675,20 @@ function AuthContent() {
                 </div>
               </div>
 
-              <button
+               <button
                 type="submit"
                 disabled={loading}
-                className="metro-btn w-full mt-2 animate-float-subtle delay-[500ms]"
+                className="metro-btn w-full mt-2 animate-float-subtle delay-[500ms] scale-[1.02] hover:scale-[1.05]"
                 style={{
                   opacity: 0,
                   background: 'linear-gradient(135deg, #EF7C1C 0%, #D06A15 100%)',
                   color: 'white',
-                  boxShadow: '0 4px 16px rgba(239, 124, 28, 0.3)'
+                  fontWeight: 'bold',
+                  letterSpacing: '0.05em',
+                  boxShadow: '0 8px 32px rgba(239, 124, 28, 0.4)'
                 }}
               >
-                {loading ? '가입 중...' : '조직에 가입'}
+                {loading ? '가입 신청 중...' : '회원가입 확인'}
               </button>
             </form>
           )}
