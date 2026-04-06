@@ -5,7 +5,7 @@ import {
   Users, Shield, CheckCircle, XCircle, Building, 
   Search, Filter, Activity,
   Settings, History, Download, FileText, Calendar,
-  BarChart3, UserCheck, X, AlertCircle
+  BarChart3, UserCheck, X, AlertCircle, Trash2
 } from 'lucide-react';
 import { 
   getAllProfiles, 
@@ -13,7 +13,8 @@ import {
   updateUserOrganization, 
   getAllOrganizations,
   getAllUserLogs,
-  getUserLogs
+  getUserLogs,
+  deleteUserProfile
 } from '../../auth-service';
 import { createClient } from '@/lib/supabase/client';
 
@@ -168,6 +169,19 @@ export default function SuperAdminDashboard() {
       setSelectedUserLogs([]);
     }
     setUserLogsLoading(false);
+  };
+
+  const handleDeleteProfile = async (userId: string, email: string) => {
+    if (!window.confirm(`[주의] ${email} 회원을 시스템에서 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며 모든 소속 정보가 함께 삭제됩니다.`)) return;
+    
+    setLoading(true);
+    const result = await deleteUserProfile(userId);
+    if (result.success) {
+      loadData();
+    } else {
+      alert(result.message);
+      setLoading(false);
+    }
   };
 
   const filteredProfiles = profiles.filter(p => {
@@ -478,7 +492,7 @@ export default function SuperAdminDashboard() {
                                 <CheckCircle className="w-4 h-4" />
                               </button>
                             ) : (
-                              <button
+                            <button
                                 onClick={() => handleApproval(p.id, false)}
                                 className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                                 title="승인 취소"
@@ -486,6 +500,17 @@ export default function SuperAdminDashboard() {
                                 <XCircle className="w-4 h-4" />
                               </button>
                             )}
+
+                            <div className="h-4 w-px bg-slate-200 mx-1"></div>
+
+                            {/* 사용자 영구 삭제 버튼 */}
+                            <button
+                              onClick={() => handleDeleteProfile(p.id, p.email)}
+                              className="p-1.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                              title="계정 삭제"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>

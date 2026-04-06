@@ -93,14 +93,14 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
       user.email === 'kwpark0047@gmail.com' || 
       (profile ? 
         (profile.is_approved && (!profile.trial_expires_at || new Date(profile.trial_expires_at) > new Date())) :
-        // Fallback: 프로필이 아직 생성되지 않았거나 조회 실패 시 가입 시점의 metadata(tier) 확인
-        (['FREE', 'DEMO'].includes(user.user_metadata?.tier || ''))
+        (['FREE', 'DEMO', 'MEDIA', 'SALES'].includes(user.user_metadata?.tier || ''))
       ),
-    isSuperAdmin: profile?.is_super_admin || isSuperAdminAccount || false,
+    isSuperAdmin: !!(profile?.is_super_admin || isSuperAdminAccount),
     tier: (profile?.tier as UserInfo['tier']) || (user.user_metadata?.tier as UserInfo['tier']) || (isSuperAdminAccount ? 'MEDIA' : null),
     trialExpiresAt: profile?.trial_expires_at || null,
   }
 }
+
 
 /**
  * 현재 사용자의 조직 ID 조회
@@ -326,11 +326,19 @@ export async function getAllProfiles(): Promise<{
   const { data, error } = await supabase
     .from('profiles')
     .select(`
-      *,
+      id,
+      email,
+      full_name,
+      is_approved,
+      is_super_admin,
+      tier,
+      trial_expires_at,
+      created_at,
       organization_members (
         role,
         organization_id,
         organizations (
+          id,
           name
         )
       )
@@ -338,9 +346,16 @@ export async function getAllProfiles(): Promise<{
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Failed to fetch profiles:', error);
+    console.error('Failed to fetch profiles:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    });
     return { success: false, profiles: [] };
   }
+
+  console.log(`[SuperAdmin] Successfully fetched ${data?.length || 0} profiles.`);
 
   // 데이터 평탄화 (멤버 정보가 여러 개일 수 있으나 보통 1개)
   const expandedProfiles = (data || []).map((p: any) => ({
@@ -489,4 +504,34 @@ export async function getUserLogs(userId: string, limit = 50) {
     console.error('Error fetching logs for user:', error);
     return { success: false, message: error.message, logs: [] };
   }
+}
+
+/**
+ * [슈퍼 어드민 전용] 사용자 프로필 영구 삭제
+ * @param userId - 삭제할 사용자의 ID
+ */
+export async function deleteUserProfile(userId: string): Promise<{ success: boolean; message: string }> {
+  const supabase = createClient();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser?.isSuperAdmin) {
+    return { success: false, message: '권한이 없습니다.' };
+  }
+
+  // 본인 계정 삭제 방지
+  if (currentUser.id === userId) {
+    return { success: false, message: '자신의 계정은 삭제할 수 없습니다.' };
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .delete()
+    .eq('id', userId);
+
+  if (error) {
+    console.error('Failed to delete profile:', error);
+    return { success: false, message: error.message };
+  }
+
+  return { success: true, message: '사용자 프로필이 성공적으로 삭제되었습니다.' };
 }
