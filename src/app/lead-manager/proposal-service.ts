@@ -15,6 +15,7 @@ import {
 import { getOrganizationId, UserInfo, getCurrentUser, logActivity } from './auth-service';
 import { mapProposalFromDB } from './utils/mapping-utils';
 import { updateLeadStatus } from './lead-service';
+import { ActivityService } from './activity-service';
 
 // 한글 폰트 로드 상태
 let koreanFontLoaded = false;
@@ -159,6 +160,9 @@ export async function createProposal(
 
     // 리드 상태를 '제안 발송'으로 변경
     await updateLeadStatus(leadId, 'PROPOSAL_SENT');
+
+    // 활동 로그 기록
+    ActivityService.trackProposalCreate(data.id, leadId, leadData?.biz_name || '리드', title);
 
     return {
       success: true,
@@ -335,6 +339,9 @@ export async function markProposalSent(
     return { success: false, message: error.message };
   }
 
+  // 활동 로그 기록
+  ActivityService.trackProposalSent(proposalId, 'unknown', 'unknown', 'unknown');
+
   return { success: true, message: '발송 완료 처리되었습니다.' };
 }
 
@@ -400,13 +407,8 @@ export async function uploadProposalFile(
       throw dbError;
     }
 
-    // 5. 활동 로그 기록
-    await logActivity('PROPOSAL_UPLOAD', {
-      proposal_id: proposalId,
-      title,
-      file_name: file.name,
-      status: status
-    }, leadId || undefined);
+    // 5. 활동 로그 기록 (ActivityService로 교체)
+    ActivityService.trackProposalCreate(proposalId, leadId || 'unbound', '리드', title);
 
     // 6. 리드 상태 변경 (상태가 발송이고 리드 ID가 있는 경우에만)
     if (status === 'SENT' && leadId) {
@@ -709,7 +711,8 @@ export async function downloadProposalPDF(proposalId: string): Promise<boolean> 
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // 활동 로그 기록
+  ActivityService.trackProposalDownload(proposalId, bizName, '제안서 PDF');
 
   return true;
 }
@@ -800,6 +803,11 @@ export async function sendProposalEmail(
         attachments: attachments,
       }),
     });
+
+    if (response.ok) {
+      // 활동 로그 기록
+      ActivityService.trackProposalSent(proposalId, proposal.lead_id || 'unbound', '고객', emailData.to);
+    }
 
     const result = await response.json();
     if (!result.success) return { success: false, message: result.message };

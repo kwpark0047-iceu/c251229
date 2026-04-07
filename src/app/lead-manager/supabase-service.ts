@@ -10,6 +10,7 @@ import { getOrganizationId } from './auth-service';
 import { createLeadKey } from './lead-utils';
 import { removeDuplicateLeads } from './deduplication-utils';
 import { isAddressInRegions, RegionCode, getRegionPrefixes } from './region-utils';
+import { ActivityService } from './activity-service';
 
 /**
  * 리드 저장 결과 타입
@@ -195,6 +196,9 @@ export async function saveLeads(
     }
 
     onProgress?.(newLeads.length, newLeads.length, '저장 완료!');
+
+    // 활동 로그 기록
+    ActivityService.trackLeadImport(newLeads.length, leads[0]?.category || 'OTHER');
 
     return {
       success: true,
@@ -408,6 +412,9 @@ export async function updateLeadStatus(
       return { success: false, message: error.message };
     }
 
+    // 활동 로그 기록 (간단 정보 조회를 위해 leadId 활용)
+    ActivityService.trackLeadStatusChange(leadId, '리드', undefined, status);
+
     const message = status === 'CONTACTED' && updateData.assigned_to_name
       ? `컨택완료! 담당자: ${updateData.assigned_to_name}`
       : '상태가 업데이트되었습니다.';
@@ -444,6 +451,9 @@ export async function updateLeadNotes(
       console.error('메모 업데이트 오류:', error);
       return { success: false, message: error.message };
     }
+
+    // 활동 로그 기록
+    ActivityService.trackLeadNoteUpdate(leadId, '리드');
 
     return { success: true, message: '메모가 저장되었습니다.' };
   } catch (error) {

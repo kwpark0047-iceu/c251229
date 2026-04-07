@@ -15,6 +15,7 @@ import {
   getAllUserLogs,
   getUserLogs,
   deleteUserProfile,
+  updateUserTier,
   UserInfo
 } from '../../auth-service';
 import { createClient } from '@/lib/supabase/client';
@@ -50,6 +51,7 @@ export default function SuperAdminDashboard({ user }: Props) {
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(false);
   const [isLive, setIsLive] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
   const [onlineUsersCount, setOnlineUsersCount] = useState(0);
   
   // Filtering States
@@ -66,54 +68,6 @@ export default function SuperAdminDashboard({ user }: Props) {
   const [selectedUserLogs, setSelectedUserLogs] = useState<any[]>([]);
   const [userLogsLoading, setUserLogsLoading] = useState(false);
 
-  useEffect(() => {
-    loadData();
-    
-    // 실시간 구독 설정 (Realtime + Presence)
-    const supabase = createClient();
-    const channel = supabase
-      .channel('admin-profiles-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // INSERT, UPDATE, DELETE 모두 감지
-          schema: 'public',
-          table: 'profiles'
-        },
-        (payload: any) => {
-          console.log('Realtime update received:', payload);
-          setIsLive(true);
-          loadData();
-          // 2초 후 라이브 표시 초기화
-          setTimeout(() => setIsLive(false), 2000);
-        }
-      )
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const count = Object.keys(state).length;
-        setOnlineUsersCount(count || 1); // 현재 본인 포함
-      })
-      .on('presence', { event: 'join' }, ({ newPresences }: { newPresences: any[] }) => {
-        console.log('New users joined:', newPresences);
-      })
-      .on('presence', { event: 'leave' }, ({ leftPresences }: { leftPresences: any[] }) => {
-        console.log('Users left:', leftPresences);
-      })
-      .subscribe(async (status: string) => {
-        if (status === 'SUBSCRIBED') {
-          // Presence에 자신을 등록
-          await channel.track({
-            user_id: 'admin-' + Math.random().toString(36).substring(7),
-            online_at: new Date().toISOString(),
-          });
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
   const loadData = async () => {
     // 최초 로딩 시에만 스피너 표시
     if (profiles.length === 0) setLoading(true);
@@ -126,6 +80,77 @@ export default function SuperAdminDashboard({ user }: Props) {
     setOrgs(oData);
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // 실시간 구독 설정 (최종 안정화 버전)
+    const supabase = createClient();
+    const channel = supabase
+      .channel('antigravity-admin-global-presence', {
+        config: {
+          presence: {
+            key: user.id,
+          },
+        },
+      })
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          setIsLive(true);
+          loadData();
+          setTimeout(() => setIsLive(false), 2000);
+        }
+      )
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        // 중복 제거 (user_id 기반으로 더욱 정확하게)
+        const entries = Object.values(state).flat() as any[];
+        const uniqueEntries = entries.filter((v, i, a) => 
+          v.user_id && a.findIndex(t => t.user_id === v.user_id) === i
+        );
+        
+        console.log('Realtime Presence Synced:', uniqueEntries);
+        setOnlineUsers(uniqueEntries);
+        setOnlineUsersCount(uniqueEntries.length);
+      })
+      .on('presence', { event: 'join' }, ({ newPresences }: { newPresences: any[] }) => {
+        console.log('Admin Node Joined:', newPresences);
+        setIsLive(true);
+        setTimeout(() => setIsLive(false), 3000);
+      })
+      .subscribe(async (status: string) => {
+        if (status === 'SUBSCRIBED') {
+          // 채널 연결 후 안정화를 위해 200ms 지연 후 트래킹 시작
+          setTimeout(async () => {
+            try {
+              await channel.track({
+                user_id: user.id,
+                email: user.email,
+                online_at: new Date().toISOString(),
+                current_view: activeTab === 'users' ? '사용자 관리' : '시스템 감사 로그',
+                is_admin: true
+              });
+            } catch (err) {
+              console.error('Presence track failed:', err);
+            }
+          }, 200);
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, activeTab]); 
 
   const loadAllLogs = async () => {
     setLogsLoading(true);
@@ -204,6 +229,17 @@ export default function SuperAdminDashboard({ user }: Props) {
   const registeredUsersCount = profiles.filter(p => p.tier !== null).length;
   const pendingUsersCount = profiles.filter(p => !p.isApproved).length;
   const demoUsersCount = profiles.filter(p => p.tier === 'DEMO').length;
+
+  const handleTierChange = async (userId: string, email: string, tier: string) => {
+    const result = await updateUserTier(userId, email, tier);
+    if (result.success) {
+      setIsLive(true);
+      loadData();
+      setTimeout(() => setIsLive(false), 2000);
+    } else {
+      alert(`Tier update failed: ${result.error}`);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#050505] text-slate-200">
@@ -294,7 +330,15 @@ export default function SuperAdminDashboard({ user }: Props) {
             </div>
             <div>
               <h3 className="text-3xl font-black text-emerald-400 tracking-tighter leading-none">{onlineUsersCount.toLocaleString()}</h3>
-              <p className="text-slate-500 text-xs font-bold mt-2 uppercase tracking-wide">실시간 활성 계정</p>
+              <div className="flex -space-x-2 mt-2">
+                {onlineUsers.slice(0, 5).map((u, i) => (
+                  <div key={i} className="w-5 h-5 rounded-full bg-slate-800 border border-emerald-500/50 flex items-center justify-center text-[8px] font-black first:ml-0 translate-y-0 animate-float" style={{ animationDelay: `${i * 0.2}s` }}>
+                    {(u.email || '?')[0].toUpperCase()}
+                  </div>
+                ))}
+                {onlineUsersCount > 5 && <div className="w-5 h-5 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[7px] font-bold">+ {onlineUsersCount - 5}</div>}
+              </div>
+              <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-wide">실시간 활성 계정</p>
             </div>
           </div>
 
@@ -485,14 +529,21 @@ export default function SuperAdminDashboard({ user }: Props) {
                         </td>
                         <td className="px-8 py-6">
                           <div className="flex flex-col gap-2">
-                            <span className={`inline-flex items-center w-fit px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-[0.15em] shadow-lg ${
-                              p.tier === 'DEMO' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
-                              p.tier === 'MEDIA' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                              p.tier === 'SALES' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                              'bg-slate-800/40 text-slate-500 border border-white/5'
-                            }`}>
-                              {p.tier || 'STANDARD'}
-                            </span>
+                            <select
+                              value={p.tier || 'FREE'}
+                              onChange={(e) => handleTierChange(p.id, p.email, e.target.value)}
+                              className={`inline-flex items-center w-fit px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-[0.15em] shadow-lg cursor-pointer outline-none transition-all ${
+                                p.tier === 'DEMO' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
+                                p.tier === 'MEDIA' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                                p.tier === 'SALES' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                                'bg-slate-800/40 text-slate-500 border border-white/5'
+                              }`}
+                            >
+                              <option value="FREE" className="bg-[#0f172a] text-slate-400">FREE</option>
+                              <option value="DEMO" className="bg-[#0f172a] text-purple-400">DEMO</option>
+                              <option value="MEDIA" className="bg-[#0f172a] text-blue-400">MEDIA</option>
+                              <option value="SALES" className="bg-[#0f172a] text-amber-400">SALES</option>
+                            </select>
                             {p.tier === 'DEMO' && p.trialExpiresAt && (
                               <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
                                 <span className="w-1 h-1 bg-purple-500 rounded-full"></span>
@@ -579,25 +630,103 @@ export default function SuperAdminDashboard({ user }: Props) {
 
         {/* 감사 로그 탭 역시 고도화된 다크 모드 적용 (생략된 경우에도 동일 기조 적용) */}
         {activeTab === 'logs' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             {/* ... (기존 로그 섹션도 동일한 스타일링 적용) */}
-             <div className="bg-white/[0.02] backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-2xl flex items-center justify-between">
-              <div>
-                <h3 className="font-black text-white uppercase tracking-wider">System-Wide Audit Timeline</h3>
-                <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-tight">Monitoring all high-level security events and node trajectories.</p>
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
+             <div className="bg-white/[0.02] backdrop-blur-xl p-8 rounded-3xl border border-white/5 shadow-2xl flex items-center justify-between relative overflow-hidden group">
+               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-indigo-500/20 rounded-lg">
+                    <Activity className="w-5 h-5 text-indigo-400 animate-pulse" />
+                  </div>
+                  <h3 className="font-black text-white text-xl uppercase tracking-tighter">System Audit Node Flow</h3>
+                </div>
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-tight ml-10">Real-time telemetry and trajectory tracking of all administrative nodes.</p>
               </div>
               <button 
                 onClick={loadAllLogs} 
-                className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 border border-white/5 shadow-2xl"
+                className="relative z-10 flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 border border-white/10 shadow-2xl"
               >
                 <Activity className="w-4 h-4" />
-                Re-scan History
+                Rescan System
               </button>
             </div>
             
-            <div className="bg-white/[0.01] backdrop-blur-sm rounded-3xl border border-white/5 shadow-2xl overflow-hidden mb-12">
-               {/* 712라인까지 이어지는 테이블 구조 개선 */}
-            </div>
+            {logsLoading ? (
+              <div className="flex flex-col items-center justify-center py-32 gap-6">
+                <div className="w-12 h-12 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+                <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest animate-pulse">Syncing Audit Stream...</p>
+              </div>
+            ) : allLogs.length > 0 ? (
+              <div className="relative space-y-6 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-px before:bg-gradient-to-b before:from-indigo-500/50 before:via-purple-500/20 before:to-transparent">
+                {allLogs.map((log, idx) => (
+                  <div key={log.id} className="relative pl-12 group animate-in fade-in slide-in-from-left-4" style={{ animationDelay: `${idx * 0.05}s` }}>
+                    {/* Node Dot with Pulse */}
+                    <div className={`absolute left-0 top-1 w-10 h-10 rounded-2xl border flex items-center justify-center shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 ${
+                      log.action_type.includes('PROPOSAL') ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' :
+                      log.action_type.includes('LEAD') ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' :
+                      'bg-slate-800 border-white/10 text-slate-500'
+                    }`}>
+                      {log.action_type.includes('PROPOSAL') ? <FileText className="w-5 h-5" /> : 
+                       log.action_type.includes('LEAD') ? <Users className="w-5 h-5" /> : 
+                       <Activity className="w-5 h-5" />}
+                    </div>
+
+                    <div className="bg-white/[0.02] hover:bg-white/[0.04] backdrop-blur-md border border-white/5 p-6 rounded-3xl transition-all duration-500 group-hover:border-indigo-500/20 shadow-xl group-hover:shadow-indigo-500/5 translate-x-0 group-hover:translate-x-2">
+                       <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-[10px] font-black text-slate-500">
+                               {(log.user_email || 'U')[0].toUpperCase()}
+                             </div>
+                             <div>
+                                <p className="text-[11px] font-black text-white group-hover:text-indigo-300 transition-colors">{log.user_email}</p>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                   <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                                      log.action_type.includes('PROPOSAL') ? 'bg-purple-500/20 text-purple-400' :
+                                      log.action_type.includes('LEAD') ? 'bg-indigo-500/20 text-indigo-400' :
+                                      'bg-slate-800 text-slate-500'
+                                   }`}>
+                                      {log.action_type}
+                                   </span>
+                                   <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" /> {new Date(log.created_at).toLocaleString()}
+                                   </span>
+                                </div>
+                             </div>
+                          </div>
+                          
+                          {log.details?.client_context && (
+                             <div className="group/meta relative">
+                                <AlertCircle className="w-4 h-4 text-slate-700 cursor-help hover:text-slate-400 transition-colors" />
+                                <div className="absolute right-0 top-full mt-2 w-48 p-3 bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl opacity-0 group-hover/meta:opacity-100 transition-opacity z-30 pointer-events-none">
+                                   <p className="text-[8px] text-slate-500 font-bold uppercase mb-1">Node Metadata</p>
+                                   <p className="text-[9px] text-slate-400 break-all leading-relaxed">{log.details.client_context.userAgent}</p>
+                                </div>
+                             </div>
+                          )}
+                       </div>
+                       
+                       <div className="pl-11">
+                          <p className="text-sm text-slate-300 font-medium leading-relaxed">
+                            {log.details?.message || `${log.action_type} 작업이 수행되었습니다.`}
+                          </p>
+                          {log.entity_id && (
+                             <div className="mt-3 flex items-center gap-2">
+                                <div className="px-2 py-1 bg-black/40 border border-white/5 rounded-lg text-[9px] text-slate-600 font-bold font-mono">
+                                   ENTITY_ID: {log.entity_id}
+                                </div>
+                             </div>
+                          )}
+                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white/[0.01] rounded-3xl border border-white/5 border-dashed p-32 flex flex-col items-center justify-center text-slate-600">
+                <Activity className="w-12 h-12 mb-4 opacity-20" />
+                <p className="text-xs font-black uppercase tracking-widest">No audit particles detected.</p>
+              </div>
+            )}
           </div>
         )}
       </div>

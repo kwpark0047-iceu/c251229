@@ -244,16 +244,27 @@ export async function logActivity(
 ): Promise<void> {
   try {
     const user = await getCurrentUser();
-    if (!user || !user.organizationId) return;
+    if (!user) return; // 사용자 정보가 없으면 기록 건너뜀
 
     const supabase = createClient();
+    
+    // 기본 클라이언트 메타데이터 보강
+    const enrichedDetails = {
+      ...details,
+      client_context: typeof window !== 'undefined' ? {
+        userAgent: window.navigator.userAgent,
+        url: window.location.href,
+        timestamp: new Date().toISOString()
+      } : 'server'
+    };
+
     await supabase.from('activity_logs').insert({
       user_id: user.id,
       user_email: user.email,
-      organization_id: user.organizationId,
+      organization_id: user.organizationId, // 조직이 없어도 기록 (null 가능)
       action_type: actionType,
       entity_id: entityId,
-      details: details || {},
+      details: enrichedDetails,
     });
   } catch (error) {
     console.error('Failed to log activity:', error);
@@ -455,6 +466,37 @@ export async function getAllOrganizations(): Promise<any[]> {
   return data || [];
 }
 
+/**
+ * 사용자의 서비스 티어 업데이트 (Super Admin 전용)
+ */
+export async function updateUserTier(userId: string, targetEmail: string, tier: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('profiles')
+      .update({ 
+        tier,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (error) throw error;
+
+    // 활동 로그 기록
+    await logActivity('ADMIN_TIER_CHANGE', {
+      target_user_id: userId,
+      target_email: targetEmail,
+      new_tier: tier,
+      message: `관리자가 ${targetEmail}의 티어를 ${tier}(으)로 변경했습니다.`
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Tier update failed:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 // ----------------------------------------------------------------------------
 // SUPER ADMIN: 활동 로그(Audit Log) 및 통계 관련 로직 추가
 // ----------------------------------------------------------------------------
@@ -468,14 +510,15 @@ export async function getAllUserLogs(limit = 100) {
       return { success: false, message: '권한이 없습니다.', logs: [] };
     }
 
-    const { data: proposalLogs, error } = await supabase
-      .from('proposal_logs')
-      .select('*, proposals(title)')
+    // 통합 활동 로그(activity_logs) 조회
+    const { data: logs, error } = await supabase
+      .from('activity_logs')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
-    return { success: true, logs: proposalLogs || [] };
+    return { success: true, logs: logs || [] };
   } catch (error: any) {
     console.error('Error fetching all logs:', error);
     return { success: false, message: error.message, logs: [] };
@@ -491,15 +534,16 @@ export async function getUserLogs(userId: string, limit = 50) {
       return { success: false, message: '권한이 없습니다.', logs: [] };
     }
 
-    const { data: proposalLogs, error } = await supabase
-      .from('proposal_logs')
-      .select('*, proposals(title)')
+    // 특정 사용자의 통합 활동 로그 조회
+    const { data: logs, error } = await supabase
+      .from('activity_logs')
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
     if (error) throw error;
-    return { success: true, logs: proposalLogs || [] };
+    return { success: true, logs: logs || [] };
   } catch (error: any) {
     console.error('Error fetching logs for user:', error);
     return { success: false, message: error.message, logs: [] };
