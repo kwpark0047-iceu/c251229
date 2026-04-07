@@ -252,6 +252,7 @@ interface ResponsiveSidebarProps {
   position?: 'left' | 'right';
   width?: Partial<Record<Breakpoint, string>>;
   overlay?: boolean;
+  className?: string;
 }
 
 export function ResponsiveSidebar({
@@ -261,6 +262,7 @@ export function ResponsiveSidebar({
   position = 'left',
   width = { sm: '80vw', md: '400px', lg: '350px', xl: '400px' },
   overlay = true,
+  className,
 }: ResponsiveSidebarProps) {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const sidebarWidth = useResponsiveValue(width);
@@ -275,12 +277,12 @@ export function ResponsiveSidebar({
         />
       )}
 
-      {/* 사이드바 */}
       <div
         className={`
           fixed top-0 ${position === 'left' ? 'left-0' : 'right-0'} 
-          h-full bg-white shadow-lg z-50 transform transition-transform duration-300
+          h-full z-50 transform transition-transform duration-300
           ${isOpen ? 'translate-x-0' : position === 'left' ? '-translate-x-full' : 'translate-x-full'}
+          ${className || 'bg-white shadow-lg'}
         `}
         style={{ width: sidebarWidth }}
       >

@@ -84,54 +84,70 @@ export default function ResponsiveLeadManager({
     }
   };
 
-  // 리드 카드 컴포넌트
+  // 리드 카드 컴포넌트 (Premium Antigravity Style)
   const LeadCard = ({ lead }: { lead: Lead }) => (
-    <ResponsiveCard
-      className="hover:shadow-lg transition-shadow cursor-pointer"
-      padding={{ sm: 'p-3', md: 'p-4', lg: 'p-6' }}
+    <div
       onClick={() => onSelectLead(lead.id)}
+      className="group relative animate-float-subtle transition-all duration-500 cursor-pointer"
     >
-      <div className="space-y-2">
-        <ResponsiveText
-          size={{ sm: 'text-sm', md: 'text-base', lg: 'text-lg' }}
-          weight={{ sm: 'font-semibold' }}
-          className="text-gray-900 truncate"
-        >
-          {lead.bizName}
-        </ResponsiveText>
-
-        <ResponsiveText
-          size={{ sm: 'text-xs', md: 'text-sm' }}
-          className="text-gray-600 truncate"
-        >
-          {lead.roadAddress}
-        </ResponsiveText>
-
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-            {lead.nearestStation}
-          </span>
-          <span className="text-xs text-gray-500">
-            {lead.distance}m
-          </span>
+      {/* 카드 글로우 효과 */}
+      <div className="absolute -inset-0.5 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+      
+      <div className="relative bg-white/[0.03] backdrop-blur-xl border border-white/5 p-5 rounded-2xl shadow-2xl hover:bg-white/[0.06] hover:border-white/10 transition-all flex flex-col h-full">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <h3 className="text-white font-black text-lg tracking-tight group-hover:text-indigo-400 transition-colors truncate">
+              {lead.bizName}
+            </h3>
+            <p className="text-slate-500 text-xs font-medium mt-1 truncate">
+              {lead.roadAddress}
+            </p>
+          </div>
+          <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg border border-indigo-500/20">
+            <Map className="w-4 h-4" />
+          </div>
         </div>
 
-        <select
-          value={lead.status}
-          onChange={(e) => {
-            e.stopPropagation();
-            onUpdateStatus(lead.id, e.target.value as LeadStatus);
-          }}
-          className="text-xs px-2 py-1 border rounded w-full sm:w-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <option value="NEW">신규</option>
-          <option value="PROPOSAL_SENT">제안서 발송</option>
-          <option value="CONTACTED">연락 완료</option>
-          <option value="CONTRACTED">계약 완료</option>
-        </select>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="bg-black/40 border border-white/5 p-2 rounded-xl text-center">
+            <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Station</p>
+            <p className="text-[11px] font-bold text-slate-300 truncate">{lead.nearestStation}</p>
+          </div>
+          <div className="bg-black/40 border border-white/5 p-2 rounded-xl text-center">
+            <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Distance</p>
+            <p className="text-[11px] font-bold text-indigo-400">{lead.distance}m</p>
+          </div>
+        </div>
+
+        <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+          <div className="relative">
+            <select
+              value={lead.status}
+              onChange={(e) => {
+                e.stopPropagation();
+                onUpdateStatus(lead.id, e.target.value as LeadStatus);
+              }}
+              className="appearance-none bg-black/60 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer hover:bg-black/80 transition-all"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <option value="NEW">New Node</option>
+              <option value="PROPOSAL_SENT">Proposal</option>
+              <option value="CONTACTED">Active</option>
+              <option value="CONTRACTED">Synced</option>
+            </select>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-slate-400"></div>
+            </div>
+          </div>
+
+          <span className={`w-2 h-2 rounded-full shadow-[0_0_8px] ${
+            lead.status === 'NEW' ? 'bg-blue-500 shadow-blue-500/50' :
+            lead.status === 'CONTRACTED' ? 'bg-emerald-500 shadow-emerald-500/50 animate-pulse' :
+            'bg-indigo-500 shadow-indigo-500/50'
+          }`}></span>
+        </div>
       </div>
-    </ResponsiveCard>
+    </div>
   );
 
   // 필터 패널
@@ -174,85 +190,99 @@ export default function ResponsiveLeadManager({
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <header className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-[#050505] text-slate-300 selection:bg-indigo-500/30">
+      {/* 헤더 (Antigravity Glass Style) */}
+      <header className="bg-black/20 backdrop-blur-2xl border-b border-white/5 sticky top-0 z-40 text-white">
         <ResponsiveContainer>
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-between py-6">
+            <div className="flex items-center space-x-6">
               {/* 모바일 메뉴 버튼 */}
               <ResponsiveWrapper breakpoint="md">
                 <button
                   onClick={() => setIsSidebarOpen(true)}
-                  className="p-2 rounded-lg hover:bg-gray-100"
+                  className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] transition-all text-slate-400 active:scale-90"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
               </ResponsiveWrapper>
 
-              <ResponsiveText size={{ sm: 'text-lg', md: 'text-xl', lg: 'text-2xl' }} weight={{ sm: 'font-bold' }}>
-                리드 관리
-              </ResponsiveText>
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                  <LayoutGrid className="text-white w-5 h-5" />
+                </div>
+                <h1 className="text-2xl font-black tracking-tight text-white uppercase sm:block hidden">
+                  Node <span className="text-indigo-400">Flow</span>
+                </h1>
+              </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-3">
               {/* 검색 */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <div className="relative group sm:block hidden">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
                 <input
                   type="text"
-                  placeholder="검색..."
+                  placeholder="Scan Nodes..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={responsive.cls({
-                    sm: 'pl-10 pr-4 py-2 text-sm w-32',
-                    md: 'pl-10 pr-4 py-2 text-base w-48',
-                    lg: 'pl-10 pr-4 py-2 text-base w-64'
-                  })}
+                  className="pl-11 pr-5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-sm text-white placeholder:text-slate-600 focus:bg-black/60 focus:ring-2 focus:ring-indigo-500/50 outline-none w-64 transition-all shadow-inner"
                 />
               </div>
 
               {/* 액션 버튼 */}
-              <ResponsiveWrapper breakpoint="lg">
-                <button
-                  onClick={onAddLead}
-                  className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </ResponsiveWrapper>
+              <div className="flex items-center gap-2">
+                <ResponsiveWrapper breakpoint="lg">
+                  <button
+                    onClick={onAddLead}
+                    className="p-2.5 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
+                    title="Add Node"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </ResponsiveWrapper>
 
-              <ResponsiveWrapper breakpoint="md">
-                <button
-                  onClick={onExportData}
-                  className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                >
-                  <Download className="w-4 h-4" />
-                </button>
-              </ResponsiveWrapper>
+                <ResponsiveWrapper breakpoint="md">
+                  <button
+                    onClick={onExportData}
+                    className="p-2.5 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition-all border border-white/5 active:scale-95"
+                    title="Export Sequence"
+                  >
+                    <Download className="w-5 h-5" />
+                  </button>
+                </ResponsiveWrapper>
+              </div>
             </div>
           </div>
 
-          {/* 뷰 모드 전환 */}
-          <div className="flex items-center justify-between py-2 border-t">
-            <div className="flex items-center space-x-2">
+          {/* 뷰 모드 전환 및 서브 액션 */}
+          <div className="flex items-center justify-between py-3 border-t border-white/5">
+            <div className="flex items-center gap-2 bg-black/40 p-1 rounded-xl border border-white/10">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                  viewMode === 'grid' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
+                }`}
               >
                 <LayoutGrid className="w-4 h-4" />
+                Grid
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                  viewMode === 'list' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
+                }`}
               >
                 <LayoutList className="w-4 h-4" />
+                List
               </button>
               <button
                 onClick={() => setViewMode('map')}
-                className={`p-2 rounded ${viewMode === 'map' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                  viewMode === 'map' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
+                }`}
               >
                 <Map className="w-4 h-4" />
+                Map
               </button>
             </div>
 
@@ -260,7 +290,9 @@ export default function ResponsiveLeadManager({
             <ResponsiveWrapper breakpoint="md">
               <button
                 onClick={toggleFilterPanel}
-                className={`p-2 rounded ${isFilterPanelOpen ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+                className={`p-2.5 rounded-xl border transition-all ${
+                  isFilterPanelOpen ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-400' : 'bg-black/40 border-white/10 text-slate-400'
+                }`}
               >
                 <Filter className="w-4 h-4" />
               </button>
@@ -270,10 +302,10 @@ export default function ResponsiveLeadManager({
       </header>
 
       <div className="flex">
-        {/* 사이드바 (데스크톱) */}
+        {/* 사이드바 (데스크톱 - Glass Style) */}
         <ResponsiveWrapper breakpoint="lg">
-          <aside className="w-64 bg-white shadow-sm h-screen sticky top-0">
-            <div className="p-4">
+          <aside className="w-72 bg-black/10 backdrop-blur-3xl border-r border-white/5 h-[calc(100-80px)] sticky top-[80px]">
+            <div className="p-8">
               <FilterPanel />
             </div>
           </aside>
@@ -282,17 +314,17 @@ export default function ResponsiveLeadManager({
         {/* 메인 콘텐츠 */}
         <main className="flex-1">
           <ResponsiveContainer>
-            {/* 모바일 필터 패널 */}
+            {/* 모바일 필터 패널 (Premium Glass Panel) */}
             <ResponsiveWrapper breakpoint="md">
               {isFilterPanelOpen && (
-                <div className="mb-4 p-4 bg-white rounded-lg shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-semibold' }}>
-                      필터
+                <div className="mb-6 p-6 bg-white/[0.03] backdrop-blur-2xl rounded-2xl border border-white/5 shadow-2xl animate-float-subtle">
+                  <div className="flex items-center justify-between mb-6">
+                    <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-black' }} className="text-white uppercase tracking-tight">
+                      Filter Node
                     </ResponsiveText>
                     <button
                       onClick={() => setIsFilterPanelOpen(false)}
-                      className="p-1 rounded hover:bg-gray-100"
+                      className="p-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-400 hover:text-white transition-all shadow-lg"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -302,45 +334,40 @@ export default function ResponsiveLeadManager({
               )}
             </ResponsiveWrapper>
 
-            {/* 통계 바 */}
-            <div className="mb-6 p-4 bg-white rounded-lg shadow-sm">
-              <ResponsiveGrid
-                cols={{ sm: 2, md: 3, lg: 4 }}
-                gap={{ sm: 3, md: 4 }}
-              >
-                <div className="text-center">
-                  <ResponsiveText size={{ sm: 'text-2xl' }} weight={{ sm: 'font-bold' }} className="text-blue-600">
-                    {leads.length}
-                  </ResponsiveText>
-                  <ResponsiveText size={{ sm: 'text-sm' }} className="text-gray-600">
-                    전체 리드
-                  </ResponsiveText>
-                </div>
-                <div className="text-center">
-                  <ResponsiveText size={{ sm: 'text-2xl' }} weight={{ sm: 'font-bold' }} className="text-green-600">
-                    {leads.filter(l => l.status === 'NEW').length}
-                  </ResponsiveText>
-                  <ResponsiveText size={{ sm: 'text-sm' }} className="text-gray-600">
-                    신규
-                  </ResponsiveText>
-                </div>
-                <div className="text-center">
-                  <ResponsiveText size={{ sm: 'text-2xl' }} weight={{ sm: 'font-bold' }} className="text-yellow-600">
-                    {leads.filter(l => l.status === 'PROPOSAL_SENT').length}
-                  </ResponsiveText>
-                  <ResponsiveText size={{ sm: 'text-sm' }} className="text-gray-600">
-                    제안서 발송
-                  </ResponsiveText>
-                </div>
-                <div className="text-center">
-                  <ResponsiveText size={{ sm: 'text-2xl' }} weight={{ sm: 'font-bold' }} className="text-purple-600">
-                    {leads.filter(l => l.status === 'CONTRACTED').length}
-                  </ResponsiveText>
-                  <ResponsiveText size={{ sm: 'text-sm' }} className="text-gray-600">
-                    계약 완료
-                  </ResponsiveText>
-                </div>
-              </ResponsiveGrid>
+            {/* 통계 바 (Premium Analytics Card) */}
+            <div className="mb-10 relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-3xl blur-2xl opacity-50"></div>
+              <div className="relative bg-white/[0.02] backdrop-blur-2xl border border-white/5 p-8 rounded-3xl shadow-2xl">
+                <ResponsiveGrid
+                  cols={{ sm: 2, md: 4 }}
+                  gap={{ sm: 6, md: 8 }}
+                >
+                  <div className="flex flex-col items-center border-r border-white/5 last:border-0">
+                    <ResponsiveText size={{ sm: 'text-3xl' }} weight={{ sm: 'font-black' }} className="text-white tracking-tighter">
+                      {leads.length}
+                    </ResponsiveText>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Total Nodes</p>
+                  </div>
+                  <div className="flex flex-col items-center border-r border-white/5 last:border-0">
+                    <ResponsiveText size={{ sm: 'text-3xl' }} weight={{ sm: 'font-black' }} className="text-blue-400 tracking-tighter">
+                      {leads.filter(l => l.status === 'NEW').length}
+                    </ResponsiveText>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Discovery</p>
+                  </div>
+                  <div className="flex flex-col items-center border-r border-white/5 last:border-0">
+                    <ResponsiveText size={{ sm: 'text-3xl' }} weight={{ sm: 'font-black' }} className="text-indigo-400 tracking-tighter">
+                      {leads.filter(l => l.status === 'PROPOSAL_SENT').length}
+                    </ResponsiveText>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Transmitting</p>
+                  </div>
+                  <div className="flex flex-col items-center border-r border-white/5 last:border-0">
+                    <ResponsiveText size={{ sm: 'text-3xl' }} weight={{ sm: 'font-black' }} className="text-emerald-400 tracking-tighter">
+                      {leads.filter(l => l.status === 'CONTRACTED').length}
+                    </ResponsiveText>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Integrated</p>
+                  </div>
+                </ResponsiveGrid>
+              </div>
             </div>
 
             {/* 리드 목록 */}
@@ -358,62 +385,78 @@ export default function ResponsiveLeadManager({
             {viewMode === 'list' && (
               <div className="space-y-4">
                 {leads.map((lead) => (
-                  <ResponsiveCard key={lead.id} padding={{ sm: 'p-3', md: 'p-4' }}>
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                      <div className="flex-1">
-                        <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-semibold' }}>
-                          {lead.bizName}
-                        </ResponsiveText>
-                        <ResponsiveText size={{ sm: 'text-sm' }} className="text-gray-600">
-                          {lead.roadAddress}
-                        </ResponsiveText>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          {lead.nearestStation}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {lead.distance}m
-                        </span>
+                  <div
+                    key={lead.id}
+                    onClick={() => onSelectLead(lead.id)}
+                    className="group relative bg-white/[0.03] backdrop-blur-xl border border-white/5 p-4 rounded-2xl hover:bg-white/[0.06] hover:border-white/10 transition-all cursor-pointer flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
+                  >
+                    <div className="flex-1">
+                      <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-black' }} className="text-white group-hover:text-indigo-400 transition-colors">
+                        {lead.bizName}
+                      </ResponsiveText>
+                      <ResponsiveText size={{ sm: 'text-sm' }} className="text-slate-500 font-medium">
+                        {lead.roadAddress}
+                      </ResponsiveText>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-[10px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-500/20">
+                        {lead.nearestStation}
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                        {lead.distance}m
+                      </span>
+                      <div className="relative">
                         <select
                           value={lead.status}
-                          onChange={(e) => onUpdateStatus(lead.id, e.target.value as LeadStatus)}
-                          className="text-xs px-2 py-1 border rounded"
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            onUpdateStatus(lead.id, e.target.value as LeadStatus);
+                          }}
+                          className="appearance-none bg-black/60 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <option value="NEW">신규</option>
-                          <option value="PROPOSAL_SENT">제안서 발송</option>
-                          <option value="CONTACTED">연락 완료</option>
-                          <option value="CONTRACTED">계약 완료</option>
+                          <option value="NEW">New Node</option>
+                          <option value="PROPOSAL_SENT">Proposal</option>
+                          <option value="CONTACTED">Active</option>
+                          <option value="CONTRACTED">Synced</option>
                         </select>
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                          <div className="w-0 h-0 border-l-[3px] border-l-transparent border-r-[3px] border-r-transparent border-t-[4px] border-t-slate-400"></div>
+                        </div>
                       </div>
                     </div>
-                  </ResponsiveCard>
+                  </div>
                 ))}
               </div>
             )}
 
             {viewMode === 'map' && (
-              <div className="h-96 lg:h-[600px] bg-gray-200 rounded-lg">
-                <div className="flex items-center justify-center h-full">
-                  <ResponsiveText size={{ sm: 'text-lg' }} className="text-gray-600">
-                    지도 뷰 (개발 중)
+              <div className="h-96 lg:h-[600px] bg-black/40 border border-white/5 rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent"></div>
+                <div className="text-center relative z-10">
+                  <div className="w-16 h-16 bg-white/[0.03] rounded-2xl border border-white/5 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <Map className="w-8 h-8 text-indigo-400 opacity-50" />
+                  </div>
+                  <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-black' }} className="text-slate-500 uppercase tracking-widest">
+                    Initializing Geo-Sync
                   </ResponsiveText>
+                  <p className="text-xs text-slate-600 mt-2">Map Engine under stabilization...</p>
                 </div>
               </div>
             )}
 
-            {/* 플로팅 액션 버튼 (모바일) */}
+            {/* 플로팅 액션 버튼 (Mobile Antigravity FAB) */}
             <ResponsiveWrapper breakpoint="md">
-              <div className="fixed bottom-6 right-6 flex flex-col space-y-3">
+              <div className="fixed bottom-8 right-8 flex flex-col space-y-4 z-50">
                 <button
                   onClick={onAddLead}
-                  className="w-14 h-14 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 flex items-center justify-center"
+                  className="w-16 h-16 bg-indigo-500 text-white rounded-2xl shadow-2xl shadow-indigo-500/40 hover:bg-indigo-600 flex items-center justify-center animate-float group transition-transform active:scale-90"
                 >
-                  <Plus className="w-6 h-6" />
+                  <Plus className="w-8 h-8 group-hover:rotate-90 transition-transform duration-500" />
                 </button>
                 <button
                   onClick={onExportData}
-                  className="w-14 h-14 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 flex items-center justify-center"
+                  className="w-14 h-14 bg-slate-800 text-slate-300 rounded-2xl shadow-2xl border border-white/10 hover:bg-slate-700 flex items-center justify-center animate-float delay-300 transition-transform active:scale-90"
                 >
                   <Download className="w-6 h-6" />
                 </button>
@@ -423,42 +466,58 @@ export default function ResponsiveLeadManager({
         </main>
       </div>
 
-      {/* 모바일 사이드바 */}
+      {/* 모바일 사이드바 (Premium Glass Sidebar) */}
       <ResponsiveSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         width={{ sm: '80vw', md: '400px' }}
+        className="bg-black/90 backdrop-blur-2xl border-l border-white/5"
       >
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-6">
-            <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-semibold' }}>
-              메뉴
-            </ResponsiveText>
+        <div className="p-8 h-full flex flex-col">
+          <div className="flex items-center justify-between mb-10 border-b border-white/5 pb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                <LayoutGrid className="text-white w-4 h-4" />
+              </div>
+              <span className="text-xl font-black text-white uppercase tracking-tight">Menu</span>
+            </div>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="p-1 rounded hover:bg-gray-100"
+              className="p-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-400 hover:text-white transition-all"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          <nav className="space-y-2">
-            <a href="#" className="block p-3 rounded-lg hover:bg-gray-100">
-              <ResponsiveText size={{ sm: 'text-base' }}>대시보드</ResponsiveText>
-            </a>
-            <a href="#" className="block p-3 rounded-lg hover:bg-gray-100">
-              <ResponsiveText size={{ sm: 'text-base' }}>리드 관리</ResponsiveText>
-            </a>
-            <a href="#" className="block p-3 rounded-lg hover:bg-gray-100">
-              <ResponsiveText size={{ sm: 'text-base' }}>인벤토리</ResponsiveText>
-            </a>
-            <a href="#" className="block p-3 rounded-lg hover:bg-gray-100">
-              <ResponsiveText size={{ sm: 'text-base' }}>통계</ResponsiveText>
-            </a>
-            <a href="#" className="block p-3 rounded-lg hover:bg-gray-100">
-              <ResponsiveText size={{ sm: 'text-base' }}>설정</ResponsiveText>
-            </a>
+          <nav className="space-y-4 flex-1">
+            {[
+              { label: 'Dashboard', icon: LayoutGrid },
+              { label: 'Node Flow', icon: LayoutList, active: true },
+              { label: 'Inventory', icon: Map },
+              { label: 'Analytics', icon: Download },
+              { label: 'System Settings', icon: Settings }
+            ].map((item, idx) => (
+              <a 
+                key={idx} 
+                href="#" 
+                className={`flex items-center gap-4 p-4 rounded-2xl transition-all group ${
+                  item.active 
+                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' 
+                  : 'bg-white/[0.02] border border-white/5 text-slate-400 hover:bg-white/[0.05] hover:text-white'
+                }`}
+              >
+                <item.icon className={`w-5 h-5 ${item.active ? 'text-white' : 'text-slate-500 group-hover:text-indigo-400 transition-colors'}`} />
+                <span className="text-sm font-black uppercase tracking-widest">{item.label}</span>
+              </a>
+            ))}
           </nav>
+          
+          <div className="mt-auto border-t border-white/5 pt-6">
+            <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">System Version</p>
+              <p className="text-xs text-slate-400">Ver 2.0.5 Anti-G Edition</p>
+            </div>
+          </div>
         </div>
       </ResponsiveSidebar>
     </div>

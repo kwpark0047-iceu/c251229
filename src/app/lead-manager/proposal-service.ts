@@ -98,6 +98,7 @@ export async function createProposal(
     title?: string;
     greetingMessage?: string;
     discountRate?: number;
+    emailRecipient?: string;
   }
 ): Promise<{ success: boolean; proposal?: Proposal; message: string }> {
   try {
@@ -108,7 +109,7 @@ export async function createProposal(
       // 리드 정보 조회
       const { data: leadData } = await supabase
         .from('leads')
-        .select('biz_name, nearest_station')
+        .select('biz_name, nearest_station, email')
         .eq('id', leadId)
         .single();
 
@@ -147,6 +148,7 @@ export async function createProposal(
           final_price: finalPrice,
           status: 'DRAFT',
           organization_id: orgId, // 최고관리자는 null일 수 있음
+          email_recipient: options?.emailRecipient || leadData?.email || null,
         })
         .select()
         .single();

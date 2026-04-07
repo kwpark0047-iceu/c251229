@@ -149,7 +149,7 @@ export default function AdminDashboardPage() {
 
     // 슈퍼 어드민인 경우 전용 대시보드 표시
     if (currentUser?.isSuperAdmin) {
-        return <SuperAdminDashboard />;
+        return <SuperAdminDashboard user={currentUser} />;
     }
 
     return (

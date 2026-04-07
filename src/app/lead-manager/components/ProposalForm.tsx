@@ -30,7 +30,7 @@ import { SUBWAY_STATIONS, METRO_LINE_COLORS as LINE_COLORS, STATION_MARKETING_IN
 import { createClient } from '@/lib/supabase/client';
 import { getCurrentUser, UserInfo } from '../auth-service';
 import { Proposal } from '../types';
-import { getDefaultGreeting, uploadProposalFile, getProposals, sendProposalEmail } from '../proposal-service';
+import { getDefaultGreeting, uploadProposalFile, getProposals, sendProposalEmail, createProposal } from '../proposal-service';
 
 // 매체 유형 한글 라벨
 const AD_TYPE_LABELS: Record<string, string> = {
@@ -229,20 +229,18 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     try {
       const supabase = createClient();
 
-      const { error } = await supabase.from('proposals').insert({
-        lead_id: lead?.id || null,
-        title: `${selectedStation.name}역 광고 제안서`,
-        greeting_message: greetingMessage,
-        inventory_ids: selectedInventory.map((i) => i.id),
-        total_price: totalPrice,
-        discount_rate: discountRate,
-        final_price: finalPrice,
-        status: 'DRAFT',
-        email_recipient: recipientEmail || null,
-        organization_id: currentUser?.organizationId || null,
-      });
+      const createResult = await createProposal(
+        lead?.id || '',
+        selectedInventory.map(i => i.id),
+        {
+          title: `${selectedStation.name}역 광고 제안서`,
+          greetingMessage,
+          discountRate,
+          emailRecipient: recipientEmail || undefined,
+        }
+      );
 
-      if (error) throw error;
+      if (!createResult.success) throw new Error(createResult.message);
 
       showNotification('success', '제안서가 저장되었습니다.');
       setTimeout(() => {
@@ -279,20 +277,22 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     try {
       // 1. 제안서 정보 DB에 먼저 저장 (DRAFT로)
       const supabase = createClient();
-      const { data: proposal, error: pError } = await supabase.from('proposals').insert({
-        lead_id: lead?.id || null,
-        title: `${selectedStation!.name}역 광고 제안서`,
-        greeting_message: greetingMessage,
-        inventory_ids: selectedInventory.map((i) => i.id),
-        total_price: totalPrice,
-        discount_rate: discountRate,
-        final_price: finalPrice,
-        status: 'DRAFT',
-        email_recipient: recipientEmail,
-        organization_id: currentUser?.organizationId || null,
-      }).select().single();
+      const sendResult = await createProposal(
+        lead?.id || '',
+        selectedInventory.map(i => i.id),
+        {
+          title: `${selectedStation!.name}역 광고 제안서`,
+          greetingMessage,
+          discountRate,
+          emailRecipient: recipientEmail || undefined,
+        }
+      );
 
-      if (pError || !proposal) throw new Error(`제안서 생성 실패: ${pError?.message}`);
+      if (!sendResult.success || !sendResult.proposal) {
+        throw new Error(`제안서 생성 실패: ${sendResult.message}`);
+      }
+
+      const proposal = sendResult.proposal;
 
       // 2. 고도화된 이메일 발송 서비스 호출 (다중 첨부 포함)
       const result = await sendProposalEmail(
