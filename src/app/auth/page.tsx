@@ -430,7 +430,7 @@ function AuthContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="example@email.com"
                 />
               </div>
@@ -441,7 +441,7 @@ function AuthContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="••••••••"
                 />
               </div>
@@ -474,7 +474,7 @@ function AuthContent() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="실명을 입력해 주세요"
                 />
               </div>
@@ -485,7 +485,7 @@ function AuthContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="example@email.com"
                 />
               </div>
@@ -496,7 +496,7 @@ function AuthContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="6자 이상"
                 />
               </div>
@@ -507,7 +507,7 @@ function AuthContent() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="비밀번호 재입력"
                 />
               </div>
@@ -554,7 +554,7 @@ function AuthContent() {
                   type="text"
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="우리 회사"
                 />
                 <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
@@ -589,7 +589,7 @@ function AuthContent() {
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value)}
                   required
-                  className="metro-input font-mono tracking-wider"
+                  className="metro-input font-mono tracking-wider text-slate-900"
                   placeholder="abc123def456"
                 />
                 <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
@@ -603,7 +603,7 @@ function AuthContent() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="실명을 입력해 주세요"
                 />
               </div>
@@ -614,7 +614,7 @@ function AuthContent() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="example@email.com"
                 />
               </div>
@@ -625,7 +625,7 @@ function AuthContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="6자 이상"
                 />
               </div>
@@ -636,7 +636,7 @@ function AuthContent() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="metro-input"
+                  className="metro-input text-slate-900"
                   placeholder="비밀번호 재입력"
                 />
               </div>

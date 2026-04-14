@@ -137,12 +137,7 @@ export default function FloorPlanUploadModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div
-        className="w-full max-w-2xl rounded-2xl border border-[var(--glass-border)] p-6"
-        style={{
-          background: 'var(--glass-bg)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
-        }}
+        className="w-full max-w-2xl rounded-2xl border border-[var(--glass-border)] p-6 bg-[var(--glass-bg)] backdrop-blur-[20px] shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
       >
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-6">
@@ -150,6 +145,8 @@ export default function FloorPlanUploadModal({
           <button
             onClick={handleClose}
             className="p-2 hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors"
+            title="닫기"
+            aria-label="닫기"
           >
             <X className="w-5 h-5 text-[var(--text-muted)]" />
           </button>
@@ -166,6 +163,8 @@ export default function FloorPlanUploadModal({
               value={lineNumber}
               onChange={(e) => setLineNumber(e.target.value as MetroLine)}
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--metro-line2)]"
+              title="노선 선택"
+              aria-label="노선 선택"
             >
               {METRO_LINES.map((line) => (
                 <option key={line} value={line}>
@@ -184,6 +183,8 @@ export default function FloorPlanUploadModal({
               value={planType}
               onChange={(e) => setPlanType(e.target.value as PlanType)}
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--metro-line2)]"
+              title="도면 유형 선택"
+              aria-label="도면 유형 선택"
             >
               <option value="station_layout">{PLAN_TYPE_LABELS.station_layout}</option>
               <option value="psd">{PLAN_TYPE_LABELS.psd}</option>
@@ -205,6 +206,9 @@ export default function FloorPlanUploadModal({
             multiple
             onChange={handleFileSelect}
             className="hidden"
+            title="파일 업로드"
+            aria-label="파일 업로드"
+            placeholder="파일 업로드"
           />
           <Upload className="w-10 h-10 mx-auto mb-3 text-[var(--text-muted)]" />
           <p className="text-[var(--text-primary)] font-medium mb-1">
@@ -238,6 +242,8 @@ export default function FloorPlanUploadModal({
                     handleRemoveFile(index);
                   }}
                   className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"
+                  title="파일 삭제"
+                  aria-label="파일 삭제"
                 >
                   <X className="w-4 h-4 text-[var(--text-muted)]" />
                 </button>
@@ -292,11 +298,15 @@ export default function FloorPlanUploadModal({
           >
             취소
           </button>
+          {/* NOSONAR */}
+          {/* eslint-disable-next-line react/forbid-dom-props */}
           <button
             onClick={handleUpload}
             disabled={files.length === 0 || isUploading}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-medium disabled:opacity-50 transition-opacity"
-            style={{ background: METRO_LINE_COLORS[lineNumber] }}
+            style={{ backgroundColor: METRO_LINE_COLORS[lineNumber] }}
+            title="파일 업로드 실행"
+            aria-label="파일 업로드 실행"
           >
             {isUploading ? (
               <>

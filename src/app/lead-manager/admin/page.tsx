@@ -323,6 +323,8 @@ export default function AdminDashboardPage() {
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
     return (
         <button
+            type="button"
+            aria-label="권한 토글"
             onClick={onChange}
             className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${checked ? 'bg-blue-600' : 'bg-slate-200'
                 }`}
