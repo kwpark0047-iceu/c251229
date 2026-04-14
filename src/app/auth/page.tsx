@@ -409,289 +409,301 @@ function AuthContent() {
             </div>
           )}
 
-          {/* Success Message */}
-          {message && (
-            <div className="mb-6 p-4 rounded-xl animate-scale-in"
-              style={{
-                background: 'rgba(0, 168, 77, 0.1)',
-                border: '1px solid rgba(0, 168, 77, 0.3)'
-              }}>
-              <p className="text-sm font-medium" style={{ color: '#00A84D' }}>{message}</p>
-            </div>
-          )}
-
-          {/* Login Form */}
-          {mode === 'login' && (
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="animate-fade-in-up delay-100" style={{ opacity: 0 }}>
-                <label className="metro-input-label">이메일</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="metro-input text-slate-900"
-                  placeholder="example@email.com"
-                />
+          {/* Success State View */}
+          {message ? (
+            <div className="py-8 text-center animate-scale-in">
+              <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-emerald-100">
+                <svg className="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-              <div className="animate-fade-in-up delay-200" style={{ opacity: 0 }}>
-                <label className="metro-input-label">비밀번호</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="metro-input text-slate-900"
-                  placeholder="••••••••"
-                />
-              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-3">신청 완료</h3>
+              <p className="text-slate-600 mb-8 whitespace-pre-line leading-relaxed">
+                {message}
+              </p>
               <button
-                type="submit"
-                disabled={loading}
-                className="metro-btn metro-btn-primary w-full mt-2 animate-fade-in-up delay-300"
-                style={{ opacity: 0 }}
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    로그인 중...
-                  </span>
-                ) : '로그인'}
-              </button>
-            </form>
-          )}
-
-           {/* Signup Form */}
-          {mode === 'signup' && (
-            <form onSubmit={handleSignup} className="space-y-5">
-              <div className="animate-fade-in-up delay-75" style={{ opacity: 0 }}>
-                <label className="metro-input-label">사용자 이름</label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  className="metro-input text-slate-900"
-                  placeholder="실명을 입력해 주세요"
-                />
-              </div>
-              <div className="animate-fade-in-up delay-100" style={{ opacity: 0 }}>
-                <label className="metro-input-label">이메일</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="metro-input text-slate-900"
-                  placeholder="example@email.com"
-                />
-              </div>
-              <div className="animate-fade-in-up delay-200" style={{ opacity: 0 }}>
-                <label className="metro-input-label">비밀번호</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="metro-input text-slate-900"
-                  placeholder="6자 이상"
-                />
-              </div>
-              <div className="animate-fade-in-up delay-300" style={{ opacity: 0 }}>
-                <label className="metro-input-label">비밀번호 확인</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="metro-input text-slate-900"
-                  placeholder="비밀번호 재입력"
-                />
-              </div>
-              <div className="animate-fade-in-up delay-[350ms]" style={{ opacity: 0 }}>
-                <label className="metro-input-label">가입 등급 선택</label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {[
-                    { id: 'FREE', label: '일반', desc: '즉시 승인' },
-                    { id: 'DEMO', label: '데모', desc: '1주일 체험' },
-                    { id: 'MEDIA', label: '매체사', desc: '관리자 승인' },
-                    { id: 'SALES', label: '영업', desc: '관리자 승인' },
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setTier(t.id as any)}
-                      className={`p-3 rounded-xl border text-left transition-all duration-300 group ${
-                        tier === t.id 
-                          ? 'bg-emerald-50 border-emerald-500 shadow-sm shadow-emerald-200/50' 
-                          : 'bg-white border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-xs font-bold ${tier === t.id ? 'text-emerald-700' : 'text-slate-700'}`}>
-                          {t.label}
-                        </span>
-                        {tier === t.id && (
-                          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        )}
-                      </div>
-                      <p className={`text-[10px] ${tier === t.id ? 'text-emerald-600/70' : 'text-slate-400'}`}>
-                        {t.desc}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="animate-fade-in-up delay-400" style={{ opacity: 0 }}>
-                <label className="metro-input-label">
-                  조직명 <span style={{ color: 'var(--text-tertiary)' }}>(선택)</span>
-                </label>
-                <input
-                  type="text"
-                  value={orgName}
-                  onChange={(e) => setOrgName(e.target.value)}
-                  className="metro-input text-slate-900"
-                  placeholder="우리 회사"
-                />
-                <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                  미입력시 자동으로 생성됩니다
-                </p>
-              </div>
-               <button
-                type="submit"
-                disabled={loading}
-                className="metro-btn w-full mt-2 animate-float-subtle delay-500 scale-[1.02] hover:scale-[1.05]"
+                onClick={() => { setMessage(null); setMode('login'); }}
+                className="metro-btn metro-btn-primary w-full py-4 text-lg font-bold shadow-lg"
                 style={{
-                  opacity: 0,
                   background: 'linear-gradient(135deg, #00A84D 0%, #008840 100%)',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  letterSpacing: '0.05em',
-                  boxShadow: '0 8px 32px rgba(0, 168, 77, 0.4)'
+                  boxShadow: '0 8px 32px rgba(0, 168, 77, 0.3)'
                 }}
               >
-                {loading ? '가입 신청 중...' : '회원가입 확인'}
+                확인
               </button>
-            </form>
+            </div>
+          ) : (
+            <>
+              {/* Login Form */}
+              {mode === 'login' && (
+                <form onSubmit={handleLogin} className="space-y-5">
+                  <div className="animate-fade-in-up delay-100">
+                    <label className="metro-input-label">이메일</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="metro-input text-slate-900"
+                      placeholder="example@email.com"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up delay-200">
+                    <label className="metro-input-label">비밀번호</label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="metro-input text-slate-900"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="metro-btn metro-btn-primary w-full mt-2 animate-fade-in-up delay-300"
+                  >
+                    {loading ? (
+                      <span className="flex items-center gap-2 justify-center">
+                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        로그인 중...
+                      </span>
+                    ) : '로그인'}
+                  </button>
+                </form>
+              )}
+
+              {/* Signup Form */}
+              {mode === 'signup' && (
+                <form onSubmit={handleSignup} className="space-y-5">
+                  <div className="animate-fade-in-up delay-75">
+                    <label className="metro-input-label">사용자 이름</label>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      className="metro-input text-slate-900"
+                      placeholder="실명을 입력해 주세요"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up delay-100">
+                    <label className="metro-input-label">이메일</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="metro-input text-slate-900"
+                      placeholder="example@email.com"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up delay-200">
+                    <label className="metro-input-label">비밀번호</label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="metro-input text-slate-900"
+                      placeholder="6자 이상"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up delay-300">
+                    <label className="metro-input-label">비밀번호 확인</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      className="metro-input text-slate-900"
+                      placeholder="비밀번호 재입력"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up delay-[350ms]">
+                    <label className="metro-input-label">가입 등급 선택</label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {[
+                        { id: 'FREE', label: '일반', desc: '즉시 승인' },
+                        { id: 'DEMO', label: '데모', desc: '1주일 체험' },
+                        { id: 'MEDIA', label: '매체사', desc: '관리자 승인' },
+                        { id: 'SALES', label: '영업', desc: '관리자 승인' },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setTier(t.id as any)}
+                          className={`p-3 rounded-xl border text-left transition-all duration-300 group ${tier === t.id
+                              ? 'bg-emerald-50 border-emerald-500 shadow-sm shadow-emerald-200/50'
+                              : 'bg-white border-slate-200 hover:border-slate-300'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-bold ${tier === t.id ? 'text-emerald-700' : 'text-slate-700'}`}>
+                              {t.label}
+                            </span>
+                            {tier === t.id && (
+                              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            )}
+                          </div>
+                          <p className={`text-[10px] ${tier === t.id ? 'text-emerald-600/70' : 'text-slate-400'}`}>
+                            {t.desc}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="animate-fade-in-up delay-400">
+                    <label className="metro-input-label">
+                      조직명 <span style={{ color: 'var(--text-tertiary)' }}>(선택)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      className="metro-input text-slate-900"
+                      placeholder="우리 회사"
+                    />
+                    <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                      미입력시 자동으로 생성됩니다
+                    </p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="metro-btn w-full mt-2 animate-float-subtle delay-500 scale-[1.02] hover:scale-[1.05]"
+                    style={{
+                      background: 'linear-gradient(135deg, #00A84D 0%, #008840 100%)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      letterSpacing: '0.05em',
+                      boxShadow: '0 8px 32px rgba(0, 168, 77, 0.4)'
+                    }}
+                  >
+                    {loading ? '가입 신청 중...' : '회원가입 확인'}
+                  </button>
+                </form>
+              )}
+
+              {/* Join Org Form */}
+              {mode === 'join-org' && (
+                <form onSubmit={handleJoinOrg} className="space-y-5">
+                  <div className="animate-fade-in-up delay-100">
+                    <label className="metro-input-label">초대 코드</label>
+                    <input
+                      type="text"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value)}
+                      required
+                      className="metro-input font-mono tracking-wider text-slate-900"
+                      placeholder="abc123def456"
+                    />
+                    <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                      조직 관리자에게 초대 코드를 받으세요
+                    </p>
+                  </div>
+                  <div className="animate-fade-in-up delay-150">
+                    <label className="metro-input-label">사용자 이름</label>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required
+                      className="metro-input text-slate-900"
+                      placeholder="실명을 입력해 주세요"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up delay-200">
+                    <label className="metro-input-label">이메일</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="metro-input text-slate-900"
+                      placeholder="example@email.com"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up delay-300">
+                    <label className="metro-input-label">비밀번호</label>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="metro-input text-slate-900"
+                      placeholder="6자 이상"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up delay-400">
+                    <label className="metro-input-label">비밀번호 확인</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      className="metro-input text-slate-900"
+                      placeholder="비밀번호 재입력"
+                    />
+                  </div>
+                  <div className="animate-fade-in-up delay-[450ms]">
+                    <label className="metro-input-label">가입 등급 선택</label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {[
+                        { id: 'FREE', label: '일반', desc: '즉시 승인' },
+                        { id: 'DEMO', label: '데모', desc: '1주일 체험' },
+                        { id: 'MEDIA', label: '매체사', desc: '관리자 승인' },
+                        { id: 'SALES', label: '영업', desc: '관리자 승인' },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setTier(t.id as any)}
+                          className={`p-3 rounded-xl border text-left transition-all duration-300 group ${tier === t.id
+                              ? 'bg-orange-50 border-orange-500 shadow-sm shadow-orange-200/50'
+                              : 'bg-white border-slate-200 hover:border-slate-300'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`text-xs font-bold ${tier === t.id ? 'text-orange-700' : 'text-slate-700'}`}>
+                              {t.label}
+                            </span>
+                            {tier === t.id && (
+                              <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                            )}
+                          </div>
+                          <p className={`text-[10px] ${tier === t.id ? 'text-orange-600/70' : 'text-slate-400'}`}>
+                            {t.desc}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="metro-btn w-full mt-2 animate-float-subtle delay-[500ms] scale-[1.02] hover:scale-[1.05]"
+                    style={{
+                      background: 'linear-gradient(135deg, #EF7C1C 0%, #D06A15 100%)',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      letterSpacing: '0.05em',
+                      boxShadow: '0 8px 32px rgba(239, 124, 28, 0.4)'
+                    }}
+                  >
+                    {loading ? '가입 신청 중...' : '회원가입 확인'}
+                  </button>
+                </form>
+              )}
+            </>
           )}
 
-          {/* Join Org Form */}
-          {mode === 'join-org' && (
-            <form onSubmit={handleJoinOrg} className="space-y-5">
-              <div className="animate-fade-in-up delay-100" style={{ opacity: 0 }}>
-                <label className="metro-input-label">초대 코드</label>
-                <input
-                  type="text"
-                  value={inviteCode}
-                  onChange={(e) => setInviteCode(e.target.value)}
-                  required
-                  className="metro-input font-mono tracking-wider text-slate-900"
-                  placeholder="abc123def456"
-                />
-                <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                  조직 관리자에게 초대 코드를 받으세요
-                </p>
-              </div>
-              <div className="animate-fade-in-up delay-150" style={{ opacity: 0 }}>
-                <label className="metro-input-label">사용자 이름</label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                  className="metro-input text-slate-900"
-                  placeholder="실명을 입력해 주세요"
-                />
-              </div>
-              <div className="animate-fade-in-up delay-200" style={{ opacity: 0 }}>
-                <label className="metro-input-label">이메일</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="metro-input text-slate-900"
-                  placeholder="example@email.com"
-                />
-              </div>
-              <div className="animate-fade-in-up delay-300" style={{ opacity: 0 }}>
-                <label className="metro-input-label">비밀번호</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="metro-input text-slate-900"
-                  placeholder="6자 이상"
-                />
-              </div>
-              <div className="animate-fade-in-up delay-400" style={{ opacity: 0 }}>
-                <label className="metro-input-label">비밀번호 확인</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="metro-input text-slate-900"
-                  placeholder="비밀번호 재입력"
-                />
-              </div>
-              <div className="animate-fade-in-up delay-[450ms]" style={{ opacity: 0 }}>
-                <label className="metro-input-label">가입 등급 선택</label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {[
-                    { id: 'FREE', label: '일반', desc: '즉시 승인' },
-                    { id: 'DEMO', label: '데모', desc: '1주일 체험' },
-                    { id: 'MEDIA', label: '매체사', desc: '관리자 승인' },
-                    { id: 'SALES', label: '영업', desc: '관리자 승인' },
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setTier(t.id as any)}
-                      className={`p-3 rounded-xl border text-left transition-all duration-300 group ${
-                        tier === t.id 
-                          ? 'bg-orange-50 border-orange-500 shadow-sm shadow-orange-200/50' 
-                          : 'bg-white border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-xs font-bold ${tier === t.id ? 'text-orange-700' : 'text-slate-700'}`}>
-                          {t.label}
-                        </span>
-                        {tier === t.id && (
-                          <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                        )}
-                      </div>
-                      <p className={`text-[10px] ${tier === t.id ? 'text-orange-600/70' : 'text-slate-400'}`}>
-                        {t.desc}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-               <button
-                type="submit"
-                disabled={loading}
-                className="metro-btn w-full mt-2 animate-float-subtle delay-[500ms] scale-[1.02] hover:scale-[1.05]"
-                style={{
-                  opacity: 0,
-                  background: 'linear-gradient(135deg, #EF7C1C 0%, #D06A15 100%)',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  letterSpacing: '0.05em',
-                  boxShadow: '0 8px 32px rgba(239, 124, 28, 0.4)'
-                }}
-              >
-                {loading ? '가입 신청 중...' : '회원가입 확인'}
-              </button>
-            </form>
-          )}
         </div>
 
         {/* Footer */}
