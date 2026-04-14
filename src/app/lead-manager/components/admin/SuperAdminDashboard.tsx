@@ -16,8 +16,12 @@ import {
   getUserLogs,
   deleteUserProfile,
   updateUserTier,
+  getAdminNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
   UserInfo
 } from '../../auth-service';
+import { Bell, Check, Info } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface Profile {
@@ -60,24 +64,32 @@ export default function SuperAdminDashboard({ user }: Props) {
   const [tierFilter, setTierFilter] = useState<'ALL' | 'FREE' | 'DEMO' | 'MEDIA' | 'SALES'>('ALL');
   
   // Modal States
-  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
-  const [showOrgModal, setShowOrgModal] = useState(false);
-  
-  // User Logs Modal
-  const [showUserLogsModal, setShowUserLogsModal] = useState(false);
-  const [selectedUserLogs, setSelectedUserLogs] = useState<any[]>([]);
   const [userLogsLoading, setUserLogsLoading] = useState(false);
+
+  // Notifications State
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotificationList, setShowNotificationList] = useState(false);
+  const [toastNotification, setToastNotification] = useState<any | null>(null);
+
 
   const loadData = async () => {
     // 최초 로딩 시에만 스피너 표시
     if (profiles.length === 0) setLoading(true);
     
-    const [pResult, oData] = await Promise.all([
+    const [pResult, oData, nResult] = await Promise.all([
       getAllProfiles(),
-      getAllOrganizations()
+      getAllOrganizations(),
+      getAdminNotifications(10)
     ]);
     if (pResult.success) setProfiles(pResult.profiles);
     setOrgs(oData);
+    
+    if (nResult.success) {
+      setNotifications(nResult.notifications);
+      setUnreadCount(nResult.notifications.filter((n: any) => !n.is_read).length);
+    }
+    
     setLoading(false);
   };
 
@@ -128,27 +140,45 @@ export default function SuperAdminDashboard({ user }: Props) {
         setIsLive(true);
         setTimeout(() => setIsLive(false), 3000);
       })
-      .subscribe(async (status: string) => {
-        if (status === 'SUBSCRIBED') {
-          // 채널 연결 후 안정화를 위해 200ms 지연 후 트래킹 시작
-          setTimeout(async () => {
-            try {
-              await channel.track({
-                user_id: user.id,
-                email: user.email,
-                online_at: new Date().toISOString(),
-                current_view: activeTab === 'users' ? '사용자 관리' : '시스템 감사 로그',
-                is_admin: true
-              });
-            } catch (err) {
-              console.error('Presence track failed:', err);
-            }
           }, 200);
         }
       });
 
+    // 관리자 알림 실시간 구독
+    const notificationChannel = supabase
+      .channel('admin-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'admin_notifications'
+        },
+        (payload) => {
+          console.log('New Notification Received:', payload.new);
+          const newNotif = payload.new;
+          
+          // 상태 업데이트
+          setNotifications(prev => [newNotif, ...prev].slice(0, 20));
+          setUnreadCount(prev => prev + 1);
+          
+          // 토스트 팝업 표시
+          setToastNotification(newNotif);
+          
+          // 8초 후 토스트 자동 소멸
+          setTimeout(() => setToastNotification(null), 8000);
+          
+          // 사용자 목록 데이터도 갱신 (신규 가입 알림인 경우)
+          if (newNotif.type === 'SIGNUP') {
+            loadData();
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(notificationChannel);
     };
   }, [user?.id, activeTab]); 
 
@@ -241,6 +271,23 @@ export default function SuperAdminDashboard({ user }: Props) {
     }
   };
 
+  const handleMarkAsRead = async (id: string) => {
+    const result = await markNotificationAsRead(id);
+    if (result.success) {
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    const result = await markAllNotificationsAsRead();
+    if (result.success) {
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    }
+  };
+
+
   return (
     <div className="flex flex-col h-full bg-[#050505] text-slate-200">
       {/* 최고 관리자 헤더 (Premium Antigravity Style) */}
@@ -290,10 +337,88 @@ export default function SuperAdminDashboard({ user }: Props) {
                   <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Master Auth</p>
                   <p className="text-[11px] font-black text-indigo-400/80 uppercase tracking-tighter">Verified Session</p>
                 </div>
+
+                {/* 알림 센터 벨 (NEW) */}
+                <div className="relative ml-4 pl-4 border-l border-white/5">
+                  <button 
+                    onClick={() => setShowNotificationList(!showNotificationList)}
+                    className={`p-2.5 rounded-xl border transition-all duration-300 relative group ${
+                      showNotificationList ? 'bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                    }`}
+                    aria-label="시스템 알림"
+                  >
+                    <Bell className={`w-5 h-5 ${unreadCount > 0 ? 'animate-bounce' : ''}`} />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-[#0D0D0D] shadow-lg animate-pulse">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* 알림 드롭다운 (Premium Glassmorphism) */}
+                  {showNotificationList && (
+                    <div className="absolute right-0 mt-4 w-80 bg-[#0A0A0A]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                      <div className="flex justify-between items-center px-5 py-4 border-b border-white/5">
+                        <h4 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
+                          <Activity className="w-3.5 h-3.5 text-indigo-400" />
+                          Security Alerts
+                        </h4>
+                        <button 
+                          onClick={handleMarkAllAsRead}
+                          className="text-[9px] font-black text-indigo-400 hover:text-indigo-300 uppercase tracking-tighter"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                        {notifications.length > 0 ? (
+                          notifications.map((notif) => (
+                            <div 
+                              key={notif.id} 
+                              onClick={() => handleMarkAsRead(notif.id)}
+                              className={`p-4 border-b border-white/5 cursor-pointer transition-all hover:bg-white/5 group relative ${!notif.is_read ? 'bg-indigo-500/[0.03]' : ''}`}
+                            >
+                              {!notif.is_read && (
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+                              )}
+                              <div className="flex gap-3">
+                                <div className={`mt-1 p-1.5 rounded-lg border ${
+                                  notif.type === 'SIGNUP' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
+                                }`}>
+                                  {notif.type === 'SIGNUP' ? <UserCheck className="w-3.5 h-3.5" /> : <Info className="w-3.5 h-3.5" />}
+                                </div>
+                                <div className="flex-1">
+                                  <p className={`text-xs leading-relaxed ${notif.is_read ? 'text-slate-400' : 'text-slate-200 font-bold'}`}>
+                                    {notif.message}
+                                  </p>
+                                  <p className="text-[9px] text-slate-600 mt-1 font-medium italic">
+                                    {new Date(notif.created_at).toLocaleString()}
+                                  </p>
+                                </div>
+                                {!notif.is_read && (
+                                  <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shadow-[0_0_8px_rgba(99,102,241,0.5)]"></div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-10 text-center flex flex-col items-center gap-3">
+                            <Shield className="w-8 h-8 text-slate-800" />
+                            <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">No Active Alerts</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3 bg-white/[0.02] border-t border-white/5 text-center">
+                        <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">System Integrity Verified</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
         </div>
+
 
         {/* KPI 필드 리뉴얼 */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-12 relative z-10">
@@ -441,6 +566,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                 </div>
                 <div className="flex items-center gap-2">
                   <select
+                    aria-label="상태 필터"
                     className="px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs font-bold text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/50 hover:bg-black/50 transition-all cursor-pointer shadow-inner uppercase tracking-wider"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as any)}
@@ -450,6 +576,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                     <option value="PENDING">Review</option>
                   </select>
                   <select
+                    aria-label="등급 필터"
                     className="px-4 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs font-bold text-slate-400 outline-none focus:ring-2 focus:ring-indigo-500/50 hover:bg-black/50 transition-all cursor-pointer shadow-inner uppercase tracking-wider"
                     value={tierFilter}
                     onChange={(e) => setTierFilter(e.target.value as any)}
@@ -530,6 +657,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                         <td className="px-8 py-6">
                           <div className="flex flex-col gap-2">
                             <select
+                              aria-label="회원 등급 변경"
                               value={p.tier || 'FREE'}
                               onChange={(e) => handleTierChange(p.id, p.email, e.target.value)}
                               className={`inline-flex items-center w-fit px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-[0.15em] shadow-lg cursor-pointer outline-none transition-all ${
@@ -744,7 +872,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                 </h3>
                 <p className="text-sm text-slate-500 mt-1">{selectedProfile.email}</p>
               </div>
-              <button onClick={() => setShowOrgModal(false)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setShowOrgModal(false)} className="text-slate-400 hover:text-slate-600" aria-label="모달 닫기">
                 <X className="w-5 h-5"/>
               </button>
             </div>
@@ -756,14 +884,14 @@ export default function SuperAdminDashboard({ user }: Props) {
               <div className="p-6 space-y-4 text-sm">
                 <div className="space-y-1.5">
                   <label className="font-semibold block text-slate-700">소속 조직</label>
-                  <select name="orgId" className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" defaultValue={selectedProfile.membership?.organizationId || ''}>
+                  <select name="orgId" aria-label="소속 조직 선택" className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" defaultValue={selectedProfile.membership?.organizationId || ''}>
                     <option value="">소속 없음</option>
                     {orgs.map(org => <option key={org.id} value={org.id}>{org.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="font-semibold block text-slate-700">역할 (Role)</label>
-                  <select name="role" className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" defaultValue={selectedProfile.membership?.role || 'member'}>
+                  <select name="role" aria-label="역할 선택" className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" defaultValue={selectedProfile.membership?.role || 'member'}>
                     <option value="member">일반 멤버 (Member)</option>
                     <option value="admin">관리자 (Admin)</option>
                     <option value="owner">소유자 (Owner)</option>
@@ -793,7 +921,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                   <p className="text-sm text-slate-500">{selectedProfile.email}</p>
                 </div>
               </div>
-              <button onClick={() => setShowUserLogsModal(false)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors">
+              <button onClick={() => setShowUserLogsModal(false)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors" aria-label="모달 닫기">
                 <X className="w-5 h-5"/>
               </button>
             </div>
@@ -843,6 +971,56 @@ export default function SuperAdminDashboard({ user }: Props) {
           </div>
         </div>
       )}
+      {/* 실시간 플로팅 토스트 알림 (NEW - Antigravity Style) */}
+      {toastNotification && (
+        <div className="fixed bottom-10 right-10 z-[100] animate-in slide-in-from-right-10 fade-in duration-500">
+          <div className="group relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-indigo-600 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000 animate-pulse"></div>
+            <div className="relative bg-[#0A0A0A]/90 backdrop-blur-2xl border border-white/10 p-5 rounded-2xl shadow-2xl flex items-center gap-5 min-w-[320px] animate-float">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                <UserCheck className="w-6 h-6 text-emerald-400 animate-bounce" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">New Deployment</span>
+                  <button onClick={() => setToastNotification(null)} className="text-slate-600 hover:text-white transition-colors">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <h5 className="text-sm font-black text-white tracking-tight">신규 회원가입 발생</h5>
+                <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                  <span className="text-emerald-300 font-bold">{toastNotification.user_email}</span> 님이 시스템에 새롭게 합류했습니다.
+                </p>
+              </div>
+              <div className="absolute -bottom-1 left-0 right-0 h-1 bg-emerald-500/40 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 animate-[shimmer_8s_linear_forwards]" style={{ transformOrigin: 'left' }}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Style for animations */}
+      <style jsx global>{`
+        @keyframes shimmer {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.2);
+        }
+      `}</style>
     </div>
   );
 }
+

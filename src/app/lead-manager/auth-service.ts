@@ -579,3 +579,63 @@ export async function deleteUserProfile(userId: string): Promise<{ success: bool
 
   return { success: true, message: '사용자 프로필이 성공적으로 삭제되었습니다.' };
 }
+
+/**
+ * [슈퍼 어드민 전용] 관리자 알림 목록 조회
+ */
+export async function getAdminNotifications(limit = 20): Promise<{
+  success: boolean;
+  notifications: any[];
+}> {
+  const supabase = createClient();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser?.isSuperAdmin) {
+    return { success: boolean = false, notifications: [] } as any;
+  }
+
+  const { data, error } = await supabase
+    .from('admin_notifications')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Failed to fetch notifications:', error);
+    return { success: false, notifications: [] };
+  }
+
+  return { success: true, notifications: data || [] };
+}
+
+/**
+ * [슈퍼 어드민 전용] 알림 읽음 처리
+ */
+export async function markNotificationAsRead(notificationId: string): Promise<{ success: boolean }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('admin_notifications')
+    .update({ is_read: true })
+    .eq('id', notificationId);
+
+  if (error) return { success: false };
+  return { success: true };
+}
+
+/**
+ * [슈퍼 어드민 전용] 모든 알림 읽음 처리
+ */
+export async function markAllNotificationsAsRead(): Promise<{ success: boolean }> {
+  const supabase = createClient();
+  const currentUser = await getCurrentUser();
+  if (!currentUser) return { success: false };
+
+  const { error } = await supabase
+    .from('admin_notifications')
+    .update({ is_read: true })
+    .eq('is_read', false);
+
+  if (error) return { success: false };
+  return { success: true };
+}
+
