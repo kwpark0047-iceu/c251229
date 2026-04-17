@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 /**
- * 업무현황 보드 컴포넌트
- * 칸반 스타일로 업무 상태별 표시
+ * ?낅Т?꾪솴 蹂대뱶 而댄룷?뚰듃
+ * 移몃컲 ?ㅽ??쇰줈 ?낅Т ?곹깭蹂??쒖떆
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -50,7 +50,7 @@ const TASK_ICONS: Record<TaskType, React.ReactNode> = {
 const STATUS_COLUMNS: { status: TaskStatus; label: string; icon: React.ReactNode; color: string }[] = [
   { status: 'PENDING', label: '대기', icon: <Clock className="w-4 h-4" />, color: 'var(--text-muted)' },
   { status: 'IN_PROGRESS', label: '진행중', icon: <Loader2 className="w-4 h-4" />, color: 'var(--metro-line4)' },
-  { status: 'COMPLETED', label: '완료', icon: <Check className="w-4 h-4" />, color: 'var(--metro-line2)' },
+  { status: 'COMPLETED', label: '?꾨즺', icon: <Check className="w-4 h-4" />, color: 'var(--metro-line2)' },
 ];
 
 function TaskCard({
@@ -81,24 +81,24 @@ function TaskCard({
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     if (dateStr === today.toISOString().split('T')[0]) {
-      return '오늘';
+      return '?ㅻ뒛';
     }
     if (dateStr === tomorrow.toISOString().split('T')[0]) {
-      return '내일';
+      return '?댁씪';
     }
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
 
   return (
     <div
-      onClick={onClick}
-      className={`p-4 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl animate-float ${isOverdue ? 'border-red-400/50 bg-red-400/5' : 'bg-[var(--bg-secondary)] border-[var(--border-subtle)]'
-        }`}
       style={{
-        boxShadow: isOverdue ? '0 8px 32px rgba(239, 68, 68, 0.1)' : 'var(--shadow-md)',
-      }}
+        '--card-shadow': isOverdue ? '0 8px 32px rgba(239, 68, 68, 0.1)' : 'var(--shadow-md)',
+        // eslint-disable-next-line react/forbid-dom-props
+      } as React.CSSProperties}
+      className={`p-4 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl animate-float shadow-[--card-shadow] ${isOverdue ? 'border-red-400/50 bg-red-400/5' : 'bg-[var(--bg-secondary)] border-[var(--border-subtle)]'
+        }`}
     >
-      {/* 헤더 */}
+      {/* ?ㅻ뜑 */}
       <div className="flex items-start justify-between mb-3">
         <div
           className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium ${typeColors.bg} ${typeColors.text}`}
@@ -112,18 +112,19 @@ function TaskCard({
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
-            title="상태 변경 메뉴"
+            title="?곹깭 蹂寃?硫붾돱"
             className="p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors"
           >
             <MoreVertical className="w-4 h-4 text-[var(--text-muted)]" />
           </button>
           {showMenu && (
             <div
-              className="absolute right-0 top-full mt-1 py-1 rounded-lg border shadow-lg z-10 min-w-[120px]"
+              className="absolute right-0 top-full mt-1 py-1 rounded-lg border shadow-lg z-10 min-w-[120px] bg-[--glass-bg] border-[--glass-border]"
               style={{
-                background: 'var(--glass-bg)',
-                borderColor: 'var(--glass-border)',
-              }}
+                '--glass-bg': 'var(--glass-bg)',
+                '--glass-border': 'var(--glass-border)',
+                // eslint-disable-next-line react/forbid-dom-props
+              } as React.CSSProperties}
             >
               {STATUS_COLUMNS.map((col) => (
                 <button
@@ -134,8 +135,7 @@ function TaskCard({
                     setShowMenu(false);
                   }}
                   title={`${col.label} 상태로 변경`}
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-secondary)] transition-colors flex items-center gap-2"
-                  style={{ color: 'var(--text-secondary)' }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-secondary)] transition-colors flex items-center gap-2 text-[var(--text-secondary)]"
                 >
                   {col.icon}
                   {col.label}로 변경
@@ -145,7 +145,7 @@ function TaskCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (confirm('이 업무를 삭제하시겠습니까?')) {
+                  if (confirm('???낅Т瑜???젣?섏떆寃좎뒿?덇퉴?')) {
                     onDelete();
                   }
                   setShowMenu(false);
@@ -153,19 +153,19 @@ function TaskCard({
                 className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2"
               >
                 <X className="w-4 h-4" />
-                삭제
+                ??젣
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* 제목 */}
+      {/* ?쒕ぉ */}
       <h4 className="font-semibold text-[var(--text-primary)] mb-2 line-clamp-2">
         {task.title}
       </h4>
 
-      {/* 리드 정보 */}
+      {/* 由щ뱶 ?뺣낫 */}
       {task.lead && (
         <div className="flex items-center gap-2 mb-2 text-sm text-[var(--text-secondary)]">
           <MapPin className="w-3.5 h-3.5 text-[var(--metro-line7)]" />
@@ -173,7 +173,7 @@ function TaskCard({
         </div>
       )}
 
-      {/* 날짜/시간/우선순위 */}
+      {/* ?좎쭨/?쒓컙/?곗꽑?쒖쐞 */}
       <div className="flex items-center gap-2 flex-wrap">
         <span
           className={`flex items-center gap-1 text-xs px-2 py-1 rounded-lg ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'
@@ -226,7 +226,7 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
   }, [filter.taskType, filter.priority]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 초기 데이터 로드
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 珥덇린 ?곗씠??濡쒕뱶
     loadData();
   }, [loadData]);
 
@@ -246,41 +246,44 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
 
   return (
     <div className="space-y-6">
-      {/* 통계 카드 */}
+      {/* ?듦퀎 移대뱶 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-          { label: '오늘 업무', value: stats.todayCount, color: 'var(--text-primary)', icon: <Calendar className="w-4 h-4" /> },
+          { label: '?ㅻ뒛 ?낅Т', value: stats.todayCount, color: 'var(--text-primary)', icon: <Calendar className="w-4 h-4" /> },
           { label: '이번 주', value: stats.weekCount, color: 'var(--text-primary)', icon: <Clock className="w-4 h-4" /> },
           { label: '진행중', value: stats.inProgress, color: 'var(--metro-line4)', icon: <Loader2 className="w-4 h-4" /> },
-          { label: '지연 업무', value: stats.overdue, color: stats.overdue > 0 ? 'var(--accent-danger)' : 'var(--text-primary)', icon: <AlertTriangle className="w-4 h-4" />, isAlert: stats.overdue > 0 }
+          { label: '吏???낅Т', value: stats.overdue, color: stats.overdue > 0 ? 'var(--accent-danger)' : 'var(--text-primary)', icon: <AlertTriangle className="w-4 h-4" />, isAlert: stats.overdue > 0 }
         ].map((item, i) => (
           <div
             key={i}
-            className={`p-5 rounded-2xl border transition-all hover:translate-y-[-4px] animate-fade-in-up`}
+            className={`p-5 rounded-2xl border transition-all hover:translate-y-[-4px] animate-fade-in-up shadow-[--item-shadow] bg-[--item-bg] border-[--item-border]`}
             style={{
-              background: item.isAlert ? 'rgba(230, 24, 108, 0.05)' : 'var(--glass-bg)',
-              borderColor: item.isAlert ? 'rgba(230, 24, 108, 0.2)' : 'var(--glass-border)',
-              boxShadow: item.isAlert ? '0 8px 32px rgba(230, 24, 108, 0.1)' : 'var(--shadow-sm)',
-              animationDelay: `${i * 100}ms`
-            }}
+              '--item-bg': item.isAlert ? 'rgba(230, 24, 108, 0.05)' : 'var(--glass-bg)',
+              '--item-border': item.isAlert ? 'rgba(230, 24, 108, 0.2)' : 'var(--glass-border)',
+              '--item-shadow': item.isAlert ? '0 8px 32px rgba(230, 24, 108, 0.1)' : 'var(--shadow-sm)',
+              '--delay': `${i * 100}ms`,
+              // eslint-disable-next-line react/forbid-dom-props
+            } as React.CSSProperties}
           >
             <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)] mb-2 uppercase tracking-wider">
               {item.icon}
               {item.label}
             </div>
-            <div className={`text-3xl font-display`} style={{ color: item.color }}>
+            <div className={`text-3xl font-display text-[--item-color]`} 
+              style={{ '--item-color': item.color, // eslint-disable-next-line react/forbid-dom-props
+              } as React.CSSProperties}>
               {item.value}
             </div>
             {item.isAlert && (
               <div className="mt-2 text-[10px] font-bold text-red-400 animate-pulse">
-                즉시 확인 필요
+                利됱떆 ?뺤씤 ?꾩슂
               </div>
             )}
           </div>
         ))}
       </div>
 
-      {/* 필터 */}
+      {/* ?꾪꽣 */}
       <div className="flex items-center gap-3 flex-wrap">
         <select
           value={filter.taskType || ''}
@@ -288,9 +291,9 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
             setFilter({ ...filter, taskType: (e.target.value || undefined) as TaskType | undefined })
           }
           className="metro-input !w-auto"
-          title="업무 유형 필터"
+          title="?낅Т ?좏삎 ?꾪꽣"
         >
-          <option value="">전체 유형</option>
+          <option value="">?꾩껜 ?좏삎</option>
           {Object.entries(TASK_TYPE_LABELS).map(([key, label]) => (
             <option key={key} value={key}>
               {label}
@@ -303,9 +306,9 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
             setFilter({ ...filter, priority: (e.target.value || undefined) as TaskPriority | undefined })
           }
           className="metro-input !w-auto"
-          title="우선순위 필터"
+          title="?곗꽑?쒖쐞 ?꾪꽣"
         >
-          <option value="">전체 우선순위</option>
+          <option value="">?꾩껜 ?곗꽑?쒖쐞</option>
           {Object.entries(TASK_PRIORITY_LABELS).map(([key, label]) => (
             <option key={key} value={key}>
               {label}
@@ -314,7 +317,7 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
         </select>
       </div>
 
-      {/* 칸반 보드 */}
+      {/* 移몃컲 蹂대뱶 */}
       {loading ? (
         <div className="h-64 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-[var(--text-muted)]" />
@@ -327,37 +330,37 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
             return (
               <div
                 key={column.status}
-                className="rounded-2xl border p-4"
+                className="rounded-2xl border p-4 bg-[--glass-bg] border-[--glass-border]"
                 style={{
-                  background: 'var(--glass-bg)',
-                  borderColor: 'var(--glass-border)',
-                }}
+                  '--glass-bg': 'var(--glass-bg)',
+                  '--glass-border': 'var(--glass-border)',
+                  // eslint-disable-next-line react/forbid-dom-props
+                } as React.CSSProperties}
               >
-                {/* 컬럼 헤더 */}
+                {/* 而щ읆 ?ㅻ뜑 */}
                 <div className="flex items-center gap-2 mb-4">
-                  <span style={{ color: column.color }}>{column.icon}</span>
+                  <span className="text-[--column-color]"
+                    style={{ '--column-color': column.color, // eslint-disable-next-line react/forbid-dom-props
+                    } as React.CSSProperties}>{column.icon}</span>
                   <h3
-                    className="font-semibold"
-                    style={{ color: column.color }}
+                    className="font-semibold text-[--column-color]"
+                    style={{ '--column-color': column.color, // eslint-disable-next-line react/forbid-dom-props
+                    } as React.CSSProperties}
                   >
                     {column.label}
                   </h3>
                   <span
-                    className="ml-auto px-2 py-0.5 rounded-full text-xs font-medium"
-                    style={{
-                      background: 'var(--bg-secondary)',
-                      color: 'var(--text-muted)',
-                    }}
+                    className="ml-auto px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--bg-secondary)] text-[var(--text-muted)]"
                   >
                     {columnTasks.length}
                   </span>
                 </div>
 
-                {/* 태스크 목록 */}
+                {/* ?쒖뒪??紐⑸줉 */}
                 <div className="space-y-3">
                   {columnTasks.length === 0 ? (
                     <div className="text-center py-8 text-sm text-[var(--text-muted)]">
-                      업무가 없습니다
+                      ?낅Т媛 ?놁뒿?덈떎
                     </div>
                   ) : (
                     columnTasks.map((task) => (
