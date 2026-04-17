@@ -15,8 +15,9 @@ export async function GET(request: NextRequest) {
   const line = searchParams.get('line') || '1';
   const stationName = searchParams.get('station');
 
-  // API 키 확인
-  const apiKey = process.env.KRIC_API_KEY ||
+  // API 키 확인 (새로 발급받은 공공데이터 포털 키 우선)
+  const apiKey = process.env.DATAGOKR_API_KEY ||
+    process.env.KRIC_API_KEY ||
     process.env.NEXT_PUBLIC_KRIC_API_KEY ||
     process.env.STATION_INFO_API_KEY;
 

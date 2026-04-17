@@ -64,6 +64,10 @@ export default function SuperAdminDashboard({ user }: Props) {
   const [tierFilter, setTierFilter] = useState<'ALL' | 'FREE' | 'DEMO' | 'MEDIA' | 'SALES'>('ALL');
   
   // Modal States
+  const [showOrgModal, setShowOrgModal] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [showUserLogsModal, setShowUserLogsModal] = useState(false);
+  const [selectedUserLogs, setSelectedUserLogs] = useState<any[]>([]);
   const [userLogsLoading, setUserLogsLoading] = useState(false);
 
   // Notifications State
@@ -140,9 +144,13 @@ export default function SuperAdminDashboard({ user }: Props) {
         setIsLive(true);
         setTimeout(() => setIsLive(false), 3000);
       })
-          }, 200);
-        }
-      });
+      .on('presence', { event: 'leave' }, ({ leftPresences }: { leftPresences: any[] }) => {
+        console.log('Admin Node Left:', leftPresences);
+        setTimeout(() => {
+          loadData();
+        }, 200);
+      })
+      .subscribe();
 
     // 관리자 알림 실시간 구독
     const notificationChannel = supabase
@@ -154,7 +162,7 @@ export default function SuperAdminDashboard({ user }: Props) {
           schema: 'public',
           table: 'admin_notifications'
         },
-        (payload) => {
+        (payload: { new: any }) => {
           console.log('New Notification Received:', payload.new);
           const newNotif = payload.new;
           
@@ -457,7 +465,15 @@ export default function SuperAdminDashboard({ user }: Props) {
               <h3 className="text-3xl font-black text-emerald-400 tracking-tighter leading-none">{onlineUsersCount.toLocaleString()}</h3>
               <div className="flex -space-x-2 mt-2">
                 {onlineUsers.slice(0, 5).map((u, i) => (
-                  <div key={i} className="w-5 h-5 rounded-full bg-slate-800 border border-emerald-500/50 flex items-center justify-center text-[8px] font-black first:ml-0 translate-y-0 animate-float" style={{ animationDelay: `${i * 0.2}s` }}>
+                  <div
+                    key={u.id}
+                    className="w-5 h-5 rounded-full bg-emerald-500 border border-white/20 flex items-center justify-center text-[7px] font-bold animate-fade-in animate-float-subtle opacity-[var(--active-opacity)]"
+                    style={{ 
+                      '--delay': `${i * 0.2}s`,
+                      '--active-opacity': '0.9',
+                      // eslint-disable-next-line react/forbid-dom-props
+                    } as React.CSSProperties}
+                  >
                     {(u.email || '?')[0].toUpperCase()}
                   </div>
                 ))}
@@ -487,16 +503,19 @@ export default function SuperAdminDashboard({ user }: Props) {
           <div className="group relative overflow-hidden bg-white/[0.03] hover:bg-white/[0.06] backdrop-blur-md border border-white/5 p-6 rounded-2xl transition-all duration-500 animate-float delay-300 shadow-2xl translate-y-0 hover:-translate-y-2">
             <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl -mr-8 -mt-8 group-hover:bg-amber-500/10 transition-colors"></div>
             <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20 group-hover:scale-110 transition-transform shadow-lg shadow-amber-500/10">
+              <div className={`p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20 group-hover:scale-110 transition-transform shadow-lg shadow-amber-500/10 ${isLive ? 'animate-pulse bg-amber-500/30' : ''}`}>
                 <UserCheck className="w-6 h-6" />
               </div>
               <div className="flex flex-col items-end">
                 <span className="text-[10px] font-black text-amber-500/60 tracking-widest uppercase mb-1">Action</span>
-                <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[9px] font-black rounded-full border border-amber-500/20">PENDING</span>
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[9px] font-black rounded-full border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                  <span className="w-1 h-1 bg-amber-500 rounded-full animate-ping"></span>
+                  LIVE PENDING
+                </span>
               </div>
             </div>
             <div>
-              <h3 className="text-3xl font-black text-amber-400 tracking-tighter leading-none">{pendingUsersCount.toLocaleString()}</h3>
+              <h3 className={`text-3xl font-black text-amber-400 tracking-tighter leading-none transition-all duration-500 ${isLive ? 'scale-110 translate-x-2 text-amber-300 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]' : ''}`}>{pendingUsersCount.toLocaleString()}</h3>
               <p className="text-slate-500 text-xs font-bold mt-2 uppercase tracking-wide">검토 대기 중인 계정</p>
             </div>
           </div>
@@ -787,7 +806,14 @@ export default function SuperAdminDashboard({ user }: Props) {
             ) : allLogs.length > 0 ? (
               <div className="relative space-y-6 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-px before:bg-gradient-to-b before:from-indigo-500/50 before:via-purple-500/20 before:to-transparent">
                 {allLogs.map((log, idx) => (
-                  <div key={log.id} className="relative pl-12 group animate-in fade-in slide-in-from-left-4" style={{ animationDelay: `${idx * 0.05}s` }}>
+                  <div 
+                    key={log.id} 
+                    className="relative pl-12 group animate-in fade-in slide-in-from-left-4" 
+                    style={{ 
+                      '--delay': `${idx * 0.05}s`,
+                      // eslint-disable-next-line react/forbid-dom-props
+                    } as React.CSSProperties}
+                  >
                     {/* Node Dot with Pulse */}
                     <div className={`absolute left-0 top-1 w-10 h-10 rounded-2xl border flex items-center justify-center shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-12 ${
                       log.action_type.includes('PROPOSAL') ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' :
@@ -983,7 +1009,12 @@ export default function SuperAdminDashboard({ user }: Props) {
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">New Deployment</span>
-                  <button onClick={() => setToastNotification(null)} className="text-slate-600 hover:text-white transition-colors">
+                  <button 
+                    onClick={() => setToastNotification(null)} 
+                    className="text-slate-600 hover:text-white transition-colors"
+                    title="알림 닫기"
+                    aria-label="알림 닫기"
+                  >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -993,7 +1024,11 @@ export default function SuperAdminDashboard({ user }: Props) {
                 </p>
               </div>
               <div className="absolute -bottom-1 left-0 right-0 h-1 bg-emerald-500/40 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 animate-[shimmer_8s_linear_forwards]" style={{ transformOrigin: 'left' }}></div>
+                <div 
+                  className="h-full bg-emerald-500 animate-[shimmer_8s_linear_forwards] origin-left" 
+                  style={{ // eslint-disable-next-line react/forbid-dom-props
+                  '--shimmer-fallback': 'left' } as React.CSSProperties}
+                ></div>
               </div>
             </div>
           </div>
