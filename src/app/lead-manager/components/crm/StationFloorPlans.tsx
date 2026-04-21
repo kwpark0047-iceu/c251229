@@ -80,7 +80,7 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                             <button onClick={() => {
                                 setSelectedFloorPlan(null);
                                 setSelectedMarker(null);
-                            }} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                            }} title="확대 모달 닫기" aria-label="도면 모달 닫기" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                                 <X className="w-6 h-6 text-slate-500" />
                             </button>
                         </div>
@@ -90,21 +90,21 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                                 <img
                                     src={selectedFloorPlan.imageUrl}
                                     alt={`${selectedFloorPlan.stationName} ${selectedFloorPlan.floorName}`}
-                                    className="max-w-none object-contain shadow-lg"
-                                    style={{ maxHeight: 'calc(90vh - 120px)' }}
+                                    className="max-w-none object-contain shadow-lg max-h-[calc(90vh-120px)]"
                                 />
                                 
                                 {/* 인벤토리 마커 표시 */}
                                 {currentInventory.map((item) => (
                                     <div
                                         key={item.id}
-                                        className={`absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all hover:scale-125 z-10 ${
+                                        /* eslint-disable-next-line react/forbid-dom-props */
+                                        style={{ 
+                                            '--marker-x': `${item.spotPositionX}%`, 
+                                            '--marker-y': `${item.spotPositionY}%` 
+                                        } as React.CSSProperties}
+                                        className={`absolute w-8 h-8 -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all hover:scale-125 z-10 left-[--marker-x] top-[--marker-y] ${
                                             selectedMarker?.id === item.id ? 'scale-125 brightness-110' : ''
                                         }`}
-                                        style={{ 
-                                            left: `${item.spotPositionX}%`, 
-                                            top: `${item.spotPositionY}%` 
-                                        }}
                                         onClick={() => setSelectedMarker(item)}
                                     >
                                         <div className={`w-full h-full rounded-full border-2 border-white shadow-lg animate-float-subtle flex items-center justify-center ${
@@ -124,7 +124,7 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${AVAILABILITY_COLORS[selectedMarker.availabilityStatus].bg} ${AVAILABILITY_COLORS[selectedMarker.availabilityStatus].text}`}>
                                             {AVAILABILITY_LABELS[selectedMarker.availabilityStatus]}
                                         </span>
-                                        <button onClick={() => setSelectedMarker(null)} className="text-slate-400 hover:text-slate-600">
+                                        <button onClick={() => setSelectedMarker(null)} title="마커 상세 닫기" aria-label="정보 팝업 닫기" className="text-slate-400 hover:text-slate-600">
                                             <X className="w-4 h-4" />
                                         </button>
                                     </div>

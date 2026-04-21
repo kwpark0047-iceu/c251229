@@ -58,6 +58,7 @@ const LeadCard = React.memo(({
               e.stopPropagation();
               setIsMenuOpen(!isMenuOpen);
             }}
+            title="메뉴 열기"
             className="p-1 hover:bg-gray-100 rounded"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -125,6 +126,7 @@ const LeadCard = React.memo(({
             e.stopPropagation();
             onUpdateStatus(e.target.value as LeadStatus);
           }}
+          title="리드 상태 변경"
           className="text-xs px-2 py-1 border rounded"
           onClick={(e) => e.stopPropagation()}
         >
@@ -156,6 +158,7 @@ const GridItem = React.memo(({
   const leadIndex = rowIndex * columns + columnIndex;
 
   if (leadIndex >= leads.length) {
+    // eslint-disable-next-line react/forbid-dom-props
     return <div style={style} />;
   }
 
@@ -163,6 +166,7 @@ const GridItem = React.memo(({
   const isSelected = selectedLeads.has(lead.id);
 
   return (
+    // eslint-disable-next-line react/forbid-dom-props
     <div style={style} className="p-2">
       <LeadCard
         lead={lead}
@@ -249,8 +253,7 @@ export default function VirtualizedGrid({
     return (
       <div
         ref={containerRef}
-        className="flex-1 bg-gray-50 rounded-lg"
-        style={{ minHeight: '400px' }}
+        className="flex-1 bg-gray-50 rounded-lg min-h-[400px]"
       />
     );
   }

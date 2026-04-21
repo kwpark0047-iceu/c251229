@@ -70,7 +70,7 @@ export function ThemeSelector() {
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
         `}
         aria-label="테마 선택"
-        aria-expanded={isOpen}
+        aria-expanded={isOpen ? "true" : "false"}
         aria-haspopup="listbox"
       >
         <Palette className="w-4 h-4" />
@@ -96,7 +96,7 @@ export function ThemeSelector() {
           }
           z-50
         `}>
-          <div className="p-1" role="listbox">
+          <div className="p-1" role="listbox" aria-label="테마 목록">
             {themes.map(({ value, label, icon: Icon, description }) => (
               <button
                 key={value}
@@ -104,6 +104,8 @@ export function ThemeSelector() {
                   changeTheme(value);
                   setIsOpen(false);
                 }}
+                aria-selected={theme === value ? "true" : "false"}
+                title={`${label} 테마 적용`}
                 className={`
                   w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors
                   ${theme === value
@@ -116,7 +118,6 @@ export function ThemeSelector() {
                   }
                 `}
                 role="option"
-                aria-selected={theme === value}
               >
                 <Icon className="w-4 h-4" />
                 <div className="flex-1 text-left">
@@ -303,13 +304,14 @@ export function ThemeTransition({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`
-        transition-all duration-300 ease-in-out
+        transition-all duration-300 ease-in-out bg-[--theme-bg] text-[--theme-text]
         ${isTransitioning ? 'scale-95 opacity-50' : 'scale-100 opacity-100'}
       `}
+      /* eslint-disable-next-line react/forbid-dom-props */
       style={{
-        backgroundColor: colors.background,
-        color: colors.text,
-      }}
+        '--theme-bg': colors.background,
+        '--theme-text': colors.text,
+      } as React.CSSProperties}
     >
       {children}
     </div>
@@ -353,12 +355,14 @@ export function ThemeCustomizer() {
               type="color"
               value={value}
               onChange={(e) => handleColorChange(colorName, e.target.value)}
+              title={`${colorName} 색상 선택`}
               className="w-12 h-8 rounded cursor-pointer"
             />
             <input
               type="text"
               value={value}
               onChange={(e) => handleColorChange(colorName, e.target.value)}
+              title={`${colorName} 색상 코드`}
               className={`
                 flex-1 px-3 py-1 rounded border text-sm
                 ${colors.background === '#ffffff' 

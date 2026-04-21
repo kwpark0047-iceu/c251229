@@ -1,43 +1,42 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-/**
- * 지하철 역사 도면 JPG 파일 일괄 업로드 스크립트
+﻿/**
+ * 吏?섏쿋 ??궗 ?꾨㈃ JPG ?뚯씪 ?쇨큵 ?낅줈???ㅽ겕由쏀듃
  *
- * 사용법:
- * 1. Supabase에서 migrations/20260106000000_floor_plans_extension.sql 실행
- * 2. Supabase Storage에서 'floor-plans' 버킷 생성 (public)
- * 3. node scripts/upload-floor-plans.js 실행
+ * ?ъ슜踰?
+ * 1. Supabase?먯꽌 migrations/20260106000000_floor_plans_extension.sql ?ㅽ뻾
+ * 2. Supabase Storage?먯꽌 'floor-plans' 踰꾪궥 ?앹꽦 (public)
+ * 3. node scripts/upload-floor-plans.js ?ㅽ뻾
  */
 
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
-// Supabase 설정
+// Supabase ?ㅼ젙
 const SUPABASE_URL = 'https://yreoeqmcebnosmtlyump.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlyZW9lcW1jZWJub3NtdGx5dW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5NzM4NzQsImV4cCI6MjA4MjU0OTg3NH0.Uv-c9TlQlv0yvNJemPQX-_MR4Ndn8A50rS2omGjySNI';
 const BUCKET_NAME = 'floor-plans';
 
-// JPG 파일 소스 경로
+// JPG ?뚯씪 ?뚯뒪 寃쎈줈
 const SOURCE_PATH = 'C:\\Users\\user\\Downloads\\subway_floors\\jpg_output';
 
-// 노선 매핑
+// ?몄꽑 留ㅽ븨
 const LINE_MAP = {
-  '1호선': '1',
-  '2호선': '2',
-  '5호선': '5',
-  '7호선': '7',
-  '8호선': '8',
+  '1?몄꽑': '1',
+  '2?몄꽑': '2',
+  '5?몄꽑': '5',
+  '7?몄꽑': '7',
+  '8?몄꽑': '8',
 };
 
-// 도면 유형 매핑
+// ?꾨㈃ ?좏삎 留ㅽ븨
 const PLAN_TYPE_MAP = {
-  '역구내도면': 'station_layout',
-  'PSD도면': 'psd',
+  '??뎄?대룄硫?: 'station_layout',
+  'PSD?꾨㈃': 'psd',
 };
 
-// 폴더명 파싱
+// ?대뜑紐??뚯떛
 function parseFolderName(folderName) {
-  const match = folderName.match(/지하철_(\d+호선)_(역구내도면|PSD도면)/);
+  const match = folderName.match(/吏?섏쿋_(\d+?몄꽑)_(??뎄?대룄硫?PSD?꾨㈃)/);
   if (!match) return null;
 
   return {
@@ -46,7 +45,7 @@ function parseFolderName(folderName) {
   };
 }
 
-// 파일명 파싱
+// ?뚯씪紐??뚯떛
 function parseFileName(fileName) {
   const match = fileName.match(/^(\d+)_(.+?)(?:-(\d+))?\.JPG$/i);
   if (!match) return null;
@@ -55,29 +54,29 @@ function parseFileName(fileName) {
   const stationName = match[2];
   const pageNumber = match[3] ? parseInt(match[3], 10) : undefined;
 
-  // 표지와 노선도는 건너뜀
-  if (stationName === '표지' || stationName === '노선도') return null;
+  // ?쒖?? ?몄꽑?꾨뒗 嫄대꼫?
+  if (stationName === '?쒖?' || stationName === '?몄꽑??) return null;
 
   return { stationName, sortOrder, pageNumber };
 }
 
 async function main() {
-  console.log('=== 지하철 역사 도면 업로드 시작 ===\n');
+  console.log('=== 吏?섏쿋 ??궗 ?꾨㈃ ?낅줈???쒖옉 ===\n');
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // 소스 폴더 확인
+  // ?뚯뒪 ?대뜑 ?뺤씤
   if (!fs.existsSync(SOURCE_PATH)) {
-    console.error(`오류: 소스 경로가 존재하지 않습니다: ${SOURCE_PATH}`);
+    console.error(`?ㅻ쪟: ?뚯뒪 寃쎈줈媛 議댁옱?섏? ?딆뒿?덈떎: ${SOURCE_PATH}`);
     process.exit(1);
   }
 
-  // 폴더 목록 조회
+  // ?대뜑 紐⑸줉 議고쉶
   const folders = fs.readdirSync(SOURCE_PATH).filter(f =>
     fs.statSync(path.join(SOURCE_PATH, f)).isDirectory()
   );
 
-  console.log(`폴더 ${folders.length}개 발견\n`);
+  console.log(`?대뜑 ${folders.length}媛?諛쒓껄\n`);
 
   let totalUploaded = 0;
   let totalFailed = 0;
@@ -86,22 +85,22 @@ async function main() {
   for (const folder of folders) {
     const folderInfo = parseFolderName(folder);
     if (!folderInfo) {
-      console.log(`스킵: ${folder} (파싱 실패)`);
+      console.log(`?ㅽ궢: ${folder} (?뚯떛 ?ㅽ뙣)`);
       continue;
     }
 
-    console.log(`\n[${folder}] 처리 중...`);
-    console.log(`  노선: ${folderInfo.lineNumber}호선, 유형: ${folderInfo.planType}`);
+    console.log(`\n[${folder}] 泥섎━ 以?..`);
+    console.log(`  ?몄꽑: ${folderInfo.lineNumber}?몄꽑, ?좏삎: ${folderInfo.planType}`);
 
     const folderPath = path.join(SOURCE_PATH, folder);
     const files = fs.readdirSync(folderPath).filter(f => f.toLowerCase().endsWith('.jpg'));
 
-    console.log(`  파일: ${files.length}개`);
+    console.log(`  ?뚯씪: ${files.length}媛?);
 
     for (const file of files) {
       const fileInfo = parseFileName(file);
       if (!fileInfo) {
-        console.log(`    스킵: ${file} (표지/노선도/파싱실패)`);
+        console.log(`    ?ㅽ궢: ${file} (?쒖?/?몄꽑???뚯떛?ㅽ뙣)`);
         totalSkipped++;
         continue;
       }
@@ -110,7 +109,7 @@ async function main() {
       const fileBuffer = fs.readFileSync(filePath);
       const fileStats = fs.statSync(filePath);
 
-      // Storage 경로 (영문 파일명, PSD는 _PSD 접미사 추가)
+      // Storage 寃쎈줈 (?곷Ц ?뚯씪紐? PSD??_PSD ?묐???異붽?)
       const typeFolder = folderInfo.planType === 'psd' ? 'psd' : 'station-layout';
       const psdSuffix = folderInfo.planType === 'psd' ? '_PSD' : '';
       const pageStr = fileInfo.pageNumber ? `_p${fileInfo.pageNumber}` : '';
@@ -118,8 +117,7 @@ async function main() {
       const storagePath = `line-${folderInfo.lineNumber}/${typeFolder}/${safeFileName}`;
 
       try {
-        // Storage 업로드
-        const { error: uploadError } = await supabase.storage
+        // Storage ?낅줈??        const { error: uploadError } = await supabase.storage
           .from(BUCKET_NAME)
           .upload(storagePath, fileBuffer, {
             contentType: 'image/jpeg',
@@ -128,7 +126,7 @@ async function main() {
           });
 
         if (uploadError) {
-          console.log(`    오류: ${file} - ${uploadError.message}`);
+          console.log(`    ?ㅻ쪟: ${file} - ${uploadError.message}`);
           totalFailed++;
           continue;
         }
@@ -138,12 +136,12 @@ async function main() {
           .from(BUCKET_NAME)
           .getPublicUrl(storagePath);
 
-        // 역명 (페이지 번호 포함)
+        // ??챸 (?섏씠吏 踰덊샇 ?ы븿)
         const stationName = fileInfo.pageNumber && fileInfo.pageNumber > 1
           ? `${fileInfo.stationName} (${fileInfo.pageNumber})`
           : fileInfo.stationName;
 
-        // DB 저장 (INSERT)
+        // DB ???(INSERT)
         const { error: dbError } = await supabase
           .from('floor_plans')
           .insert({
@@ -159,24 +157,24 @@ async function main() {
           });
 
         if (dbError) {
-          console.log(`    DB 오류: ${file} - ${dbError.message}`);
+          console.log(`    DB ?ㅻ쪟: ${file} - ${dbError.message}`);
           totalFailed++;
           continue;
         }
 
-        console.log(`    성공: ${stationName}`);
+        console.log(`    ?깃났: ${stationName}`);
         totalUploaded++;
       } catch (err) {
-        console.log(`    예외: ${file} - ${err.message}`);
+        console.log(`    ?덉쇅: ${file} - ${err.message}`);
         totalFailed++;
       }
     }
   }
 
-  console.log('\n=== 업로드 완료 ===');
-  console.log(`성공: ${totalUploaded}개`);
-  console.log(`실패: ${totalFailed}개`);
-  console.log(`스킵: ${totalSkipped}개`);
+  console.log('\n=== ?낅줈???꾨즺 ===');
+  console.log(`?깃났: ${totalUploaded}媛?);
+  console.log(`?ㅽ뙣: ${totalFailed}媛?);
+  console.log(`?ㅽ궢: ${totalSkipped}媛?);
 }
 
 main().catch(console.error);

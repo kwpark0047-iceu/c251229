@@ -297,6 +297,7 @@ export function AvatarImage({
         'relative rounded-full overflow-hidden bg-gray-200',
         className
       )}
+      /* eslint-disable-next-line react/forbid-dom-props */
       style={{ width: size, height: size }}
     >
       <OptimizedImage

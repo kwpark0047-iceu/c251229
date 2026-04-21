@@ -117,6 +117,7 @@ export default function InventoryUploadModal({
           <button
             onClick={onClose}
             title="닫기"
+            aria-label="모달 닫기"
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-slate-500" />
@@ -138,6 +139,8 @@ export default function InventoryUploadModal({
             <input
               id="inventory-file-input"
               name="file"
+              title="인벤토리 엑셀 템플릿 업로드"
+              aria-label="인벤토리 엑셀 템플릿 업로드"
               ref={fileInputRef}
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -177,6 +180,8 @@ export default function InventoryUploadModal({
                   key={type.value}
                   type="button"
                   onClick={() => setMediaType(type.value)}
+                  title={`${type.label} 선택`}
+                  aria-label={`${type.label} 선택`}
                   className={`px-3 py-2 text-sm font-medium rounded-lg border-2 transition-all ${mediaType === type.value
                     ? `${type.color} border-current ring-2 ring-offset-1`
                     : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
@@ -243,13 +248,13 @@ export default function InventoryUploadModal({
                 </span>
               </div>
               <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                <style dangerouslySetInnerHTML={{ __html: `
+                  .progress-dynamic-width { 
+                    width: ${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%; 
+                  }
+                `}} />
                 <div
-                  className="h-full bg-blue-500 rounded-full transition-all duration-300"
-                  style={{
-                    width: progress.total > 0
-                      ? `${(progress.current / progress.total) * 100}%`
-                      : '0%',
-                  }}
+                  className="h-full bg-blue-500 rounded-full transition-all duration-300 progress-dynamic-width"
                 />
               </div>
             </div>
@@ -302,6 +307,8 @@ export default function InventoryUploadModal({
             <button
               type="button"
               onClick={onClose}
+              title="취소"
+              aria-label="업로드 취소"
               className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
             >
               취소
@@ -309,6 +316,8 @@ export default function InventoryUploadModal({
             <button
               onClick={handleUpload}
               disabled={!file || uploading}
+              title="업로드 시작"
+              aria-label="서버로 엑셀 파일 업로드 시작"
               className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploading ? '업로드 중...' : '업로드'}

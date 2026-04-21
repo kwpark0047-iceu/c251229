@@ -332,11 +332,7 @@ export default function TaskFormModal({
             />
             {searchQuery && (
               <div
-                className="max-h-40 overflow-y-auto rounded-lg border"
-                style={{
-                  borderColor: 'var(--border-subtle)',
-                  background: 'var(--bg-secondary)',
-                }}
+                className="max-h-40 overflow-y-auto rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)]"
               >
                 {filteredLeads.slice(0, 10).map((lead) => (
                   <button
@@ -398,23 +394,20 @@ export default function TaskFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-3 rounded-xl border font-semibold transition-all hover:bg-[var(--bg-secondary)]"
-              style={{
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-secondary)',
-              }}
+              className="flex-1 px-5 py-3 rounded-xl border font-semibold transition-all hover:bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-5 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 px-5 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 flex items-center justify-center gap-2 bg-[--btn-bg] shadow-[--btn-shadow]"
+              // eslint-disable-next-line react/forbid-dom-props
               style={{
-                background:
+                '--btn-bg':
                   'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                boxShadow: '0 4px 15px rgba(60, 181, 74, 0.3)',
-              }}
+                '--btn-shadow': '0 4px 15px rgba(60, 181, 74, 0.3)',
+              } as React.CSSProperties}
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {task?.id ? '수정' : '저장'}

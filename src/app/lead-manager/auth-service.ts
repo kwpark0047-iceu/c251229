@@ -591,7 +591,7 @@ export async function getAdminNotifications(limit = 20): Promise<{
   const currentUser = await getCurrentUser();
 
   if (!currentUser?.isSuperAdmin) {
-    return { success: boolean = false, notifications: [] } as any;
+    return { success: false, notifications: [] };
   }
 
   const { data, error } = await supabase

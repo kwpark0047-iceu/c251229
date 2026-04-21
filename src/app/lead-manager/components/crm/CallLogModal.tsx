@@ -82,6 +82,8 @@ export default function CallLogModal({
           </div>
           <button
             onClick={onClose}
+            title="닫기"
+            aria-label="모달 닫기"
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-slate-500" />
@@ -204,6 +206,7 @@ export default function CallLogModal({
               id="next-contact-date"
               name="nextContactDate"
               type="date"
+              title="다음 연락 예정일 선택"
               value={nextContactDate}
               onChange={(e) => setNextContactDate(e.target.value)}
               className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

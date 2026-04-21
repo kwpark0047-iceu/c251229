@@ -139,23 +139,14 @@ export default function ListView({
   return (
     <>
       <div
-        className="rounded-xl border overflow-hidden"
-        style={{
-          background: 'var(--glass-bg)',
-          borderColor: 'var(--glass-border)',
-          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.2)',
-        }}
+        className="rounded-xl border overflow-hidden bg-[var(--glass-bg)] border-[var(--glass-border)] shadow-[0_4px_30px_rgba(0,0,0,0.2)]"
       >
         {/* 데스크톱: 테이블 뷰 */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr
-                className="border-b"
-                style={{
-                  background: 'var(--bg-tertiary)',
-                  borderColor: 'var(--border-subtle)',
-                }}
+                className="border-b bg-[var(--bg-tertiary)] border-[var(--border-subtle)]"
               >
                 <th
                   className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
@@ -255,12 +246,13 @@ export default function ListView({
                   </p>
                 </div>
                 <div
-                  className="px-2 py-1 rounded text-[10px] font-bold"
+                  className="px-2 py-1 rounded text-[10px] font-bold bg-[--status-bg] text-[--status-text] border border-[--status-border]"
                   style={{
-                    background: STATUS_METRO_COLORS[lead.status].bg,
-                    color: STATUS_METRO_COLORS[lead.status].text,
-                    border: `1px solid ${STATUS_METRO_COLORS[lead.status].border}`
-                  }}
+                    '--status-bg': STATUS_METRO_COLORS[lead.status].bg,
+                    '--status-text': STATUS_METRO_COLORS[lead.status].text,
+                    '--status-border': STATUS_METRO_COLORS[lead.status].border,
+                    // eslint-disable-next-line react/forbid-dom-props
+                  } as React.CSSProperties}
                 >
                   {STATUS_LABELS[lead.status]}
                 </div>
@@ -310,11 +302,7 @@ export default function ListView({
 
         {/* 페이지네이션 UI 추가 */}
         <div
-          className="px-6 py-4 flex items-center justify-between border-t"
-          style={{
-            background: 'var(--bg-tertiary)',
-            borderColor: 'var(--border-subtle)',
-          }}
+          className="px-6 py-4 flex items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]"
         >
           <div className="text-sm text-[var(--text-secondary)]">
             전체 <span className="font-semibold text-[var(--text-primary)]">{totalCount.toLocaleString()}</span>건 중
@@ -329,8 +317,7 @@ export default function ListView({
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage <= 1}
               title="이전 페이지"
-              className="p-2 rounded-lg border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)]"
-              style={{ borderColor: 'var(--glass-border)' }}
+              className="p-2 rounded-lg border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)] border-[var(--glass-border)]"
             >
               <ChevronUp className="w-5 h-5 -rotate-90" />
             </button>
@@ -356,12 +343,9 @@ export default function ListView({
                   <button
                     key={pageNum}
                     onClick={() => onPageChange(pageNum)}
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-200"
-                    style={{
-                      background: currentPage === pageNum ? 'var(--metro-line4)' : 'transparent',
-                      color: currentPage === pageNum ? 'white' : 'var(--text-secondary)',
-                      border: currentPage === pageNum ? 'none' : '1px solid var(--glass-border)',
-                    }}
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-200 ${
+                      currentPage === pageNum ? 'bg-[var(--metro-line4)] text-white' : 'text-[var(--text-secondary)] border border-[var(--glass-border)]'
+                    }`}
                   >
                     {pageNum}
                   </button>
@@ -373,8 +357,7 @@ export default function ListView({
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage >= Math.ceil(totalCount / pageSize)}
               title="다음 페이지"
-              className="p-2 rounded-lg border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)]"
-              style={{ borderColor: 'var(--glass-border)' }}
+              className="p-2 rounded-lg border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)] border-[var(--glass-border)]"
             >
               <ChevronUp className="w-5 h-5 rotate-90" />
             </button>
@@ -427,8 +410,9 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
         onSelect();
       }}
       style={{
-        animationDelay: `${index * 20}ms`,
-      }}
+        '--delay': `${index * 20}ms`,
+        // eslint-disable-next-line react/forbid-dom-props
+      } as React.CSSProperties}
     >
       {/* 병원명 - 클릭 시 맵 뷰로 이동 */}
       <td className="px-5 py-4">
@@ -472,8 +456,9 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
                 {lead.stationLines.slice(0, 2).map(line => (
                   <span
                     key={line}
-                    className="w-5 h-5 rounded-full text-white text-[10px] flex items-center justify-center font-bold shadow-sm"
-                    style={{ backgroundColor: LINE_COLORS[line] || '#888' }}
+                    className="w-5 h-5 rounded-full text-white text-[10px] flex items-center justify-center font-bold shadow-sm bg-[--line-color]"
+                    // eslint-disable-next-line react/forbid-dom-props
+                    style={{ '--line-color': LINE_COLORS[line] || '#888' } as React.CSSProperties}
                   >
                     {line}
                   </span>
@@ -498,8 +483,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
         {lead.phone ? (
           <a
             href={`tel:${lead.phone}`}
-            className="text-sm font-medium hover:underline transition-colors"
-            style={{ color: 'var(--metro-line4)' }}
+            className="text-sm font-medium hover:underline transition-colors text-[var(--metro-line4)]"
             onClick={(e) => e.stopPropagation()}
             title="전화 걸기"
           >
@@ -546,12 +530,13 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
           }}
           onClick={(e) => e.stopPropagation()}
           title="상태 변경"
-          className="text-sm px-3 py-1.5 rounded-lg border font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)] appearance-none"
+          className="text-sm px-3 py-1.5 rounded-lg border font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)] appearance-none bg-[--status-bg] text-[--status-text] border-[--status-border]"
           style={{
-            background: statusColor.bg,
-            color: statusColor.text,
-            borderColor: statusColor.border,
-          }}
+            '--status-bg': statusColor.bg,
+            '--status-text': statusColor.text,
+            '--status-border': statusColor.border,
+            // eslint-disable-next-line react/forbid-dom-props
+          } as React.CSSProperties}
         >
           {(['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as LeadStatus[]).map(status => (
             <option key={status} value={status}>
@@ -570,11 +555,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
                 e.stopPropagation();
                 onCallLog();
               }}
-              className="p-2.5 rounded-lg transition-all duration-300 hover:scale-110"
-              style={{
-                background: 'rgba(60, 181, 74, 0.15)',
-                color: 'var(--metro-line2)',
-              }}
+              className="p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-[var(--metro-line2)] bg-[rgba(60,181,74,0.15)]"
               title="통화 기록"
             >
               <MessageSquare className="w-4 h-4" />
@@ -585,11 +566,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
               e.stopPropagation();
               onSelect();
             }}
-            className="p-2.5 rounded-lg transition-all duration-300 hover:scale-110"
-            style={{
-              background: 'rgba(50, 164, 206, 0.15)',
-              color: 'var(--metro-line4)',
-            }}
+            className="p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-[var(--metro-line4)] bg-[rgba(50,164,206,0.15)]"
             title="제안서 보내기"
           >
             <FileText className="w-4 h-4" />

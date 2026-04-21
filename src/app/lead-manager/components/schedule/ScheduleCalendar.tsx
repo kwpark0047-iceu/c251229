@@ -225,13 +225,14 @@ export default function ScheduleCalendar({
               <div
                 key={index}
                 onClick={() => handleDateClick(date)}
-                className={`min-h-[120px] p-3 border-b border-r cursor-pointer transition-all duration-300 group relative ${isCurrentMonth
+                style={{
+                  '--border-color': 'var(--border-subtle)',
+                  // eslint-disable-next-line react/forbid-dom-props
+                } as React.CSSProperties}
+                className={`min-h-[120px] p-3 border-b border-r cursor-pointer transition-all duration-300 group relative border-[--border-color] ${isCurrentMonth
                   ? 'hover:bg-[var(--bg-secondary)] hover:shadow-inner'
                   : 'bg-[var(--bg-tertiary)] opacity-30'
                   } ${isSelected ? 'bg-[var(--metro-line4)]/5 !border-[var(--metro-line4)]/30' : ''}`}
-                style={{
-                  borderColor: 'var(--border-subtle)',
-                }}
               >
                 {/* 호버 배경 효과 */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[var(--metro-line4)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
@@ -286,8 +287,9 @@ export default function ScheduleCalendar({
                           }`}
                         title={event.title}
                         style={{
-                          animationDelay: `${index * 200}ms`
-                        }}
+                          '--delay': `${index * 200}ms`,
+                          // eslint-disable-next-line react/forbid-dom-props
+                        } as React.CSSProperties}
                       >
                         {event.type === 'task' && event.taskType && (
                           <span className="shrink-0">{TASK_ICONS[event.taskType]}</span>

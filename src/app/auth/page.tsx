@@ -48,12 +48,12 @@ function MetroPattern() {
 function MetroLine({ color, delay, position }: { color: string; delay: number; position: string }) {
   return (
     <div
-      className={`absolute ${position} w-[2px] opacity-0`}
+      className={`absolute ${position} w-[2px] h-[40%] opacity-0 bg-gradient-to-b from-transparent via-[var(--line-color)] to-transparent animate-[fadeIn_1s_ease-out_var(--delay)_forwards]`}
+      /* eslint-disable-next-line react/forbid-dom-props */
       style={{
-        background: `linear-gradient(180deg, transparent 0%, ${color} 30%, ${color} 70%, transparent 100%)`,
-        animation: `fadeIn 1s ease-out ${delay}s forwards`,
-        height: '40%'
-      }}
+        '--line-color': color,
+        '--delay': `${delay}s`,
+      } as React.CSSProperties}
     />
   )
 }
@@ -62,25 +62,27 @@ function MetroLine({ color, delay, position }: { color: string; delay: number; p
 function StationDot({ color, delay, size = 8 }: { color: string; delay: number; size?: number }) {
   return (
     <div
-      className="relative opacity-0"
-      style={{ animation: `scaleIn 0.5s ease-out ${delay}s forwards` }}
+      className="relative opacity-0 animate-[scaleIn_0.5s_ease-out_var(--delay)_forwards]"
+      /* eslint-disable-next-line react/forbid-dom-props */
+      style={{ 
+        '--delay': `${delay}s`,
+      } as React.CSSProperties}
     >
       <div
-        className="rounded-full"
+        className="rounded-full w-[var(--size)] h-[var(--size)] bg-[var(--dot-color)] shadow-[0_0_calc(var(--size)*2)_var(--dot-glow)]"
+        /* eslint-disable-next-line react/forbid-dom-props */
         style={{
-          width: size,
-          height: size,
-          background: color,
-          boxShadow: `0 0 ${size * 2}px ${color}40`
-        }}
+          '--size': `${size}px`,
+          '--dot-color': color,
+          '--dot-glow': `${color}40`,
+        } as React.CSSProperties}
       />
       <div
-        className="absolute inset-0 rounded-full animate-ping"
+        className="absolute inset-0 rounded-full animate-ping [animation-duration:2s] bg-[var(--dot-color)] opacity-40"
+        /* eslint-disable-next-line react/forbid-dom-props */
         style={{
-          background: color,
-          opacity: 0.4,
-          animationDuration: '2s'
-        }}
+          '--dot-color': color,
+        } as React.CSSProperties}
       />
     </div>
   )
@@ -315,8 +317,7 @@ function AuthContent() {
   ]
 
   return (
-    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4"
-      style={{ background: 'var(--bg-primary)' }}>
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4 bg-[var(--bg-primary)]">
 
       {/* Background Elements */}
       <div className="absolute inset-0 metro-grid-bg" />
@@ -355,24 +356,25 @@ function AuthContent() {
           {/* Logo */}
           <div className="inline-flex items-center justify-center mb-6">
             <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#00A5DE] to-[#0088CC] flex items-center justify-center shadow-lg"
-                style={{ boxShadow: '0 8px 32px rgba(0, 165, 222, 0.3)' }}>
+              <div 
+                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#00A5DE] to-[#0088CC] flex items-center justify-center shadow-[0_8px_32px_rgba(0,165,222,0.3)] shadow-lg"
+              >
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 6v6l4 2" />
                 </svg>
               </div>
-              {/* Pulse Ring */}
-              <div className="absolute inset-0 rounded-2xl animate-ping opacity-20"
-                style={{ background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)' }} />
+              <div 
+                className="absolute inset-0 rounded-2xl animate-ping opacity-20 bg-gradient-to-br from-[#00A5DE] to-[#0088CC]"
+              />
             </div>
           </div>
 
           {/* Title */}
-          <h1 className="text-display mb-2" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-display mb-2 text-[var(--text-primary)]">
             <span className="text-gradient-accent">지하철</span> 광고 영업
           </h1>
-          <p className="text-caption" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-caption text-[var(--text-secondary)]">
             SEOUL METRO ADVERTISING PLATFORM
           </p>
         </div>
@@ -381,17 +383,21 @@ function AuthContent() {
         <div className="glass-card-elevated p-8">
 
           {/* Tab Navigation */}
-          <div className="flex gap-1 p-1 rounded-xl mb-8" style={{ background: 'var(--bg-tertiary)' }}>
+          <div className="flex gap-1 p-1 rounded-xl mb-8 bg-[var(--bg-tertiary)]">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => { setMode(tab.id); setError(null); setMessage(null); }}
-                className="relative flex-1 py-3 text-sm font-semibold rounded-lg transition-all duration-300"
+                className={`relative flex-1 py-3 text-sm font-semibold rounded-lg transition-all duration-300 ${
+                  mode === tab.id 
+                    ? 'text-white shadow-[0_4px_16px_var(--tab-glow)]' 
+                    : 'text-[var(--text-secondary)] bg-transparent'
+                }`}
+                /* eslint-disable-next-line react/forbid-dom-props */
                 style={{
-                  color: mode === tab.id ? 'white' : 'var(--text-secondary)',
-                  background: mode === tab.id ? tab.color : 'transparent',
-                  boxShadow: mode === tab.id ? `0 4px 16px ${tab.color}40` : 'none'
-                }}
+                  backgroundColor: mode === tab.id ? tab.color : 'transparent',
+                  '--tab-glow': mode === tab.id ? `${tab.color}40` : 'transparent',
+                } as React.CSSProperties}
               >
                 {tab.label}
               </button>
@@ -400,12 +406,10 @@ function AuthContent() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 rounded-xl animate-scale-in"
-              style={{
-                background: 'rgba(230, 24, 108, 0.1)',
-                border: '1px solid rgba(230, 24, 108, 0.3)'
-              }}>
-              <p className="text-sm font-medium" style={{ color: '#E6186C' }}>{error}</p>
+            <div 
+              className="mb-6 p-4 rounded-xl animate-scale-in bg-[#E6186C]/10 border border-[#E6186C]/30"
+            >
+              <p className="text-sm font-medium text-[#E6186C]">{error}</p>
             </div>
           )}
 
@@ -423,11 +427,7 @@ function AuthContent() {
               </p>
               <button
                 onClick={() => { setMessage(null); setMode('login'); }}
-                className="metro-btn metro-btn-primary w-full py-4 text-lg font-bold shadow-lg"
-                style={{
-                  background: 'linear-gradient(135deg, #00A84D 0%, #008840 100%)',
-                  boxShadow: '0 8px 32px rgba(0, 168, 77, 0.3)'
-                }}
+                className="metro-btn metro-btn-primary w-full py-4 text-lg font-bold shadow-[0_8px_32px_rgba(0,168,77,0.3)] bg-gradient-to-br from-[#00A84D] to-[#008840]"
               >
                 확인
               </button>
@@ -438,8 +438,9 @@ function AuthContent() {
               {mode === 'login' && (
                 <form onSubmit={handleLogin} className="space-y-5">
                   <div className="animate-fade-in-up delay-100">
-                    <label className="metro-input-label">이메일</label>
+                    <label htmlFor="login-email" className="metro-input-label">이메일</label>
                     <input
+                      id="login-email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -449,8 +450,9 @@ function AuthContent() {
                     />
                   </div>
                   <div className="animate-fade-in-up delay-200">
-                    <label className="metro-input-label">비밀번호</label>
+                    <label htmlFor="login-password" className="metro-input-label">비밀번호</label>
                     <input
+                      id="login-password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -481,8 +483,9 @@ function AuthContent() {
               {mode === 'signup' && (
                 <form onSubmit={handleSignup} className="space-y-5">
                   <div className="animate-fade-in-up delay-75">
-                    <label className="metro-input-label">사용자 이름</label>
+                    <label htmlFor="signup-name" className="metro-input-label">사용자 이름</label>
                     <input
+                      id="signup-name"
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
@@ -492,8 +495,9 @@ function AuthContent() {
                     />
                   </div>
                   <div className="animate-fade-in-up delay-100">
-                    <label className="metro-input-label">이메일</label>
+                    <label htmlFor="signup-email" className="metro-input-label">이메일</label>
                     <input
+                      id="signup-email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -503,8 +507,9 @@ function AuthContent() {
                     />
                   </div>
                   <div className="animate-fade-in-up delay-200">
-                    <label className="metro-input-label">비밀번호</label>
+                    <label htmlFor="signup-password" className="metro-input-label">비밀번호</label>
                     <input
+                      id="signup-password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -514,8 +519,9 @@ function AuthContent() {
                     />
                   </div>
                   <div className="animate-fade-in-up delay-300">
-                    <label className="metro-input-label">비밀번호 확인</label>
+                    <label htmlFor="signup-confirm" className="metro-input-label">비밀번호 확인</label>
                     <input
+                      id="signup-confirm"
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -525,7 +531,7 @@ function AuthContent() {
                     />
                   </div>
                   <div className="animate-fade-in-up delay-[350ms]">
-                    <label className="metro-input-label">가입 등급 선택</label>
+                    <div className="metro-input-label">가입 등급 선택</div>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       {[
                         { id: 'FREE', label: '일반', desc: '즉시 승인' },
@@ -559,31 +565,25 @@ function AuthContent() {
                   </div>
 
                   <div className="animate-fade-in-up delay-400">
-                    <label className="metro-input-label">
-                      조직명 <span style={{ color: 'var(--text-tertiary)' }}>(선택)</span>
+                    <label htmlFor="signup-org" className="metro-input-label">
+                      조직명 <span className="text-[var(--text-tertiary)]">(선택)</span>
                     </label>
                     <input
+                      id="signup-org"
                       type="text"
                       value={orgName}
                       onChange={(e) => setOrgName(e.target.value)}
                       className="metro-input text-slate-900"
                       placeholder="우리 회사"
                     />
-                    <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                       미입력시 자동으로 생성됩니다
                     </p>
                   </div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="metro-btn w-full mt-2 animate-float-subtle delay-500 scale-[1.02] hover:scale-[1.05]"
-                    style={{
-                      background: 'linear-gradient(135deg, #00A84D 0%, #008840 100%)',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      letterSpacing: '0.05em',
-                      boxShadow: '0 8px 32px rgba(0, 168, 77, 0.4)'
-                    }}
+                    className="metro-btn w-full mt-2 animate-float-subtle delay-500 scale-[1.02] hover:scale-[1.05] bg-gradient-to-br from-[#00A84D] to-[#008840] text-white font-bold tracking-[0.05em] shadow-[0_8px_32px_rgba(0,168,77,0.4)]"
                   >
                     {loading ? '가입 신청 중...' : '회원가입 확인'}
                   </button>
@@ -594,8 +594,9 @@ function AuthContent() {
               {mode === 'join-org' && (
                 <form onSubmit={handleJoinOrg} className="space-y-5">
                   <div className="animate-fade-in-up delay-100">
-                    <label className="metro-input-label">초대 코드</label>
+                    <label htmlFor="invite-code" className="metro-input-label">초대 코드</label>
                     <input
+                      id="invite-code"
                       type="text"
                       value={inviteCode}
                       onChange={(e) => setInviteCode(e.target.value)}
@@ -603,13 +604,14 @@ function AuthContent() {
                       className="metro-input font-mono tracking-wider text-slate-900"
                       placeholder="abc123def456"
                     />
-                    <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="mt-2 text-xs text-[var(--text-tertiary)]">
                       조직 관리자에게 초대 코드를 받으세요
                     </p>
                   </div>
                   <div className="animate-fade-in-up delay-150">
-                    <label className="metro-input-label">사용자 이름</label>
+                    <label htmlFor="join-name" className="metro-input-label">사용자 이름</label>
                     <input
+                      id="join-name"
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
@@ -619,8 +621,9 @@ function AuthContent() {
                     />
                   </div>
                   <div className="animate-fade-in-up delay-200">
-                    <label className="metro-input-label">이메일</label>
+                    <label htmlFor="join-email" className="metro-input-label">이메일</label>
                     <input
+                      id="join-email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -630,8 +633,9 @@ function AuthContent() {
                     />
                   </div>
                   <div className="animate-fade-in-up delay-300">
-                    <label className="metro-input-label">비밀번호</label>
+                    <label htmlFor="join-password" className="metro-input-label">비밀번호</label>
                     <input
+                      id="join-password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -641,8 +645,9 @@ function AuthContent() {
                     />
                   </div>
                   <div className="animate-fade-in-up delay-400">
-                    <label className="metro-input-label">비밀번호 확인</label>
+                    <label htmlFor="join-confirm" className="metro-input-label">비밀번호 확인</label>
                     <input
+                      id="join-confirm"
                       type="password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -652,7 +657,7 @@ function AuthContent() {
                     />
                   </div>
                   <div className="animate-fade-in-up delay-[450ms]">
-                    <label className="metro-input-label">가입 등급 선택</label>
+                    <div className="metro-input-label">가입 등급 선택</div>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       {[
                         { id: 'FREE', label: '일반', desc: '즉시 승인' },
@@ -688,14 +693,7 @@ function AuthContent() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="metro-btn w-full mt-2 animate-float-subtle delay-[500ms] scale-[1.02] hover:scale-[1.05]"
-                    style={{
-                      background: 'linear-gradient(135deg, #EF7C1C 0%, #D06A15 100%)',
-                      color: 'white',
-                      fontWeight: 'bold',
-                      letterSpacing: '0.05em',
-                      boxShadow: '0 8px 32px rgba(239, 124, 28, 0.4)'
-                    }}
+                    className="metro-btn w-full mt-2 animate-float-subtle delay-[500ms] scale-[1.02] hover:scale-[1.05] bg-gradient-to-br from-[#EF7C1C] to-[#D06A15] text-white font-bold tracking-[0.05em] shadow-[0_8px_32px_rgba(239,124,28,0.4)]"
                   >
                     {loading ? '가입 신청 중...' : '회원가입 확인'}
                   </button>
@@ -710,12 +708,15 @@ function AuthContent() {
         <div className="mt-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
             {[1, 2, 3, 4, 5].map((line) => (
-              <div key={line} className={`line-badge line-badge-${line}`} style={{ fontSize: 10, minWidth: 20, height: 20 }}>
+              <div 
+                key={line} 
+                className={`line-badge line-badge-${line} !text-[10px] !min-w-[20px] !h-[20px]`} 
+              >
                 {line}
               </div>
             ))}
           </div>
-          <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+          <p className="text-xs text-[var(--text-tertiary)]">
             Seoul Metro Lead Management System
           </p>
         </div>
@@ -730,7 +731,7 @@ function AuthContent() {
 // Loading Fallback
 function AuthLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
       <div className="text-center">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#00A5DE] to-[#0088CC] flex items-center justify-center mx-auto mb-4 animate-pulse-glow">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -738,7 +739,7 @@ function AuthLoading() {
             <path d="M12 6v6l4 2" />
           </svg>
         </div>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>로딩 중...</p>
+        <p className="text-sm text-[var(--text-secondary)]">로딩 중...</p>
       </div>
     </div>
   )

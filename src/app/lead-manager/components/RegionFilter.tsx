@@ -80,22 +80,24 @@ export default function RegionFilter({
               key={region.code}
               onClick={() => handleRegionToggle(region.code)}
               disabled={disabled}
+              /* eslint-disable-next-line react/forbid-dom-props */
+              style={{
+                '--region-color': regionInfo.color,
+              } as React.CSSProperties}
               className={`
                 inline-flex items-center space-x-2 px-3 py-1.5 rounded-full text-sm font-medium
-                transition-all duration-200 border
+                transition-all duration-200 border border-[--region-color]
                 ${isSelected
-                  ? 'bg-blue-50 border-blue-200 text-blue-700'
-                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'
                 }
                 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
               `}
-              style={{
-                ...(isSelected && { borderColor: regionInfo.color })
-              }}
             >
               <div
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: regionInfo.color }}
+                className="w-2 h-2 rounded-full bg-[--region-color]"
+                /* eslint-disable-next-line react/forbid-dom-props */
+                style={{ '--region-color': regionInfo.color } as React.CSSProperties}
               />
               <span>{region.name}</span>
               {isSelected && (
@@ -156,8 +158,9 @@ export function RegionStats({ addresses, className = '' }: RegionStatsProps) {
             <div key={code} className="flex items-center justify-between text-sm">
               <div className="flex items-center space-x-2">
                 <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: region.color }}
+                  className="w-2 h-2 rounded-full bg-[--region-color]"
+                  /* eslint-disable-next-line react/forbid-dom-props */
+                  style={{ '--region-color': region.color } as React.CSSProperties}
                 />
                 <span className="text-gray-600">{region.name}</span>
               </div>
@@ -267,8 +270,9 @@ export function RegionDropdown({
                     `}
                   >
                     <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: regionInfo.color }}
+                      className="w-2 h-2 rounded-full bg-[--region-color]"
+                      /* eslint-disable-next-line react/forbid-dom-props */
+                      style={{ '--region-color': regionInfo.color } as React.CSSProperties}
                     />
                     <span>{region.name}</span>
                     {isSelected && (

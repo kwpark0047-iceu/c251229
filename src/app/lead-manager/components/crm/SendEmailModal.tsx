@@ -53,6 +53,8 @@ export default function SendEmailModal({
                     </div>
                     <button
                         onClick={onClose}
+                        title="닫기"
+                        aria-label="모달 닫기"
                         className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-lg transition-colors"
                     >
                         <X className="w-5 h-5" />

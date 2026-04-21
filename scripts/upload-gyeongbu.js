@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-/**
- * 1호선 경부선 도면 업로드 스크립트
+﻿/**
+ * 1?몄꽑 寃쎈????꾨㈃ ?낅줈???ㅽ겕由쏀듃
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -13,29 +12,29 @@ const BUCKET_NAME = 'floor-plans';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 도면 폴더 경로
-const FOLDER_PATH = 'C:\\Users\\user\\Downloads\\subway_floors\\jpg_output\\지하철 1호선 경부선 매체제안서 도면';
+// ?꾨㈃ ?대뜑 寃쎈줈
+const FOLDER_PATH = 'C:\\Users\\user\\Downloads\\subway_floors\\jpg_output\\吏?섏쿋 1?몄꽑 寃쎈???留ㅼ껜?쒖븞???꾨㈃';
 
-// 역명 -> 영문 변환
+// ??챸 -> ?곷Ц 蹂??
 const stationNameMap = {
-  '금정역': 'geumjeong',
-  '수원역': 'suwon',
-  '병점역': 'byeongjeom',
-  '서정리역': 'seojeongri',
-  '평택역': 'pyeongtaek',
-  '두정역': 'dujeong',
-  '천안역': 'cheonan',
-  '온양온천역': 'onyang-oncheon',
-  '판교역': 'pangyo',
-  '이매역': 'imae',
-  '경기광주역': 'gyeonggi-gwangju',
-  '초월역': 'chowol',
-  '이천역': 'icheon',
+  '湲덉젙??: 'geumjeong',
+  '?섏썝??: 'suwon',
+  '蹂묒젏??: 'byeongjeom',
+  '?쒖젙由ъ뿭': 'seojeongri',
+  '?됲깮??: 'pyeongtaek',
+  '?먯젙??: 'dujeong',
+  '泥쒖븞??: 'cheonan',
+  '?⑥뼇?⑥쿇??: 'onyang-oncheon',
+  '?먭탳??: 'pangyo',
+  '?대ℓ??: 'imae',
+  '寃쎄린愿묒＜??: 'gyeonggi-gwangju',
+  '珥덉썡??: 'chowol',
+  '?댁쿇??: 'icheon',
 };
 
-// 파일명에서 역명 추출
+// ?뚯씪紐낆뿉????챸 異붿텧
 function parseFileName(fileName) {
-  // 형식: 01_금정역-1.JPG 또는 07_병점역.JPG
+  // ?뺤떇: 01_湲덉젙??1.JPG ?먮뒗 07_蹂묒젏??JPG
   const match = fileName.match(/^(\d+)_(.+?)(-\d+)?\.JPG$/i);
   if (!match) return null;
 
@@ -43,14 +42,14 @@ function parseFileName(fileName) {
   let stationName = match[2];
   const page = match[3] ? parseInt(match[3].replace('-', ''), 10) : 1;
 
-  // 표지, 안내 등은 건너뛰기
-  if (['표지', '안내', '경강선표지'].includes(stationName)) {
+  // ?쒖?, ?덈궡 ?깆? 嫄대꼫?곌린
+  if (['?쒖?', '?덈궡', '寃쎄컯?좏몴吏'].includes(stationName)) {
     return null;
   }
 
   const englishName = stationNameMap[stationName];
   if (!englishName) {
-    console.log(`  알 수 없는 역명: ${stationName}`);
+    console.log(`  ?????녿뒗 ??챸: ${stationName}`);
     return null;
   }
 
@@ -64,10 +63,10 @@ function parseFileName(fileName) {
 }
 
 async function uploadFloorPlans() {
-  console.log('1호선 경부선 도면 업로드 시작...\n');
+  console.log('1?몄꽑 寃쎈????꾨㈃ ?낅줈???쒖옉...\n');
 
   const files = fs.readdirSync(FOLDER_PATH).filter(f => f.toLowerCase().endsWith('.jpg'));
-  console.log(`총 ${files.length}개 파일 발견\n`);
+  console.log(`珥?${files.length}媛??뚯씪 諛쒓껄\n`);
 
   let uploaded = 0;
   let skipped = 0;
@@ -77,7 +76,7 @@ async function uploadFloorPlans() {
     const parsed = parseFileName(fileName);
 
     if (!parsed) {
-      console.log(`건너뛰기: ${fileName}`);
+      console.log(`嫄대꼫?곌린: ${fileName}`);
       skipped++;
       continue;
     }
@@ -87,10 +86,10 @@ async function uploadFloorPlans() {
     const storageFileName = `${String(parsed.sortOrder).padStart(2, '0')}_${parsed.englishName}${parsed.page > 1 ? '-' + parsed.page : ''}.jpg`;
     const storagePath = `line-1/station-layout/${storageFileName}`;
 
-    console.log(`업로드 중: ${fileName} -> ${parsed.stationName}`);
+    console.log(`?낅줈??以? ${fileName} -> ${parsed.stationName}`);
 
     try {
-      // Storage 업로드
+      // Storage ?낅줈??
       const { error: uploadError } = await supabase.storage
         .from(BUCKET_NAME)
         .upload(storagePath, fileBuffer, {
@@ -100,17 +99,17 @@ async function uploadFloorPlans() {
         });
 
       if (uploadError) {
-        console.error(`  Storage 오류: ${uploadError.message}`);
+        console.error(`  Storage ?ㅻ쪟: ${uploadError.message}`);
         failed++;
         continue;
       }
 
-      // Public URL 가져오기
+      // Public URL 媛?몄삤湲?
       const { data: urlData } = supabase.storage
         .from(BUCKET_NAME)
         .getPublicUrl(storagePath);
 
-      // DB에 저장
+      // DB?????
       const { error: dbError } = await supabase
         .from('floor_plans')
         .upsert({
@@ -128,24 +127,24 @@ async function uploadFloorPlans() {
         });
 
       if (dbError) {
-        console.error(`  DB 오류: ${dbError.message}`);
+        console.error(`  DB ?ㅻ쪟: ${dbError.message}`);
         failed++;
         continue;
       }
 
-      console.log(`  완료: ${urlData.publicUrl}`);
+      console.log(`  ?꾨즺: ${urlData.publicUrl}`);
       uploaded++;
 
     } catch (err) {
-      console.error(`  오류: ${err.message}`);
+      console.error(`  ?ㅻ쪟: ${err.message}`);
       failed++;
     }
   }
 
-  console.log(`\n업로드 완료!`);
-  console.log(`- 성공: ${uploaded}`);
-  console.log(`- 건너뛰기: ${skipped}`);
-  console.log(`- 실패: ${failed}`);
+  console.log(`\n?낅줈???꾨즺!`);
+  console.log(`- ?깃났: ${uploaded}`);
+  console.log(`- 嫄대꼫?곌린: ${skipped}`);
+  console.log(`- ?ㅽ뙣: ${failed}`);
 }
 
 uploadFloorPlans().catch(console.error);

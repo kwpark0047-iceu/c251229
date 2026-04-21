@@ -166,6 +166,8 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
                 ? 'bg-[var(--metro-line3)] text-white shadow-md' 
                 : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'
               }`}
+              title={`${status === 'ALL' ? '전체 상태' : getStatusLabel(status)} 필터`}
+              aria-pressed={statusFilter === status ? "true" : "false"}
             >
               {status === 'ALL' ? '전체 상태' : getStatusLabel(status)}
             </button>
@@ -307,6 +309,7 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
               <button 
                 onClick={() => setShowLogModal(false)}
                 className="p-2 hover:bg-[var(--bg-tertiary)] rounded-full transition-colors text-[var(--text-muted)]"
+                title="닫기"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -374,7 +377,11 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
                 </div>
                 <h3 className="font-bold text-[var(--text-primary)]">업로드할 리드 선택</h3>
               </div>
-              <button onClick={() => setShowLeadSelectModal(false)} className="p-2 hover:bg-[var(--bg-tertiary)] rounded-full transition-colors text-[var(--text-muted)]">
+              <button 
+                onClick={() => setShowLeadSelectModal(false)} 
+                className="p-2 hover:bg-[var(--bg-tertiary)] rounded-full transition-colors text-[var(--text-muted)]"
+                title="닫기"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -387,10 +394,10 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
                   name="leadSearchSelect"
                   type="text"
                   placeholder="업체명 또는 지역 검색..."
+                  aria-label="리드 검색"
                   className="w-full pl-10 pr-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--metro-line2)]/30 transition-all"
                   value={leadSearchQuery}
                   onChange={(e) => setLeadSearchQuery(e.target.value)}
-                  autoFocus
                 />
               </div>
               

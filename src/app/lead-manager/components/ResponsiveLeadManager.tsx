@@ -127,6 +127,7 @@ export default function ResponsiveLeadManager({
                 e.stopPropagation();
                 onUpdateStatus(lead.id, e.target.value as LeadStatus);
               }}
+              title="노드 상태 선택"
               className="appearance-none bg-black/60 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer hover:bg-black/80 transition-all"
               onClick={(e) => e.stopPropagation()}
             >
@@ -168,6 +169,7 @@ export default function ResponsiveLeadManager({
               <input
                 type="checkbox"
                 checked={statusFilter.includes(status as LeadStatus)}
+                aria-label={`${status === 'NEW' ? '신규' : status === 'PROPOSAL_SENT' ? '제안서 발송' : status === 'CONTACTED' ? '연락 완료' : '계약 완료'} 필터`}
                 onChange={(e) => {
                   if (e.target.checked) {
                     setStatusFilter([...statusFilter, status as LeadStatus]);
@@ -201,6 +203,7 @@ export default function ResponsiveLeadManager({
                 <button
                   onClick={() => setIsSidebarOpen(true)}
                   className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] transition-all text-slate-400 active:scale-90"
+                  title="메뉴 열기"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
@@ -223,6 +226,7 @@ export default function ResponsiveLeadManager({
                 <input
                   type="text"
                   placeholder="Scan Nodes..."
+                  aria-label="노드 검색"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-11 pr-5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-sm text-white placeholder:text-slate-600 focus:bg-black/60 focus:ring-2 focus:ring-indigo-500/50 outline-none w-64 transition-all shadow-inner"
@@ -262,6 +266,9 @@ export default function ResponsiveLeadManager({
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                   viewMode === 'grid' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
                 }`}
+                aria-label="그리드 뷰"
+                title="그리드 뷰"
+                aria-pressed={viewMode === 'grid' ? "true" : "false"}
               >
                 <LayoutGrid className="w-4 h-4" />
                 Grid
@@ -271,6 +278,9 @@ export default function ResponsiveLeadManager({
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                   viewMode === 'list' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
                 }`}
+                aria-label="리스트 뷰"
+                title="리스트 뷰"
+                aria-pressed={viewMode === 'list' ? "true" : "false"}
               >
                 <LayoutList className="w-4 h-4" />
                 List
@@ -280,6 +290,9 @@ export default function ResponsiveLeadManager({
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                   viewMode === 'map' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
                 }`}
+                aria-label="지도 뷰"
+                title="지도 뷰"
+                aria-pressed={viewMode === 'map' ? "true" : "false"}
               >
                 <Map className="w-4 h-4" />
                 Map
@@ -293,6 +306,7 @@ export default function ResponsiveLeadManager({
                 className={`p-2.5 rounded-xl border transition-all ${
                   isFilterPanelOpen ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-400' : 'bg-black/40 border-white/10 text-slate-400'
                 }`}
+                title="필터 패널 토글"
               >
                 <Filter className="w-4 h-4" />
               </button>
@@ -325,6 +339,7 @@ export default function ResponsiveLeadManager({
                     <button
                       onClick={() => setIsFilterPanelOpen(false)}
                       className="p-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-400 hover:text-white transition-all shadow-lg"
+                      title="필터 패널 닫기"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -412,6 +427,7 @@ export default function ResponsiveLeadManager({
                             e.stopPropagation();
                             onUpdateStatus(lead.id, e.target.value as LeadStatus);
                           }}
+                          title="노드 상태 선택"
                           className="appearance-none bg-black/60 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
                         >
@@ -451,12 +467,14 @@ export default function ResponsiveLeadManager({
                 <button
                   onClick={onAddLead}
                   className="w-16 h-16 bg-indigo-500 text-white rounded-2xl shadow-2xl shadow-indigo-500/40 hover:bg-indigo-600 flex items-center justify-center animate-float group transition-transform active:scale-90"
+                  title="새로운 노드 추가"
                 >
                   <Plus className="w-8 h-8 group-hover:rotate-90 transition-transform duration-500" />
                 </button>
                 <button
                   onClick={onExportData}
                   className="w-14 h-14 bg-slate-800 text-slate-300 rounded-2xl shadow-2xl border border-white/10 hover:bg-slate-700 flex items-center justify-center animate-float delay-300 transition-transform active:scale-90"
+                  title="데이터 내보내기"
                 >
                   <Download className="w-6 h-6" />
                 </button>
@@ -484,6 +502,7 @@ export default function ResponsiveLeadManager({
             <button
               onClick={() => setIsSidebarOpen(false)}
               className="p-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-400 hover:text-white transition-all"
+              title="사이드바 닫기"
             >
               <X className="w-5 h-5" />
             </button>
@@ -497,18 +516,18 @@ export default function ResponsiveLeadManager({
               { label: 'Analytics', icon: Download },
               { label: 'System Settings', icon: Settings }
             ].map((item, idx) => (
-              <a 
+              <button 
                 key={idx} 
-                href="#" 
-                className={`flex items-center gap-4 p-4 rounded-2xl transition-all group ${
+                className={`flex items-center w-full gap-4 p-4 rounded-2xl transition-all group ${
                   item.active 
                   ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' 
                   : 'bg-white/[0.02] border border-white/5 text-slate-400 hover:bg-white/[0.05] hover:text-white'
                 }`}
+                title={item.label}
               >
                 <item.icon className={`w-5 h-5 ${item.active ? 'text-white' : 'text-slate-500 group-hover:text-indigo-400 transition-colors'}`} />
                 <span className="text-sm font-black uppercase tracking-widest">{item.label}</span>
-              </a>
+              </button>
             ))}
           </nav>
           

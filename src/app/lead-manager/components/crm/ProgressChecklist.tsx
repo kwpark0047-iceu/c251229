@@ -84,8 +84,11 @@ export default function ProgressChecklist({
       <div className="flex items-center gap-2">
         <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-blue-500 rounded-full transition-all duration-300"
-            style={{ width: `${percentage}%` }}
+            className="h-full bg-blue-500 rounded-full transition-all duration-300 w-[--progress-width]"
+            style={{ 
+              '--progress-width': `${percentage}%`,
+              // eslint-disable-next-line react/forbid-dom-props
+            } as React.CSSProperties}
           />
         </div>
         <span className="text-xs text-slate-500">

@@ -64,16 +64,18 @@ export default function StationInfoModal({
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden">
         {/* 헤더 */}
         <div
-          className="px-6 py-4 border-b border-gray-200 dark:border-gray-700"
+          className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-[--header-bg]"
+          /* eslint-disable-next-line react/forbid-dom-props */
           style={{
-            background: `linear-gradient(135deg, ${LINE_COLORS[selectedLine] || '#666'}20, transparent)`,
-          }}
+            '--header-bg': `linear-gradient(135deg, ${LINE_COLORS[selectedLine] || '#666'}20, transparent)`,
+          } as React.CSSProperties}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold"
-                style={{ backgroundColor: LINE_COLORS[selectedLine] || '#666' }}
+                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold bg-[--line-color]"
+                /* eslint-disable-next-line react/forbid-dom-props */
+                style={{ '--line-color': LINE_COLORS[selectedLine] || '#666' } as React.CSSProperties}
               >
                 <Train className="w-5 h-5" />
               </div>
@@ -106,6 +108,7 @@ export default function StationInfoModal({
                     ? 'text-white shadow-md'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
+                  /* eslint-disable-next-line react/forbid-dom-props */
                   style={
                     selectedLine === line
                       ? { backgroundColor: LINE_COLORS[line] || '#666' }

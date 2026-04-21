@@ -121,6 +121,7 @@ export default function AiRecommendWidget() {
                   className="metro-input appearance-none bg-void/50"
                   value={formData.businessType}
                   onChange={(e) => setFormData({...formData, businessType: e.target.value})}
+                  title="업종 선택"
                 >
                   {businessTypes.map(type => <option key={type} value={type}>{type}</option>)}
                 </select>
@@ -135,6 +136,7 @@ export default function AiRecommendWidget() {
                   className="metro-input appearance-none bg-void/50"
                   value={formData.budget}
                   onChange={(e) => setFormData({...formData, budget: e.target.value})}
+                  title="월간 예산 선택"
                 >
                   {budgets.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
@@ -149,6 +151,7 @@ export default function AiRecommendWidget() {
                   className="metro-input appearance-none bg-void/50"
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  title="희망 지역 선택"
                 >
                   {districts.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>

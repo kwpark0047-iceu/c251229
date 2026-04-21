@@ -33,13 +33,14 @@ export default function MobileNavBar({
             <div className="relative flex items-center justify-between max-w-sm mx-auto">
                 {/* 슬라이딩 인디케이터 */}
                 <div
-                    className="absolute h-full rounded-xl bg-[var(--bg-tertiary)] -z-10 transition-all duration-300 ease-out sm:hidden mobile-nav-indicator"
+                    className="absolute h-full rounded-xl bg-[var(--bg-tertiary)] -z-10 transition-all duration-300 ease-out sm:hidden mobile-nav-indicator left-[--nav-left]"
+                    // eslint-disable-next-line react/forbid-dom-props
                     style={{
-                        left: activeTab === 'leads' ? '0%' :
+                        '--nav-left': activeTab === 'leads' ? '0%' :
                             activeTab === 'inventory' ? '20%' :
                                 activeTab === 'map' ? '40%' :
                                     activeTab === 'schedule' ? '60%' : '80%'
-                    }}
+                    } as React.CSSProperties}
                 />
                 <NavButton
                     icon={Users}

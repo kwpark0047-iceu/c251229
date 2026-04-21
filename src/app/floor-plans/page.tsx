@@ -186,12 +186,15 @@ export default function FloorPlansPage() {
               </div>
 
               <div
-                className="p-3 rounded-xl"
+                className="p-3 rounded-xl bg-[--icon-container-bg]"
+                // eslint-disable-next-line react/forbid-dom-props
                 style={{
-                  background: `linear-gradient(135deg, ${lineColor}20 0%, ${lineColor}10 100%)`,
-                }}
+                  '--icon-container-bg': `linear-gradient(135deg, ${lineColor}20 0%, ${lineColor}10 100%)`,
+                } as React.CSSProperties}
               >
-                <MapPin className="w-6 h-6" style={{ color: lineColor }} />
+                <MapPin className="w-6 h-6 text-[--icon-color]" 
+                  // eslint-disable-next-line react/forbid-dom-props
+                  style={{ '--icon-color': lineColor } as React.CSSProperties} />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-[var(--text-primary)]">
@@ -234,8 +237,9 @@ export default function FloorPlansPage() {
               <button
                 onClick={handleOpenDownloadModal}
                 disabled={plans.length === 0}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white font-medium disabled:opacity-50 transition-opacity"
-                style={{ background: lineColor }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white font-medium disabled:opacity-50 transition-opacity bg-[--btn-bg]"
+                // eslint-disable-next-line react/forbid-dom-props
+                style={{ '--btn-bg': lineColor } as React.CSSProperties}
               >
                 <Download className="w-4 h-4" />
                 <span className="text-sm">일괄 다운로드</span>
@@ -257,7 +261,9 @@ export default function FloorPlansPage() {
         {isLoading ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
-              <Loader2 className="w-8 h-8 animate-spin" style={{ color: lineColor }} />
+              <Loader2 className="w-8 h-8 animate-spin text-[--loader-color]" 
+                // eslint-disable-next-line react/forbid-dom-props
+                style={{ '--loader-color': lineColor } as React.CSSProperties} />
               <p className="text-[var(--text-muted)]">도면을 불러오는 중...</p>
             </div>
           </div>
@@ -276,7 +282,9 @@ export default function FloorPlansPage() {
         ) : plans.length === 0 ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <MapPin className="w-16 h-16 mx-auto mb-4 opacity-20" style={{ color: lineColor }} />
+              <MapPin className="w-16 h-16 mx-auto mb-4 opacity-20 text-[--icon-color]" 
+                // eslint-disable-next-line react/forbid-dom-props
+                style={{ '--icon-color': lineColor } as React.CSSProperties} />
               <p className="text-[var(--text-muted)] mb-2">
                 {METRO_LINE_NAMES[selectedLine]}에 등록된 도면이 없습니다
               </p>

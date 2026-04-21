@@ -83,6 +83,7 @@ import MobileNavBar from './components/MobileNavBar';
 import BackgroundEffect from './components/BackgroundEffect';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotification } from '@/context/NotificationContext';
+import { createClient } from '@/lib/supabase/client';
 import './design.css';
 import { applyThemeVariables, ThemeType, getCardClass } from './utils/design-tokens';
 
@@ -132,6 +133,7 @@ function LeadManagerContent() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [copiedInviteCode, setCopiedInviteCode] = useState(false);
+  const [onlineUsersCount, setOnlineUsersCount] = useState(0);
 
   // 날짜 범위 (기본: 전월 24일 ~ 오늘, LocalData API 제한)
   const [dateRange, setDateRange] = useState({
@@ -228,6 +230,44 @@ function LeadManagerContent() {
       router.refresh();
     }
   };
+
+  // 실시간 활성 계정(Presence) 동기화
+  useEffect(() => {
+    if (!userInfo?.id) return;
+
+    const supabase = createClient();
+    const channel = supabase.channel('lead-manager-global-presence', {
+      config: {
+        presence: {
+          key: userInfo.id,
+        },
+      },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const entries = Object.values(state).flat() as Array<{ user_id?: string }>;
+        const uniqueEntries = entries.filter(
+          (entry, index, arr) =>
+            entry.user_id && arr.findIndex((candidate) => candidate.user_id === entry.user_id) === index
+        );
+        setOnlineUsersCount(uniqueEntries.length);
+      })
+      .subscribe(async (status: string) => {
+        if (status !== 'SUBSCRIBED') return;
+        await channel.track({
+          user_id: userInfo.id,
+          email: userInfo.email,
+          organization_id: userInfo.organizationId,
+          online_at: new Date().toISOString(),
+        });
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userInfo?.id, userInfo?.email, userInfo?.organizationId]);
 
   // 초대 코드 복사
   const copyInviteCode = () => {
@@ -354,7 +394,7 @@ function LeadManagerContent() {
       );
 
       if (result.success) {
-        setLoadingStatus('DB에 저장 중...');
+        setLoadingStatus('데이터베이스에 저장 중...');
         const saveResult = await saveLeads(
           result.leads,
           (current, total, status) => {
@@ -377,7 +417,7 @@ function LeadManagerContent() {
             : '전체';
           showNotification(
             'success',
-            `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}/${serviceNames}] API에서 ${result.leads.length}건 조회. ${saveResult.message}`
+            `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}/${serviceNames}] 공공데이터 API에서 ${result.leads.length}건 조회. ${saveResult.message}`
           );
         } else {
           showNotification('error', saveResult.message);
@@ -530,18 +570,20 @@ function LeadManagerContent() {
           <div className="flex items-center justify-between h-16">
             {/* 로고 */}
             <div className="flex items-center gap-3 group cursor-pointer" onClick={() => router.push('/')}>
+              {/* eslint-disable-next-line react/forbid-dom-props */}
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105"
+                className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 bg-[--logo-bg] shadow-[--logo-glow]"
+                // eslint-disable-next-line react/forbid-dom-props
                 style={{
-                  background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                  boxShadow: '0 4px 15px rgba(60, 181, 74, 0.25)',
-                }}
+                  '--logo-bg': 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
+                  '--logo-glow': '0 4px 15px rgba(60, 181, 74, 0.25)',
+                } as React.CSSProperties}
               >
                 <Train className="w-5 h-5 text-white" />
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-[var(--text-primary)] leading-tight">지하철 광고</h1>
-                <p className="text-[10px] text-[var(--text-muted)] font-medium tracking-wider uppercase">Lead Manager</p>
+                <p className="text-[10px] text-[var(--text-muted)] font-medium tracking-wider uppercase">리드 매니저</p>
               </div>
             </div>
 
@@ -555,17 +597,19 @@ function LeadManagerContent() {
                 { key: 'floor-plans' as MainTab, icon: FileImage, label: '도면' },
                 ...(userInfo?.isSuperAdmin ? [{ key: 'admin' as MainTab, icon: Shield, label: '관리' }] : []),
               ].map(({ key, icon: Icon, label }) => (
+                // eslint-disable-next-line react/forbid-dom-props
                 <button
                   key={key}
                   onClick={() => setMainTab(key)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${mainTab === key
-                    ? 'text-white shadow-md'
+                    ? 'text-white shadow-[0_2px_10px_var(--tab-glow)] bg-[--tab-bg]'
                     : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                     }`}
-                  style={mainTab === key ? {
-                    background: METRO_TAB_COLORS[key].active,
-                    boxShadow: `0 2px 10px ${METRO_TAB_COLORS[key].glow}`,
-                  } : {}}
+                  // eslint-disable-next-line react/forbid-dom-props
+                  style={{
+                    '--tab-bg': mainTab === key ? METRO_TAB_COLORS[key].active : 'transparent',
+                    '--tab-glow': mainTab === key ? METRO_TAB_COLORS[key].glow : 'transparent',
+                  } as React.CSSProperties}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden sm:inline">{label}</span>
@@ -575,6 +619,14 @@ function LeadManagerContent() {
 
             {/* 우측 컨트롤 */}
             <div className="flex items-center gap-2">
+              <div
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]"
+                title="실시간 활성 계정"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-[var(--text-muted)]">활성 계정</span>
+                <span className="text-xs font-semibold text-[var(--text-primary)]">{onlineUsersCount}명</span>
+              </div>
               <NotificationCenter />
               <ThemeToggle />
 
@@ -594,11 +646,13 @@ function LeadManagerContent() {
                   title="사용자 메뉴"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
                 >
+                  {/* eslint-disable-next-line react/forbid-dom-props */}
                   <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-[--avatar-bg]"
+                    // eslint-disable-next-line react/forbid-dom-props
                     style={{
-                      background: 'linear-gradient(135deg, var(--metro-line7) 0%, var(--metro-line5) 100%)',
-                    }}
+                      '--avatar-bg': 'linear-gradient(135deg, var(--metro-line7) 0%, var(--metro-line5) 100%)',
+                    } as React.CSSProperties}
                   >
                     <span className="text-white text-sm font-bold">
                       {userInfo?.email?.charAt(0).toUpperCase() || 'U'}
@@ -608,13 +662,14 @@ function LeadManagerContent() {
 
                 {/* 드롭다운 메뉴 */}
                 {showUserMenu && (
+                  // eslint-disable-next-line react/forbid-dom-props
                   <div
-                    className="absolute right-0 top-full mt-2 w-72 rounded-xl border border-[var(--glass-border)] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                    className="absolute right-0 top-full mt-2 w-72 rounded-xl border border-[var(--glass-border)] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 bg-[--glass-bg] shadow-[--glass-shadow] backdrop-blur-[20px]"
+                    // eslint-disable-next-line react/forbid-dom-props
                     style={{
-                      background: 'var(--glass-bg)',
-                      backdropFilter: 'blur(20px)',
-                      boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-                    }}
+                      '--glass-bg': 'var(--glass-bg)',
+                      '--glass-shadow': '0 20px 40px rgba(0,0,0,0.4)',
+                    } as React.CSSProperties}
                   >
                     <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
                       <p className="text-sm font-semibold text-[var(--text-primary)]">{userInfo?.email}</p>
@@ -701,6 +756,7 @@ function LeadManagerContent() {
                   {/* 지역 선택 */}
                   <div className="flex items-center gap-1.5">
                     {REGION_OPTIONS.map(region => (
+                      // eslint-disable-next-line react/forbid-dom-props
                       <button
                         key={region.code}
                         onClick={() => {
@@ -716,6 +772,7 @@ function LeadManagerContent() {
                           ? 'text-white'
                           : 'text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'
                           }`}
+                        /* eslint-disable-next-line react/forbid-dom-props */
                         style={selectedRegions.includes(region.code) ? { background: region.color } : {}}
                       >
                         {region.name}
@@ -743,12 +800,14 @@ function LeadManagerContent() {
                     { mode: 'list' as ViewMode, icon: List, color: 'var(--metro-line4)' },
                     { mode: 'map' as ViewMode, icon: MapIcon, color: 'var(--metro-line3)' },
                   ].map(({ mode, icon: Icon, color }) => (
+                    // eslint-disable-next-line react/forbid-dom-props
                     <button
                       key={mode}
                       onClick={() => setViewMode(mode)}
                       title={`${mode === 'grid' ? '그리드' : mode === 'list' ? '리스트' : '지도'} 보기`}
                       className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                         }`}
+                      /* eslint-disable-next-line react/forbid-dom-props */
                       style={viewMode === mode ? { background: color } : {}}
                     >
                       <Icon className="w-4 h-4" />
@@ -776,8 +835,9 @@ function LeadManagerContent() {
                   <button
                     onClick={refreshData}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50"
-                    style={{ background: 'var(--metro-line2)' }}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 bg-[--btn-bg]"
+                    // eslint-disable-next-line react/forbid-dom-props
+                    style={{ '--btn-bg': 'var(--metro-line2)' } as React.CSSProperties}
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                     {isLoading ? `${loadingProgress.current}/${loadingProgress.total}` : '새로고침'}
@@ -875,6 +935,7 @@ function LeadManagerContent() {
                         return 'var(--metro-line9)';
                       };
                       return (
+                        // eslint-disable-next-line react/forbid-dom-props
                         <button
                           key={category}
                           onClick={() => {
@@ -882,12 +943,13 @@ function LeadManagerContent() {
                             setSelectedServiceIds([]);
                           }}
                           className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${categoryFilter === category
-                            ? 'text-white shadow-md'
+                            ? 'text-white shadow-md bg-[--cat-color]'
                             : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'
                             }`}
-                          style={categoryFilter === category ? {
-                            background: getCategoryColor(),
-                          } : {}}
+                          // eslint-disable-next-line react/forbid-dom-props
+                          style={{
+                            '--cat-color': categoryFilter === category ? getCategoryColor() : 'transparent',
+                          } as React.CSSProperties}
                         >
                           {category === 'ALL' ? '전체 업종' : CATEGORY_LABELS[category]}
                           {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
@@ -903,14 +965,18 @@ function LeadManagerContent() {
                     {(['ALL', 'NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as const).map((status, idx) => {
                       const statusColors = ['var(--metro-line9)', 'var(--metro-line2)', 'var(--metro-line4)', 'var(--metro-line5)', 'var(--metro-line3)'];
                       return (
+                        // eslint-disable-next-line react/forbid-dom-props
                         <button
                           key={status}
                           onClick={() => setStatusFilter(status)}
                           className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${statusFilter === status
-                            ? 'text-white shadow-md'
+                            ? 'text-white shadow-md bg-[--status-color]'
                             : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'
                             }`}
-                          style={statusFilter === status ? { background: statusColors[idx] } : {}}
+                          // eslint-disable-next-line react/forbid-dom-props
+                          style={{
+                            '--status-color': statusFilter === status ? statusColors[idx] : 'transparent',
+                          } as React.CSSProperties}
                         >
                           {status === 'ALL' ? '전체 상태' : STATUS_LABELS[status]}
                           {status !== 'ALL' && <span className="ml-1 opacity-70">({leads.filter(l => l.status === status).length})</span>}
@@ -977,13 +1043,15 @@ function LeadManagerContent() {
             <div className="max-w-[1400px] mx-auto px-6 py-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-bold text-[var(--text-primary)]">광고매체 인벤토리</h2>
+                {/* eslint-disable-next-line react/forbid-dom-props */}
                 <button
                   onClick={() => setShowInventoryUpload(true)}
-                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105"
+                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105 bg-[--btn-bg] shadow-[--btn-glow]"
+                  // eslint-disable-next-line react/forbid-dom-props
                   style={{
-                    background: 'var(--metro-line2)',
-                    boxShadow: '0 4px 15px rgba(60, 181, 74, 0.3)',
-                  }}
+                    '--btn-bg': 'var(--metro-line2)',
+                    '--btn-glow': '0 4px 15px rgba(60, 181, 74, 0.3)',
+                  } as React.CSSProperties}
                 >
                   <Upload className="w-4 h-4" />
                   엑셀 업로드
@@ -1025,17 +1093,19 @@ function LeadManagerContent() {
                     </button>
                   </div>
                 </div>
+                {/* eslint-disable-next-line react/forbid-dom-props */}
                 <button
                   onClick={() => {
                     setSelectedTask(null);
                     setTaskFormDefaultDate(undefined);
                     setShowTaskForm(true);
                   }}
-                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105"
+                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105 bg-[--btn-bg] shadow-[--btn-glow]"
+                  // eslint-disable-next-line react/forbid-dom-props
                   style={{
-                    background: 'var(--metro-line5)',
-                    boxShadow: '0 4px 15px rgba(153, 108, 172, 0.3)',
-                  }}
+                    '--btn-bg': 'var(--metro-line5)',
+                    '--btn-glow': '0 4px 15px rgba(153, 108, 172, 0.3)',
+                  } as React.CSSProperties}
                 >
                   <Calendar className="w-4 h-4" />
                   새 업무
@@ -1079,13 +1149,15 @@ function LeadManagerContent() {
           <>
             {initialLoading ? (
               <div className="flex flex-col items-center justify-center py-24">
+                {/* eslint-disable-next-line react/forbid-dom-props */}
                 <div
                   id="loading-spinner"
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 animate-float"
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 animate-float bg-[--loading-bg] shadow-[--loading-glow]"
+                  // eslint-disable-next-line react/forbid-dom-props
                   style={{
-                    background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                    boxShadow: '0 0 20px rgba(60, 181, 74, 0.4)',
-                  }}
+                    '--loading-bg': 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
+                    '--loading-glow': '0 0 20px rgba(60, 181, 74, 0.4)',
+                  } as React.CSSProperties}
                 >
                   <RefreshCw className="w-8 h-8 text-white" />
                 </div>
@@ -1093,18 +1165,20 @@ function LeadManagerContent() {
               </div>
             ) : isLoading ? (
               <div className="flex flex-col items-center justify-center py-24">
+                {/* eslint-disable-next-line react/forbid-dom-props */}
                 <div
                   id="loading-spinner"
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative"
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative bg-[--loading-bg] shadow-[--loading-glow]"
+                  // eslint-disable-next-line react/forbid-dom-props
                   style={{
-                    background: 'linear-gradient(135deg, var(--metro-line4) 0%, var(--metro-line2) 100%)',
-                    boxShadow: '0 8px 30px rgba(50, 164, 206, 0.3)',
-                  }}
+                    '--loading-bg': 'linear-gradient(135deg, var(--metro-line4) 0%, var(--metro-line2) 100%)',
+                    '--loading-glow': '0 8px 30px rgba(50, 164, 206, 0.3)',
+                  } as React.CSSProperties}
                 >
                   <RefreshCw className="w-8 h-8 text-white" />
                 </div>
                 <p className="text-[var(--text-secondary)] font-medium mb-2">
-                  [{CATEGORY_LABELS[categoryFilter]}] LocalData API에서 데이터를 가져오는 중...
+                  [{CATEGORY_LABELS[categoryFilter]}] 공공데이터 API에서 데이터를 가져오는 중...
                 </p>
                 {loadingStatus && (
                   <p className="text-sm text-[var(--metro-line2)] font-semibold">{loadingStatus}</p>
@@ -1112,12 +1186,14 @@ function LeadManagerContent() {
                 {loadingProgress.total > 0 && (
                   <div className="mt-4 w-64">
                     <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                      {/* eslint-disable-next-line react/forbid-dom-props */}
                       <div
-                        className="h-full rounded-full transition-all duration-300"
+                        className="h-full rounded-full transition-all duration-300 bg-[--progress-bg] w-[--progress-width]"
+                        // eslint-disable-next-line react/forbid-dom-props
                         style={{
-                          width: `${(loadingProgress.current / loadingProgress.total) * 100}%`,
-                          background: 'linear-gradient(90deg, var(--metro-line2), var(--metro-line4))',
-                        }}
+                          '--progress-width': `${(loadingProgress.current / loadingProgress.total) * 100}%`,
+                          '--progress-bg': 'linear-gradient(90deg, var(--metro-line2), var(--metro-line4))',
+                        } as React.CSSProperties}
                       />
                     </div>
                     <p className="text-xs text-[var(--text-muted)] mt-2 text-center">
@@ -1128,18 +1204,15 @@ function LeadManagerContent() {
               </div>
             ) : filteredLeads.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-center">
+                {/* eslint-disable-next-line react/forbid-dom-props */}
                 <div
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
-                  style={{
-                    background: 'var(--bg-tertiary)',
-                    border: '2px dashed var(--border-subtle)',
-                  }}
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 bg-[var(--bg-tertiary)] border-2 border-dashed border-[var(--border-subtle)]"
                 >
                   <List className="w-10 h-10 text-[var(--text-muted)]" />
                 </div>
                 <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3">저장된 데이터가 없습니다</h3>
                 <p className="text-[var(--text-muted)] mb-6 max-w-md">
-                  새로고침 버튼을 눌러 LocalData API에서 데이터를 가져오세요.
+                  새로고침 버튼을 눌러 공공데이터 API에서 데이터를 가져오세요.
                 </p>
                 <button
                   onClick={refreshData}

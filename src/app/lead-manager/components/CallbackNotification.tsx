@@ -42,23 +42,23 @@ export default function CallbackNotification({
 
   return (
     <div
-      className="fixed top-20 right-6 z-50 max-w-md animate-in slide-in-from-right duration-300"
+      className="fixed top-20 right-6 z-50 max-w-md animate-in slide-in-from-right duration-300 bg-[--glass-bg] backdrop-blur-[20px] border-[1px] border-[--glass-border] rounded-[16px] shadow-[--popup-shadow]"
+      /* eslint-disable-next-line react/forbid-dom-props */
       style={{
-        background: 'var(--glass-bg)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid var(--glass-border)',
-        borderRadius: '16px',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-      }}
+        '--glass-bg': 'var(--glass-bg)',
+        '--glass-border': 'var(--glass-border)',
+        '--popup-shadow': '0 20px 40px rgba(0,0,0,0.4)',
+      } as React.CSSProperties}
     >
       {/* 헤더 */}
       <div className="flex items-center justify-between p-4 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-3">
           <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center"
+            className="w-10 h-10 rounded-lg flex items-center justify-center bg-[--icon-bg]"
+            /* eslint-disable-next-line react/forbid-dom-props */
             style={{
-              background: 'linear-gradient(135deg, var(--metro-line3) 0%, var(--metro-line5) 100%)',
-            }}
+              '--icon-bg': 'linear-gradient(135deg, var(--metro-line3) 0%, var(--metro-line5) 100%)',
+            } as React.CSSProperties}
           >
             <Bell className="w-5 h-5 text-white" />
           </div>
@@ -75,6 +75,7 @@ export default function CallbackNotification({
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            title={isExpanded ? '접기' : '펼치기'}
           >
             {isExpanded ? '접기' : '펼치기'}
           </button>
@@ -84,6 +85,7 @@ export default function CallbackNotification({
               onDismiss?.();
             }}
             className="p-1.5 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+            title="알림 닫기"
           >
             <X className="w-4 h-4" />
           </button>
@@ -98,6 +100,14 @@ export default function CallbackNotification({
               key={callLog.id}
               className="p-4 border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
               onClick={() => onLeadClick?.(lead.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  onLeadClick?.(lead.id);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              aria-label={`${lead.bizName} 상세 보기`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">

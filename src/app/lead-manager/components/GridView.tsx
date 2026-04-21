@@ -76,12 +76,7 @@ export default function GridView({
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage <= 1}
             title="이전 페이지"
-            className="p-2.5 rounded-xl border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)]"
-            style={{
-              background: 'var(--glass-bg)',
-              borderColor: 'var(--glass-border)',
-              color: 'var(--text-secondary)'
-            }}
+            className="p-2.5 rounded-xl border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)] bg-[var(--glass-bg)] border-[var(--glass-border)] text-[var(--text-secondary)]"
           >
             <ChevronDown className="w-5 h-5 rotate-90" />
           </button>
@@ -100,13 +95,11 @@ export default function GridView({
                 <button
                   key={pageNum}
                   onClick={() => onPageChange(pageNum)}
-                  className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300"
-                  style={{
-                    background: currentPage === pageNum ? 'var(--metro-line4)' : 'var(--glass-bg)',
-                    color: currentPage === pageNum ? 'white' : 'var(--text-secondary)',
-                    border: '1px solid var(--glass-border)',
-                    boxShadow: currentPage === pageNum ? '0 0 15px rgba(50, 164, 206, 0.4)' : 'none',
-                  }}
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300 border border-[var(--glass-border)] ${
+                    currentPage === pageNum 
+                      ? 'bg-[var(--metro-line4)] text-white shadow-[0_0_15px_rgba(50,164,206,0.4)]' 
+                      : 'bg-[var(--glass-bg)] text-[var(--text-secondary)]'
+                  }`}
                 >
                   {pageNum}
                 </button>
@@ -118,12 +111,7 @@ export default function GridView({
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= Math.ceil(totalCount / pageSize)}
             title="다음 페이지"
-            className="p-2.5 rounded-xl border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)]"
-            style={{
-              background: 'var(--glass-bg)',
-              borderColor: 'var(--glass-border)',
-              color: 'var(--text-secondary)'
-            }}
+            className="p-2.5 rounded-xl border border-[var(--glass-border)] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] bg-[var(--glass-bg)]"
           >
             <ChevronDown className="w-5 h-5 -rotate-90" />
           </button>
@@ -180,12 +168,11 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
   return (
     <>
       <div
-        className={`parallax-card group relative rounded-pro border overflow-hidden cursor-pointer ${getCardClass()}`}
+        className={`parallax-card group relative rounded-pro border overflow-hidden cursor-pointer bg-[var(--glass-bg)] border-[var(--glass-border)] ${getCardClass()}`}
         style={{
-          background: 'var(--glass-bg)',
-          borderColor: 'var(--glass-border)',
-          animationDelay: `${index * 30}ms`,
-        }}
+          '--delay': `${index * 30}ms`,
+          // eslint-disable-next-line react/forbid-dom-props
+        } as React.CSSProperties}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest('button, a')) return;
           onSelect();
@@ -200,25 +187,30 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
       >
         {/* 호버 시 글로우 효과 */}
         <div
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
           style={{
-            background: `radial-gradient(circle at 50% 0%, ${statusColor.glow} 0%, transparent 70%)`,
-          }}
+            '--glow-gradient': `radial-gradient(circle at 50% 0%, ${statusColor.glow} 0%, transparent 70%)`,
+            // eslint-disable-next-line react/forbid-dom-props
+          } as React.CSSProperties}
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-[image:var(--glow-gradient)]"
         />
 
         {/* 상단 - 상태 표시 */}
         <div
-          className="relative px-4 py-3 border-b"
+          className="relative px-4 py-3 border-b bg-[--status-bg] border-[--status-border]"
           style={{
-            background: statusColor.bg,
-            borderColor: statusColor.border,
-          }}
+            '--status-bg': statusColor.bg,
+            '--status-border': statusColor.border,
+            // eslint-disable-next-line react/forbid-dom-props
+          } as React.CSSProperties}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span
-                className="text-sm font-semibold"
-                style={{ color: statusColor.text }}
+                className="text-sm font-semibold text-[--status-text]"
+                style={{ 
+                  '--status-text': statusColor.text,
+                  // eslint-disable-next-line react/forbid-dom-props
+                } as React.CSSProperties}
               >
                 {STATUS_LABELS[lead.status]}
               </span>
@@ -230,8 +222,11 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                   e.stopPropagation();
                   setIsStatusOpen(!isStatusOpen);
                 }}
-                className="p-1.5 rounded-lg transition-colors hover:bg-white/10"
-                style={{ color: statusColor.text }}
+                className="p-1.5 rounded-lg transition-colors hover:bg-white/10 text-[--status-text]"
+                style={{ 
+                  '--status-text': statusColor.text,
+                  // eslint-disable-next-line react/forbid-dom-props
+                } as React.CSSProperties}
                 title="상태 변경"
               >
                 <ChevronDown className="w-4 h-4" />
@@ -294,8 +289,10 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                       {lead.stationLines.slice(0, 3).map(line => (
                         <span
                           key={line}
-                          className="w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold shadow-sm"
-                          style={{ backgroundColor: LINE_COLORS[line] || '#888' }}
+                          className="w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold shadow-sm bg-[--line-color]"
+                          style={{ 
+                            '--line-color': LINE_COLORS[line] || '#888', // eslint-disable-next-line react/forbid-dom-props
+                          } as React.CSSProperties}
                         >
                           {line}
                         </span>
@@ -340,11 +337,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
 
         {/* 하단 액션 버튼 - 필드 모드에서 더 크게 표시 */}
         <div
-          className={`relative px-4 border-t flex gap-4 ${isFieldMode ? 'py-4' : 'py-3'}`}
-          style={{
-            background: 'var(--bg-tertiary)',
-            borderColor: 'var(--border-subtle)',
-          }}
+          className={`relative px-4 border-t flex gap-4 ${isFieldMode ? 'py-4' : 'py-3'} border-[var(--border-subtle)] bg-[var(--bg-tertiary)]`}
         >
           {lead.phone && (
             <button
@@ -352,11 +345,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                 e.stopPropagation();
                 setShowCallModal(true);
               }}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
-              style={{
-                background: 'var(--metro-line2)',
-                boxShadow: '0 2px 10px rgba(60, 181, 74, 0.3)',
-              }}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 shadow-[0_2px_10px_rgba(60,181,74,0.3)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'} bg-[var(--metro-line2)]`}
             >
               <Phone className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
               통화
@@ -367,11 +356,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               e.stopPropagation();
               onSelect();
             }}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
-            style={{
-              background: 'var(--metro-line4)',
-              boxShadow: '0 2px 10px rgba(50, 164, 206, 0.3)',
-            }}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 shadow-[0_2px_10px_rgba(50,164,206,0.3)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'} bg-[var(--metro-line4)]`}
           >
             <FileText className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
             제안
@@ -409,13 +394,7 @@ function StatusDropdown({ currentStatus, onSelect, onClose }: StatusDropdownProp
 
       {/* 드롭다운 메뉴 */}
       <div
-        className="absolute right-0 top-full mt-2 w-40 rounded-xl border py-2 z-20"
-        style={{
-          background: 'var(--glass-bg)',
-          borderColor: 'var(--glass-border)',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.4)',
-        }}
+        className="absolute right-0 top-full mt-2 w-40 rounded-xl border py-2 z-20 bg-[var(--glass-bg)] border-[var(--glass-border)] backdrop-blur-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
       >
         {statuses.map(status => {
           const color = STATUS_METRO_COLORS[status];
@@ -428,16 +407,18 @@ function StatusDropdown({ currentStatus, onSelect, onClose }: StatusDropdownProp
                 : 'hover:bg-[var(--bg-secondary)]'
                 }`}
             >
-              <span
-                className="w-3 h-3 rounded-full border-2"
+              <div
+                className="w-3 h-3 rounded-full border-2 bg-[--dot-bg] border-[--dot-border]"
                 style={{
-                  background: color.bg,
-                  borderColor: color.border,
-                }}
+                  '--dot-bg': color.bg,
+                  '--dot-border': color.border,
+                  // eslint-disable-next-line react/forbid-dom-props
+                } as React.CSSProperties}
               />
               <span
-                className="font-medium"
-                style={{ color: color.text }}
+                className="font-medium text-[--status-text]"
+                style={{ '--status-text': color.text, // eslint-disable-next-line react/forbid-dom-props
+                } as React.CSSProperties}
               >
                 {STATUS_LABELS[status]}
               </span>

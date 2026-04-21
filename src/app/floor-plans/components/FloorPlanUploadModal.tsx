@@ -241,12 +241,19 @@ export default function FloorPlanUploadModal({
                     e.stopPropagation();
                     handleRemoveFile(index);
                   }}
-                  className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"
+                  className="relative z-10 p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"
                   title="파일 삭제"
                   aria-label="파일 삭제"
                 >
                   <X className="w-4 h-4 text-[var(--text-muted)]" />
                 </button>
+                <div
+                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[image:var(--hover-glow)]"
+                 /* eslint-disable-next-line react/forbid-dom-props */
+                 style={{
+                   '--hover-glow': `radial-gradient(circle at 50% 50%, ${METRO_LINE_COLORS[lineNumber]}20 0%, transparent 70%)`,
+                 } as React.CSSProperties}
+                />
               </div>
             ))}
           </div>
@@ -303,8 +310,11 @@ export default function FloorPlanUploadModal({
           <button
             onClick={handleUpload}
             disabled={files.length === 0 || isUploading}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-medium disabled:opacity-50 transition-opacity"
-            style={{ backgroundColor: METRO_LINE_COLORS[lineNumber] }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-medium disabled:opacity-50 transition-opacity bg-[--brand-color]"
+            /* eslint-disable-next-line react/forbid-dom-props */
+            style={{ 
+              '--brand-color': METRO_LINE_COLORS[lineNumber],
+            } as React.CSSProperties}
             title="파일 업로드 실행"
             aria-label="파일 업로드 실행"
           >

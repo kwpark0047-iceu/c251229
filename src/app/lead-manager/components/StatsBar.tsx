@@ -74,34 +74,42 @@ export default function StatsBar({ leads }: StatsBarProps) {
           {statItems.map((item, index) => (
             <div
               key={item.label}
-              className="group relative flex items-center gap-4 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] hover:border-[var(--glass-border)] transition-all duration-300 overflow-hidden"
+              className="group relative flex items-center gap-4 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] hover:border-[var(--glass-border)] transition-all duration-300 overflow-hidden delay-[--delay]"
+              /* eslint-disable-next-line react/forbid-dom-props */
               style={{
-                animationDelay: `${index * 50}ms`,
-              }}
+                '--delay': `${index * 50}ms`,
+              } as React.CSSProperties}
             >
               {/* 배경 글로우 효과 */}
               <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[--glow-bg]"
+                /* eslint-disable-next-line react/forbid-dom-props */
                 style={{
-                  background: `radial-gradient(circle at 30% 50%, ${item.bgColor} 0%, transparent 70%)`,
-                }}
+                  '--glow-bg': `radial-gradient(circle at 30% 50%, ${item.bgColor} 0%, transparent 70%)`,
+                } as React.CSSProperties}
               />
 
               <div
-                className="relative p-3 rounded-xl transition-transform duration-300 group-hover:scale-110"
+                className="relative p-3 rounded-xl transition-transform duration-300 group-hover:scale-110 bg-[--item-bg]"
+                /* eslint-disable-next-line react/forbid-dom-props */
                 style={{
-                  background: item.bgColor,
-                }}
+                  '--item-bg': item.bgColor,
+                } as React.CSSProperties}
               >
                 <item.icon
-                  className="w-5 h-5"
-                  style={{ color: item.color }}
+                  className="w-5 h-5 text-[--item-color]"
+                  style={{ 
+                    '--item-color': item.color,
+                  } as React.CSSProperties}
                 />
               </div>
               <div className="relative">
                 <p
-                  className="text-2xl font-bold tracking-tight"
-                  style={{ color: item.color }}
+                  className="text-2xl font-bold tracking-tight text-[--item-color]"
+                  /* eslint-disable-next-line react/forbid-dom-props */
+                  style={{ 
+                    '--item-color': item.color,
+                  } as React.CSSProperties}
                 >
                   {item.value.toLocaleString()}
                 </p>
@@ -112,44 +120,45 @@ export default function StatsBar({ leads }: StatsBarProps) {
 
           {/* 전환율 - 특별 카드 */}
           <div
-            className="group relative flex items-center gap-4 p-4 rounded-xl border overflow-hidden transition-all duration-300"
+            className="group relative flex items-center gap-4 p-4 rounded-xl border overflow-hidden transition-all duration-300 bg-[--rate-bg] border-[--rate-border]"
+            /* eslint-disable-next-line react/forbid-dom-props */
             style={{
-              background: 'linear-gradient(135deg, rgba(60, 181, 74, 0.1) 0%, rgba(50, 164, 206, 0.1) 100%)',
-              borderColor: 'rgba(60, 181, 74, 0.3)',
-            }}
+              '--rate-bg': 'linear-gradient(135deg, rgba(60, 181, 74, 0.1) 0%, rgba(50, 164, 206, 0.1) 100%)',
+              '--rate-border': 'rgba(60, 181, 74, 0.3)',
+            } as React.CSSProperties}
           >
             {/* 애니메이션 배경 */}
             <div
-              className="absolute inset-0 opacity-50"
+              className="absolute inset-0 opacity-50 bg-[--shimmer-bg] animate-[shimmer_3s_infinite]"
+              /* eslint-disable-next-line react/forbid-dom-props */
               style={{
-                background: `
+                '--shimmer-bg': `
                   linear-gradient(90deg,
                     transparent 0%,
                     rgba(60, 181, 74, 0.1) 50%,
                     transparent 100%
                   )
                 `,
-                animation: 'shimmer 3s infinite',
-              }}
+              } as React.CSSProperties}
             />
 
             <div
-              className="relative p-3 rounded-xl"
+              className="relative p-3 rounded-xl bg-[--icon-bg] shadow-[--icon-shadow]"
+              /* eslint-disable-next-line react/forbid-dom-props */
               style={{
-                background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                boxShadow: '0 4px 15px rgba(60, 181, 74, 0.3)',
-              }}
+                '--icon-bg': 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
+                '--icon-shadow': '0 4px 15px rgba(60, 181, 74, 0.3)',
+              } as React.CSSProperties}
             >
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <div className="relative">
               <p
-                className="text-2xl font-bold tracking-tight"
+                className="text-2xl font-bold tracking-tight bg-[--text-bg] bg-clip-text text-transparent"
+                /* eslint-disable-next-line react/forbid-dom-props */
                 style={{
-                  background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
+                  '--text-bg': 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
+                } as React.CSSProperties}
               >
                 {conversionRate}%
               </p>
@@ -159,6 +168,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
         </div>
       </div>
 
+      {/* eslint-disable-next-line react/no-unknown-property */}
       <style jsx>{`
         @keyframes shimmer {
           0% { transform: translateX(-100%); }

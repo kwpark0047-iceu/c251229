@@ -140,6 +140,7 @@ export default function UserManagementView() {
           </div>
           <select
             id="status-filter"
+            title="승인 상태 필터"
             name="statusFilter"
             className="px-3 py-2 border rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500 min-w-[120px]"
             value={statusFilter}
@@ -151,6 +152,7 @@ export default function UserManagementView() {
           </select>
           <select
             id="tier-filter"
+            title="서비스 등급 필터"
             name="tierFilter"
             className="px-3 py-2 border rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500 min-w-[140px]"
             value={tierFilter}
@@ -212,6 +214,7 @@ export default function UserManagementView() {
                       <div className="flex flex-col gap-1.5">
                         {getTierBadge(p.tier)}
                         <select
+                          title="사용자 서비스 등급 변경"
                           className="text-[10px] border-none bg-slate-100 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
                           value={p.tier}
                           onChange={(e) => handleTierChange(p.id, e.target.value)}
@@ -318,6 +321,7 @@ export default function UserManagementView() {
                   <label className="font-semibold block">소속 조직</label>
                   <select 
                     id="edit-org-id"
+                    title="소속 조직 수정"
                     name="orgId"
                     className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
                     defaultValue={selectedProfile.membership?.organizationId || ''}
@@ -332,6 +336,7 @@ export default function UserManagementView() {
                   <label className="font-semibold block">역할</label>
                   <select 
                     id="edit-role"
+                    title="멤버 역할 수정"
                     name="role"
                     className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
                     defaultValue={selectedProfile.membership?.role || 'member'}

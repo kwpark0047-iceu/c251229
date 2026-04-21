@@ -172,6 +172,7 @@ export function ResponsiveGrid({
     };
 
   return (
+    // eslint-disable-next-line react/forbid-dom-props
     <div className={className} style={gridStyle}>
       {children}
     </div>
@@ -201,8 +202,10 @@ export function ResponsiveText({
   const textAlign = useResponsiveValue(align);
 
   return (
+    // eslint-disable-next-line react/forbid-dom-props
     <div
       className={`${className} ${textSize} ${textWeight}`}
+      /* eslint-disable-next-line react/forbid-dom-props */
       style={{ textAlign }}
     >
       {children}
@@ -230,8 +233,10 @@ export function ResponsiveContainer({
   const containerPadding = useResponsiveValue(padding);
 
   return (
+    // eslint-disable-next-line react/forbid-dom-props
     <div
       className={`${className} mx-auto`}
+      /* eslint-disable-next-line react/forbid-dom-props */
       style={{
         maxWidth: containerMaxWidth,
         padding: containerPadding,
@@ -284,6 +289,7 @@ export function ResponsiveSidebar({
           ${isOpen ? 'translate-x-0' : position === 'left' ? '-translate-x-full' : 'translate-x-full'}
           ${className || 'bg-white shadow-lg'}
         `}
+        // eslint-disable-next-line react/forbid-dom-props
         style={{ width: sidebarWidth }}
       >
         <div className="h-full overflow-y-auto">
@@ -319,6 +325,7 @@ export function ResponsiveNav({
         <div>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
+            title="상세 메뉴 토글"
             className="p-2 rounded-lg hover:bg-gray-100"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

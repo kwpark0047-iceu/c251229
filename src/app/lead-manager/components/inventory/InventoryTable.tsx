@@ -126,19 +126,24 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
+            id="inventory-search"
             type="text"
             placeholder="역명 또는 위치코드 검색..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            aria-label="인벤토리 검색"
           />
         </div>
 
         {/* 상태 필터 */}
         <select
+          id="inventory-status-filter"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as AvailabilityStatus | 'ALL')}
           className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          title="상태별 필터링"
+          aria-label="상태별 필터링"
         >
           <option value="ALL">모든 상태</option>
           <option value="AVAILABLE">사용 가능</option>
@@ -148,9 +153,12 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
 
         {/* 유형 필터 */}
         <select
+          id="inventory-type-filter"
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
           className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          title="유형별 필터링"
+          aria-label="유형별 필터링"
         >
           <option value="ALL">모든 유형</option>
           {adTypes.map(type => (
@@ -225,11 +233,14 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
                     <td className="px-4 py-3">
                       <div className="flex justify-center">
                         <select
+                          id={`status-select-${item.id}`}
                           value={item.availabilityStatus}
                           onChange={(e) =>
                             handleStatusChange(item.id, e.target.value as AvailabilityStatus)
                           }
                           className={`text-xs font-medium px-2 py-1 rounded-full border ${statusColor.bg} ${statusColor.text} ${statusColor.border}`}
+                          title="상태 변경"
+                          aria-label={`${item.stationName} ${item.locationCode} 상태 변경`}
                         >
                           <option value="AVAILABLE">사용 가능</option>
                           <option value="RESERVED">예약됨</option>

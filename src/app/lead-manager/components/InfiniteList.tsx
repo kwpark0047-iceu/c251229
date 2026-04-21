@@ -60,6 +60,7 @@ const LeadItem = React.memo(({
       <td className="p-4">
         <input
           type="checkbox"
+          title="개별 리드 선택"
           checked={isSelected}
           onChange={() => { }}
           className="rounded border-gray-300"
@@ -85,6 +86,7 @@ const LeadItem = React.memo(({
       <td className="p-4">
         <div className="flex items-center gap-2">
           <select
+            title="리드 상태 변경"
             value={lead.status}
             onChange={(e) => {
               e.stopPropagation();
@@ -101,6 +103,8 @@ const LeadItem = React.memo(({
 
           <div className="relative">
             <button
+              title="옵션 메뉴 열기"
+              aria-label="리드 관리 옵션 메뉴 토글"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsMenuOpen(!isMenuOpen);
@@ -252,6 +256,7 @@ export default function InfiniteList({
               <th className="p-4 text-left">
                 <input
                   type="checkbox"
+                  title="전체 리드 선택/해제"
                   className="rounded border-gray-300"
                 />
               </th>

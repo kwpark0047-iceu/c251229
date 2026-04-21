@@ -50,11 +50,14 @@ export default function SubwayNetworkMap() {
                 transition-all duration-300 transform hover:scale-110 active:scale-95
                 ${selectedLine?.line === line.line ? 'shadow-[0_0_30px_var(--line-color)]' : 'opacity-70 hover:opacity-100'}
               `}
+              /* eslint-disable-next-line react/forbid-dom-props */
               style={{ 
                 backgroundColor: line.color, 
                 boxShadow: selectedLine?.line === line.line ? `0 0 30px ${line.color}80` : 'none',
                 '--line-color': line.color 
               } as any}
+              title={`${line.name} 정보 보기`}
+              aria-label={`${line.name} 정보 보기`}
             >
               <span className="text-2xl md:text-3xl font-black text-white drop-shadow-md">
                 {line.line}
@@ -71,11 +74,13 @@ export default function SubwayNetworkMap() {
         <div className="min-h-[220px] flex justify-center">
           {selectedLine ? (
             <div className="glass-card w-full max-w-3xl p-8 flex flex-col md:flex-row gap-8 animate-float items-center border-t-2" 
+                 /* eslint-disable-next-line react/forbid-dom-props */
                  style={{ borderTopColor: selectedLine.color }}>
               
               <div className="flex-1 space-y-4">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl"
+                       /* eslint-disable-next-line react/forbid-dom-props */
                        style={{ backgroundColor: selectedLine.color }}>
                     {selectedLine.line}
                   </div>

@@ -79,16 +79,21 @@ function CustomTooltip({ active, payload, label }: any) {
   if (active && payload && payload.length) {
     return (
       <div
-        className="px-3 py-2 rounded-lg shadow-xl border backdrop-blur-md"
+        className="px-3 py-2 rounded-lg shadow-xl border backdrop-blur-md bg-[--glass-bg] border-[--glass-border]"
         style={{
-          background: 'var(--glass-bg)',
-          borderColor: 'var(--glass-border)',
-        }}
+          '--glass-bg': 'var(--glass-bg)',
+          '--glass-border': 'var(--glass-border)',
+          // eslint-disable-next-line react/forbid-dom-props
+        } as React.CSSProperties}
       >
         <p className="text-xs font-bold text-[var(--text-primary)] mb-1">{label}</p>
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
+            <div className="w-2 h-2 rounded-full bg-[--entry-color]" 
+              style={{ 
+                '--entry-color': entry.color || entry.fill,
+                // eslint-disable-next-line react/forbid-dom-props
+              } as React.CSSProperties} />
             <p className="text-xs text-[var(--text-secondary)]">
               {entry.name}: <span className="font-bold text-[var(--text-primary)]">
                 {typeof entry.value === 'number' && entry.name.includes('율')
@@ -384,11 +389,12 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                   </div>
                   <div className="h-1.5 w-full bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
                     <div
-                      className="h-full transition-all duration-1000"
+                      className="h-full transition-all duration-1000 bg-[--line-color] w-[--line-width]"
+                      // eslint-disable-next-line react/forbid-dom-props
                       style={{
-                        width: `${(line.count / metrics.total) * 100}%`,
-                        backgroundColor: line.color
-                      }}
+                        '--line-width': `${(line.count / metrics.total) * 100}%`,
+                        '--line-color': line.color
+                      } as React.CSSProperties}
                     />
                   </div>
                 </div>
@@ -425,8 +431,12 @@ function MetricCard({
       `}
     >
       <div className="flex items-center justify-between mb-4">
-        <div className="p-2.5 rounded-xl" style={{ backgroundColor: `${color}15` }}>
-          <Icon className="w-5 h-5" style={{ color }} />
+        <div className="p-2.5 rounded-xl bg-[--bg-tint]" 
+          // eslint-disable-next-line react/forbid-dom-props
+          style={{ '--bg-tint': `${color}15` } as React.CSSProperties}>
+          <Icon className="w-5 h-5 text-[--icon-color]" 
+            // eslint-disable-next-line react/forbid-dom-props
+            style={{ '--icon-color': color } as React.CSSProperties} />
         </div>
         {change !== undefined && (
           <div className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 ${change >= 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>

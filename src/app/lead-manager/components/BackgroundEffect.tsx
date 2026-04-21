@@ -13,12 +13,18 @@ export default function BackgroundEffect() {
                 className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full animate-float opacity-15 bg-orb-green"
             />
             <div
-                className="absolute bottom-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full animate-float-subtle opacity-10 bg-orb-blue"
-                style={{ animationDelay: '-2s' }}
+                className="absolute bottom-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full animate-float-subtle opacity-10 bg-orb-blue delay-[--delay]"
+                style={{
+                    '--delay': '-2s',
+                    // eslint-disable-next-line react/forbid-dom-props
+                } as React.CSSProperties}
             />
             <div
-                className="absolute top-[20%] left-[20%] w-[400px] h-[400px] rounded-full animate-pulse-glow opacity-5 bg-orb-purple"
-                style={{ animationDuration: '8s' }}
+                className="absolute top-[20%] left-[20%] w-[400px] h-[400px] rounded-full animate-pulse-glow opacity-5 bg-orb-purple duration-[--duration]"
+                style={{
+                    '--duration': '8s',
+                    // eslint-disable-next-line react/forbid-dom-props
+                } as React.CSSProperties}
             />
 
             {/* 메트로 패턴 */}

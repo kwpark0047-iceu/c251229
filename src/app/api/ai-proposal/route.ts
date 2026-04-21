@@ -546,11 +546,75 @@ export async function POST(request: NextRequest) {
 
     // 4. 업종 분석 정보
     const businessType = body.businessType || '기타';
-    const businessAnalysis = businessAnalysisTemplates[businessType] || businessAnalysisTemplates['기타'];
+    let businessAnalysis = { ...(businessAnalysisTemplates[businessType] || businessAnalysisTemplates['기타']) };
 
     // 5. 예산 패키지
     const budgetKey = body.budget || '미정';
-    const budgetPackage = budgetPackages[budgetKey] || budgetPackages['미정'];
+    let budgetPackage = { ...(budgetPackages[budgetKey] || budgetPackages['미정']) };
+
+    // [Ollama 연동] 동적 제안서 텍스트 생성 시도
+    interface OllamaResponse {
+      purpose?: string[];
+      targetAudience?: string;
+      keyPoints?: string[];
+      recommendedMedia?: string[];
+      expectedEffects?: string[];
+      contractTip?: string;
+    }
+
+    try {
+      const prompt = `
+        다음은 서울 지하철 광고 영업 리드의 데이터입니다:
+        회사명: ${body.company || body.name}
+        업종: ${businessType}
+        예산: ${budgetKey}
+        문의내용: ${body.message || '없음'}
+        
+        해당 고객을 위한 맞춤형 지하철 광고 전략을 JSON 형식으로만 작성해주세요.
+        응답은 다음 형태의 JSON이어야 합니다:
+        {
+          "purpose": ["목적1", "목적2", "목적3"],
+          "targetAudience": "주요 타겟층",
+          "keyPoints": ["핵심 전략1", "핵심 전략2", "핵심 전략3"],
+          "recommendedMedia": ["조명광고", "스크린도어" 등 배열],
+          "expectedEffects": ["기대효과1", "기대효과2", "기대효과3"],
+          "contractTip": "계약 및 할인에 관한 권유 팁 1문장"
+        }
+      `;
+
+      const ollamaRes = await fetch('http://localhost:11434/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama3',
+          messages: [{ role: 'user', content: prompt }],
+          format: 'json',
+          stream: false,
+        }),
+      });
+
+      if (ollamaRes.ok) {
+        const aiData = await ollamaRes.json();
+        const contentStr = aiData.message?.content;
+        if (contentStr) {
+          const parsed: OllamaResponse = JSON.parse(contentStr);
+          if (parsed.purpose && parsed.expectedEffects && parsed.recommendedMedia) {
+            businessAnalysis = {
+              purpose: parsed.purpose,
+              targetAudience: parsed.targetAudience || businessAnalysis.targetAudience,
+              keyPoints: parsed.keyPoints || businessAnalysis.keyPoints,
+              recommendedMedia: parsed.recommendedMedia,
+              expectedEffects: parsed.expectedEffects,
+            };
+            if (parsed.contractTip) budgetPackage.contractTip = parsed.contractTip;
+          }
+        }
+      } else {
+        console.warn('Ollama 서버 응답 실패, 기본 템플릿(Fallback)으로 진행합니다.');
+      }
+    } catch (error) {
+      console.warn('Ollama 연결 또는 파싱 오류, 기본 템플릿으로 진행합니다:', error);
+    }
 
     // 6. 추천 노선
     const recommendedLines = districtInfo?.lines || ['2', '5', '7'];

@@ -37,30 +37,33 @@ export default function LineSelector({
               group relative flex items-center gap-2 px-4 py-2.5 rounded-xl
               border transition-all duration-300 overflow-hidden
               ${isSelected
-                ? 'border-transparent shadow-lg'
+                ? 'border-transparent shadow-[0_4px_15_var(--line-glow)] bg-[image:var(--line-gradient)]'
                 : 'border-[var(--border-subtle)] bg-[var(--bg-tertiary)] hover:border-[var(--glass-border)]'
               }
             `}
+            /* eslint-disable-next-line react/forbid-dom-props */
             style={{
-              background: isSelected
-                ? `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)`
-                : undefined,
-              boxShadow: isSelected ? `0 4px 15px ${color}40` : undefined,
-            }}
+              '--line-gradient': isSelected ? `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)` : 'none',
+              '--line-glow': isSelected ? `${color}40` : 'transparent',
+            } as React.CSSProperties}
           >
             {/* 호버 글로우 */}
             {!isSelected && (
               <div
-                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[image:var(--hover-glow)]"
+                /* eslint-disable-next-line react/forbid-dom-props */
                 style={{
-                  background: `radial-gradient(circle at 50% 50%, ${color}20 0%, transparent 70%)`,
-                }}
+                  '--hover-glow': `radial-gradient(circle at 50% 50%, ${color}20 0%, transparent 70%)`,
+                } as React.CSSProperties}
               />
             )}
 
             <Train
-              className={`w-4 h-4 relative ${isSelected ? 'text-white' : ''}`}
-              style={{ color: isSelected ? undefined : color }}
+              className={`w-4 h-4 relative ${isSelected ? 'text-white' : 'text-[--line-color]'}`}
+              /* eslint-disable-next-line react/forbid-dom-props */
+              style={{ 
+                '--line-color': isSelected ? 'inherit' : color,
+              } as React.CSSProperties}
             />
             <span
               className={`relative font-semibold text-sm ${isSelected ? 'text-white' : 'text-[var(--text-primary)]'}`}

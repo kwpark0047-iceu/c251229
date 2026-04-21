@@ -69,32 +69,21 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 백드롭 */}
       <div
-        className="absolute inset-0 backdrop-blur-md"
-        style={{ background: 'rgba(8, 8, 12, 0.8)' }}
+        className="absolute inset-0 backdrop-blur-md bg-[#08080C]/80"
         onClick={onClose}
       />
 
       {/* 모달 */}
       <div
-        className="relative w-full max-w-lg mx-4 rounded-2xl border overflow-hidden animate-in fade-in zoom-in-95 duration-300 modal-popup"
-        style={{
-          background: 'var(--glass-bg)',
-          borderColor: 'var(--glass-border)',
-          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
-        }}
+        className="relative w-full max-w-lg mx-4 rounded-2xl border overflow-hidden animate-in fade-in zoom-in-95 duration-300 modal-popup bg-[var(--glass-bg)] border-[var(--glass-border)] shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
       >
         {/* 헤더 */}
         <div
-          className="flex items-center justify-between px-6 py-5 border-b"
-          style={{ borderColor: 'var(--border-subtle)' }}
+          className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-subtle)]"
         >
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{
-                background: 'linear-gradient(135deg, var(--metro-line4) 0%, var(--metro-line2) 100%)',
-                boxShadow: '0 4px 15px rgba(50, 164, 206, 0.3)',
-              }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-[var(--metro-line4)] to-[var(--metro-line2)] shadow-[0_4px_15px_rgba(50,164,206,0.3)]"
             >
               <Settings className="w-5 h-5 text-white" />
             </div>
@@ -113,11 +102,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* API 키 안내 (보안) */}
           <div
-            className="flex items-start gap-3 p-4 rounded-xl border"
-            style={{
-              background: 'rgba(60, 181, 74, 0.1)',
-              borderColor: 'rgba(60, 181, 74, 0.3)',
-            }}
+            className="flex items-start gap-3 p-4 rounded-xl border bg-[#3CB54A]/10 border-[#3CB54A]/30"
           >
             <Shield className="w-5 h-5 text-[var(--metro-line2)] flex-shrink-0 mt-0.5" />
             <div>
@@ -159,6 +144,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                 value={formData.corsProxy}
                 onChange={(e) => setFormData({ ...formData, corsProxy: e.target.value })}
                 className="metro-input"
+                aria-label="사용자 지정 프록시 URL"
                 placeholder="https://your-proxy.com/?"
               />
             )}
@@ -175,11 +161,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
             </label>
             <div className="flex gap-4">
               <label
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-300"
-                style={{
-                  background: formData.searchType === 'license_date' ? 'rgba(50, 164, 206, 0.15)' : 'var(--bg-tertiary)',
-                  borderColor: formData.searchType === 'license_date' ? 'var(--metro-line4)' : 'var(--border-subtle)',
-                }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-300 ${formData.searchType === 'license_date' ? 'bg-[#32A4CE]/15 border-[var(--metro-line4)]' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}
               >
                 <input
                   id="search-type-license"
@@ -187,22 +169,18 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                   name="searchType"
                   value="license_date"
                   checked={formData.searchType === 'license_date'}
+                  aria-label="인허가일 기준 검색"
                   onChange={(e) => setFormData({ ...formData, searchType: e.target.value as SearchType })}
                   className="w-4 h-4 accent-[var(--metro-line4)]"
                 />
                 <span
-                  className="text-sm font-medium"
-                  style={{ color: formData.searchType === 'license_date' ? 'var(--metro-line4)' : 'var(--text-secondary)' }}
+                  className={`text-sm font-medium ${formData.searchType === 'license_date' ? 'text-[var(--metro-line4)]' : 'text-[var(--text-secondary)]'}`}
                 >
                   인허가일
                 </span>
               </label>
               <label
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-300"
-                style={{
-                  background: formData.searchType === 'modified_date' ? 'rgba(50, 164, 206, 0.15)' : 'var(--bg-tertiary)',
-                  borderColor: formData.searchType === 'modified_date' ? 'var(--metro-line4)' : 'var(--border-subtle)',
-                }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-300 ${formData.searchType === 'modified_date' ? 'bg-[#32A4CE]/15 border-[var(--metro-line4)]' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}
               >
                 <input
                   id="search-type-modified"
@@ -210,12 +188,12 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                   name="searchType"
                   value="modified_date"
                   checked={formData.searchType === 'modified_date'}
+                  aria-label="데이터 수정일 기준 검색"
                   onChange={(e) => setFormData({ ...formData, searchType: e.target.value as SearchType })}
                   className="w-4 h-4 accent-[var(--metro-line4)]"
                 />
                 <span
-                  className="text-sm font-medium"
-                  style={{ color: formData.searchType === 'modified_date' ? 'var(--metro-line4)' : 'var(--text-secondary)' }}
+                  className={`text-sm font-medium ${formData.searchType === 'modified_date' ? 'text-[var(--metro-line4)]' : 'text-[var(--text-secondary)]'}`}
                 >
                   데이터 수정일
                 </span>
@@ -234,6 +212,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
               name="regionCode"
               value={formData.regionCode}
               onChange={(e) => setFormData({ ...formData, regionCode: e.target.value })}
+              title="지역 선택"
               className="metro-input"
             >
               {Object.entries(REGION_CODES).map(([code, name]) => (
@@ -256,11 +235,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                 onClick={handleRemoveDuplicates}
                 disabled={isRemovingDuplicates}
                 title="중복 리드 삭제"
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium transition-all duration-300 hover:bg-red-500/10 disabled:opacity-50"
-                style={{
-                  borderColor: 'rgba(239, 68, 68, 0.3)',
-                  color: '#ef4444',
-                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border font-medium transition-all duration-300 hover:bg-red-500/10 disabled:opacity-50 border-red-500/30 text-red-500"
               >
                 {isRemovingDuplicates ? (
                   <>
@@ -290,21 +265,13 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-3 rounded-xl border font-semibold transition-all duration-300 hover:bg-[var(--bg-secondary)]"
-              style={{
-                borderColor: 'var(--border-subtle)',
-                color: 'var(--text-secondary)',
-              }}
+              className="flex-1 px-5 py-3 rounded-xl border font-semibold transition-all duration-300 hover:bg-[var(--bg-secondary)] border-[var(--border-subtle)] text-[var(--text-secondary)]"
             >
               취소
             </button>
             <button
               type="submit"
-              className="flex-1 px-5 py-3 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105"
-              style={{
-                background: 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                boxShadow: '0 4px 15px rgba(60, 181, 74, 0.3)',
-              }}
+              className="flex-1 px-5 py-3 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105 bg-gradient-to-br from-[var(--metro-line2)] to-[var(--metro-line4)] shadow-[0_4px_15px_rgba(60,181,74,0.3)]"
             >
               저장
             </button>

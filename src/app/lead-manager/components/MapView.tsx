@@ -181,7 +181,12 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
             center={[center.lat, center.lng]}
             zoom={defaultZoom}
             scrollWheelZoom={true}
-            style={{ height: '100%', width: '100%', background: '#f8f9fa' }}
+            style={{ 
+              '--map-height': '100%', 
+              '--map-width': '100%' 
+              // eslint-disable-next-line react/forbid-dom-props
+            } as React.CSSProperties}
+            className="bg-[#f8f9fa] h-[--map-height] w-[--map-width]"
           >
             <MapEvents onZoomEnd={setCurrentZoom} />
             {/* 지도 포커스 컨트롤러 */}
@@ -374,13 +379,14 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                     onClick={() => {
                       setVisibleLines(prev => isActive ? prev.filter(l => l !== displayName) : [...prev, displayName]);
                     }}
+                    style={{
+                      '--brand-color': isActive ? color : 'transparent',
+                      // eslint-disable-next-line react/forbid-dom-props
+                    } as React.CSSProperties}
                     className={`
                       flex-shrink-0 min-w-[26px] h-[26px] rounded-full flex items-center justify-center text-[10px] font-bold transition-all
-                      ${isActive ? 'text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}
+                      ${isActive ? 'text-white bg-[--brand-color]' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}
                     `}
-                    style={{
-                      backgroundColor: isActive ? color : undefined
-                    }}
                   >
                     {displayName}
                   </button>
@@ -395,8 +401,11 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
               {(['NEW', 'PROPOSAL_SENT', 'CONTACTED'] as LeadStatus[]).map(status => (
                 <div key={status} className="flex items-center gap-1.5">
                   <div 
-                    className="w-2.5 h-2.5 rounded-full border border-white" 
-                    style={{ background: getStatusColor(status) }} 
+                    className="w-2.5 h-2.5 rounded-full border border-white bg-[--status-color]" 
+                    style={{ 
+                      '--status-color': getStatusColor(status),
+                      // eslint-disable-next-line react/forbid-dom-props
+                    } as React.CSSProperties} 
                   />
                   <span className="text-[10px] font-semibold text-gray-500 uppercase">{STATUS_LABELS[status].split(' ')[0]}</span>
                 </div>
@@ -488,12 +497,12 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
           name="status"
           value={lead.status}
           onChange={(e) => onStatusChange(lead.id, e.target.value as LeadStatus)}
-          className="w-full text-xs font-bold px-3 py-2.5 rounded-lg border appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+          className="w-full text-xs font-bold px-3 py-2.5 rounded-lg border appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all bg-[--status-bg] text-white border-[--status-border]"
           style={{
-            background: statusColor.bg,
-            color: 'white',
-            borderColor: statusColor.border,
-          }}
+            '--status-bg': statusColor.bg,
+            '--status-border': statusColor.border,
+            // eslint-disable-next-line react/forbid-dom-props
+          } as React.CSSProperties}
           title="리드 상태 변경"
         >
           {(['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as LeadStatus[]).map(status => (

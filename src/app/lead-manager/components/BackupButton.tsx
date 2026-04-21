@@ -118,11 +118,7 @@ export default function BackupButton({ className = '' }: BackupButtonProps) {
         <button
           onClick={handleBackup}
           disabled={loading || restoring}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white transition-all disabled:opacity-50"
-          style={{
-            background: 'var(--metro-line4)',
-            boxShadow: '0 2px 10px rgba(50, 164, 206, 0.3)',
-          }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm text-white transition-all disabled:opacity-50 bg-[#00a4e3] shadow-md shadow-[#00a4e3]/30 hover:bg-[#0090c8]"
         >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -136,12 +132,7 @@ export default function BackupButton({ className = '' }: BackupButtonProps) {
         <button
           onClick={handleRestoreClick}
           disabled={loading || restoring}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all disabled:opacity-50"
-          style={{
-            background: 'var(--bg-secondary)',
-            color: 'var(--text-secondary)',
-            border: '1px solid var(--border-subtle)',
-          }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100"
         >
           {restoring ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -154,6 +145,7 @@ export default function BackupButton({ className = '' }: BackupButtonProps) {
         {/* 숨겨진 파일 입력 */}
         <input
           id="backup-file-input"
+          title="백업 파일 복원용 업로드"
           name="backupFile"
           ref={fileInputRef}
           type="file"
@@ -166,11 +158,10 @@ export default function BackupButton({ className = '' }: BackupButtonProps) {
       {/* 메시지 표시 */}
       {message && (
         <div
-          className={`absolute top-full mt-2 right-0 p-3 rounded-lg text-sm whitespace-pre-line z-10 ${message.type === 'success'
-              ? 'bg-green-100 text-green-800 border border-green-300'
-              : 'bg-red-100 text-red-800 border border-red-300'
+          className={`absolute top-full mt-2 right-0 p-3 rounded-lg text-sm whitespace-pre-line z-10 min-w-[200px] max-w-[300px] border ${message.type === 'success'
+              ? 'bg-green-100 text-green-800 border-green-300'
+              : 'bg-red-100 text-red-800 border-red-300'
             }`}
-          style={{ minWidth: '200px', maxWidth: '300px' }}
         >
           <div className="flex items-start gap-2">
             {message.type === 'success' ? (
