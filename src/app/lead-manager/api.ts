@@ -148,16 +148,56 @@ export async function fetchSeoulClinicAPI(
 }
 
 /**
+ * 서울 열린데이터 광장 API를 통해 서울시 병원 인허가 정보 조회
+ */
+export async function fetchSeoulHospitalAPI(
+  startIndex: number = 1,
+  endIndex: number = 100
+): Promise<FetchResult> {
+  try {
+    const result = await safeFetch(`/api/seoul-data?service=hospital&start=${startIndex}&end=${endIndex}`, {
+      method: 'GET',
+    });
+
+    if (!result.success) {
+      return {
+        success: false,
+        leads: [],
+        totalCount: 0,
+        message: result.error || '서울 데이터 API 호출에 실패했습니다.',
+      };
+    }
+
+    const leads = await processSeoulRawLeads(result.leads, 'LOCALDATA_010101');
+
+    return {
+      success: true,
+      leads,
+      totalCount: result.totalCount,
+    };
+
+  } catch (error) {
+    console.error('[API] Seoul Hospital API Error:', error);
+    return {
+      success: false,
+      leads: [],
+      totalCount: 0,
+      message: `네트워크 오류: ${(error as Error).message}`,
+    };
+  }
+}
+
+/**
  * 서울 데이터 API의 원시 리드 데이터를 처리 (좌표 변환, 역 매칭)
  */
-async function processSeoulRawLeads(rawLeads: any[]): Promise<Lead[]> {
+async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALDATA_010102'): Promise<Lead[]> {
   const { subwayDataManager } = await import('./kric-data-manager');
   await subwayDataManager.getAllSubwayData();
 
   const processedLeads = (await Promise.all(rawLeads.map(async (raw) => {
-    // 서울 데이터 필드 매핑: 
-    // BPLC_NM (사업장명), RDN_WHL_ADDR (도로명주소), X (좌표X), Y (좌표Y), SITE_TEL (전화번호)
-    const bizName = raw.BPLC_NM || '';
+    // 서울 데이터 필드 매핑 (언더바 없음 주의): 
+    // BPLCNM (사업장명), RDNWHLADDR (도로명주소), SITEWHLADDR (지번주소), SITETEL (전화번호), X (좌표X), Y (좌표Y)
+    const bizName = raw.BPLCNM || '';
     if (!bizName) return null;
 
     let latitude: number | undefined;
@@ -166,21 +206,20 @@ async function processSeoulRawLeads(rawLeads: any[]): Promise<Lead[]> {
     let stationDistance: number | undefined;
     let stationLines: string[] | undefined;
 
-    // 서울 데이터의 좌표(X, Y)는 중부원점(GRS80) 또는 TM 좌표계일 수 있음
-    // KRIC와 유사하게 처리하되, 필드명이 X, Y임
-    const x = parseFloat(raw.X);
-    const y = parseFloat(raw.Y);
+    // 서울 데이터의 좌표(X, Y)는 중부원점(GRS80)
+    // 값에 공백이 포함되어 있을 수 있으므로 trim 처리
+    const x = parseFloat((raw.X || '0').toString().trim());
+    const y = parseFloat((raw.Y || '0').toString().trim());
 
     if (x && y) {
       const { convertGRS80ToWGS84 } = await import('./utils');
-      // 서울 데이터 Portal의 X, Y는 보통 GRS80 (중부원점)
       const converted = convertGRS80ToWGS84(x, y);
 
       if (converted) {
         latitude = converted.lat;
         longitude = converted.lng;
 
-        const bizAddress = raw.RDN_WHL_ADDR || raw.SIT_WHL_ADDR;
+        const bizAddress = raw.RDNWHLADDR || raw.SITEWHLADDR;
         const nearest = await subwayDataManager.findNearbyStation(latitude, longitude, bizAddress);
 
         if (nearest) {
@@ -193,23 +232,23 @@ async function processSeoulRawLeads(rawLeads: any[]): Promise<Lead[]> {
 
     return {
       id: generateUUID(),
-      bizName: raw.BPLC_NM,
+      bizName: raw.BPLCNM,
       bizId: raw.BRNO || undefined,
-      licenseDate: raw.APV_PERM_YMD,
-      roadAddress: raw.RDN_WHL_ADDR,
-      lotAddress: raw.SIT_WHL_ADDR,
+      licenseDate: raw.APVPERMYMD,
+      roadAddress: raw.RDNWHLADDR,
+      lotAddress: raw.SITEWHLADDR,
       coordX: x,
       coordY: y,
       latitude,
       longitude,
-      phone: raw.SITE_TEL,
-      medicalSubject: raw.UPTAE_NM || '의원',
-      mgtNo: raw.MGT_NO,
-      operatingStatus: raw.TRD_STATE_NM,
-      detailedStatus: raw.DTL_STATE_NM,
+      phone: raw.SITETEL,
+      medicalSubject: raw.UPTAENM || '의원',
+      mgtNo: raw.MGTNO,
+      operatingStatus: raw.TRDSTATENM,
+      detailedStatus: raw.DTLSTATENM,
       category: 'HEALTH',
-      serviceId: 'localdata_010102',
-      serviceName: '의원 (서울)',
+      serviceId: serviceId,
+      serviceName: serviceId === 'LOCALDATA_010101' ? '병원 (서울)' : '의원 (서울)',
       nearestStation,
       stationDistance,
       stationLines,
@@ -383,10 +422,14 @@ export async function fetchAllLeads(
       // 첫 페이지 조회
       let firstResult;
       
-      // 서울 지역이고 의원(01_01_02_P)인 경우 서울 데이터 API 우선 시도
-      if (regionCode === '6110000' && serviceInfo.id === '01_01_02_P') {
-        onProgress?.(totalProcessed, estimatedTotal, `[서울] 서울 데이터 Portal에서 의원 정보 수집 중...`);
-        firstResult = await fetchSeoulClinicAPI(1, pageSize);
+      // 서울 지역이고 의원/병원인 경우 서울 데이터 API 우선 시도
+      if (regionCode === '6110000' && (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P')) {
+        onProgress?.(totalProcessed, estimatedTotal, `[서울] 서울 데이터 Portal에서 ${serviceInfo.name} 정보 수집 중...`);
+        if (serviceInfo.id === '01_01_02_P') {
+          firstResult = await fetchSeoulClinicAPI(1, pageSize);
+        } else {
+          firstResult = await fetchSeoulHospitalAPI(1, pageSize);
+        }
       } else {
         firstResult = await fetchLocalDataAPI(
           settings,
@@ -435,11 +478,18 @@ export async function fetchAllLeads(
       for (let pageIndex = 2; pageIndex <= totalPages; pageIndex++) {
         let result;
         
-        if (regionCode === '6110000' && serviceInfo.id === '01_01_02_P') {
-          result = await fetchSeoulClinicAPI(
-            (pageIndex - 1) * pageSize + 1,
-            pageIndex * pageSize
-          );
+        if (regionCode === '6110000' && (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P')) {
+          if (serviceInfo.id === '01_01_02_P') {
+            result = await fetchSeoulClinicAPI(
+              (pageIndex - 1) * pageSize + 1,
+              pageIndex * pageSize
+            );
+          } else {
+            result = await fetchSeoulHospitalAPI(
+              (pageIndex - 1) * pageSize + 1,
+              pageIndex * pageSize
+            );
+          }
         } else {
           result = await fetchLocalDataAPI(
             settings,

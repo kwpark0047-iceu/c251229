@@ -27,7 +27,7 @@ async function fetchSeoulData<T>(
   try {
     const response = await fetch(url, {
       method: 'GET',
-      next: { revalidate: 3600 }, // 1시간 캐시
+      cache: 'no-store', // 실시간 조회를 위해 캐시 비활성화
     });
 
     if (!response.ok) {
@@ -84,12 +84,12 @@ export async function getRealtimeArrival(stationName: string) {
  * 서울시 의원 인허가 정보 (localdata_010102)
  */
 export async function getSeoulClinicLicenseData(startIndex: number = 1, endIndex: number = 100) {
-  const data = await fetchSeoulData<any>('localdata_010102', startIndex, endIndex);
-  if (!data || !data.localdata_010102) return { leads: [], totalCount: 0 };
+  const data = await fetchSeoulData<any>('LOCALDATA_010102', startIndex, endIndex);
+  if (!data || !data.LOCALDATA_010102) return { leads: [], totalCount: 0 };
   
   return {
-    leads: data.localdata_010102.row || [],
-    totalCount: parseInt(data.localdata_010102.list_total_count) || 0
+    leads: data.LOCALDATA_010102.row || [],
+    totalCount: parseInt(data.LOCALDATA_010102.list_total_count) || 0
   };
 }
 
@@ -97,11 +97,11 @@ export async function getSeoulClinicLicenseData(startIndex: number = 1, endIndex
  * 서울시 병원 인허가 정보 (localdata_010101)
  */
 export async function getSeoulHospitalLicenseData(startIndex: number = 1, endIndex: number = 100) {
-  const data = await fetchSeoulData<any>('localdata_010101', startIndex, endIndex);
-  if (!data || !data.localdata_010101) return { leads: [], totalCount: 0 };
+  const data = await fetchSeoulData<any>('LOCALDATA_010101', startIndex, endIndex);
+  if (!data || !data.LOCALDATA_010101) return { leads: [], totalCount: 0 };
   
   return {
-    leads: data.localdata_010101.row || [],
-    totalCount: parseInt(data.localdata_010101.list_total_count) || 0
+    leads: data.LOCALDATA_010101.row || [],
+    totalCount: parseInt(data.LOCALDATA_010101.list_total_count) || 0
   };
 }
