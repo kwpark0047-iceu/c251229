@@ -108,6 +108,119 @@ export async function fetchLocalDataAPI(
 }
 
 /**
+ * 서울 열린데이터 광장 API를 통해 서울시 의원 인허가 정보 조회
+ */
+export async function fetchSeoulClinicAPI(
+  startIndex: number = 1,
+  endIndex: number = 100
+): Promise<FetchResult> {
+  try {
+    const result = await safeFetch(`/api/seoul-data?service=clinic&start=${startIndex}&end=${endIndex}`, {
+      method: 'GET',
+    });
+
+    if (!result.success) {
+      return {
+        success: false,
+        leads: [],
+        totalCount: 0,
+        message: result.error || '서울 데이터 API 호출에 실패했습니다.',
+      };
+    }
+
+    const leads = await processSeoulRawLeads(result.leads);
+
+    return {
+      success: true,
+      leads,
+      totalCount: result.totalCount,
+    };
+
+  } catch (error) {
+    console.error('[API] Seoul Clinic API Error:', error);
+    return {
+      success: false,
+      leads: [],
+      totalCount: 0,
+      message: `네트워크 오류: ${(error as Error).message}`,
+    };
+  }
+}
+
+/**
+ * 서울 데이터 API의 원시 리드 데이터를 처리 (좌표 변환, 역 매칭)
+ */
+async function processSeoulRawLeads(rawLeads: any[]): Promise<Lead[]> {
+  const { subwayDataManager } = await import('./kric-data-manager');
+  await subwayDataManager.getAllSubwayData();
+
+  const processedLeads = (await Promise.all(rawLeads.map(async (raw) => {
+    // 서울 데이터 필드 매핑: 
+    // BPLC_NM (사업장명), RDN_WHL_ADDR (도로명주소), X (좌표X), Y (좌표Y), SITE_TEL (전화번호)
+    const bizName = raw.BPLC_NM || '';
+    if (!bizName) return null;
+
+    let latitude: number | undefined;
+    let longitude: number | undefined;
+    let nearestStation: string | undefined;
+    let stationDistance: number | undefined;
+    let stationLines: string[] | undefined;
+
+    // 서울 데이터의 좌표(X, Y)는 중부원점(GRS80) 또는 TM 좌표계일 수 있음
+    // KRIC와 유사하게 처리하되, 필드명이 X, Y임
+    const x = parseFloat(raw.X);
+    const y = parseFloat(raw.Y);
+
+    if (x && y) {
+      const { convertGRS80ToWGS84 } = await import('./utils');
+      // 서울 데이터 Portal의 X, Y는 보통 GRS80 (중부원점)
+      const converted = convertGRS80ToWGS84(x, y);
+
+      if (converted) {
+        latitude = converted.lat;
+        longitude = converted.lng;
+
+        const bizAddress = raw.RDN_WHL_ADDR || raw.SIT_WHL_ADDR;
+        const nearest = await subwayDataManager.findNearbyStation(latitude, longitude, bizAddress);
+
+        if (nearest) {
+          nearestStation = nearest.station.name;
+          stationDistance = nearest.distance;
+          stationLines = nearest.station.lines;
+        }
+      }
+    }
+
+    return {
+      id: generateUUID(),
+      bizName: raw.BPLC_NM,
+      bizId: raw.BRNO || undefined,
+      licenseDate: raw.APV_PERM_YMD,
+      roadAddress: raw.RDN_WHL_ADDR,
+      lotAddress: raw.SIT_WHL_ADDR,
+      coordX: x,
+      coordY: y,
+      latitude,
+      longitude,
+      phone: raw.SITE_TEL,
+      medicalSubject: raw.UPTAE_NM || '의원',
+      mgtNo: raw.MGT_NO,
+      operatingStatus: raw.TRD_STATE_NM,
+      detailedStatus: raw.DTL_STATE_NM,
+      category: 'HEALTH',
+      serviceId: 'localdata_010102',
+      serviceName: '의원 (서울)',
+      nearestStation,
+      stationDistance,
+      stationLines,
+      status: 'NEW',
+    } as Lead;
+  }))).filter((lead): lead is Lead => lead !== null);
+
+  return processedLeads;
+}
+
+/**
  * 원시 리드 데이터를 처리 (좌표 변환, 역 매칭)
  */
 /**
@@ -268,15 +381,23 @@ export async function fetchAllLeads(
       onProgress?.(totalProcessed, estimatedTotal, `[${regionName}/${categoryLabel}] ${serviceInfo.name} 조회 중...`);
 
       // 첫 페이지 조회
-      const firstResult = await fetchLocalDataAPI(
-        settings,
-        startDate,
-        endDate,
-        1,
-        pageSize,
-        serviceInfo,
-        regionCode
-      );
+      let firstResult;
+      
+      // 서울 지역이고 의원(01_01_02_P)인 경우 서울 데이터 API 우선 시도
+      if (regionCode === '6110000' && serviceInfo.id === '01_01_02_P') {
+        onProgress?.(totalProcessed, estimatedTotal, `[서울] 서울 데이터 Portal에서 의원 정보 수집 중...`);
+        firstResult = await fetchSeoulClinicAPI(1, pageSize);
+      } else {
+        firstResult = await fetchLocalDataAPI(
+          settings,
+          startDate,
+          endDate,
+          1,
+          pageSize,
+          serviceInfo,
+          regionCode
+        );
+      }
 
       if (!firstResult.success) {
         console.error(`[${regionName}] ${serviceInfo.name} 조회 실패:`, firstResult.message);
@@ -312,15 +433,24 @@ export async function fetchAllLeads(
       const totalPages = Math.ceil(firstResult.totalCount / pageSize);
 
       for (let pageIndex = 2; pageIndex <= totalPages; pageIndex++) {
-        const result = await fetchLocalDataAPI(
-          settings,
-          startDate,
-          endDate,
-          pageIndex,
-          pageSize,
-          serviceInfo,
-          regionCode
-        );
+        let result;
+        
+        if (regionCode === '6110000' && serviceInfo.id === '01_01_02_P') {
+          result = await fetchSeoulClinicAPI(
+            (pageIndex - 1) * pageSize + 1,
+            pageIndex * pageSize
+          );
+        } else {
+          result = await fetchLocalDataAPI(
+            settings,
+            startDate,
+            endDate,
+            pageIndex,
+            pageSize,
+            serviceInfo,
+            regionCode
+          );
+        }
 
         if (result.success) {
           // 중복 제거하며 추가

@@ -50,7 +50,13 @@ export async function GET(request: NextRequest) {
     console.log(`[Station Info API] Request: railOprIsttCd=${railOprIsttCd}, lnCd=${lnCd}, station=${stationName || 'ALL'}`);
 
     // fetch with cache tags or revalidate
-    const response = await fetch(apiUrl, {
+    let upstreamResponse;
+    let isSeoulDataUsed = false;
+
+    // 서울 지하철(S1)이고 노선이 1~9호선인 경우 서울 데이터 API 활용 시도 (선택적)
+    // 여기서는 KRIC를 주 데이터로 유지하되, 향후 확장성을 위해 구조만 잡음
+    
+    upstreamResponse = await fetch(apiUrl, {
       headers: {
         'Accept': 'application/json',
       },
@@ -60,15 +66,15 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`[Station Info API] Upstream Error (${line}):`, response.status, errorText);
+    if (!upstreamResponse.ok) {
+      const errorText = await upstreamResponse.text();
+      console.error(`[Station Info API] Upstream Error (${line}):`, upstreamResponse.status, errorText);
 
       // 500 에러 대신 success: false를 반환하여 클라이언트 측 중단 방지
       return NextResponse.json(
         {
           success: false,
-          error: `KRIC API 요청 실패 (${response.status})`,
+          error: `KRIC API 요청 실패 (${upstreamResponse.status})`,
           details: errorText,
           fallback_data: true // 클라이언트에게 폴백 사용 권장
         },
@@ -76,7 +82,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const textData = await response.text();
+    const textData = await upstreamResponse.text();
     let data;
     try {
       if (textData.trim().startsWith('<')) {

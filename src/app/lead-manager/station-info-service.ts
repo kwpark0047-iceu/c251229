@@ -97,6 +97,18 @@ export async function getStationInfo(
   }
 }
 
+// 서울 전용 역사 상세 정보 조회 (서울 데이터 API 활용)
+export async function getSeoulStationInfo(stationName: string): Promise<any> {
+  try {
+    const response = await fetch(`/api/seoul-data?service=arrival&query=${encodeURIComponent(stationName)}`);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    console.error('[Station Info Service] Seoul API Error:', error);
+    return null;
+  }
+}
+
 // 편의시설 아이콘 매핑
 export const FACILITY_ICONS: Record<string, { icon: string; label: string }> = {
   elvtrCnt: { icon: '🛗', label: '엘리베이터' },
