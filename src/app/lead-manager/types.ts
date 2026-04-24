@@ -196,6 +196,7 @@ export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
     { id: '01_03_02_P', name: '산후조리업', category: 'HEALTH' },
     { id: '01_04_01_P', name: '의료법인', category: 'HEALTH' },
     { id: '01_02_02_P', name: '의료유사업', category: 'HEALTH' },
+    { id: 'LOCALDATA_010301', name: '의료유사업(서울)', category: 'HEALTH' },
   ],
   ANIMAL: [
     { id: '07_01_01_P', name: '동물병원', category: 'ANIMAL' },
@@ -235,6 +236,7 @@ export const CATEGORY_SERVICE_IDS: Record<BusinessCategory, ServiceIdInfo[]> = {
     { id: '10_40_01_P', name: '요트장업', category: 'SPORTS' },
     { id: '10_41_01_P', name: '체육도장업', category: 'SPORTS' },
     { id: '10_42_01_P', name: '체력단련장업', category: 'SPORTS' },
+    { id: 'LOCALDATA_104201', name: '체력단련장업(서울)', category: 'SPORTS' },
   ],
   LIVING: [
     { id: '08_01_01_P', name: '숙박업', category: 'LIVING' },

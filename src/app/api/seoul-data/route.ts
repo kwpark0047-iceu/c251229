@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { 
   getSeoulClinicLicenseData, 
   getSeoulHospitalLicenseData,
+  getSeoulQuasiMedicalLicenseData,
+  getSeoulFitnessLicenseData,
   getRealtimeArrival,
   getSeoulStationsByLine
 } from '@/lib/seoul-data-api';
@@ -29,6 +31,12 @@ export async function GET(request: NextRequest) {
         break;
       case 'hospital':
         result = await getSeoulHospitalLicenseData(startIndex, endIndex);
+        break;
+      case 'quasi-medical':
+        result = await getSeoulQuasiMedicalLicenseData(startIndex, endIndex);
+        break;
+      case 'fitness':
+        result = await getSeoulFitnessLicenseData(startIndex, endIndex);
         break;
       case 'arrival':
         if (!query) return NextResponse.json({ success: false, error: 'Station name is required' }, { status: 400 });

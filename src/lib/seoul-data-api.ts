@@ -14,9 +14,18 @@ async function fetchSeoulData<T>(
   endIndex: number = 100,
   ...additionalParams: string[]
 ): Promise<T | null> {
-  const apiKey = process.env.SEOUL_DATA_API_KEY;
+  // 전용 키가 있는 경우 우선 사용
+  let apiKey = process.env.SEOUL_DATA_API_KEY;
+  if (service === 'LOCALDATA_010101' && process.env.SEOUL_DATA_HOSPITAL_API_KEY) {
+    apiKey = process.env.SEOUL_DATA_HOSPITAL_API_KEY;
+  } else if (service === 'LOCALDATA_010301' && process.env.SEOUL_DATA_QUASI_MEDICAL_API_KEY) {
+    apiKey = process.env.SEOUL_DATA_QUASI_MEDICAL_API_KEY;
+  } else if (service === 'LOCALDATA_104201' && process.env.SEOUL_DATA_FITNESS_API_KEY) {
+    apiKey = process.env.SEOUL_DATA_FITNESS_API_KEY;
+  }
+
   if (!apiKey) {
-    console.error('[Seoul Data API] Error: SEOUL_DATA_API_KEY is not defined');
+    console.error(`[Seoul Data API] Error: API key for ${service} is not defined`);
     return null;
   }
 
@@ -103,5 +112,32 @@ export async function getSeoulHospitalLicenseData(startIndex: number = 1, endInd
   return {
     leads: data.LOCALDATA_010101.row || [],
     totalCount: parseInt(data.LOCALDATA_010101.list_total_count) || 0
+  };
+}
+
+/**
+ * 서울시 의료유사업 인허가 정보 (localdata_010301)
+ * 안마시술소, 침술원 등
+ */
+export async function getSeoulQuasiMedicalLicenseData(startIndex: number = 1, endIndex: number = 100) {
+  const data = await fetchSeoulData<any>('LOCALDATA_010301', startIndex, endIndex);
+  if (!data || !data.LOCALDATA_010301) return { leads: [], totalCount: 0 };
+  
+  return {
+    leads: data.LOCALDATA_010301.row || [],
+    totalCount: parseInt(data.LOCALDATA_010301.list_total_count) || 0
+  };
+}
+
+/**
+ * 서울시 체력단련장업 인허가 정보 (localdata_104201)
+ */
+export async function getSeoulFitnessLicenseData(startIndex: number = 1, endIndex: number = 100) {
+  const data = await fetchSeoulData<any>('LOCALDATA_104201', startIndex, endIndex);
+  if (!data || !data.LOCALDATA_104201) return { leads: [], totalCount: 0 };
+  
+  return {
+    leads: data.LOCALDATA_104201.row || [],
+    totalCount: parseInt(data.LOCALDATA_104201.list_total_count) || 0
   };
 }

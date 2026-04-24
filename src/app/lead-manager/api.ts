@@ -230,6 +230,21 @@ async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALD
       }
     }
 
+    // 서비스 ID에 따른 카테고리 결정
+    const { CATEGORY_SERVICE_IDS } = await import('./types');
+    let category: any = 'OTHER';
+    
+    // CATEGORY_SERVICE_IDS의 모든 카테고리를 순회하며 해당 serviceId를 포함하는 카테고리 찾기
+    let serviceName = '알 수 없는 서비스';
+    for (const [cat, services] of Object.entries(CATEGORY_SERVICE_IDS)) {
+      const foundService = services.find(s => s.id === serviceId);
+      if (foundService) {
+        category = cat;
+        serviceName = foundService.name;
+        break;
+      }
+    }
+
     return {
       id: generateUUID(),
       bizName: raw.BPLCNM,
@@ -242,13 +257,13 @@ async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALD
       latitude,
       longitude,
       phone: raw.SITETEL,
-      medicalSubject: raw.UPTAENM || '의원',
+      medicalSubject: raw.UPTAENM || (category === 'HEALTH' ? '의원' : raw.UPTAENM),
       mgtNo: raw.MGTNO,
       operatingStatus: raw.TRDSTATENM,
       detailedStatus: raw.DTLSTATENM,
-      category: 'HEALTH',
+      category: category,
       serviceId: serviceId,
-      serviceName: serviceId === 'LOCALDATA_010101' ? '병원 (서울)' : '의원 (서울)',
+      serviceName: serviceName,
       nearestStation,
       stationDistance,
       stationLines,
@@ -422,13 +437,39 @@ export async function fetchAllLeads(
       // 첫 페이지 조회
       let firstResult;
       
-      // 서울 지역이고 의원/병원인 경우 서울 데이터 API 우선 시도
-      if (regionCode === '6110000' && (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P')) {
-        onProgress?.(totalProcessed, estimatedTotal, `[서울] 서울 데이터 Portal에서 ${serviceInfo.name} 정보 수집 중...`);
+      // 서울 지역이고 특정 전문 업종(의료기관/의료유사업/체력단련장)인 경우 서울 데이터 API 우선 시도
+      const isSeoulSpecialty = regionCode === '6110000' && 
+        (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P' || 
+         serviceInfo.id === 'LOCALDATA_010301' || serviceInfo.id === 'LOCALDATA_104201');
+
+      if (isSeoulSpecialty) {
+        onProgress?.(totalProcessed, estimatedTotal, `[서울] 서울 데이터 Portal에서 ${serviceInfo.name} 최신 정보 수집 중...`);
         if (serviceInfo.id === '01_01_02_P') {
           firstResult = await fetchSeoulClinicAPI(1, pageSize);
-        } else {
+        } else if (serviceInfo.id === '01_01_01_P') {
           firstResult = await fetchSeoulHospitalAPI(1, pageSize);
+        } else if (serviceInfo.id === 'LOCALDATA_010301') {
+          // 의료유사업 전용 API 호출
+          const result = await safeFetch(`/api/seoul-data?service=quasi-medical&start=1&end=${pageSize}`, {
+            method: 'GET',
+          });
+          if (result.success) {
+            const leads = await processSeoulRawLeads(result.leads, 'LOCALDATA_010301');
+            firstResult = { success: true, leads, totalCount: result.totalCount };
+          } else {
+            firstResult = { success: false, leads: [], totalCount: 0, message: result.error };
+          }
+        } else if (serviceInfo.id === 'LOCALDATA_104201') {
+          // 체력단련장업 전용 API 호출
+          const result = await safeFetch(`/api/seoul-data?service=fitness&start=1&end=${pageSize}`, {
+            method: 'GET',
+          });
+          if (result.success) {
+            const leads = await processSeoulRawLeads(result.leads, 'LOCALDATA_104201');
+            firstResult = { success: true, leads, totalCount: result.totalCount };
+          } else {
+            firstResult = { success: false, leads: [], totalCount: 0, message: result.error };
+          }
         }
       } else {
         firstResult = await fetchLocalDataAPI(
@@ -447,21 +488,20 @@ export async function fetchAllLeads(
         continue;
       }
 
-      // 중복 제거하며 추가
-      for (const lead of firstResult.leads) {
-        const key = createLeadKey(lead.bizName, lead.roadAddress, lead.bizId);
-        const bizId = lead.bizId;
-
-        // 중복 체크: 상호명+주소 또는 사업자 ID
-        if (!seenKeys.has(key) && (!bizId || !seenBizIds.has(bizId))) {
-          seenKeys.add(key);
-          if (bizId) {
-            seenBizIds.add(bizId);
-          }
-          allLeads.push(lead);
-        }
-      }
+      // 1페이지 데이터 즉시 저장 및 신규 여부 확인
+      const { saveLeads } = await import('./supabase-service');
+      const saveResult = await saveLeads(firstResult.leads, undefined);
+      
+      // 저장된 신규 데이터만 결과에 포함 (화면 표시용)
+      allLeads = [...allLeads, ...saveResult.newLeads];
       totalProcessed += firstResult.leads.length;
+      
+      // 신규 데이터가 하나도 없고 이미 기존 데이터가 많은 경우, 서울 데이터는 최신순이므로 조기 종료 가능
+      const isSeoulAPI = regionCode === '6110000' && (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P');
+      if (isSeoulAPI && saveResult.newCount === 0 && firstResult.totalCount > 100) {
+        onProgress?.(totalProcessed, totalProcessed, `[서울] ${serviceInfo.name}: 최신 데이터가 이미 동기화되어 있습니다.`);
+        continue; 
+      }
 
       // 총 예상 건수 업데이트
       const remainingServices = serviceIds.length - serviceIds.indexOf(serviceInfo) - 1;
@@ -478,17 +518,40 @@ export async function fetchAllLeads(
       for (let pageIndex = 2; pageIndex <= totalPages; pageIndex++) {
         let result;
         
-        if (regionCode === '6110000' && (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P')) {
+        const isSeoulSpecialty = regionCode === '6110000' && 
+          (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P' || 
+           serviceInfo.id === 'LOCALDATA_010301' || serviceInfo.id === 'LOCALDATA_104201');
+
+        if (isSeoulSpecialty) {
+          const start = (pageIndex - 1) * pageSize + 1;
+          const end = pageIndex * pageSize;
+
           if (serviceInfo.id === '01_01_02_P') {
-            result = await fetchSeoulClinicAPI(
-              (pageIndex - 1) * pageSize + 1,
-              pageIndex * pageSize
-            );
-          } else {
-            result = await fetchSeoulHospitalAPI(
-              (pageIndex - 1) * pageSize + 1,
-              pageIndex * pageSize
-            );
+            result = await fetchSeoulClinicAPI(start, end);
+          } else if (serviceInfo.id === '01_01_01_P') {
+            result = await fetchSeoulHospitalAPI(start, end);
+          } else if (serviceInfo.id === 'LOCALDATA_010301') {
+            // 의료유사업 페이지네이션
+            const apiResult = await safeFetch(`/api/seoul-data?service=quasi-medical&start=${start}&end=${end}`, {
+              method: 'GET',
+            });
+            if (apiResult.success) {
+              const leads = await processSeoulRawLeads(apiResult.leads, 'LOCALDATA_010301');
+              result = { success: true, leads, totalCount: apiResult.totalCount };
+            } else {
+              result = { success: false, leads: [], totalCount: 0 };
+            }
+          } else if (serviceInfo.id === 'LOCALDATA_104201') {
+            // 체력단련장업 페이지네이션
+            const apiResult = await safeFetch(`/api/seoul-data?service=fitness&start=${start}&end=${end}`, {
+              method: 'GET',
+            });
+            if (apiResult.success) {
+              const leads = await processSeoulRawLeads(apiResult.leads, 'LOCALDATA_104201');
+              result = { success: true, leads, totalCount: apiResult.totalCount };
+            } else {
+              result = { success: false, leads: [], totalCount: 0 };
+            }
           }
         } else {
           result = await fetchLocalDataAPI(
@@ -503,22 +566,19 @@ export async function fetchAllLeads(
         }
 
         if (result.success) {
-          // 중복 제거하며 추가
-          for (const lead of result.leads) {
-            const key = createLeadKey(lead.bizName, lead.roadAddress);
-            const bizId = lead.bizId;
-
-            // 중복 체크: 상호명+주소 또는 사업자 ID
-            if (!seenKeys.has(key) && (!bizId || !seenBizIds.has(bizId))) {
-              seenKeys.add(key);
-              if (bizId) {
-                seenBizIds.add(bizId);
-              }
-              allLeads.push(lead);
-            }
-          }
+          // 즉시 DB 저장 및 신규 여부 확인
+          const { saveLeads } = await import('./supabase-service');
+          const pageSaveResult = await saveLeads(result.leads, undefined);
+          
+          allLeads = [...allLeads, ...pageSaveResult.newLeads];
           totalProcessed += result.leads.length;
-          onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name}: ${totalProcessed}건`);
+          onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name}: ${totalProcessed}건 (신규: ${pageSaveResult.newCount})`);
+          
+          // 서울 데이터 API의 경우, 신규 데이터가 없으면 이미 과거 데이터 구간에 진입한 것이므로 중단
+          if (isSeoulAPI && pageSaveResult.newCount === 0) {
+            onProgress?.(totalProcessed, totalProcessed, `[서울] ${serviceInfo.name}: 추가 신규 데이터가 없어 동기화를 마칩니다.`);
+            break; 
+          }
         } else {
           console.error(`[${regionName}] ${serviceInfo.name} 페이지 ${pageIndex} 조회 실패`);
         }

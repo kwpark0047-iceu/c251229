@@ -13,20 +13,27 @@ import { isAddressInRegions, RegionCode, getRegionPrefixes } from './region-util
 import { ActivityService } from './activity-service';
 
 /**
- * 리드 저장 결과 타입
+ * 관리번호(MGTNO) 목록을 기반으로 이미 존재하는 리드의 관리번호 목록을 반환
  */
-export interface SaveLeadsResult {
-  success: boolean;
-  message: string;
-  newCount: number;
-  skippedCount: number;
-  newLeads: Lead[];
+export async function checkExistingLeadsByMgtNo(mgtNos: string[]): Promise<Set<string>> {
+  if (mgtNos.length === 0) return new Set();
+  
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from('leads')
+    .select('mgt_no')
+    .in('mgt_no', mgtNos);
+    
+  if (error) {
+    console.error('[Supabase] checkExistingLeadsByMgtNo Error:', error);
+    return new Set();
+  }
+  
+  return new Set(data.map(item => item.mgt_no));
 }
 
 /**
  * 리드를 데이터베이스에 저장 (신규 데이터만, 중복 체크)
- * @param leads - 저장할 리드 목록
- * @param onProgress - 진행 상황 콜백
  */
 export async function saveLeads(
   leads: Lead[],
@@ -61,49 +68,58 @@ export async function saveLeads(
 
     onProgress?.(0, filteredLeads.length, '기존 데이터 확인 중...');
 
-    // 기존 데이터 조회 (상호명 + 주소로 중복 체크)
-    const { data: existingData, error: fetchError } = await supabase
-      .from('leads')
-      .select('biz_name, road_address, biz_id, service_id, category');
+    // 1. 관리번호(MGTNO) 기반 중복 체크
+    const mgtNos = filteredLeads.map(l => l.mgtNo).filter((no): no is string => !!no);
+    const existingMgtNoSet = await checkExistingLeadsByMgtNo(mgtNos);
 
-    if (fetchError) {
-      const errorMsg = fetchError.message || fetchError.code || '알 수 없는 오류 - 테이블이 존재하는지 확인하세요';
-      return { success: false, message: errorMsg, newCount: 0, skippedCount: 0, newLeads: [] };
+    // 2. 관리번호가 없는 리드들을 위해 상호명+주소 기반 중복 체크 (필요한 경우만)
+    // 성능을 위해 인입된 데이터와 매칭되는 기존 데이터만 조회
+    const leadsWithoutMgtNo = filteredLeads.filter(l => !l.mgtNo || !existingMgtNoSet.has(l.mgtNo));
+    
+    let existingKeySet = new Set<string>();
+    let existingBizIdSet = new Set<string>();
+
+    if (leadsWithoutMgtNo.length > 0) {
+      // 상호명 목록으로 필터링하여 최소한의 데이터만 가져옴
+      const bizNames = [...new Set(leadsWithoutMgtNo.map(l => l.bizName))];
+      const { data: existingData } = await supabase
+        .from('leads')
+        .select('biz_name, road_address, biz_id')
+        .in('biz_name', bizNames.slice(0, 500)); // 너무 많으면 나눠서 처리해야 함
+
+      (existingData || []).forEach((row: any) => {
+        existingKeySet.add(createLeadKey(row.biz_name, row.road_address, row.biz_id));
+        if (row.biz_id) existingBizIdSet.add(row.biz_id);
+      });
     }
 
-    // 기존 데이터 키 세트 생성 (상호명 + 주소 조합)
-    const existingSet = new Set<string>();
-    const existingBizIds = new Set<string>(); // 사업자 ID도 체크
-    (existingData || []).forEach((row: any) => {
-      const key = createLeadKey(row.biz_name, row.road_address, row.biz_id);
-      existingSet.add(key);
-      if (row.biz_id) {
-        existingBizIds.add(row.biz_id);
-      }
-    });
-
-    // 신규 데이터만 필터링 (상호명 + 주소 기준 중복 체크)
-    const deduplicationResult = removeDuplicateLeads(filteredLeads, {
-      checkBizId: true,
-      checkSimilarity: false // 유사도 체크는 성능상 비활성화
-    });
-
-    // DB 중복 필터링 적용
+    // 신규 데이터만 필터링
     const realNewLeads: Lead[] = [];
     const dbDuplicates: Lead[] = [];
 
-    deduplicationResult.uniqueLeads.forEach(lead => {
+    filteredLeads.forEach(lead => {
+      // 관리번호로 우선 체크
+      if (lead.mgtNo && existingMgtNoSet.has(lead.mgtNo)) {
+        dbDuplicates.push(lead);
+        return;
+      }
+
       const key = createLeadKey(lead.bizName, lead.roadAddress, lead.bizId);
-      // 키 또는 사업자등록번호로 중복 확인 (기존 데이터와 비교)
-      if (existingSet.has(key) || (lead.bizId && existingBizIds.has(lead.bizId))) {
+      if (existingKeySet.has(key) || (lead.bizId && existingBizIdSet.has(lead.bizId))) {
         dbDuplicates.push(lead);
       } else {
         realNewLeads.push(lead);
       }
     });
 
-    const newLeads = realNewLeads;
-    const skippedLeads = [...deduplicationResult.duplicates, ...dbDuplicates];
+    // 내부 중복 제거 (인입된 데이터들 사이의 중복)
+    const deduplicationResult = removeDuplicateLeads(realNewLeads, {
+      checkBizId: true,
+      checkSimilarity: false
+    });
+
+    const newLeads = deduplicationResult.uniqueLeads;
+    const skippedLeads = [...dbDuplicates, ...deduplicationResult.duplicates];
 
     if (newLeads.length === 0) {
       return {
