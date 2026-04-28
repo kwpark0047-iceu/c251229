@@ -397,7 +397,7 @@ export async function getFloorPlanCounts(): Promise<Record<MetroLine, { station_
 // DB → 타입 매핑
 // ============================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function mapDbToFloorPlan(row: any): FloorPlan {
   return {
     id: row.id,
@@ -418,7 +418,7 @@ function mapDbToFloorPlan(row: any): FloorPlan {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function mapDbToAdPosition(row: any): AdPosition {
   return {
     id: row.id,

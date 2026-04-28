@@ -97,7 +97,7 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                                 {currentInventory.map((item) => (
                                     <div
                                         key={item.id}
-                                        /* eslint-disable-next-line react/forbid-dom-props */
+                                         
                                         style={{ 
                                             '--marker-x': `${item.spotPositionX}%`, 
                                             '--marker-y': `${item.spotPositionY}%` 

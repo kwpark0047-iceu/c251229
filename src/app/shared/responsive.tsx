@@ -172,7 +172,7 @@ export function ResponsiveGrid({
     };
 
   return (
-    // eslint-disable-next-line react/forbid-dom-props
+     
     <div className={className} style={gridStyle}>
       {children}
     </div>
@@ -202,10 +202,10 @@ export function ResponsiveText({
   const textAlign = useResponsiveValue(align);
 
   return (
-    // eslint-disable-next-line react/forbid-dom-props
+     
     <div
       className={`${className} ${textSize} ${textWeight}`}
-      /* eslint-disable-next-line react/forbid-dom-props */
+       
       style={{ textAlign }}
     >
       {children}
@@ -233,10 +233,10 @@ export function ResponsiveContainer({
   const containerPadding = useResponsiveValue(padding);
 
   return (
-    // eslint-disable-next-line react/forbid-dom-props
+     
     <div
       className={`${className} mx-auto`}
-      /* eslint-disable-next-line react/forbid-dom-props */
+       
       style={{
         maxWidth: containerMaxWidth,
         padding: containerPadding,
@@ -279,6 +279,15 @@ export function ResponsiveSidebar({
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={onClose}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onClose();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="사이드바 닫기"
         />
       )}
 
@@ -289,7 +298,7 @@ export function ResponsiveSidebar({
           ${isOpen ? 'translate-x-0' : position === 'left' ? '-translate-x-full' : 'translate-x-full'}
           ${className || 'bg-white shadow-lg'}
         `}
-        // eslint-disable-next-line react/forbid-dom-props
+         
         style={{ width: sidebarWidth }}
       >
         <div className="h-full overflow-y-auto">
@@ -376,6 +385,14 @@ export function ResponsiveCard({
     <div
       className={`bg-white ${cardShadow} ${cardRounded} ${cardPadding} ${className}`}
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      } : undefined}
     >
       {children}
     </div>
@@ -397,8 +414,10 @@ export const responsive = {
   },
 
   // 반응형 스타일 생성
-  style: (values: Partial<Record<Breakpoint, React.CSSProperties>>): React.CSSProperties => {
-    const breakpoint = useBreakpoint();
+  style: (
+    values: Partial<Record<Breakpoint, React.CSSProperties>>,
+    breakpoint: Breakpoint = 'lg'
+  ): React.CSSProperties => {
     const breakpointOrder: Breakpoint[] = ['sm', 'md', 'lg', 'xl', '2xl'];
     const currentIndex = breakpointOrder.indexOf(breakpoint);
 
@@ -415,15 +434,13 @@ export const responsive = {
   },
 
   // 브레이크포인트 확인
-  is: (bp: Breakpoint): boolean => {
-    const current = useBreakpoint();
+  is: (bp: Breakpoint, current: Breakpoint = 'lg'): boolean => {
     const breakpointOrder: Breakpoint[] = ['sm', 'md', 'lg', 'xl', '2xl'];
     return breakpointOrder.indexOf(current) >= breakpointOrder.indexOf(bp);
   },
 
   // 브레이크포인트 범위 확인
-  between: (min: Breakpoint, max: Breakpoint): boolean => {
-    const current = useBreakpoint();
+  between: (min: Breakpoint, max: Breakpoint, current: Breakpoint = 'lg'): boolean => {
     const breakpointOrder: Breakpoint[] = ['sm', 'md', 'lg', 'xl', '2xl'];
     const currentIndex = breakpointOrder.indexOf(current);
     const minIndex = breakpointOrder.indexOf(min);

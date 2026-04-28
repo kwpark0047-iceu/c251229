@@ -288,7 +288,7 @@ const DEFAULT_VISIBLE_LINES = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 function createStationIcon(name: string, lines: string[], isRecommended: boolean = false) {
   if (typeof window === 'undefined') return undefined;
 
-  // eslint-disable-next-line @typescript-eslint/no-require-imports -- Leaflet SSR 우회
+   
   const L = require('leaflet');
   const primaryColor = LINE_COLORS[lines[0]] || '#666';
 
@@ -951,7 +951,7 @@ export default function ContactPage() {
                               {station.floorPlans.map((plan, idx) => (
                                 <div key={idx} className="rounded-lg overflow-hidden border border-[var(--border-subtle)]">
                                   <div className="aspect-[4/3] bg-[var(--bg-tertiary)] relative">
-                                    {/* eslint-disable-next-line @next/next/no-img-element -- 외부 Supabase Storage URL */}
+                                    { }
                                     <img
                                       src={plan.imageUrl}
                                       alt={`${station.stationName} ${plan.planType}`}

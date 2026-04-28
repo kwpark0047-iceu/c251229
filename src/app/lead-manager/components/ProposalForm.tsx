@@ -505,7 +505,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                           <span
                             key={line}
                             className="w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-bold bg-[--line-color]"
-                            // eslint-disable-next-line react/forbid-dom-props
+                             
                             style={{ '--line-color': LINE_COLORS[line] || '#888' } as React.CSSProperties}
                           >
                             {line}
@@ -620,7 +620,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     </div>
                   ) : (
                     <div className="py-4 text-center text-xs text-[var(--text-muted)] italic">
-                      癒쇱? '?쒖븞???뚯씪 吏곸젒 ?낅줈?? ??뿉??留ㅼ껜 ?쒖븞?쒕? ?щ젮蹂댁꽭??
+                      먼저 제안서 파일을 직접 업로드하거나 아래에서 매체 제안서를 불러오세요.
                     </div>
                   )}
                   {selectedAttachmentIds.length > 0 && (

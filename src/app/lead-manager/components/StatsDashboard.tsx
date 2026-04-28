@@ -83,7 +83,7 @@ function CustomTooltip({ active, payload, label }: any) {
         style={{
           '--glass-bg': 'var(--glass-bg)',
           '--glass-border': 'var(--glass-border)',
-          // eslint-disable-next-line react/forbid-dom-props
+           
         } as React.CSSProperties}
       >
         <p className="text-xs font-bold text-[var(--text-primary)] mb-1">{label}</p>
@@ -92,7 +92,7 @@ function CustomTooltip({ active, payload, label }: any) {
             <div className="w-2 h-2 rounded-full bg-[--entry-color]" 
               style={{ 
                 '--entry-color': entry.color || entry.fill,
-                // eslint-disable-next-line react/forbid-dom-props
+                 
               } as React.CSSProperties} />
             <p className="text-xs text-[var(--text-secondary)]">
               {entry.name}: <span className="font-bold text-[var(--text-primary)]">
@@ -390,7 +390,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                   <div className="h-1.5 w-full bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
                     <div
                       className="h-full transition-all duration-1000 bg-[--line-color] w-[--line-width]"
-                      // eslint-disable-next-line react/forbid-dom-props
+                       
                       style={{
                         '--line-width': `${(line.count / metrics.total) * 100}%`,
                         '--line-color': line.color
@@ -432,10 +432,10 @@ function MetricCard({
     >
       <div className="flex items-center justify-between mb-4">
         <div className="p-2.5 rounded-xl bg-[--bg-tint]" 
-          // eslint-disable-next-line react/forbid-dom-props
+           
           style={{ '--bg-tint': `${color}15` } as React.CSSProperties}>
           <Icon className="w-5 h-5 text-[--icon-color]" 
-            // eslint-disable-next-line react/forbid-dom-props
+             
             style={{ '--icon-color': color } as React.CSSProperties} />
         </div>
         {change !== undefined && (

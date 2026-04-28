@@ -41,7 +41,7 @@ export default function LineSelector({
                 : 'border-[var(--border-subtle)] bg-[var(--bg-tertiary)] hover:border-[var(--glass-border)]'
               }
             `}
-            /* eslint-disable-next-line react/forbid-dom-props */
+             
             style={{
               '--line-gradient': isSelected ? `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)` : 'none',
               '--line-glow': isSelected ? `${color}40` : 'transparent',
@@ -51,7 +51,7 @@ export default function LineSelector({
             {!isSelected && (
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[image:var(--hover-glow)]"
-                /* eslint-disable-next-line react/forbid-dom-props */
+                 
                 style={{
                   '--hover-glow': `radial-gradient(circle at 50% 50%, ${color}20 0%, transparent 70%)`,
                 } as React.CSSProperties}
@@ -60,7 +60,7 @@ export default function LineSelector({
 
             <Train
               className={`w-4 h-4 relative ${isSelected ? 'text-white' : 'text-[--line-color]'}`}
-              /* eslint-disable-next-line react/forbid-dom-props */
+               
               style={{ 
                 '--line-color': isSelected ? 'inherit' : color,
               } as React.CSSProperties}

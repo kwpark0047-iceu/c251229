@@ -307,7 +307,7 @@ export function ThemeTransition({ children }: { children: React.ReactNode }) {
         transition-all duration-300 ease-in-out bg-[--theme-bg] text-[--theme-text]
         ${isTransitioning ? 'scale-95 opacity-50' : 'scale-100 opacity-100'}
       `}
-      /* eslint-disable-next-line react/forbid-dom-props */
+       
       style={{
         '--theme-bg': colors.background,
         '--theme-text': colors.text,

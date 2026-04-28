@@ -64,7 +64,7 @@ export default function ScheduleCalendar({
   }, [year, month]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     loadEvents();
   }, [loadEvents]);
 
@@ -227,7 +227,7 @@ export default function ScheduleCalendar({
                 onClick={() => handleDateClick(date)}
                 style={{
                   '--border-color': 'var(--border-subtle)',
-                  // eslint-disable-next-line react/forbid-dom-props
+                   
                 } as React.CSSProperties}
                 className={`min-h-[120px] p-3 border-b border-r cursor-pointer transition-all duration-300 group relative border-[--border-color] ${isCurrentMonth
                   ? 'hover:bg-[var(--bg-secondary)] hover:shadow-inner'
@@ -288,7 +288,7 @@ export default function ScheduleCalendar({
                         title={event.title}
                         style={{
                           '--delay': `${index * 200}ms`,
-                          // eslint-disable-next-line react/forbid-dom-props
+                           
                         } as React.CSSProperties}
                       >
                         {event.type === 'task' && event.taskType && (

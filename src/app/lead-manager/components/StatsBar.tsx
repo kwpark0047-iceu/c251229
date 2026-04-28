@@ -75,7 +75,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
             <div
               key={item.label}
               className="group relative flex items-center gap-4 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] hover:border-[var(--glass-border)] transition-all duration-300 overflow-hidden delay-[--delay]"
-              /* eslint-disable-next-line react/forbid-dom-props */
+               
               style={{
                 '--delay': `${index * 50}ms`,
               } as React.CSSProperties}
@@ -83,7 +83,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
               {/* 배경 글로우 효과 */}
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[--glow-bg]"
-                /* eslint-disable-next-line react/forbid-dom-props */
+                 
                 style={{
                   '--glow-bg': `radial-gradient(circle at 30% 50%, ${item.bgColor} 0%, transparent 70%)`,
                 } as React.CSSProperties}
@@ -91,7 +91,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
 
               <div
                 className="relative p-3 rounded-xl transition-transform duration-300 group-hover:scale-110 bg-[--item-bg]"
-                /* eslint-disable-next-line react/forbid-dom-props */
+                 
                 style={{
                   '--item-bg': item.bgColor,
                 } as React.CSSProperties}
@@ -106,7 +106,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
               <div className="relative">
                 <p
                   className="text-2xl font-bold tracking-tight text-[--item-color]"
-                  /* eslint-disable-next-line react/forbid-dom-props */
+                   
                   style={{ 
                     '--item-color': item.color,
                   } as React.CSSProperties}
@@ -121,7 +121,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
           {/* 전환율 - 특별 카드 */}
           <div
             className="group relative flex items-center gap-4 p-4 rounded-xl border overflow-hidden transition-all duration-300 bg-[--rate-bg] border-[--rate-border]"
-            /* eslint-disable-next-line react/forbid-dom-props */
+             
             style={{
               '--rate-bg': 'linear-gradient(135deg, rgba(60, 181, 74, 0.1) 0%, rgba(50, 164, 206, 0.1) 100%)',
               '--rate-border': 'rgba(60, 181, 74, 0.3)',
@@ -130,7 +130,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
             {/* 애니메이션 배경 */}
             <div
               className="absolute inset-0 opacity-50 bg-[--shimmer-bg] animate-[shimmer_3s_infinite]"
-              /* eslint-disable-next-line react/forbid-dom-props */
+               
               style={{
                 '--shimmer-bg': `
                   linear-gradient(90deg,
@@ -144,7 +144,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
 
             <div
               className="relative p-3 rounded-xl bg-[--icon-bg] shadow-[--icon-shadow]"
-              /* eslint-disable-next-line react/forbid-dom-props */
+               
               style={{
                 '--icon-bg': 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
                 '--icon-shadow': '0 4px 15px rgba(60, 181, 74, 0.3)',
@@ -155,7 +155,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
             <div className="relative">
               <p
                 className="text-2xl font-bold tracking-tight bg-[--text-bg] bg-clip-text text-transparent"
-                /* eslint-disable-next-line react/forbid-dom-props */
+                 
                 style={{
                   '--text-bg': 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
                 } as React.CSSProperties}
@@ -168,7 +168,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
         </div>
       </div>
 
-      {/* eslint-disable-next-line react/no-unknown-property */}
+      { }
       <style jsx>{`
         @keyframes shimmer {
           0% { transform: translateX(-100%); }

@@ -37,7 +37,7 @@ export default function ProgressChecklist({
   }, [leadId]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     loadProgress();
   }, [loadProgress]);
 
@@ -87,7 +87,7 @@ export default function ProgressChecklist({
             className="h-full bg-blue-500 rounded-full transition-all duration-300 w-[--progress-width]"
             style={{ 
               '--progress-width': `${percentage}%`,
-              // eslint-disable-next-line react/forbid-dom-props
+               
             } as React.CSSProperties}
           />
         </div>

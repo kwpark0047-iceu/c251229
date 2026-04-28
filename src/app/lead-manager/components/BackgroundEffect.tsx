@@ -16,14 +16,14 @@ export default function BackgroundEffect() {
                 className="absolute bottom-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full animate-float-subtle opacity-10 bg-orb-blue delay-[--delay]"
                 style={{
                     '--delay': '-2s',
-                    // eslint-disable-next-line react/forbid-dom-props
+                     
                 } as React.CSSProperties}
             />
             <div
                 className="absolute top-[20%] left-[20%] w-[400px] h-[400px] rounded-full animate-pulse-glow opacity-5 bg-orb-purple duration-[--duration]"
                 style={{
                     '--duration': '8s',
-                    // eslint-disable-next-line react/forbid-dom-props
+                     
                 } as React.CSSProperties}
             />
 

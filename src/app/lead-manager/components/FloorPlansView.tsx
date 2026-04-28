@@ -153,13 +153,13 @@ export default function FloorPlansView() {
         <div className="flex items-center gap-4">
           <div
             className="p-2 rounded-xl bg-[--line-bg]"
-            // eslint-disable-next-line react/forbid-dom-props
+             
             style={{
               '--line-bg': `linear-gradient(135deg, ${lineColor}20 0%, ${lineColor}10 100%)`,
             } as React.CSSProperties}
           >
             <MapPin className="w-5 h-5 text-[--line-color]" 
-              // eslint-disable-next-line react/forbid-dom-props
+               
               style={{ '--line-color': lineColor } as React.CSSProperties} />
           </div>
           <div>
@@ -198,7 +198,7 @@ export default function FloorPlansView() {
             onClick={handleOpenDownloadModal}
             disabled={plans.length === 0}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-white font-semibold disabled:opacity-50 transition-all shadow-md active:scale-95 bg-[--line-color]"
-            // eslint-disable-next-line react/forbid-dom-props
+             
             style={{ '--line-color': lineColor } as React.CSSProperties}
           >
             <Download className="w-4 h-4" />
@@ -220,7 +220,7 @@ export default function FloorPlansView() {
           <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-[--line-color]" 
-                // eslint-disable-next-line react/forbid-dom-props
+                 
                 style={{ '--line-color': lineColor } as React.CSSProperties} />
               <p className="text-[var(--text-muted)] text-sm font-medium">도면을 불러오는 중...</p>
             </div>
@@ -229,7 +229,7 @@ export default function FloorPlansView() {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <MapPin className="w-16 h-16 mx-auto mb-4 opacity-20 text-[--line-color]" 
-                // eslint-disable-next-line react/forbid-dom-props
+                 
                 style={{ '--line-color': lineColor } as React.CSSProperties} />
               <p className="text-[var(--text-muted)] mb-2 font-medium">
                 {METRO_LINE_NAMES[selectedLine]}에 등록된 도면이 없습니다

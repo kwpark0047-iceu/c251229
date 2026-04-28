@@ -158,7 +158,7 @@ const GridItem = React.memo(({
   const leadIndex = rowIndex * columns + columnIndex;
 
   if (leadIndex >= leads.length) {
-    // eslint-disable-next-line react/forbid-dom-props
+     
     return <div style={style} />;
   }
 
@@ -166,7 +166,7 @@ const GridItem = React.memo(({
   const isSelected = selectedLeads.has(lead.id);
 
   return (
-    // eslint-disable-next-line react/forbid-dom-props
+     
     <div style={style} className="p-2">
       <LeadCard
         lead={lead}

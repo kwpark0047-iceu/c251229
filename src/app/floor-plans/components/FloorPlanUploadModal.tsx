@@ -249,7 +249,7 @@ export default function FloorPlanUploadModal({
                 </button>
                 <div
                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[image:var(--hover-glow)]"
-                 /* eslint-disable-next-line react/forbid-dom-props */
+                  
                  style={{
                    '--hover-glow': `radial-gradient(circle at 50% 50%, ${METRO_LINE_COLORS[lineNumber]}20 0%, transparent 70%)`,
                  } as React.CSSProperties}
@@ -306,12 +306,12 @@ export default function FloorPlanUploadModal({
             취소
           </button>
           {/* NOSONAR */}
-          {/* eslint-disable-next-line react/forbid-dom-props */}
+          { }
           <button
             onClick={handleUpload}
             disabled={files.length === 0 || isUploading}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-medium disabled:opacity-50 transition-opacity bg-[--brand-color]"
-            /* eslint-disable-next-line react/forbid-dom-props */
+             
             style={{ 
               '--brand-color': METRO_LINE_COLORS[lineNumber],
             } as React.CSSProperties}

@@ -184,7 +184,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
             style={{ 
               '--map-height': '100%', 
               '--map-width': '100%' 
-              // eslint-disable-next-line react/forbid-dom-props
+               
             } as React.CSSProperties}
             className="bg-[#f8f9fa] h-[--map-height] w-[--map-width]"
           >
@@ -381,7 +381,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                     }}
                     style={{
                       '--brand-color': isActive ? color : 'transparent',
-                      // eslint-disable-next-line react/forbid-dom-props
+                       
                     } as React.CSSProperties}
                     className={`
                       flex-shrink-0 min-w-[26px] h-[26px] rounded-full flex items-center justify-center text-[10px] font-bold transition-all
@@ -404,7 +404,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                     className="w-2.5 h-2.5 rounded-full border border-white bg-[--status-color]" 
                     style={{ 
                       '--status-color': getStatusColor(status),
-                      // eslint-disable-next-line react/forbid-dom-props
+                       
                     } as React.CSSProperties} 
                   />
                   <span className="text-[10px] font-semibold text-gray-500 uppercase">{STATUS_LABELS[status].split(' ')[0]}</span>
@@ -501,7 +501,7 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
           style={{
             '--status-bg': statusColor.bg,
             '--status-border': statusColor.border,
-            // eslint-disable-next-line react/forbid-dom-props
+             
           } as React.CSSProperties}
           title="리드 상태 변경"
         >

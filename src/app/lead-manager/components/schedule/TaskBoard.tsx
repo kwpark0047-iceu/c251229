@@ -93,7 +93,7 @@ function TaskCard({
     <div
       style={{
         '--card-shadow': isOverdue ? '0 8px 32px rgba(239, 68, 68, 0.1)' : 'var(--shadow-md)',
-        // eslint-disable-next-line react/forbid-dom-props
+         
       } as React.CSSProperties}
       className={`p-4 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl animate-float shadow-[--card-shadow] ${isOverdue ? 'border-red-400/50 bg-red-400/5' : 'bg-[var(--bg-secondary)] border-[var(--border-subtle)]'
         }`}
@@ -123,7 +123,7 @@ function TaskCard({
               style={{
                 '--glass-bg': 'var(--glass-bg)',
                 '--glass-border': 'var(--glass-border)',
-                // eslint-disable-next-line react/forbid-dom-props
+                 
               } as React.CSSProperties}
             >
               {STATUS_COLUMNS.map((col) => (
@@ -226,7 +226,7 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
   }, [filter.taskType, filter.priority]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 珥덇린 ?곗씠??濡쒕뱶
+     
     loadData();
   }, [loadData]);
 
@@ -262,7 +262,7 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
               '--item-border': item.isAlert ? 'rgba(230, 24, 108, 0.2)' : 'var(--glass-border)',
               '--item-shadow': item.isAlert ? '0 8px 32px rgba(230, 24, 108, 0.1)' : 'var(--shadow-sm)',
               '--delay': `${i * 100}ms`,
-              // eslint-disable-next-line react/forbid-dom-props
+               
             } as React.CSSProperties}
           >
             <div className="flex items-center gap-2 text-xs font-semibold text-[var(--text-muted)] mb-2 uppercase tracking-wider">
@@ -270,7 +270,7 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
               {item.label}
             </div>
             <div className={`text-3xl font-display text-[--item-color]`} 
-              style={{ '--item-color': item.color, // eslint-disable-next-line react/forbid-dom-props
+              style={{ '--item-color': item.color,  
               } as React.CSSProperties}>
               {item.value}
             </div>
@@ -334,17 +334,17 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
                 style={{
                   '--glass-bg': 'var(--glass-bg)',
                   '--glass-border': 'var(--glass-border)',
-                  // eslint-disable-next-line react/forbid-dom-props
+                   
                 } as React.CSSProperties}
               >
                 {/* 而щ읆 ?ㅻ뜑 */}
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-[--column-color]"
-                    style={{ '--column-color': column.color, // eslint-disable-next-line react/forbid-dom-props
+                    style={{ '--column-color': column.color,  
                     } as React.CSSProperties}>{column.icon}</span>
                   <h3
                     className="font-semibold text-[--column-color]"
-                    style={{ '--column-color': column.color, // eslint-disable-next-line react/forbid-dom-props
+                    style={{ '--column-color': column.color,  
                     } as React.CSSProperties}
                   >
                     {column.label}

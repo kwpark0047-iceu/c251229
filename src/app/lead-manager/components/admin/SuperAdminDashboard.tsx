@@ -471,7 +471,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                     style={{ 
                       '--delay': `${i * 0.2}s`,
                       '--active-opacity': '0.9',
-                      // eslint-disable-next-line react/forbid-dom-props
+                       
                     } as React.CSSProperties}
                   >
                     {(u.email || '?')[0].toUpperCase()}
@@ -811,7 +811,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                     className="relative pl-12 group animate-in fade-in slide-in-from-left-4" 
                     style={{ 
                       '--delay': `${idx * 0.05}s`,
-                      // eslint-disable-next-line react/forbid-dom-props
+                       
                     } as React.CSSProperties}
                   >
                     {/* Node Dot with Pulse */}
@@ -981,7 +981,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                           </span>
                         </div>
                         <p className="text-sm text-slate-700">
-                          <strong className="font-semibold text-slate-900">"{log.proposals?.title || '알 수 없는 문서'}"</strong> 제안서를 접근했습니다.
+                          <strong className="font-semibold text-slate-900">&quot;{log.proposals?.title || '알 수 없는 문서'}&quot;</strong> 제안서를 확인했습니다.
                         </p>
                       </div>
                     </div>
@@ -1026,7 +1026,7 @@ export default function SuperAdminDashboard({ user }: Props) {
               <div className="absolute -bottom-1 left-0 right-0 h-1 bg-emerald-500/40 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-emerald-500 animate-[shimmer_8s_linear_forwards] origin-left" 
-                  style={{ // eslint-disable-next-line react/forbid-dom-props
+                  style={{  
                   '--shimmer-fallback': 'left' } as React.CSSProperties}
                 ></div>
               </div>
@@ -1058,4 +1058,3 @@ export default function SuperAdminDashboard({ user }: Props) {
     </div>
   );
 }
-

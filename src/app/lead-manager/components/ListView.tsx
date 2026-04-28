@@ -251,7 +251,7 @@ export default function ListView({
                     '--status-bg': STATUS_METRO_COLORS[lead.status].bg,
                     '--status-text': STATUS_METRO_COLORS[lead.status].text,
                     '--status-border': STATUS_METRO_COLORS[lead.status].border,
-                    // eslint-disable-next-line react/forbid-dom-props
+                     
                   } as React.CSSProperties}
                 >
                   {STATUS_LABELS[lead.status]}
@@ -411,7 +411,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       }}
       style={{
         '--delay': `${index * 20}ms`,
-        // eslint-disable-next-line react/forbid-dom-props
+         
       } as React.CSSProperties}
     >
       {/* 병원명 - 클릭 시 맵 뷰로 이동 */}
@@ -457,7 +457,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
                   <span
                     key={line}
                     className="w-5 h-5 rounded-full text-white text-[10px] flex items-center justify-center font-bold shadow-sm bg-[--line-color]"
-                    // eslint-disable-next-line react/forbid-dom-props
+                     
                     style={{ '--line-color': LINE_COLORS[line] || '#888' } as React.CSSProperties}
                   >
                     {line}
@@ -535,7 +535,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
             '--status-bg': statusColor.bg,
             '--status-text': statusColor.text,
             '--status-border': statusColor.border,
-            // eslint-disable-next-line react/forbid-dom-props
+             
           } as React.CSSProperties}
         >
           {(['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as LeadStatus[]).map(status => (

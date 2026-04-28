@@ -80,7 +80,7 @@ export default function RegionFilter({
               key={region.code}
               onClick={() => handleRegionToggle(region.code)}
               disabled={disabled}
-              /* eslint-disable-next-line react/forbid-dom-props */
+               
               style={{
                 '--region-color': regionInfo.color,
               } as React.CSSProperties}
@@ -96,7 +96,7 @@ export default function RegionFilter({
             >
               <div
                 className="w-2 h-2 rounded-full bg-[--region-color]"
-                /* eslint-disable-next-line react/forbid-dom-props */
+                 
                 style={{ '--region-color': regionInfo.color } as React.CSSProperties}
               />
               <span>{region.name}</span>
@@ -159,7 +159,7 @@ export function RegionStats({ addresses, className = '' }: RegionStatsProps) {
               <div className="flex items-center space-x-2">
                 <div
                   className="w-2 h-2 rounded-full bg-[--region-color]"
-                  /* eslint-disable-next-line react/forbid-dom-props */
+                   
                   style={{ '--region-color': region.color } as React.CSSProperties}
                 />
                 <span className="text-gray-600">{region.name}</span>
@@ -271,7 +271,7 @@ export function RegionDropdown({
                   >
                     <div
                       className="w-2 h-2 rounded-full bg-[--region-color]"
-                      /* eslint-disable-next-line react/forbid-dom-props */
+                       
                       style={{ '--region-color': regionInfo.color } as React.CSSProperties}
                     />
                     <span>{region.name}</span>

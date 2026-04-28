@@ -228,7 +228,7 @@ export default function FloorPlanViewer({
           }}
         >
           <div className="relative">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img
               src={plan.imageUrl}
               alt={`${plan.stationName} ${plan.planType}`}

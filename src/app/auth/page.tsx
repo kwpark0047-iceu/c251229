@@ -49,7 +49,7 @@ function MetroLine({ color, delay, position }: { color: string; delay: number; p
   return (
     <div
       className={`absolute ${position} w-[2px] h-[40%] opacity-0 bg-gradient-to-b from-transparent via-[var(--line-color)] to-transparent animate-[fadeIn_1s_ease-out_var(--delay)_forwards]`}
-      /* eslint-disable-next-line react/forbid-dom-props */
+       
       style={{
         '--line-color': color,
         '--delay': `${delay}s`,
@@ -63,14 +63,14 @@ function StationDot({ color, delay, size = 8 }: { color: string; delay: number; 
   return (
     <div
       className="relative opacity-0 animate-[scaleIn_0.5s_ease-out_var(--delay)_forwards]"
-      /* eslint-disable-next-line react/forbid-dom-props */
+       
       style={{ 
         '--delay': `${delay}s`,
       } as React.CSSProperties}
     >
       <div
         className="rounded-full w-[var(--size)] h-[var(--size)] bg-[var(--dot-color)] shadow-[0_0_calc(var(--size)*2)_var(--dot-glow)]"
-        /* eslint-disable-next-line react/forbid-dom-props */
+         
         style={{
           '--size': `${size}px`,
           '--dot-color': color,
@@ -79,7 +79,7 @@ function StationDot({ color, delay, size = 8 }: { color: string; delay: number; 
       />
       <div
         className="absolute inset-0 rounded-full animate-ping [animation-duration:2s] bg-[var(--dot-color)] opacity-40"
-        /* eslint-disable-next-line react/forbid-dom-props */
+         
         style={{
           '--dot-color': color,
         } as React.CSSProperties}
@@ -113,7 +113,7 @@ function AuthContent() {
     // 마운트 상태를 ref로 추적하고 state는 한 번만 업데이트
     if (!mountedRef.current) {
       mountedRef.current = true
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setMounted(true)
     }
   }, [])
@@ -393,7 +393,7 @@ function AuthContent() {
                     ? 'text-white shadow-[0_4px_16px_var(--tab-glow)]' 
                     : 'text-[var(--text-secondary)] bg-transparent'
                 }`}
-                /* eslint-disable-next-line react/forbid-dom-props */
+                 
                 style={{
                   backgroundColor: mode === tab.id ? tab.color : 'transparent',
                   '--tab-glow': mode === tab.id ? `${tab.color}40` : 'transparent',

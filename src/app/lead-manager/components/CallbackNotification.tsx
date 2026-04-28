@@ -43,7 +43,7 @@ export default function CallbackNotification({
   return (
     <div
       className="fixed top-20 right-6 z-50 max-w-md animate-in slide-in-from-right duration-300 bg-[--glass-bg] backdrop-blur-[20px] border-[1px] border-[--glass-border] rounded-[16px] shadow-[--popup-shadow]"
-      /* eslint-disable-next-line react/forbid-dom-props */
+       
       style={{
         '--glass-bg': 'var(--glass-bg)',
         '--glass-border': 'var(--glass-border)',
@@ -55,7 +55,7 @@ export default function CallbackNotification({
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-lg flex items-center justify-center bg-[--icon-bg]"
-            /* eslint-disable-next-line react/forbid-dom-props */
+             
             style={{
               '--icon-bg': 'linear-gradient(135deg, var(--metro-line3) 0%, var(--metro-line5) 100%)',
             } as React.CSSProperties}

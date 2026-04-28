@@ -34,7 +34,7 @@ export default function MobileNavBar({
                 {/* 슬라이딩 인디케이터 */}
                 <div
                     className="absolute h-full rounded-xl bg-[var(--bg-tertiary)] -z-10 transition-all duration-300 ease-out sm:hidden mobile-nav-indicator left-[--nav-left]"
-                    // eslint-disable-next-line react/forbid-dom-props
+                     
                     style={{
                         '--nav-left': activeTab === 'leads' ? '0%' :
                             activeTab === 'inventory' ? '20%' :

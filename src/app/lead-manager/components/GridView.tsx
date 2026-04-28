@@ -171,7 +171,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
         className={`parallax-card group relative rounded-pro border overflow-hidden cursor-pointer bg-[var(--glass-bg)] border-[var(--glass-border)] ${getCardClass()}`}
         style={{
           '--delay': `${index * 30}ms`,
-          // eslint-disable-next-line react/forbid-dom-props
+           
         } as React.CSSProperties}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest('button, a')) return;
@@ -189,7 +189,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
         <div
           style={{
             '--glow-gradient': `radial-gradient(circle at 50% 0%, ${statusColor.glow} 0%, transparent 70%)`,
-            // eslint-disable-next-line react/forbid-dom-props
+             
           } as React.CSSProperties}
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-[image:var(--glow-gradient)]"
         />
@@ -200,7 +200,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
           style={{
             '--status-bg': statusColor.bg,
             '--status-border': statusColor.border,
-            // eslint-disable-next-line react/forbid-dom-props
+             
           } as React.CSSProperties}
         >
           <div className="flex items-center justify-between">
@@ -209,7 +209,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                 className="text-sm font-semibold text-[--status-text]"
                 style={{ 
                   '--status-text': statusColor.text,
-                  // eslint-disable-next-line react/forbid-dom-props
+                   
                 } as React.CSSProperties}
               >
                 {STATUS_LABELS[lead.status]}
@@ -225,7 +225,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                 className="p-1.5 rounded-lg transition-colors hover:bg-white/10 text-[--status-text]"
                 style={{ 
                   '--status-text': statusColor.text,
-                  // eslint-disable-next-line react/forbid-dom-props
+                   
                 } as React.CSSProperties}
                 title="상태 변경"
               >
@@ -291,7 +291,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                           key={line}
                           className="w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold shadow-sm bg-[--line-color]"
                           style={{ 
-                            '--line-color': LINE_COLORS[line] || '#888', // eslint-disable-next-line react/forbid-dom-props
+                            '--line-color': LINE_COLORS[line] || '#888',  
                           } as React.CSSProperties}
                         >
                           {line}
@@ -412,12 +412,12 @@ function StatusDropdown({ currentStatus, onSelect, onClose }: StatusDropdownProp
                 style={{
                   '--dot-bg': color.bg,
                   '--dot-border': color.border,
-                  // eslint-disable-next-line react/forbid-dom-props
+                   
                 } as React.CSSProperties}
               />
               <span
                 className="font-medium text-[--status-text]"
-                style={{ '--status-text': color.text, // eslint-disable-next-line react/forbid-dom-props
+                style={{ '--status-text': color.text,  
                 } as React.CSSProperties}
               >
                 {STATUS_LABELS[status]}

@@ -402,7 +402,7 @@ export default function TaskFormModal({
               type="submit"
               disabled={loading}
               className="flex-1 px-5 py-3 rounded-xl font-semibold text-white transition-all hover:scale-105 disabled:opacity-50 flex items-center justify-center gap-2 bg-[--btn-bg] shadow-[--btn-shadow]"
-              // eslint-disable-next-line react/forbid-dom-props
+               
               style={{
                 '--btn-bg':
                   'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
