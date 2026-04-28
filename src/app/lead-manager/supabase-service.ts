@@ -22,16 +22,25 @@ interface SaveLeadsResult {
 
 
 /**
- * 愿由щ쾲??MGTNO) 紐⑸줉??湲곕컲?쇰줈 ?대? 議댁옱?섎뒗 由щ뱶??愿由щ쾲??紐⑸줉??諛섑솚
+ * 관리번호(MGTNO) 목록을 기준으로 이미 존재하는 리드의 관리번호 목록을 반환
  */
-export async function checkExistingLeadsByMgtNo(mgtNos: string[]): Promise<Set<string>> {
+export async function checkExistingLeadsByMgtNo(
+  mgtNos: string[],
+  organizationId: string | null
+): Promise<Set<string>> {
   if (mgtNos.length === 0) return new Set();
   
   const supabase = getSupabase();
-  const { data, error } = await supabase
+  let query = supabase
     .from('leads')
     .select('mgt_no')
     .in('mgt_no', mgtNos);
+
+  if (organizationId) {
+    query = query.eq('organization_id', organizationId);
+  }
+
+  const { data, error } = await query;
     
   if (error) {
     console.error('[Supabase] checkExistingLeadsByMgtNo Error:', error);
@@ -57,12 +66,12 @@ export async function saveLeads(
       '이마트', '안경', '콘택트', '안경원', '다이소', '올리브영', '롭스', '랄라블라'
     ];
 
-    // 議곗쭅 ID 媛?몄삤湲?(?꾨떖?섏? ?딆? 寃쎌슦)
+    // 조직 ID 가져오기(전달되지 않은 경우)
     const orgId = organizationId ?? await getOrganizationId();
 
-    onProgress?.(0, leads.length, '鍮꾪?寃??낆쥌 ?꾪꽣留?以?..');
+    onProgress?.(0, leads.length, '비타겟 업종 필터링 중...');
 
-    // 0. 鍮꾪?寃??낆쥌 ?꾪꽣留?(HEALTH 移댄뀒怨좊━留??곸슜)
+    // 0. 비타겟 업종 필터링(HEALTH 카테고리에만 적용)
     const filteredLeads = leads.filter(lead => {
       if (lead.category !== 'HEALTH') return true;
       const bizName = (lead.bizName || '').replace(/\s+/g, '');
@@ -74,26 +83,32 @@ export async function saveLeads(
       return !isExcluded;
     });
 
-    onProgress?.(0, filteredLeads.length, '湲곗〈 ?곗씠???뺤씤 以?..');
+    onProgress?.(0, filteredLeads.length, '기존 데이터 확인 중...');
 
-    // 1. 愿由щ쾲??MGTNO) 湲곕컲 以묐났 泥댄겕
+    // 1. 관리번호(MGTNO) 기반 중복 체크
     const mgtNos = filteredLeads.map(l => l.mgtNo).filter((no): no is string => !!no);
-    const existingMgtNoSet = await checkExistingLeadsByMgtNo(mgtNos);
+    const existingMgtNoSet = await checkExistingLeadsByMgtNo(mgtNos, orgId);
 
-    // 2. 愿由щ쾲?멸? ?녿뒗 由щ뱶?ㅼ쓣 ?꾪빐 ?곹샇紐?二쇱냼 湲곕컲 以묐났 泥댄겕 (?꾩슂??寃쎌슦留?
-    // ?깅뒫???꾪빐 ?몄엯???곗씠?곗? 留ㅼ묶?섎뒗 湲곗〈 ?곗씠?곕쭔 議고쉶
+    // 2. 관리번호가 없는 리드용 상호명/주소 기반 중복 체크(필요한 경우만)
+    // 성능을 위해 입력 데이터와 매칭 가능한 기존 데이터만 조회
     const leadsWithoutMgtNo = filteredLeads.filter(l => !l.mgtNo || !existingMgtNoSet.has(l.mgtNo));
     
     let existingKeySet = new Set<string>();
     let existingBizIdSet = new Set<string>();
 
     if (leadsWithoutMgtNo.length > 0) {
-      // ?곹샇紐?紐⑸줉?쇰줈 ?꾪꽣留곹븯??理쒖냼?쒖쓽 ?곗씠?곕쭔 媛?몄샂
+      // 상호명 목록으로 필터링해 최소한의 데이터만 가져옴
       const bizNames = [...new Set(leadsWithoutMgtNo.map(l => l.bizName))];
-      const { data: existingData } = await supabase
+      let existingQuery = supabase
         .from('leads')
         .select('biz_name, road_address, biz_id')
-        .in('biz_name', bizNames.slice(0, 500)); // ?덈Т 留롮쑝硫??섎닠??泥섎━?댁빞 ??
+        .in('biz_name', bizNames.slice(0, 500));
+
+      if (orgId) {
+        existingQuery = existingQuery.eq('organization_id', orgId);
+      }
+
+      const { data: existingData } = await existingQuery;
 
       (existingData || []).forEach((row: any) => {
         existingKeySet.add(createLeadKey(row.biz_name, row.road_address, row.biz_id));
@@ -132,7 +147,7 @@ export async function saveLeads(
     if (newLeads.length === 0) {
       return {
         success: true,
-        message: '?좉퇋 ?곗씠?곌? ?놁뒿?덈떎.',
+        message: '신규 데이터가 없습니다.',
         newCount: 0,
         skippedCount: skippedLeads.length,
         newLeads: [],
@@ -146,9 +161,9 @@ export async function saveLeads(
     for (let i = 0; i < newLeads.length; i += BATCH_SIZE) {
       const batch = newLeads.slice(i, i + BATCH_SIZE);
 
-      onProgress?.(savedCount, newLeads.length, `???以?.. (${savedCount}/${newLeads.length})`);
+      onProgress?.(savedCount, newLeads.length, `저장 중... (${savedCount}/${newLeads.length})`);
 
-      // Lead 媛앹껜瑜?DB ?ㅽ궎留덉뿉 留욊쾶 蹂??
+      // Lead 객체를 DB 스키마에 맞게 변환
       const dbLeads = batch.map(lead => ({
         biz_name: lead.bizName,
         biz_id: lead.bizId || null,

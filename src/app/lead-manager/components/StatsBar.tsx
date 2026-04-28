@@ -74,7 +74,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
           {statItems.map((item, index) => (
             <div
               key={item.label}
-              className="group relative flex items-center gap-4 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] hover:border-[var(--glass-border)] transition-all duration-300 overflow-hidden delay-[--delay]"
+              className="group relative flex items-center gap-4 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] hover:border-[var(--glass-border)] transition-all duration-300 overflow-hidden delay-[--delay] glass-panel lift-hover metric-glow"
                
               style={{
                 '--delay': `${index * 50}ms`,
@@ -120,7 +120,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
 
           {/* 전환율 - 특별 카드 */}
           <div
-            className="group relative flex items-center gap-4 p-4 rounded-xl border overflow-hidden transition-all duration-300 bg-[--rate-bg] border-[--rate-border]"
+            className="group relative flex items-center gap-4 p-4 rounded-xl border overflow-hidden transition-all duration-300 bg-[--rate-bg] border-[--rate-border] glass-panel lift-hover metric-glow"
              
             style={{
               '--rate-bg': 'linear-gradient(135deg, rgba(60, 181, 74, 0.1) 0%, rgba(50, 164, 206, 0.1) 100%)',

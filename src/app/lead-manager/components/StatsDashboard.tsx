@@ -198,7 +198,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
     return (
       <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 backdrop-blur-sm">
         <div className="max-w-[1600px] mx-auto px-6 py-4">
-          <button onClick={onToggle} className="w-full flex items-center justify-between group">
+          <button onClick={onToggle} className="w-full flex items-center justify-between group soft-ring">
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-[var(--metro-line2)]/10">
@@ -254,7 +254,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
               <p className="text-xs text-[var(--text-muted)]">Real-time Sales Performance & Lead Analytics</p>
             </div>
           </div>
-          <button onClick={onToggle} title="대시보드 접기" className="p-2 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all">
+          <button onClick={onToggle} title="대시보드 접기" className="p-2 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all soft-ring lift-hover">
             <ChevronUp className="w-5 h-5" />
           </button>
         </div>

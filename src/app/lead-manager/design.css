@@ -52,3 +52,51 @@
   transform-style: preserve-3d;
   transition: transform 0.5s;
 }
+
+/* 4. Modern Dashboard Polish */
+.header-blur {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-primary) 86%, transparent) 0%, color-mix(in srgb, var(--bg-primary) 76%, transparent) 100%);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.header-scrolled {
+  border-bottom-color: color-mix(in srgb, var(--border-subtle) 65%, white 12%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.glass-panel {
+  background: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, white 10%);
+  backdrop-filter: blur(16px) saturate(1.15);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14);
+}
+
+.soft-ring:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--metro-line4) 72%, white 20%),
+    0 0 0 6px color-mix(in srgb, var(--metro-line4) 26%, transparent);
+}
+
+.lift-hover {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.lift-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.metric-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-glow::before {
+  content: "";
+  position: absolute;
+  inset: -25% -20%;
+  background: radial-gradient(circle at 50% 30%, rgba(80, 180, 255, 0.14), transparent 60%);
+  pointer-events: none;
+}
