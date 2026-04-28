@@ -1,12 +1,11 @@
-/**
- * 서울 열린데이터 광장 (Seoul Open Data Portal) API 클라이언트
- * 역사 정보 및 인허가 데이터 조회를 담당합니다.
+﻿/**
+ * ?쒖슱 ?대┛?곗씠??愿묒옣 (Seoul Open Data Portal) API ?대씪?댁뼵?? * ??궗 ?뺣낫 諛??명뿀媛 ?곗씠??議고쉶瑜??대떦?⑸땲??
  */
 
 const SEOUL_DATA_BASE_URL = 'http://openapi.seoul.go.kr:8088';
 
 /**
- * 서울 데이터 API 호출 기본 함수
+ * ?쒖슱 ?곗씠??API ?몄텧 湲곕낯 ?⑥닔
  */
 async function fetchSeoulData<T>(
   service: string,
@@ -14,9 +13,17 @@ async function fetchSeoulData<T>(
   endIndex: number = 100,
   ...additionalParams: string[]
 ): Promise<T | null> {
-  // 전용 키가 있는 경우 우선 사용
-  let apiKey = process.env.SEOUL_DATA_API_KEY;
-  if (service === 'LOCALDATA_010101' && process.env.SEOUL_DATA_HOSPITAL_API_KEY) {
+  // 공통 키가 비어 있어도 서비스별 키로 fallback
+  let apiKey =
+    process.env.SEOUL_DATA_API_KEY ||
+    process.env.SEOUL_DATA_CLINIC_API_KEY ||
+    process.env.SEOUL_DATA_HOSPITAL_API_KEY ||
+    process.env.SEOUL_DATA_QUASI_MEDICAL_API_KEY ||
+    process.env.SEOUL_DATA_FITNESS_API_KEY;
+
+  if (service === 'LOCALDATA_010102' && process.env.SEOUL_DATA_CLINIC_API_KEY) {
+    apiKey = process.env.SEOUL_DATA_CLINIC_API_KEY;
+  } else if (service === 'LOCALDATA_010101' && process.env.SEOUL_DATA_HOSPITAL_API_KEY) {
     apiKey = process.env.SEOUL_DATA_HOSPITAL_API_KEY;
   } else if (service === 'LOCALDATA_010301' && process.env.SEOUL_DATA_QUASI_MEDICAL_API_KEY) {
     apiKey = process.env.SEOUL_DATA_QUASI_MEDICAL_API_KEY;
@@ -29,14 +36,14 @@ async function fetchSeoulData<T>(
     return null;
   }
 
-  // URL 형식: http://openapi.seoul.go.kr:8088/(인증키)/json/(서비스명)/(시작)/ (종료)/(기타 파라미터)
+  // URL ?뺤떇: http://openapi.seoul.go.kr:8088/(?몄쬆??/json/(?쒕퉬?ㅻ챸)/(?쒖옉)/ (醫낅즺)/(湲고? ?뚮씪誘명꽣)
   const params = additionalParams.length > 0 ? `/${additionalParams.join('/')}` : '';
   const url = `${SEOUL_DATA_BASE_URL}/${apiKey}/json/${service}/${startIndex}/${endIndex}${params}`;
 
   try {
     const response = await fetch(url, {
       method: 'GET',
-      cache: 'no-store', // 실시간 조회를 위해 캐시 비활성화
+      cache: 'no-store', // ?ㅼ떆媛?議고쉶瑜??꾪빐 罹먯떆 鍮꾪솢?깊솕
     });
 
     if (!response.ok) {
@@ -45,7 +52,7 @@ async function fetchSeoulData<T>(
 
     const data = await response.json();
 
-    // 서울 데이터 API는 에러 시 { RESULT: { CODE: '...', MESSAGE: '...' } } 형식을 반환할 수 있음
+    // ?쒖슱 ?곗씠??API???먮윭 ??{ RESULT: { CODE: '...', MESSAGE: '...' } } ?뺤떇??諛섑솚?????덉쓬
     if (data.RESULT && data.RESULT.CODE !== 'INFO-000') {
       console.warn(`[Seoul Data API] ${service} Logic Error:`, data.RESULT.MESSAGE);
       return null;
@@ -59,10 +66,10 @@ async function fetchSeoulData<T>(
 }
 
 /**
- * 노선별 지하철역 목록 및 좌표 조회 (SearchSTNBySubwayLineService)
+ * ?몄꽑蹂?吏?섏쿋??紐⑸줉 諛?醫뚰몴 議고쉶 (SearchSTNBySubwayLineService)
  */
 export async function getSeoulStationsByLine(line: string) {
-  // line format: "2호선", "9호선" 등
+  // line format: "2호선", "9호선"
   const data = await fetchSeoulData<any>('SearchSTNBySubwayLineService', 1, 100, ' ', ' ', line);
   if (!data || !data.SearchSTNBySubwayLineService) return [];
   
@@ -70,7 +77,7 @@ export async function getSeoulStationsByLine(line: string) {
 }
 
 /**
- * 역사 정보 상세 조회 (SearchInfoBySubwayNameService)
+ * ??궗 ?뺣낫 ?곸꽭 議고쉶 (SearchInfoBySubwayNameService)
  */
 export async function getSeoulStationDetail(stationName: string) {
   const data = await fetchSeoulData<any>('SearchInfoBySubwayNameService', 1, 5, stationName);
@@ -80,7 +87,7 @@ export async function getSeoulStationDetail(stationName: string) {
 }
 
 /**
- * 실시간 도착 정보 (RealtimeCitySubwayArrival)
+ * ?ㅼ떆媛??꾩갑 ?뺣낫 (RealtimeCitySubwayArrival)
  */
 export async function getRealtimeArrival(stationName: string) {
   const data = await fetchSeoulData<any>('realtimeStationArrival', 1, 10, stationName);
@@ -90,7 +97,7 @@ export async function getRealtimeArrival(stationName: string) {
 }
 
 /**
- * 서울시 의원 인허가 정보 (localdata_010102)
+ * ?쒖슱???섏썝 ?명뿀媛 ?뺣낫 (localdata_010102)
  */
 export async function getSeoulClinicLicenseData(startIndex: number = 1, endIndex: number = 100) {
   const data = await fetchSeoulData<any>('LOCALDATA_010102', startIndex, endIndex);
@@ -103,7 +110,7 @@ export async function getSeoulClinicLicenseData(startIndex: number = 1, endIndex
 }
 
 /**
- * 서울시 병원 인허가 정보 (localdata_010101)
+ * ?쒖슱??蹂묒썝 ?명뿀媛 ?뺣낫 (localdata_010101)
  */
 export async function getSeoulHospitalLicenseData(startIndex: number = 1, endIndex: number = 100) {
   const data = await fetchSeoulData<any>('LOCALDATA_010101', startIndex, endIndex);
@@ -116,9 +123,8 @@ export async function getSeoulHospitalLicenseData(startIndex: number = 1, endInd
 }
 
 /**
- * 서울시 의료유사업 인허가 정보 (localdata_010301)
- * 안마시술소, 침술원 등
- */
+ * ?쒖슱???섎즺?좎궗???명뿀媛 ?뺣낫 (localdata_010301)
+ * ?덈쭏?쒖닠?? 移⑥닠???? */
 export async function getSeoulQuasiMedicalLicenseData(startIndex: number = 1, endIndex: number = 100) {
   const data = await fetchSeoulData<any>('LOCALDATA_010301', startIndex, endIndex);
   if (!data || !data.LOCALDATA_010301) return { leads: [], totalCount: 0 };
@@ -130,7 +136,7 @@ export async function getSeoulQuasiMedicalLicenseData(startIndex: number = 1, en
 }
 
 /**
- * 서울시 체력단련장업 인허가 정보 (localdata_104201)
+ * ?쒖슱??泥대젰?⑤젴?μ뾽 ?명뿀媛 ?뺣낫 (localdata_104201)
  */
 export async function getSeoulFitnessLicenseData(startIndex: number = 1, endIndex: number = 100) {
   const data = await fetchSeoulData<any>('LOCALDATA_104201', startIndex, endIndex);

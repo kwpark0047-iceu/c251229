@@ -503,10 +503,6 @@ export async function fetchAllLeads(
       
       // ?좉퇋 ?곗씠?곌? ?섎굹???녾퀬 ?대? 湲곗〈 ?곗씠?곌? 留롮? 寃쎌슦, ?쒖슱 ?곗씠?곕뒗 理쒖떊?쒖씠誘濡?議곌린 醫낅즺 媛??
       const isSeoulAPI = regionCode === '6110000' && (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P');
-      if (isSeoulAPI && saveResult.newCount === 0 && firstResult.totalCount > 100) {
-        onProgress?.(totalProcessed, totalProcessed, `[?쒖슱] ${serviceInfo.name}: 理쒖떊 ?곗씠?곌? ?대? ?숆린?붾릺???덉뒿?덈떎.`);
-        continue; 
-      }
 
       // 珥??덉긽 嫄댁닔 ?낅뜲?댄듃
       const remainingServices = serviceIds.length - serviceIds.indexOf(serviceInfo) - 1;
@@ -585,10 +581,6 @@ export async function fetchAllLeads(
           onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name}: ${totalProcessed}嫄?(?좉퇋: ${pageSaveResult.newCount})`);
           
           // ?쒖슱 ?곗씠??API??寃쎌슦, ?좉퇋 ?곗씠?곌? ?놁쑝硫??대? 怨쇨굅 ?곗씠??援ш컙??吏꾩엯??寃껋씠誘濡?以묐떒
-          if (isSeoulAPI && pageSaveResult.newCount === 0) {
-            onProgress?.(totalProcessed, totalProcessed, `[?쒖슱] ${serviceInfo.name}: 異붽? ?좉퇋 ?곗씠?곌? ?놁뼱 ?숆린?붾? 留덉묩?덈떎.`);
-            break; 
-          }
         } else {
           console.error(`[${regionName}] ${serviceInfo.name} ?섏씠吏 ${pageIndex} 議고쉶 ?ㅽ뙣`);
         }
