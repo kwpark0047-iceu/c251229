@@ -19,6 +19,7 @@ import {
 } from './kric-api';
 import { SUBWAY_EXITS } from './data/subway-exits';
 import { normalizeLineCode } from './utils/subway-utils';
+import { calculateDistance, extractDistrict, extractNeighborhood } from './utils';
 
 
 // 캐시 관리
@@ -327,7 +328,6 @@ export class KRICSubwayDataManager {
 
     if (!stations || stations.length === 0) return null;
 
-    const { calculateDistance, extractDistrict, extractNeighborhood } = await import('./utils');
     const bizDistrict = extractDistrict(address);
     const bizNeighborhood = extractNeighborhood(address);
 
@@ -384,7 +384,6 @@ export class KRICSubwayDataManager {
 
     if (stationExits.length === 0) return null;
 
-    const { calculateDistance } = await import('./utils');
     let nearestExit: string | null = null;
     let minDistance = Infinity;
 
