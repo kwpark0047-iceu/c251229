@@ -1,6 +1,6 @@
-﻿/**
+/**
  * ?쒖슱 吏?섏쿋 愿묎퀬 ?곸뾽 ?쒖뒪??- Supabase ?쒕퉬??
- * 由щ뱶 ?곗씠?????議고쉶/?낅뜲?댄듃
+ * 由щ뱶 ?곗씠?????조회/?낅뜲?댄듃
  */
 
 import { getSupabase } from '@/lib/supabase/utils';
@@ -50,7 +50,7 @@ export async function checkExistingLeadsByMgtNo(
 }
 
 /**
- * 由щ뱶瑜??곗씠?곕쿋?댁뒪?????(?좉퇋 ?곗씠?곕쭔, 以묐났 泥댄겕)
+ * 由щ뱶瑜??곗씠?곕쿋?댁뒪?????(신규 ?곗씠?곕쭔, 以묐났 泥댄겕)
  */
 export async function saveLeads(
   leads: Lead[],
@@ -116,12 +116,12 @@ export async function saveLeads(
       });
     }
 
-    // ?좉퇋 ?곗씠?곕쭔 ?꾪꽣留?
+    // 신규 데이터만 필터링
     const realNewLeads: Lead[] = [];
     const dbDuplicates: Lead[] = [];
 
     filteredLeads.forEach(lead => {
-      // 愿由щ쾲?몃줈 ?곗꽑 泥댄겕
+      // 愿由щ쾲?몃줈 우선 체크
       if (lead.mgtNo && existingMgtNoSet.has(lead.mgtNo)) {
         dbDuplicates.push(lead);
         return;
@@ -135,7 +135,7 @@ export async function saveLeads(
       }
     });
 
-    // ?대? 以묐났 ?쒓굅 (?몄엯???곗씠?곕뱾 ?ъ씠??以묐났)
+    // 이미 중복 제거 (유입된 데이터들 사이의 중복)
     const deduplicationResult = removeDuplicateLeads(realNewLeads, {
       checkBizId: true,
       checkSimilarity: false
@@ -154,7 +154,7 @@ export async function saveLeads(
       };
     }
 
-    // 諛곗튂濡????(50嫄댁뵫)
+    // 배치로 저장 (50건씩)
     const BATCH_SIZE = 50;
     let savedCount = 0;
 
@@ -196,22 +196,22 @@ export async function saveLeads(
         .insert(dbLeads);
 
       if (error) {
-        // ?먮윭???곸쐞?먯꽌 泥섎━
+        // 에러는 상위에서 처리
 
-        // ?뚯씠釉붿씠 ?녿뒗 寃쎌슦 ?덈궡 硫붿떆吏
+        // 테이블이 없는 경우 안내 메시지
         if (error.message.includes('relation') || error.code === '42P01') {
           return {
             success: false,
-            message: '?뚯씠釉붿씠 ?놁뒿?덈떎. Supabase?먯꽌 supabase-schema.sql???ㅽ뻾?섏꽭??',
+            message: '테이블이 없습니다. Supabase에서 supabase-schema.sql을 실행하세요',
             newCount: savedCount,
             skippedCount: skippedLeads.length,
             newLeads: newLeads.slice(0, savedCount),
           };
         }
 
-        // UNIQUE ?쒖빟議곌굔 ?꾨컲 ??(以묐났 ?곗씠?? - 媛쒕퀎 ?쎌엯 ?쒕룄
+        // UNIQUE 제약조건 위반 (중복 데이터) - 개별 삽입 시도
         if (error.code === '23505') {
-          // 以묐났 ?곗씠?곕뒗 ?ㅽ궢
+          // 중복 데이터는 스킵
           for (const dbLead of dbLeads) {
             const { error: singleError } = await supabase
               .from('leads')
@@ -224,7 +224,7 @@ export async function saveLeads(
         }
         return {
           success: false,
-          message: `????ㅻ쪟: ${error.message} (肄붾뱶: ${error.code || 'unknown'})`,
+          message: `저장 오류: ${error.message} (코드: ${error.code || 'unknown'})`,
           newCount: savedCount,
           skippedCount: skippedLeads.length,
           newLeads: newLeads.slice(0, savedCount),
@@ -234,28 +234,25 @@ export async function saveLeads(
       savedCount += batch.length;
     }
 
-    onProgress?.(newLeads.length, newLeads.length, '????꾨즺!');
+    onProgress?.(newLeads.length, newLeads.length, '저장 완료!');
 
-    // ?쒕룞 濡쒓렇 湲곕줉
+    // 활동 로그 기록
     ActivityService.trackLeadImport(newLeads.length, leads[0]?.category || 'OTHER');
 
     return {
       success: true,
-      message: `?좉퇋 ${newLeads.length}嫄???? 湲곗〈 ${skippedLeads.length}嫄??ㅽ궢`,
+      message: `신규 ${newLeads.length}건 저장, 기존 ${skippedLeads.length}건 스킵`,
       newCount: newLeads.length,
       skippedCount: skippedLeads.length,
       newLeads,
     };
   } catch (error) {
-    // ?먮윭???곸쐞?먯꽌 泥섎━
+    // 에러는 상위에서 처리
     return { success: false, message: (error as Error).message, newCount: 0, skippedCount: 0, newLeads: [] };
   }
 }
 
 /**
- * 吏??肄붾뱶瑜?二쇱냼 ?묐몢?대줈 蹂??(?ㅼ뼇???뺤떇 吏??
- * @deprecated region-utils.ts ?ъ슜 沅뚯옣
- */
 const REGION_CODE_TO_PREFIX: Record<string, string[]> = {
   '6110000': ['서울특별시', '서울'],
   '6410000': ['경기도', '경기'],
@@ -273,7 +270,7 @@ const isAddressInRegion = (address: string, regionCode: string): boolean => {
 };
 
 /**
- * 由щ뱶 紐⑸줉 議고쉶
+ * 由щ뱶 紐⑸줉 조회
  * @param filters - ?꾪꽣 議곌굔
  */
 export async function getLeads(filters?: {
@@ -282,7 +279,7 @@ export async function getLeads(filters?: {
   nearestStation?: string;
   startDate?: string;
   endDate?: string;
-  regions?: string[];  // 吏??肄붾뱶 諛곗뿴 (?? ['6110000', '6410000'])
+  regions?: string[];  // 吏??코드 諛곗뿴 (?? ['6110000', '6410000'])
   searchQuery?: string; // 寃?됱뼱
   page?: number;       // ?섏씠吏 踰덊샇 (1遺???쒖옉)
   pageSize?: number;   // ?섏씠吏 ?ш린 (湲곕낯媛? 50)
@@ -328,7 +325,7 @@ export async function getLeads(filters?: {
 
     // 吏???꾪꽣 ?곸슜 (?쒕쾭 ?ъ씠??
     if (filters?.regions && filters.regions.length > 0) {
-      // 吏??肄붾뱶???대떦?섎뒗 二쇱냼 ?묐몢??媛?몄삤湲?
+      // 吏??코드???대떦?섎뒗 二쇱냼 ?묐몢??媛?몄삤湲?
       // ?? '6110000' -> ['?쒖슱?밸퀎??, '?쒖슱']
       const prefixes: string[] = [];
       // region-utils??getRegionPrefixes ?ъ슜
@@ -352,7 +349,7 @@ export async function getLeads(filters?: {
     const { data, count, error } = await query.range(from, to);
 
     if (error) {
-      console.error('由щ뱶 議고쉶 ?ㅻ쪟:', error);
+      console.error('由щ뱶 조회 ?ㅻ쪟:', error);
       return { success: false, leads: [], count: 0, message: error.message };
     }
 
@@ -403,7 +400,7 @@ export async function getLeads(filters?: {
       count: count || 0
     };
   } catch (error) {
-    console.error('由щ뱶 議고쉶 以??ㅻ쪟:', error);
+    console.error('由щ뱶 조회 以??ㅻ쪟:', error);
     return { success: false, leads: [], count: 0, message: (error as Error).message };
   }
 }
@@ -451,7 +448,7 @@ export async function updateLeadStatus(
       return { success: false, message: error.message };
     }
 
-    // ?쒕룞 濡쒓렇 湲곕줉 (媛꾨떒 ?뺣낫 議고쉶瑜??꾪빐 leadId ?쒖슜)
+    // 활동 로그 기록 (媛꾨떒 ?뺣낫 조회瑜??꾪빐 leadId ?쒖슜)
     ActivityService.trackLeadStatusChange(leadId, '由щ뱶', undefined, status);
 
     const message = status === 'CONTACTED' && updateData.assigned_to_name
@@ -491,7 +488,7 @@ export async function updateLeadNotes(
       return { success: false, message: error.message };
     }
 
-    // ?쒕룞 濡쒓렇 湲곕줉
+    // 활동 로그 기록
     ActivityService.trackLeadNoteUpdate(leadId, '由щ뱶');
 
     return { success: true, message: '硫붾え媛 ??λ릺?덉뒿?덈떎.' };
@@ -538,7 +535,7 @@ export async function saveSettings(settings: Settings): Promise<{ success: boole
 }
 
 /**
- * ?ъ슜???ㅼ젙 議고쉶
+ * ?ъ슜???ㅼ젙 조회
  */
 export async function getSettings(): Promise<{ success: boolean; settings: Settings }> {
   try {
@@ -573,7 +570,7 @@ export async function getSettings(): Promise<{ success: boolean; settings: Setti
       },
     };
   } catch (error) {
-    console.error('?ㅼ젙 議고쉶 以??ㅻ쪟:', error);
+    console.error('?ㅼ젙 조회 以??ㅻ쪟:', error);
     return { success: true, settings: DEFAULT_SETTINGS };
   }
 }
@@ -590,14 +587,14 @@ export async function deleteDuplicateLeadsFromDB(): Promise<{
   try {
     const supabase = getSupabase();
 
-    // 紐⑤뱺 由щ뱶 議고쉶
+    // 紐⑤뱺 由щ뱶 조회
     const { data: allLeads, error: fetchError } = await supabase
       .from('leads')
       .select('id, biz_name, road_address, created_at')
       .order('created_at', { ascending: true });
 
     if (fetchError) {
-      console.error('由щ뱶 議고쉶 ?ㅻ쪟:', fetchError);
+      console.error('由щ뱶 조회 ?ㅻ쪟:', fetchError);
       return { success: false, message: fetchError.message, removedCount: 0 };
     }
 
@@ -626,7 +623,7 @@ export async function deleteDuplicateLeadsFromDB(): Promise<{
 
     // 以묐났 ??젣 吏꾪뻾
 
-    // 諛곗튂濡???젣 (100嫄댁뵫)
+    // 諛곗튂濡???젣 (100건씩)
     const BATCH_SIZE = 100;
     let removedCount = 0;
 
@@ -662,7 +659,7 @@ export async function deleteDuplicateLeadsFromDB(): Promise<{
 }
 
 /**
- * ?듦퀎 議고쉶
+ * ?듦퀎 조회
  */
 export async function getLeadStats(): Promise<{
   total: number;
@@ -718,7 +715,7 @@ export async function getLeadStats(): Promise<{
       byStation,
     };
   } catch (error) {
-    console.error('?듦퀎 議고쉶 以??ㅻ쪟:', error);
+    console.error('?듦퀎 조회 以??ㅻ쪟:', error);
     return {
       total: 0,
       byStatus: { NEW: 0, PROPOSAL_SENT: 0, CONTACTED: 0, CONTRACTED: 0 },

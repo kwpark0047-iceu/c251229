@@ -356,11 +356,22 @@ function LeadManagerContent() {
     showNotification(result.success ? 'success' : 'error', result.message);
   }, [settings, showNotification]);
 
-  // 데이터 새로고침 (API에서 가져오기)
+  // 데이터 새로고침 (API에서 최근 7일 데이터 가져오기)
   const refreshData = async () => {
     setIsLoading(true);
     setLoadingProgress({ current: 0, total: 0 });
-    setLoadingStatus('');
+    setLoadingStatus('최근 7일 데이터 동기화 준비 중...');
+
+    // 최근 7일 날짜 계산
+    const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 7);
+
+    // UI 날짜 범위 업데이트 (동기화되는 범위를 사용자에게 보여줌)
+    setDateRange({
+      start: sevenDaysAgo,
+      end: today
+    });
 
     try {
       const searchSettings: any = {
@@ -373,45 +384,34 @@ function LeadManagerContent() {
 
       const result = await fetchAllLeads(
         searchSettings,
-        dateRange.start,
-        dateRange.end,
+        sevenDaysAgo,
+        today,
         (current, total, status) => {
           setLoadingProgress({ current, total });
           if (status) setLoadingStatus(status);
         },
         categoryFilter,
-        selectedServiceIds  // 선택된 세부항목 전달
+        selectedServiceIds
       );
 
       if (result.success) {
-        setLoadingStatus('데이터베이스에 저장 중...');
-        const saveResult = await saveLeads(
-          result.leads,
-          (current, total, status) => {
-            console.log(status);
-            setLoadingProgress({ current, total });
-          }
+        setLoadingStatus('데이터베이스 업데이트 완료!');
+        await loadLeadsFromDB();
+        
+        const regionNames = selectedRegions
+          .map(code => REGION_OPTIONS.find(r => r.code === code)?.name || code)
+          .join('+');
+        const serviceNames = selectedServiceIds.length > 0
+          ? CATEGORY_SERVICE_IDS[categoryFilter]
+            .filter(s => selectedServiceIds.includes(s.id))
+            .map(s => s.name)
+            .join(', ')
+          : '전체';
+          
+        showNotification(
+          'success',
+          `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}/${serviceNames}] 최근 7일간 신규 리드 ${result.leads.length}건이 동기화되었습니다.`
         );
-
-        if (saveResult.success) {
-          await loadLeadsFromDB();
-          const regionNames = selectedRegions
-            .map(code => REGION_OPTIONS.find(r => r.code === code)?.name || code)
-            .join('+');
-          // 선택된 세부항목 이름 표시
-          const serviceNames = selectedServiceIds.length > 0
-            ? CATEGORY_SERVICE_IDS[categoryFilter]
-              .filter(s => selectedServiceIds.includes(s.id))
-              .map(s => s.name)
-              .join(', ')
-            : '전체';
-          showNotification(
-            'success',
-            `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}/${serviceNames}] 공공데이터 API에서 ${result.leads.length}건 조회. ${saveResult.message}`
-          );
-        } else {
-          showNotification('error', saveResult.message);
-        }
       } else {
         showNotification('error', result.message || '데이터 조회에 실패했습니다.');
       }

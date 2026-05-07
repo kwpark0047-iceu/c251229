@@ -97,7 +97,7 @@ function excelDateToJSDate(serial) {
 }
 
 async function importClinics() {
-  const filePath = 'D:\\Downloads\\01_01_02_P_의원 (2604291).xlsx';
+  const filePath = process.argv[2] || 'D:\\Downloads\\01_01_02_P_의원 (2604291).xlsx';
   console.log(`--- 임포트 시작: ${filePath} ---`);
   
   if (!fs.existsSync(filePath)) {

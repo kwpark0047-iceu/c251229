@@ -8,6 +8,15 @@ export default defineConfig({
         environment: 'jsdom',
         globals: true,
         setupFiles: './vitest.setup.ts',
+        exclude: [
+            '**/node_modules/**',
+            '**/dist/**',
+            '**/cypress/**',
+            '**/.{idea,git,cache,output,temp}/**',
+            '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
+            'tests/**/*.spec.ts',
+            'tests/e2e/**/*.spec.ts',
+        ],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
@@ -17,6 +26,7 @@ export default defineConfig({
                 '**/*.d.ts',
                 '**/*.config.*',
                 '**/coverage/**',
+                'tests/**/*.spec.ts',
             ],
             include: [
                 'src/**/*.{ts,tsx}',

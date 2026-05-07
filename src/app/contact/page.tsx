@@ -545,18 +545,10 @@ export default function ContactPage() {
       {/* 배경 효과 */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div
-          className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full opacity-15"
-          style={{
-            background: 'radial-gradient(circle, #00A5DE 0%, transparent 70%)',
-            filter: 'blur(80px)',
-          }}
+          className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full opacity-15 bg-[radial-gradient(circle,_#00A5DE_0%,_transparent_70%)] blur-[80px]"
         />
         <div
-          className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full opacity-15"
-          style={{
-            background: 'radial-gradient(circle, #00A84D 0%, transparent 70%)',
-            filter: 'blur(80px)',
-          }}
+          className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full opacity-15 bg-[radial-gradient(circle,_#00A84D_0%,_transparent_70%)] blur-[80px]"
         />
       </div>
 
@@ -566,11 +558,8 @@ export default function ContactPage() {
           <div className="flex items-center justify-between">
             {/* 로고 & 타이틀 */}
             <div className="flex items-center gap-3">
-              <div
-                className="p-2 rounded-lg"
-                style={{ background: 'linear-gradient(135deg, #00A5DE20 0%, #00A5DE10 100%)' }}
-              >
-                <Train className="w-5 h-5" style={{ color: '#00A5DE' }} />
+              <div className="p-2 rounded-lg bg-gradient-to-br from-[#00A5DE]/20 to-[#00A5DE]/10">
+                <Train className="w-5 h-5 text-[#00A5DE]" />
               </div>
               <div>
                 <h1 className="text-base font-bold text-[var(--text-primary)]">AI자동추천</h1>
@@ -616,12 +605,7 @@ export default function ContactPage() {
             </div>
 
             {/* 문의 폼 */}
-            <div
-              className="p-10 rounded-3xl mb-8 bg-white"
-              style={{
-                boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08)',
-              }}
-            >
+            <div className="p-10 rounded-3xl mb-8 bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* 기본 정보 */}
                 <div className="grid sm:grid-cols-2 gap-5">
@@ -777,11 +761,7 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-3 px-8 py-5 rounded-xl text-white text-xl font-semibold disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  style={{
-                    background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-                    boxShadow: '0 8px 24px rgba(0, 165, 222, 0.3)',
-                  }}
+                  className="w-full flex items-center justify-center gap-3 px-8 py-5 rounded-xl text-white text-xl font-semibold disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98] bg-[linear-gradient(135deg,_#00A5DE_0%,_#0088CC_100%)] shadow-[0_8px_24px_rgba(0,165,222,0.3)]"
                 >
                   {isSubmitting ? (
                     <>
@@ -807,13 +787,7 @@ export default function ContactPage() {
                 style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", "Malgun Gothic", "맑은 고딕", sans-serif' }}
               >
                 {/* 제안서 헤더 */}
-                <div
-                  className="p-8 rounded-3xl"
-                  style={{
-                    background: 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-                    boxShadow: '0 25px 50px rgba(0, 165, 222, 0.3)',
-                  }}
-                >
+                <div className="p-8 rounded-3xl bg-[linear-gradient(135deg,_#00A5DE_0%,_#0088CC_100%)] shadow-[0_25px_50px_rgba(0,165,222,0.3)]">
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <p className="text-white/70 text-sm mb-1">제안서 번호</p>
@@ -835,14 +809,7 @@ export default function ContactPage() {
                 </div>
 
                 {/* ① 광고주 정보 요약 */}
-                <div
-                  className="p-6 rounded-2xl"
-                  style={{
-                    background: 'var(--glass-bg)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
+                <div className="p-6 rounded-2xl bg-[var(--glass-bg)] backdrop-blur-[20px] border border-[var(--glass-border)]">
                   <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                     <span className="w-7 h-7 rounded-full bg-[#00A5DE] text-white text-sm font-bold flex items-center justify-center">①</span>
                     광고주 정보 요약
@@ -872,14 +839,7 @@ export default function ContactPage() {
                 </div>
 
                 {/* ② 광고 목적 분석 */}
-                <div
-                  className="p-6 rounded-2xl"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(0, 165, 222, 0.1) 0%, rgba(0, 168, 77, 0.1) 100%)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
+                <div className="p-6 rounded-2xl bg-[linear-gradient(135deg,_rgba(0,165,222,0.1)_0%,_rgba(0,168,77,0.1)_100%)] backdrop-blur-[20px] border border-[var(--glass-border)]">
                   <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                     <span className="w-7 h-7 rounded-full bg-[#00A84D] text-white text-sm font-bold flex items-center justify-center">②</span>
                     광고 목적 분석 ({proposal.purposeAnalysis.industry})
@@ -901,14 +861,7 @@ export default function ContactPage() {
                 </div>
 
                 {/* ③ 추천 매체 */}
-                <div
-                  className="p-6 rounded-2xl"
-                  style={{
-                    background: 'var(--glass-bg)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
+                <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
                   <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                     <span className="w-7 h-7 rounded-full bg-[#996CAC] text-white text-sm font-bold flex items-center justify-center">③</span>
                     추천 매체
@@ -937,14 +890,7 @@ export default function ContactPage() {
                 </div>
 
                 {/* ④ AI 추천 역 TOP 2 */}
-                <div
-                  className="p-6 rounded-2xl"
-                  style={{
-                    background: 'var(--glass-bg)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
+                <div className="p-6 rounded-2xl bg-[var(--glass-bg)] backdrop-blur-[20px] border border-[var(--glass-border)]">
                   <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                     <span className="w-7 h-7 rounded-full bg-[#EF7C1C] text-white text-sm font-bold flex items-center justify-center">④</span>
                     AI 추천 역 TOP 2
@@ -1021,14 +967,7 @@ export default function ContactPage() {
                 </div>
 
                 {/* ⑤ 예산 기반 구성안 */}
-                <div
-                  className="p-6 rounded-2xl"
-                  style={{
-                    background: 'var(--glass-bg)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid var(--glass-border)',
-                  }}
-                >
+                <div className="p-6 rounded-2xl bg-[var(--glass-bg)] backdrop-blur-[20px] border border-[var(--glass-border)]">
                   <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                     <span className="w-7 h-7 rounded-full bg-[#00A84D] text-white text-sm font-bold flex items-center justify-center">⑤</span>
                     예산 기반 구성안
@@ -1062,13 +1001,7 @@ export default function ContactPage() {
                 </div>
 
                 {/* ⑥ 기대 효과 */}
-                <div
-                  className="p-6 rounded-2xl"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(0, 168, 77, 0.2) 0%, rgba(0, 165, 222, 0.2) 100%)',
-                    border: '1px solid rgba(0, 168, 77, 0.3)',
-                  }}
-                >
+                <div className="p-6 rounded-2xl bg-[linear-gradient(135deg,_rgba(0,168,77,0.2)_0%,_rgba(0,165,222,0.2)_100%)] border border-[rgba(0,168,77,0.3)]">
                   <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                     <span className="w-7 h-7 rounded-full bg-[#E6186C] text-white text-sm font-bold flex items-center justify-center">⑥</span>
                     기대 효과
@@ -1088,14 +1021,7 @@ export default function ContactPage() {
 
                 {/* 추천 노선 */}
                 {proposal.additionalInfo.recommendedLines.length > 0 && (
-                  <div
-                    className="p-6 rounded-2xl"
-                    style={{
-                      background: 'var(--glass-bg)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid var(--glass-border)',
-                    }}
-                  >
+                  <div className="p-6 rounded-2xl bg-[var(--glass-bg)] backdrop-blur-[20px] border border-[var(--glass-border)]">
                     <h4 className="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                       <Train className="w-5 h-5 text-[#996CAC]" />
                       추천 노선
@@ -1134,13 +1060,7 @@ export default function ContactPage() {
                       type="button"
                       onClick={handleDownloadPDF}
                       disabled={isDownloading}
-                      className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] cursor-pointer disabled:opacity-50"
-                      style={{
-                        background: 'linear-gradient(135deg, #00A84D 0%, #00C853 100%)',
-                        boxShadow: '0 8px 24px rgba(0, 168, 77, 0.3)',
-                        position: 'relative',
-                        zIndex: 100,
-                      }}
+                      className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] cursor-pointer disabled:opacity-50 bg-[linear-gradient(135deg,_#00A84D_0%,_#00C853_100%)] shadow-[0_8px_24px_rgba(0,168,77,0.3)] relative z-[100]"
                     >
                       {isDownloading ? (
                         <>
@@ -1157,13 +1077,11 @@ export default function ContactPage() {
                     <button
                       onClick={handleSendEmail}
                       disabled={isSendingEmail || emailSent}
-                      className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] disabled:opacity-50"
-                      style={{
-                        background: emailSent
-                          ? 'linear-gradient(135deg, #666 0%, #888 100%)'
-                          : 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-                        boxShadow: emailSent ? 'none' : '0 8px 24px rgba(0, 165, 222, 0.3)',
-                      }}
+                      className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] disabled:opacity-50 ${
+                        emailSent
+                          ? 'bg-[linear-gradient(135deg,_#666_0%,_#888_100%)] shadow-none'
+                          : 'bg-[linear-gradient(135deg,_#00A5DE_0%,_#0088CC_100%)] shadow-[0_8px_24px_rgba(0,165,222,0.3)]'
+                      }`}
                     >
                       {isSendingEmail ? (
                         <>
@@ -1338,14 +1256,7 @@ export default function ContactPage() {
 
 
             {/* 지도 범례 */}
-            <div
-              className="absolute bottom-4 left-4 p-3 rounded-xl z-[1000]"
-              style={{
-                background: 'var(--glass-bg)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid var(--glass-border)',
-              }}
-            >
+            <div className="absolute bottom-4 left-4 p-3 rounded-xl z-[1000] bg-[var(--glass-bg)] backdrop-blur-[10px] border border-[var(--glass-border)]">
               <p className="text-xs text-[var(--text-muted)] mb-2 font-medium">지도 범례</p>
               <div className="flex items-center gap-2 text-xs">
                 <span className="w-4 h-0.5 rounded bg-[#00A84D]" />

@@ -1,8 +1,8 @@
 ﻿/**
- * ?쒖슱 吏?섏쿋 愿묎퀬 ?곸뾽 ?쒖뒪??- API ?곕룞 濡쒖쭅
- * ?쒕쾭?ъ씠??API瑜??듯빐 LocalData.go.kr ?곗씠??議고쉶
+ * 서울 吏?섏쿋 광고 영업 시스템- API 연동 로직
+ * 서버사이드API瑜??듯빐 LocalData.go.kr ?곗씠??議고쉶
  *
- * 蹂댁븞: API ?ㅻ뒗 ?쒕쾭?먯꽌留?愿由щ릺硫??대씪?댁뼵?몄뿉 ?몄텧?섏? ?딆뒿?덈떎.
+ * 보안: API ?ㅻ뒗 ?쒕쾭?먯꽌留?愿由щ릺硫?클라이언트에 노출되지 않습니다.
  */
 
 import { Lead, Settings, BusinessCategory, CATEGORY_SERVICE_IDS, CATEGORY_LABELS, ServiceIdInfo } from './types';
@@ -16,7 +16,7 @@ import { removeDuplicateLeads } from './deduplication-utils';
 import { safeFetch, ApiError } from './api-client';
 
 /**
- * API ?몄텧 寃곌낵 ???
+ * API 호출 결과 ???
  */
 interface FetchResult {
   success: boolean;
@@ -26,14 +26,14 @@ interface FetchResult {
 }
 
 /**
- * ?쒕쾭 API ?묐떟???먯떆 由щ뱶 ???
+ * ?쒕쾭 API 응답??임시 리드 ???
  */
 interface RawLead {
   bizName: string;
   bizId?: string;
   mgtNo?: string;         // 愿由щ쾲??
-  trdStateNm?: string;    // ?곸뾽?곹깭紐?
-  dtlStateNm?: string;    // ?곸꽭?곸뾽?곹깭紐?
+  trdStateNm?: string;    // 영업?곹깭紐?
+  dtlStateNm?: string;    // ?곸꽭영업?곹깭紐?
   licenseDate?: string;
   roadAddress?: string;
   lotAddress?: string;
@@ -44,8 +44,8 @@ interface RawLead {
 }
 
 /**
- * ?쒕쾭?ъ씠??API瑜??듯빐 LocalData ?곗씠??議고쉶
- * API ?ㅻ뒗 ?쒕쾭?먯꽌 ?덉쟾?섍쾶 愿由щ맗?덈떎.
+ * 서버사이드API瑜??듯빐 LocalData ?곗씠??議고쉶
+ * API ?ㅻ뒗 ?쒕쾭?먯꽌 안전하게 愿由щ맗?덈떎.
  */
 export async function fetchLocalDataAPI(
   settings: Settings,
@@ -81,7 +81,7 @@ export async function fetchLocalDataAPI(
         success: false,
         leads: [],
         totalCount: 0,
-        message: result.error || result.message || 'API ?몄텧???ㅽ뙣?덉뒿?덈떎.',
+        message: result.error || result.message || 'API ?몄텧??실패했습니다.',
       };
     }
 
@@ -102,13 +102,13 @@ export async function fetchLocalDataAPI(
       totalCount: 0,
       message: error instanceof ApiError
         ? error.message
-        : `?ㅽ듃?뚰겕 ?ㅻ쪟: ${(error as Error).message}`,
+        : `네트워크 오류: ${(error as Error).message}`,
     };
   }
 }
 
 /**
- * ?쒖슱 ?대┛?곗씠??愿묒옣 API瑜??듯빐 ?쒖슱???섏썝 ?명뿀媛 ?뺣낫 議고쉶
+ * 서울 ?대┛?곗씠??愿묒옣 API瑜??듯빐 서울???섏썝 ?명뿀媛 ?뺣낫 議고쉶
  */
 export async function fetchSeoulClinicAPI(
   startIndex: number = 1,
@@ -124,7 +124,7 @@ export async function fetchSeoulClinicAPI(
         success: false,
         leads: [],
         totalCount: 0,
-        message: result.error || '?쒖슱 ?곗씠??API ?몄텧???ㅽ뙣?덉뒿?덈떎.',
+        message: result.error || '서울 ?곗씠??API ?몄텧??실패했습니다.',
       };
     }
 
@@ -142,13 +142,13 @@ export async function fetchSeoulClinicAPI(
       success: false,
       leads: [],
       totalCount: 0,
-      message: `?ㅽ듃?뚰겕 ?ㅻ쪟: ${(error as Error).message}`,
+      message: `네트워크 오류: ${(error as Error).message}`,
     };
   }
 }
 
 /**
- * ?쒖슱 ?대┛?곗씠??愿묒옣 API瑜??듯빐 ?쒖슱??蹂묒썝 ?명뿀媛 ?뺣낫 議고쉶
+ * 서울 ?대┛?곗씠??愿묒옣 API瑜??듯빐 서울??蹂묒썝 ?명뿀媛 ?뺣낫 議고쉶
  */
 export async function fetchSeoulHospitalAPI(
   startIndex: number = 1,
@@ -164,7 +164,7 @@ export async function fetchSeoulHospitalAPI(
         success: false,
         leads: [],
         totalCount: 0,
-        message: result.error || '?쒖슱 ?곗씠??API ?몄텧???ㅽ뙣?덉뒿?덈떎.',
+        message: result.error || '서울 ?곗씠??API ?몄텧??실패했습니다.',
       };
     }
 
@@ -182,21 +182,21 @@ export async function fetchSeoulHospitalAPI(
       success: false,
       leads: [],
       totalCount: 0,
-      message: `?ㅽ듃?뚰겕 ?ㅻ쪟: ${(error as Error).message}`,
+      message: `네트워크 오류: ${(error as Error).message}`,
     };
   }
 }
 
 /**
- * ?쒖슱 ?곗씠??API???먯떆 由щ뱶 ?곗씠?곕? 泥섎━ (醫뚰몴 蹂?? ??留ㅼ묶)
+ * 서울 ?곗씠??API??임시 리드 ?곗씠?곕? 처리 (醫뚰몴 蹂?? 역 매칭)
  */
 async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALDATA_010102'): Promise<Lead[]> {
   const { subwayDataManager } = await import('./kric-data-manager');
   await subwayDataManager.getAllSubwayData();
 
   const processedLeads = (await Promise.all(rawLeads.map(async (raw) => {
-    // ?쒖슱 ?곗씠???꾨뱶 留ㅽ븨 (?몃뜑諛??놁쓬 二쇱쓽): 
-    // BPLCNM (?ъ뾽?λ챸), RDNWHLADDR (?꾨줈紐낆＜??, SITEWHLADDR (吏踰덉＜??, SITETEL (?꾪솕踰덊샇), X (醫뚰몴X), Y (醫뚰몴Y)
+    // 서울 ?곗씠???꾨뱶 留ㅽ븨 (?몃뜑諛??놁쓬 二쇱쓽): 
+    // BPLCNM (?ъ뾽?λ챸), RDNWHLADDR (?꾨줈紐낆＜??, SITEWHLADDR (吏踰덉＜??, SITETEL (전화번호), X (醫뚰몴X), Y (醫뚰몴Y)
     const bizName = raw.BPLCNM || '';
     if (!bizName) return null;
 
@@ -206,8 +206,8 @@ async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALD
     let stationDistance: number | undefined;
     let stationLines: string[] | undefined;
 
-    // ?쒖슱 ?곗씠?곗쓽 醫뚰몴(X, Y)??以묐??먯젏(GRS80)
-    // 媛믪뿉 怨듬갚???ы븿?섏뼱 ?덉쓣 ???덉쑝誘濡?trim 泥섎━
+    // 서울 ?곗씠?곗쓽 醫뚰몴(X, Y)??以묐??먯젏(GRS80)
+    // 媛믪뿉 怨듬갚???ы븿?섏뼱 ?덉쓣 ???덉쑝誘濡?trim 처리
     const x = parseFloat((raw.X || '0').toString().trim());
     const y = parseFloat((raw.Y || '0').toString().trim());
 
@@ -230,11 +230,11 @@ async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALD
       }
     }
 
-    // ?쒕퉬??ID???곕Ⅸ 移댄뀒怨좊━ 寃곗젙
+    // ?쒕퉬??ID???곕Ⅸ 카테고리 寃곗젙
     const { CATEGORY_SERVICE_IDS } = await import('./types');
     let category: any = 'OTHER';
     
-    // CATEGORY_SERVICE_IDS??紐⑤뱺 移댄뀒怨좊━瑜??쒗쉶?섎ŉ ?대떦 serviceId瑜??ы븿?섎뒗 移댄뀒怨좊━ 李얘린
+    // CATEGORY_SERVICE_IDS??紐⑤뱺 카테고리瑜??쒗쉶?섎ŉ ?대떦 serviceId瑜??ы븿?섎뒗 카테고리 李얘린
     let serviceName = '알 수 없는 서비스';
     for (const [cat, services] of Object.entries(CATEGORY_SERVICE_IDS)) {
       const foundService = services.find(s => s.id === serviceId);
@@ -275,10 +275,10 @@ async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALD
 }
 
 /**
- * ?먯떆 由щ뱶 ?곗씠?곕? 泥섎━ (醫뚰몴 蹂?? ??留ㅼ묶)
+ * 임시 리드 ?곗씠?곕? 처리 (醫뚰몴 蹂?? 역 매칭)
  */
 /**
- * ?먯떆 由щ뱶 ?곗씠?곕? 泥섎━ (醫뚰몴 蹂?? ??留ㅼ묶)
+ * 임시 리드 ?곗씠?곕? 처리 (醫뚰몴 蹂?? 역 매칭)
  */
 async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo): Promise<Lead[]> {
   const { subwayDataManager } = await import('./kric-data-manager');
@@ -286,7 +286,7 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
   // 罹먯떆 ?뚮컢
   await subwayDataManager.getAllSubwayData();
 
-  // ?쒖쇅 ?ㅼ썙???뺤쓽 (?섎즺湲곌? 寃?????욎씠??鍮꾪?寃??낆쥌)
+  // 제외 ?ㅼ썙???뺤쓽 (의료기관 寃?????욎씠??鍮꾪?寃?업종)
   const excludeKeywords = [
     '약국', '편의점', '세븐일레븐', '씨유', '지에스', 'GS25', 'CU', '7-ELEVEN',
     '이마트', '안경', '콘택트', '안경원', '다이소', '올리브영', '롭스', '랄라블라'
@@ -296,8 +296,8 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
     const subject = (raw.medicalSubject || '').replace(/\s+/g, '');
     const bizName = (raw.bizName || '').replace(/\s+/g, '');
 
-    // ?섎즺湲곌? 愿???쒕퉬?ㅼ씠嫄곕굹 移댄뀒怨좊━媛 HEALTH???뚮쭔 ?뺣? ?꾪꽣留??곸슜
-    // 泥댁쑁?쒖꽕(SPORTS) ???ㅻⅨ 移댄뀒怨좊━???꾪꽣留??쒖쇅 (?곹샇紐낆뿉 '?덇꼍' ?깆씠 ?ы븿?????덉쓬)
+    // 의료기관 愿???쒕퉬?ㅼ씠嫄곕굹 카테고리媛 HEALTH???뚮쭔 ?뺣? 필터링?곸슜
+    // 泥댁쑁?쒖꽕(SPORTS) ???ㅻⅨ 카테고리??필터링제외 (상호명에 '안경' 등이 포함될 수 있음)
     const isMedicalService = serviceInfo?.id?.startsWith('01_01') || serviceInfo?.id?.startsWith('01_03');
     const isHealthCategory = serviceInfo?.category === 'HEALTH';
     
@@ -332,7 +332,7 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
           stationDistance = nearest.distance;
           stationLines = nearest.station.lines;
 
-          // 媛??媛源뚯슫 異쒓뎄 踰덊샇 怨꾩궛
+          // 媛??媛源뚯슫 출구 번호 계산
           const nearestExit = await subwayDataManager.findNearestExit(nearest.station.name, latitude, longitude);
           if (nearestExit) {
             (raw as any).nearestExitNo = nearestExit;
@@ -374,12 +374,12 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
 }
 
 /**
- * ?꾩껜 ?곗씠??議고쉶 (?섏씠吏?ㅼ씠??泥섎━)
- * @param settings - ?ㅼ젙 ?뺣낫 (API ?ㅻ뒗 ?ъ슜?섏? ?딆쓬)
- * @param startDate - ?쒖옉 ?좎쭨
+ * 전체 ?곗씠??議고쉶 (?섏씠吏?ㅼ씠??처리)
+ * @param settings - 설정 정보 (API ?ㅻ뒗 사용하지 않음)
+ * @param startDate - 시작 날짜
  * @param endDate - 醫낅즺 ?좎쭨
- * @param onProgress - 吏꾪뻾 ?곹솴 肄쒕갚
- * @param category - ?낆쥌 移댄뀒怨좊━ (?좏깮)
+ * @param onProgress - 진행 상황 콜백
+ * @param category - 업종 카테고리 (선택)
  */
 export async function fetchAllLeads(
   settings: Settings,
@@ -387,18 +387,18 @@ export async function fetchAllLeads(
   endDate: Date,
   onProgress?: (current: number, total: number, status?: string) => void,
   category?: BusinessCategory,
-  selectedServiceIds?: string[]  // ?좏깮???몃???ぉ ID??
+  selectedServiceIds?: string[]  // 선택???몃???ぉ ID??
 ): Promise<FetchResult> {
   const pageSize = 100;
   let allLeads: Lead[] = [];
   const seenKeys = new Set<string>(); // 以묐났 泥댄겕??
   const seenBizIds = new Set<string>(); // ?ъ뾽??ID 以묐났 泥댄겕??
 
-  // 移댄뀒怨좊━???대떦?섎뒗 ?쒕퉬??ID 紐⑸줉
+  // 카테고리??해당하는 ?쒕퉬??ID 목록
   let serviceIds: ServiceIdInfo[] = [];
 
   if (category === 'ALL' || !category) {
-    // 紐⑤뱺 移댄뀒怨좊━???쒕퉬??ID瑜??⑹묠 (ALL ?쒖쇅)
+    // 紐⑤뱺 카테고리???쒕퉬??ID瑜?합침 (ALL 제외)
     Object.entries(CATEGORY_SERVICE_IDS).forEach(([key, services]) => {
       if (key !== 'ALL') {
         serviceIds = [...serviceIds, ...services];
@@ -408,19 +408,19 @@ export async function fetchAllLeads(
     serviceIds = CATEGORY_SERVICE_IDS[category];
   }
 
-  // ?좏깮???몃???ぉ???덉쑝硫??대떦 ??ぉ留??꾪꽣留?
+  // 선택???몃???ぉ???덉쑝硫??대떦 ??ぉ留?필터링
   if (selectedServiceIds && selectedServiceIds.length > 0) {
     serviceIds = serviceIds.filter(s => selectedServiceIds.includes(s.id));
   }
 
-  // 吏??肄붾뱶 紐⑸줉 (?ㅼ쨷 吏??吏??
+  // 吏??肄붾뱶 목록 (?ㅼ쨷 吏??吏??
   const regionCodes = settings.regionCodes?.length
     ? settings.regionCodes
     : [settings.regionCode];
 
   // 吏??챸 留ㅽ븨
   const regionNames: Record<string, string> = {
-    '6110000': '?쒖슱',
+    '6110000': '서울',
     '6410000': '寃쎄린',
   };
 
@@ -432,24 +432,24 @@ export async function fetchAllLeads(
 
     for (const serviceInfo of serviceIds) {
       const categoryLabel = CATEGORY_LABELS[serviceInfo.category] || serviceInfo.category;
-      onProgress?.(totalProcessed, estimatedTotal, `[${regionName}/${categoryLabel}] ${serviceInfo.name} 議고쉶 以?..`);
+      onProgress?.(totalProcessed, estimatedTotal, `[${regionName}/${categoryLabel}] ${serviceInfo.name} 조회 중...`);
 
       // 泥??섏씠吏 議고쉶
       let firstResult: FetchResult | undefined;
       
-      // ?쒖슱 吏??씠怨??뱀젙 ?꾨Ц ?낆쥌(?섎즺湲곌?/?섎즺?좎궗??泥대젰?⑤젴????寃쎌슦 ?쒖슱 ?곗씠??API ?곗꽑 ?쒕룄
+      // 서울 吏??씠怨??뱀젙 ?꾨Ц 업종(의료기관/의료유사泥대젰?⑤젴????寃쎌슦 서울 ?곗씠??API 우선 시도
       const isSeoulSpecialty = regionCode === '6110000' && 
         (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P' || 
          serviceInfo.id === 'LOCALDATA_010301' || serviceInfo.id === 'LOCALDATA_104201');
 
       if (isSeoulSpecialty) {
-        onProgress?.(totalProcessed, estimatedTotal, `[?쒖슱] ?쒖슱 ?곗씠??Portal?먯꽌 ${serviceInfo.name} 理쒖떊 ?뺣낫 ?섏쭛 以?..`);
+        onProgress?.(totalProcessed, estimatedTotal, `[서울] 서울 ?곗씠??Portal?먯꽌 ${serviceInfo.name} 최신 정보 수집 중...`);
         if (serviceInfo.id === '01_01_02_P') {
           firstResult = await fetchSeoulClinicAPI(1, pageSize);
         } else if (serviceInfo.id === '01_01_01_P') {
           firstResult = await fetchSeoulHospitalAPI(1, pageSize);
         } else if (serviceInfo.id === 'LOCALDATA_010301') {
-          // ?섎즺?좎궗???꾩슜 API ?몄텧
+          // 의료유사전용 API 호출
           const result = await safeFetch(`/api/seoul-data?service=quasi-medical&start=1&end=${pageSize}`, {
             method: 'GET',
           });
@@ -460,7 +460,7 @@ export async function fetchAllLeads(
             firstResult = { success: false, leads: [], totalCount: 0, message: result.error };
           }
         } else if (serviceInfo.id === 'LOCALDATA_104201') {
-          // 泥대젰?⑤젴?μ뾽 ?꾩슜 API ?몄텧
+          // 체력단련장업 전용 API 호출
           const result = await safeFetch(`/api/seoul-data?service=fitness&start=1&end=${pageSize}`, {
             method: 'GET',
           });
@@ -484,12 +484,12 @@ export async function fetchAllLeads(
       }
 
       if (!firstResult) {
-        console.error(`[${regionName}] ${serviceInfo.name} 議고쉶 ?ㅽ뙣: ?묐떟??鍮꾩뼱 ?덉뒿?덈떎.`);
+        console.error(`[${regionName}] ${serviceInfo.name} 조회 실패: 응답??鍮꾩뼱 ?덉뒿?덈떎.`);
         continue;
       }
 
       if (!firstResult.success) {
-        console.error(`[${regionName}] ${serviceInfo.name} 議고쉶 ?ㅽ뙣:`, firstResult.message);
+        console.error(`[${regionName}] ${serviceInfo.name} 조회 실패:`, firstResult.message);
         continue;
       }
 
@@ -501,10 +501,10 @@ export async function fetchAllLeads(
       allLeads = [...allLeads, ...saveResult.newLeads];
       totalProcessed += firstResult.leads.length;
       
-      // ?좉퇋 ?곗씠?곌? ?섎굹???녾퀬 ?대? 湲곗〈 ?곗씠?곌? 留롮? 寃쎌슦, ?쒖슱 ?곗씠?곕뒗 理쒖떊?쒖씠誘濡?議곌린 醫낅즺 媛??
+      // ?좉퇋 ?곗씠?곌? ?섎굹???녾퀬 이미 기존 데이터가 많은 경우, 서울 ?곗씠?곕뒗 理쒖떊?쒖씠誘濡?議곌린 醫낅즺 媛??
       const isSeoulAPI = regionCode === '6110000' && (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P');
 
-      // 珥??덉긽 嫄댁닔 ?낅뜲?댄듃
+      // 珥?예상 건수 업데이트
       const remainingServices = serviceIds.length - serviceIds.indexOf(serviceInfo) - 1;
       const remainingRegions = regionCodes.length - regionCodes.indexOf(regionCode) - 1;
       estimatedTotal = Math.max(
@@ -532,7 +532,7 @@ export async function fetchAllLeads(
           } else if (serviceInfo.id === '01_01_01_P') {
             result = await fetchSeoulHospitalAPI(start, end);
           } else if (serviceInfo.id === 'LOCALDATA_010301') {
-            // ?섎즺?좎궗???섏씠吏?ㅼ씠??
+            // 의료유사?섏씠吏?ㅼ씠??
             const apiResult = await safeFetch(`/api/seoul-data?service=quasi-medical&start=${start}&end=${end}`, {
               method: 'GET',
             });
@@ -543,7 +543,7 @@ export async function fetchAllLeads(
               result = { success: false, leads: [], totalCount: 0 };
             }
           } else if (serviceInfo.id === 'LOCALDATA_104201') {
-            // 泥대젰?⑤젴?μ뾽 ?섏씠吏?ㅼ씠??
+            // 체력단련장업 ?섏씠吏?ㅼ씠??
             const apiResult = await safeFetch(`/api/seoul-data?service=fitness&start=${start}&end=${end}`, {
               method: 'GET',
             });
@@ -567,7 +567,7 @@ export async function fetchAllLeads(
         }
 
         if (!result) {
-          console.error(`[${regionName}] ${serviceInfo.name} ?섏씠吏 ${pageIndex} 議고쉶 ?ㅽ뙣: ?묐떟??鍮꾩뼱 ?덉뒿?덈떎.`);
+          console.error(`[${regionName}] ${serviceInfo.name} ?섏씠吏 ${pageIndex} 조회 실패: 응답??鍮꾩뼱 ?덉뒿?덈떎.`);
           continue;
         }
 
@@ -580,21 +580,21 @@ export async function fetchAllLeads(
           totalProcessed += result.leads.length;
           onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name}: ${totalProcessed}嫄?(?좉퇋: ${pageSaveResult.newCount})`);
           
-          // ?쒖슱 ?곗씠??API??寃쎌슦, ?좉퇋 ?곗씠?곌? ?놁쑝硫??대? 怨쇨굅 ?곗씠??援ш컙??吏꾩엯??寃껋씠誘濡?以묐떒
+          // 서울 ?곗씠??API??寃쎌슦, ?좉퇋 ?곗씠?곌? ?놁쑝硫??대? 怨쇨굅 ?곗씠??援ш컙??吏꾩엯??寃껋씠誘濡?以묐떒
         } else {
-          console.error(`[${regionName}] ${serviceInfo.name} ?섏씠吏 ${pageIndex} 議고쉶 ?ㅽ뙣`);
+          console.error(`[${regionName}] ${serviceInfo.name} ?섏씠吏 ${pageIndex} 조회 실패`);
         }
 
-        // API ?몄텧 媛꾧꺽 (Rate Limiting 諛⑹?)
+        // API 호출 간격 (Rate Limiting 방지)
         await new Promise(resolve => setTimeout(resolve, 200));
       }
 
-      // ?쒕퉬??媛?媛꾧꺽
+      // 서비스 간 간격
       await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
 
-  onProgress?.(allLeads.length, allLeads.length, '?꾨즺');
+  onProgress?.(allLeads.length, allLeads.length, '완료');
 
   return {
     success: true,
@@ -604,8 +604,8 @@ export async function fetchAllLeads(
 }
 
 /**
- * API ?곌껐 ?뚯뒪??
- * ?쒕쾭??API ?ㅺ? ?щ컮瑜닿쾶 ?ㅼ젙?섏뿀?붿? ?뺤씤
+ * API 연결 테스트
+ * 서버의 API 키가 올바르게 설정되었는지 ?뺤씤
  */
 export async function testAPIConnection(settings: Settings): Promise<{ success: boolean; message: string }> {
   try {
@@ -613,11 +613,11 @@ export async function testAPIConnection(settings: Settings): Promise<{ success: 
     const result = await fetchLocalDataAPI(settings, today, today, 1, 1);
 
     if (result.success) {
-      return { success: true, message: 'API ?곌껐 ?깃났' };
+      return { success: true, message: 'API 연결 성공' };
     } else {
-      return { success: false, message: result.message || 'API ?곌껐 ?ㅽ뙣' };
+      return { success: false, message: result.message || 'API 연결 실패' };
     }
   } catch (error) {
-    return { success: false, message: `?곌껐 ?ㅻ쪟: ${(error as Error).message}` };
+    return { success: false, message: `연결 오류: ${(error as Error).message}` };
   }
 }
