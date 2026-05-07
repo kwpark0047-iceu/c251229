@@ -70,7 +70,7 @@ export function ThemeSelector() {
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
         `}
         aria-label="테마 선택"
-        aria-expanded={isOpen ? "true" : "false"}
+        {...(isOpen ? { 'aria-expanded': 'true' } : { 'aria-expanded': 'false' })}
         aria-haspopup="listbox"
       >
         <Palette className="w-4 h-4" />
@@ -104,7 +104,7 @@ export function ThemeSelector() {
                   changeTheme(value);
                   setIsOpen(false);
                 }}
-                aria-selected={theme === value ? "true" : "false"}
+                {...(theme === value ? { 'aria-selected': 'true' } : { 'aria-selected': 'false' })}
                 title={`${label} 테마 적용`}
                 className={`
                   w-full flex items-center space-x-3 px-3 py-2 rounded-md transition-colors

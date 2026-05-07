@@ -380,9 +380,11 @@ export function ResponsiveCard({
     <div
       className={`bg-white ${cardShadow} ${cardRounded} ${cardPadding} ${className}`}
       onClick={onClick}
-      role={onClick ? "button" : undefined}
-      aria-label={onClick ? (typeof children === 'string' ? children : '카드 선택') : undefined}
-      tabIndex={onClick ? 0 : undefined}
+      {...(onClick ? { 
+        role: "button",
+        tabIndex: 0,
+        "aria-label": typeof children === 'string' ? children : '카드 선택'
+      } : {})}
       onKeyDown={onClick ? (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();

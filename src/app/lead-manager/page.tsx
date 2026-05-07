@@ -346,7 +346,7 @@ function LeadManagerContent() {
     if (!initialLoading && currentPage !== 1) {
       loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery);
     }
-  }, [currentPage, initialLoading, loadLeadsFromDB]); // categoryFilter 등은 위 효과에서 1페이지로 리셋하므로 여기서는 currentPage만 감시 가능 (또는 전체 포함)
+  }, [currentPage, initialLoading, loadLeadsFromDB, categoryFilter, selectedRegions, searchQuery]);
 
 
   // API 연결 테스트

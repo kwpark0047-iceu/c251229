@@ -580,12 +580,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                 {onlineUsers.slice(0, 5).map((u, i) => (
                   <div
                     key={u.id}
-                    className="w-5 h-5 rounded-full bg-emerald-500 border border-white/20 flex items-center justify-center text-[7px] font-bold animate-fade-in animate-float-subtle opacity-[var(--active-opacity)]"
-                    style={{ 
-                      '--delay': `${i * 0.2}s`,
-                      '--active-opacity': '0.9',
-                       
-                    } as React.CSSProperties}
+                    className={`w-5 h-5 rounded-full bg-emerald-500 border border-white/20 flex items-center justify-center text-[7px] font-bold animate-fade-in animate-float-subtle opacity-90 delay-${i * 100}`}
                   >
                     {(u.email || '?')[0].toUpperCase()}
                   </div>
