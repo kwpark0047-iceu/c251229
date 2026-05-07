@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -32,14 +32,14 @@ import { getCurrentUser, UserInfo } from '../auth-service';
 import { Proposal } from '../types';
 import { getDefaultGreeting, uploadProposalFile, getProposals, sendProposalEmail, createProposal } from '../proposal-service';
 
-// 留ㅼ껜 ?좏삎 ?쒓? ?쇰꺼
+// 매체 유형 한글 라벨
 const AD_TYPE_LABELS: Record<string, string> = {
-  'SCREEN_DOOR': '?ㅽ겕由곕룄??PSD)',
-  'LIGHT_BOX': '??대뱶而щ윭(議곕챸)',
-  'POSTER': '?ъ뒪??愿묎퀬',
+  'SCREEN_DOOR': '스크린도어(PSD)',
+  'LIGHT_BOX': '와이드컬러(조명)',
+  'POSTER': '포스터 광고',
   'DIGITAL_POSTER': '디지털 포스터',
-  'CM_BOARD': 'CM 蹂대뱶',
-  'ESCALATOR': '?먯뒪而щ젅?댄꽣 愿묎퀬',
+  'CM_BOARD': 'CM 보드',
+  'ESCALATOR': '에스컬레이터 광고',
 };
 
 interface ProposalFormProps {
@@ -154,7 +154,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
         }
       }
     }
-  }, [uploadFile, lead]);
+  }, [uploadFile, lead, uploadTitle]);
 
   // ... (loadInventory, toggleInventory, handleStationChange, handleSave, handleSendClick, handleSend??湲곗〈 濡쒖쭅 ?좎?) ...
 

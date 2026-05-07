@@ -137,6 +137,71 @@ export function ResponsiveWrapper({
 }
 
 /**
+ * 반응형 텍스트 컴포넌트
+ */
+interface ResponsiveTextProps {
+  children: React.ReactNode;
+  className?: string;
+  size?: Partial<Record<Breakpoint, string>>;
+  weight?: Partial<Record<Breakpoint, string>>;
+  align?: Partial<Record<Breakpoint, 'left' | 'center' | 'right'>>;
+}
+
+export function ResponsiveText({
+  children,
+  className = '',
+  size = { sm: 'text-sm', md: 'text-base', lg: 'text-lg', xl: 'text-xl' },
+  weight = { sm: 'font-normal', md: 'font-medium', lg: 'font-semibold' },
+  align = { sm: 'left', md: 'left', lg: 'left' },
+}: ResponsiveTextProps) {
+  const textSize = useResponsiveValue(size);
+  const textWeight = useResponsiveValue(weight);
+  const textAlign = useResponsiveValue(align);
+
+  return (
+    <div
+      className={`${className} ${textSize} ${textWeight} ${
+        textAlign === 'center' ? 'text-center' : textAlign === 'right' ? 'text-right' : 'text-left'
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * 반응형 컨테이너 컴포넌트
+ */
+interface ResponsiveContainerProps {
+  children: React.ReactNode;
+  className?: string;
+  maxWidth?: Partial<Record<Breakpoint, string>>;
+  padding?: Partial<Record<Breakpoint, string>>;
+}
+
+export function ResponsiveContainer({
+  children,
+  className = '',
+  maxWidth = { sm: '100%', md: '100%', lg: '1200px', xl: '1400px' },
+  padding = { sm: '1rem', md: '1.5rem', lg: '2rem', xl: '2rem' },
+}: ResponsiveContainerProps) {
+  const containerMaxWidth = useResponsiveValue(maxWidth);
+  const containerPadding = useResponsiveValue(padding);
+
+  return (
+    <div
+      className={`${className} mx-auto`}
+      style={{
+        maxWidth: containerMaxWidth,
+        padding: containerPadding,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
  * 반응형 그리드 컴포넌트
  */
 interface ResponsiveGridProps {
@@ -172,76 +237,7 @@ export function ResponsiveGrid({
     };
 
   return (
-     
     <div className={className} style={gridStyle}>
-      {children}
-    </div>
-  );
-}
-
-/**
- * 반응형 텍스트 컴포넌트
- */
-interface ResponsiveTextProps {
-  children: React.ReactNode;
-  className?: string;
-  size?: Partial<Record<Breakpoint, string>>;
-  weight?: Partial<Record<Breakpoint, string>>;
-  align?: Partial<Record<Breakpoint, 'left' | 'center' | 'right'>>;
-}
-
-export function ResponsiveText({
-  children,
-  className = '',
-  size = { sm: 'text-sm', md: 'text-base', lg: 'text-lg', xl: 'text-xl' },
-  weight = { sm: 'font-normal', md: 'font-medium', lg: 'font-semibold' },
-  align = { sm: 'left', md: 'left', lg: 'left' },
-}: ResponsiveTextProps) {
-  const textSize = useResponsiveValue(size);
-  const textWeight = useResponsiveValue(weight);
-  const textAlign = useResponsiveValue(align);
-
-  return (
-     
-    <div
-      className={`${className} ${textSize} ${textWeight}`}
-       
-      style={{ textAlign }}
-    >
-      {children}
-    </div>
-  );
-}
-
-/**
- * 반응형 컨테이너 컴포넌트
- */
-interface ResponsiveContainerProps {
-  children: React.ReactNode;
-  className?: string;
-  maxWidth?: Partial<Record<Breakpoint, string>>;
-  padding?: Partial<Record<Breakpoint, string>>;
-}
-
-export function ResponsiveContainer({
-  children,
-  className = '',
-  maxWidth = { sm: '100%', md: '100%', lg: '1200px', xl: '1400px' },
-  padding = { sm: '1rem', md: '1.5rem', lg: '2rem', xl: '2rem' },
-}: ResponsiveContainerProps) {
-  const containerMaxWidth = useResponsiveValue(maxWidth);
-  const containerPadding = useResponsiveValue(padding);
-
-  return (
-     
-    <div
-      className={`${className} mx-auto`}
-       
-      style={{
-        maxWidth: containerMaxWidth,
-        padding: containerPadding,
-      }}
-    >
       {children}
     </div>
   );
@@ -298,7 +294,6 @@ export function ResponsiveSidebar({
           ${isOpen ? 'translate-x-0' : position === 'left' ? '-translate-x-full' : 'translate-x-full'}
           ${className || 'bg-white shadow-lg'}
         `}
-         
         style={{ width: sidebarWidth }}
       >
         <div className="h-full overflow-y-auto">
@@ -385,7 +380,8 @@ export function ResponsiveCard({
     <div
       className={`bg-white ${cardShadow} ${cardRounded} ${cardPadding} ${className}`}
       onClick={onClick}
-      role={onClick ? 'button' : undefined}
+      role={onClick ? "button" : undefined}
+      aria-label={onClick ? (typeof children === 'string' ? children : '카드 선택') : undefined}
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => {
         if (e.key === 'Enter' || e.key === ' ') {

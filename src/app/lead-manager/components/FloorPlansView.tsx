@@ -76,6 +76,7 @@ export default function FloorPlansView() {
     } finally {
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLine]);
 
   // 광고 위치 로드

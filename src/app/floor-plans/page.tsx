@@ -90,7 +90,8 @@ export default function FloorPlansPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedLine]); // selectedPlan을 의존성에서 제거하여 무한 루프 방지
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLine]); // selectedPlan?.id is used for preservation only
 
   // 광고 위치 로드
   const loadAdPositions = useCallback(async () => {

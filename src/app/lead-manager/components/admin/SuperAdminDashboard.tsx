@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, Shield, CheckCircle, XCircle, Building, 
   Search, Filter, Activity,
   Settings, History, Download, FileText, Calendar,
-  BarChart3, UserCheck, X, AlertCircle, Trash2
+  BarChart3, UserCheck, X, AlertCircle, Trash2, GraduationCap, Utensils
 } from 'lucide-react';
 import { 
   getAllProfiles, 
@@ -44,8 +44,101 @@ interface Props {
   user?: UserInfo | null;
 }
 
+interface SyncCardProps {
+  id: string;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: any;
+  colorName: string;
+  features: string[];
+  apiPath: string;
+  sectorKey: string;
+  syncingSector: string | null;
+  onSync: (sector: string, apiPath: string, title: string) => Promise<void>;
+}
+
+function SyncCard({
+  title, subtitle, description, icon: Icon, colorName, features, apiPath, sectorKey, syncingSector, onSync
+}: SyncCardProps) {
+  const isSyncing = syncingSector === sectorKey;
+  
+  const colorMap: Record<string, any> = {
+    emerald: { 
+      from: 'from-emerald-500/5', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-400', 
+      check: 'text-emerald-500', btn: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/20',
+      syncBtn: 'bg-emerald-800'
+    },
+    indigo: { 
+      from: 'from-indigo-500/5', iconBg: 'bg-indigo-500/20', iconColor: 'text-indigo-400', 
+      check: 'text-indigo-500', btn: 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20',
+      syncBtn: 'bg-indigo-800'
+    },
+    rose: { 
+      from: 'from-rose-500/5', iconBg: 'bg-rose-500/20', iconColor: 'text-rose-400', 
+      check: 'text-rose-500', btn: 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/20',
+      syncBtn: 'bg-rose-800'
+    },
+    amber: { 
+      from: 'from-amber-500/5', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-400', 
+      check: 'text-amber-500', btn: 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20',
+      syncBtn: 'bg-amber-800'
+    },
+    orange: { 
+      from: 'from-orange-500/5', iconBg: 'bg-orange-500/20', iconColor: 'text-orange-400', 
+      check: 'text-orange-500', btn: 'bg-orange-600 hover:bg-orange-500 shadow-orange-900/20',
+      syncBtn: 'bg-orange-800'
+    },
+    cyan: { 
+      from: 'from-cyan-500/5', iconBg: 'bg-cyan-500/20', iconColor: 'text-cyan-400', 
+      check: 'text-cyan-500', btn: 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-900/20',
+      syncBtn: 'bg-cyan-800'
+    }
+  };
+
+  const c = colorMap[colorName] || colorMap.indigo;
+
+  return (
+    <div className="bg-white/[0.02] backdrop-blur-xl p-8 rounded-3xl border border-white/5 shadow-2xl flex flex-col justify-between relative overflow-hidden group">
+      <div className={`absolute inset-0 bg-gradient-to-r ${c.from} to-transparent opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`p-3 ${c.iconBg} rounded-xl`}>
+            <Icon className={`w-6 h-6 ${c.iconColor}`} />
+          </div>
+          <div>
+            <h3 className="font-black text-white text-xl uppercase tracking-tighter">{title}</h3>
+            <p className={`text-[10px] ${c.iconColor}/60 font-black tracking-widest uppercase`}>{subtitle}</p>
+          </div>
+        </div>
+        <p className="text-sm text-slate-400 leading-relaxed mb-6">{description}</p>
+        
+        <div className="space-y-3 mb-8">
+          {features.map((f, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs text-slate-500">
+              <Check className={`w-3.5 h-3.5 ${c.check}`} />
+              <span>{f}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      <button 
+        onClick={() => onSync(sectorKey, apiPath, title)}
+        disabled={isSyncing}
+        className={`relative z-10 flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl ${
+          isSyncing ? `${c.syncBtn} opacity-50 cursor-not-allowed` : `${c.btn} text-white`
+        }`}
+      >
+        {isSyncing ? <span className="animate-spin mr-2">↻</span> : <Download className="w-4 h-4" />}
+        {isSyncing ? '동기화 진행 중...' : `${title} 동기화`}
+      </button>
+    </div>
+  );
+}
+
 export default function SuperAdminDashboard({ user }: Props) {
-  const [activeTab, setActiveTab] = useState<'users' | 'logs'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'data'>('users');
   
   // Data States
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -75,9 +168,10 @@ export default function SuperAdminDashboard({ user }: Props) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotificationList, setShowNotificationList] = useState(false);
   const [toastNotification, setToastNotification] = useState<any | null>(null);
+  const [syncingSector, setSyncingSector] = useState<string | null>(null);
 
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     // 최초 로딩 시에만 스피너 표시
     if (profiles.length === 0) setLoading(true);
     
@@ -95,11 +189,30 @@ export default function SuperAdminDashboard({ user }: Props) {
     }
     
     setLoading(false);
+  }, [profiles.length]);
+
+  const handleSync = async (sector: string, apiPath: string, title: string) => {
+    if (!confirm(`${title} 동기화를 시작하시겠습니까?\n이 작업은 수 분이 소요될 수 있습니다.`)) return;
+    
+    setSyncingSector(sector);
+    try {
+      const response = await fetch(`${apiPath}${apiPath.includes('?') ? '&' : '?'}sync=true`);
+      const result = await response.json();
+      if (result.success) {
+        alert(`동기화 성공: ${result.leads?.length || 0}건의 데이터를 처리했습니다.`);
+      } else {
+        alert(`오류 발생: ${result.message || result.error}`);
+      }
+    } catch (err) {
+      alert('동기화 중 통신 오류가 발생했습니다.');
+    } finally {
+      setSyncingSector(null);
+    }
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -188,22 +301,22 @@ export default function SuperAdminDashboard({ user }: Props) {
       supabase.removeChannel(channel);
       supabase.removeChannel(notificationChannel);
     };
-  }, [user?.id, activeTab]); 
+  }, [user?.id, activeTab, loadData]); 
 
-  const loadAllLogs = async () => {
+  const loadAllLogs = useCallback(async () => {
     setLogsLoading(true);
     const result = await getAllUserLogs(200);
     if (result.success) {
       setAllLogs(result.logs);
     }
     setLogsLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'logs' && allLogs.length === 0) {
       loadAllLogs();
     }
-  }, [activeTab]);
+  }, [activeTab, allLogs.length, loadAllLogs]);
 
   const handleApproval = async (userId: string, isApproved: boolean) => {
     if (!confirm(isApproved ? '이 사용자를 승인하시겠습니까?' : '승인을 취소하시겠습니까?')) return;
@@ -565,6 +678,18 @@ export default function SuperAdminDashboard({ user }: Props) {
           </div>
           {activeTab === 'logs' && <div className="absolute inset-0 bg-indigo-500/5 blur-xl -z-10"></div>}
         </button>
+        <button
+          onClick={() => setActiveTab('data')}
+          className={`py-5 px-3 font-bold text-xs tracking-widest uppercase transition-all border-b-2 relative group ${
+            activeTab === 'data' ? 'border-indigo-500 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Download className={`w-4 h-4 ${activeTab === 'data' ? 'text-indigo-400' : 'text-slate-500'}`} />
+            Data Management
+          </div>
+          {activeTab === 'data' && <div className="absolute inset-0 bg-indigo-500/5 blur-xl -z-10"></div>}
+        </button>
       </div>
 
       <div className="flex-1 overflow-auto p-8 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900/40 via-transparent to-transparent">
@@ -881,6 +1006,105 @@ export default function SuperAdminDashboard({ user }: Props) {
                 <p className="text-xs font-black uppercase tracking-widest">No audit particles detected.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'data' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <SyncCard 
+                sectorKey="academy"
+                id="sync-gg-btn"
+                title="경기도 학원 데이터"
+                subtitle="External Integration"
+                description="경기도 데이터 드림(Gyeonggi Data Dream) API를 통해 도내 학원 및 교습소 정보를 실시간으로 동기화합니다. 좌표를 기반으로 가장 가까운 지하철역을 자동으로 매칭하여 리드 데이터로 변환합니다."
+                icon={Building}
+                colorName="emerald"
+                features={["경기도 내 31개 시/군 전역 데이터", "WGS84 좌표 기반 역세권 자동 분석", "업종 자동 분류 (EDUCATION)"]}
+                apiPath="/api/gg-data"
+                syncingSector={syncingSector}
+                onSync={handleSync}
+              />
+
+              <SyncCard 
+                sectorKey="clinic"
+                id="sync-gg-clinic-btn"
+                title="경기도 의원 데이터"
+                subtitle="Healthcare Integration"
+                description="경기도 의원 인허가 상세 현황 API를 통해 도내 의료 시설 정보를 동기화합니다. 진료 과목 정보를 포함하여 마케팅 타겟팅에 활용 가능한 리드로 변환합니다."
+                icon={Activity}
+                colorName="indigo"
+                features={["도내 의원급 의료기관 전체 데이터", "진료 과목(피부과, 내과 등) 상세 분석", "업종 자동 분류 (HEALTH)"]}
+                apiPath="/api/gg-clinics"
+                syncingSector={syncingSector}
+                onSync={handleSync}
+              />
+
+              <SyncCard 
+                sectorKey="hospital"
+                id="sync-gg-hospital-btn"
+                title="경기도 병원 데이터"
+                subtitle="Healthcare Expansion"
+                description="경기도 병원 상세 현황 API를 통해 도내 중대형 의료 시설 정보를 동기화합니다. 요양병원, 종합병원 등을 포함한 상세 시설 정보를 수집합니다."
+                icon={Shield}
+                colorName="rose"
+                features={["도내 병원/종합병원/요양병원 전체", "시설 규모 및 병상 수 정보 연동 예정", "업종 자동 분류 (HEALTH)"]}
+                apiPath="/api/gg-hospitals"
+                syncingSector={syncingSector}
+                onSync={handleSync}
+              />
+
+              <SyncCard 
+                sectorKey="univ"
+                id="sync-gg-univ-btn"
+                title="대학교 데이터"
+                subtitle="Education Network"
+                description="경기도 데이터 드림 및 공공데이터포털 API를 통해 전국 대학교 및 대학원 정보를 동기화합니다. 학교 홈페이지 및 연락처 정보를 포함하여 캠퍼스 광고 영업용 리드로 활용합니다."
+                icon={GraduationCap}
+                colorName="amber"
+                features={["대학교, 전문대학, 대학원 통합 데이터", "홈페이지 및 대표 연락처 정보 검색 최적화", "캠퍼스별 위치 정보 및 역세권 분석"]}
+                apiPath="/api/gg-univ"
+                syncingSector={syncingSector}
+                onSync={handleSync}
+              />
+
+              <SyncCard 
+                sectorKey="restaurant"
+                id="sync-gg-rest-btn"
+                title="경기도 음식점 데이터"
+                subtitle="Food & Beverage"
+                description="경기도 일반음식점(일식 등) 인허가 현황 API를 통해 지역 내 식음료 업장 정보를 동기화합니다. 업종별 영업 상태를 실시간으로 파악하여 영업 리드로 전환합니다."
+                icon={Utensils}
+                colorName="orange"
+                features={["도내 일반음식점(일식/기타) 인허가 데이터", "영업/폐업 상태 실시간 업데이트 반영", "업종 자동 분류 (FOOD)"]}
+                apiPath="/api/gg-restaurants"
+                syncingSector={syncingSector}
+                onSync={handleSync}
+              />
+
+              <SyncCard 
+                sectorKey="jncl"
+                id="sync-gg-jncl-univ-btn"
+                title="전문 및 대학교 현황"
+                subtitle="Academic Status"
+                description="경기도 내 전문대학 및 대학교의 최신 인허가 및 영업 현황 정보를 동기화합니다. 신규 개설 학교 및 캠퍼스 정보를 실시간으로 관리합니다."
+                icon={GraduationCap}
+                colorName="cyan"
+                features={["전문대학, 대학교, 각종학교 통합 현황", "인허가 기반 최신 영업 상태 및 위치 정보", "교육 서비스 리드 자동 생성 (EDUCATION)"]}
+                apiPath="/api/gg-jncl-univ"
+                syncingSector={syncingSector}
+                onSync={handleSync}
+              />
+
+              {/* 추가 데이터 관리 카드 (플레이스홀더) */}
+              <div className="bg-white/[0.01] backdrop-blur-xl p-8 rounded-3xl border border-white/5 border-dashed flex flex-col items-center justify-center text-center opacity-40">
+                <div className="w-16 h-16 bg-slate-800/40 rounded-full flex items-center justify-center mb-4">
+                  <Activity className="w-8 h-8 text-slate-600" />
+                </div>
+                <h3 className="font-black text-slate-500 text-lg uppercase tracking-tighter">준비 중인 데이터 소스</h3>
+                <p className="text-xs text-slate-600 mt-2">추가적인 공공데이터 소스 통합이 예정되어 있습니다.</p>
+              </div>
+            </div>
           </div>
         )}
       </div>

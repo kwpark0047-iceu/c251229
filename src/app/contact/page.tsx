@@ -341,6 +341,9 @@ export default function ContactPage() {
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const proposalRef = useRef<HTMLDivElement>(null);
   const [visibleLines] = useState<string[]>(DEFAULT_VISIBLE_LINES);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -361,9 +364,9 @@ export default function ContactPage() {
 
       const data = await response.json();
 
-      if (data.success) {
+      if (data.success && data.proposal) {
         setProposal(data.proposal);
-        // 제안서로 스크롤
+        setConfirmEmail(data.proposal.clientInfo.email || form.email);
         setTimeout(() => {
           proposalRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, 300);
@@ -451,15 +454,42 @@ export default function ContactPage() {
   };
 
   const handleSendEmail = async () => {
-    if (!proposal) return;
+    if (!proposal || !confirmEmail) return;
+
+    // 이메일 유효성 검사
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(confirmEmail)) {
+      alert('올바른 이메일 주소를 입력해주세요.');
+      return;
+    }
 
     setIsSendingEmail(true);
 
-    // 실제 이메일 발송 API 호출 (시뮬레이션)
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const response = await fetch('/api/contact/send-proposal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          proposal,
+          email: confirmEmail,
+        }),
+      });
 
-    setIsSendingEmail(false);
-    setEmailSent(true);
+      const result = await response.json();
+
+      if (result.success) {
+        setEmailSent(true);
+      } else {
+        alert(result.message || '이메일 발송에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Email send error:', error);
+      alert('이메일 발송 중 서버 오류가 발생했습니다.');
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const adTypes = [
@@ -1066,49 +1096,74 @@ export default function ContactPage() {
                 )}
 
                 {/* 액션 버튼 */}
-                <div className="flex flex-col sm:flex-row gap-4 relative z-50">
-                  <button
-                    type="button"
-                    onClick={handleDownloadPDF}
-                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] cursor-pointer"
-                    style={{
-                      background: 'linear-gradient(135deg, #00A84D 0%, #00C853 100%)',
-                      boxShadow: '0 8px 24px rgba(0, 168, 77, 0.3)',
-                      position: 'relative',
-                      zIndex: 100,
-                    }}
-                  >
-                    <Download className="w-5 h-5" />
-                    PDF 저장
-                  </button>
-                  <button
-                    onClick={handleSendEmail}
-                    disabled={isSendingEmail || emailSent}
-                    className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] disabled:opacity-50"
-                    style={{
-                      background: emailSent
-                        ? 'linear-gradient(135deg, #666 0%, #888 100%)'
-                        : 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
-                      boxShadow: emailSent ? 'none' : '0 8px 24px rgba(0, 165, 222, 0.3)',
-                    }}
-                  >
-                    {isSendingEmail ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        발송 중...
-                      </>
-                    ) : emailSent ? (
-                      <>
-                        <CheckCircle className="w-5 h-5" />
-                        발송 완료
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-5 h-5" />
-                        이메일 발송
-                      </>
-                    )}
-                  </button>
+                <div className="mt-8 pt-8 border-t border-[var(--border-subtle)] space-y-6">
+                  <div>
+                    <p className="text-sm text-[var(--text-muted)] mb-3">제안서를 받으실 이메일 주소를 확인해주세요.</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        value={confirmEmail}
+                        onChange={(e) => setConfirmEmail(e.target.value)}
+                        placeholder="이메일 주소 입력"
+                        className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[#00A5DE] transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-4 relative z-50">
+                    <button
+                      type="button"
+                      onClick={handleDownloadPDF}
+                      disabled={isDownloading}
+                      className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] cursor-pointer disabled:opacity-50"
+                      style={{
+                        background: 'linear-gradient(135deg, #00A84D 0%, #00C853 100%)',
+                        boxShadow: '0 8px 24px rgba(0, 168, 77, 0.3)',
+                        position: 'relative',
+                        zIndex: 100,
+                      }}
+                    >
+                      {isDownloading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          PDF 생성 중...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-5 h-5" />
+                          PDF 저장
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleSendEmail}
+                      disabled={isSendingEmail || emailSent}
+                      className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl text-white text-lg font-semibold transition-all hover:scale-[1.02] disabled:opacity-50"
+                      style={{
+                        background: emailSent
+                          ? 'linear-gradient(135deg, #666 0%, #888 100%)'
+                          : 'linear-gradient(135deg, #00A5DE 0%, #0088CC 100%)',
+                        boxShadow: emailSent ? 'none' : '0 8px 24px rgba(0, 165, 222, 0.3)',
+                      }}
+                    >
+                      {isSendingEmail ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          발송 중...
+                        </>
+                      ) : emailSent ? (
+                        <>
+                          <CheckCircle className="w-5 h-5" />
+                          발송 완료
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-5 h-5" />
+                          이메일 발송
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

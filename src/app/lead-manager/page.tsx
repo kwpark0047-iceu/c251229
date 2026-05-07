@@ -183,6 +183,46 @@ function LeadManagerContent() {
   // 초기 로딩 상태
   const [initialLoading, setInitialLoading] = useState(true);
 
+  // 설정 로드
+  const loadSettings = useCallback(async () => {
+    const result = await getSettings();
+    if (result.success) {
+      setSettings(result.settings);
+    }
+  }, []);
+
+  // DB에서 리드 로드 (선택된 업종 및 지역 필터 적용)
+  const loadLeadsFromDB = useCallback(async (
+    category?: BusinessCategory,
+    regions?: string[],
+    page: number = 1,
+    search: string = ''
+  ) => {
+    setIsLoading(true);
+    const result = await getLeads({
+      category: category || categoryFilter,
+      regions: regions || selectedRegions,
+      status: statusFilter === 'ALL' ? undefined : statusFilter,
+      searchQuery: search || searchQuery,
+      page: page,
+      pageSize: PAGE_SIZE
+    });
+
+    if (result.success) {
+      setLeads(result.leads);
+      setTotalCount(result.count || 0);
+      setCurrentPage(page);
+
+      // 진행상황 일괄 조회 (API 호출 최적화)
+      if (result.leads.length > 0) {
+        const leadIds = result.leads.map(l => l.id);
+        const progressData = await getProgressBatch(leadIds);
+        setSalesProgressMap(progressData);
+      }
+    }
+    setIsLoading(false);
+  }, [categoryFilter, selectedRegions, statusFilter, searchQuery]);
+
   // 설정 및 데이터 로드
   useEffect(() => {
     const init = async () => {
@@ -219,8 +259,7 @@ function LeadManagerContent() {
       setInitialLoading(false);
     };
     init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 초기 마운트 시에만 실행
-  }, []);
+  }, [loadSettings, loadLeadsFromDB]);
 
   // 로그아웃 처리
   const handleSignOut = async () => {
@@ -292,72 +331,23 @@ function LeadManagerContent() {
     }
   }, [categoryFilter]);
 
-  // 필터 변경 시 DB에서 다시 로드 (페이지 1로 초기화)
-  useEffect(() => {
-    if (!initialLoading) {
-      // 검색어 변경 시에는 디바운스 적용을 위해 여기서 호출하지 않거나, 별도 처리
-      // 여기서는 카테고리/지역/상태 변경 시 즉시 로드
-      loadLeadsFromDB(categoryFilter, selectedRegions, 1, searchQuery);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryFilter, selectedRegions, statusFilter]);
-
-  // 검색어 디바운스 처리
+  // 필터 및 검색어 변경 시 DB에서 다시 로드 (페이지 1로 초기화)
   useEffect(() => {
     if (!initialLoading) {
       const timer = setTimeout(() => {
         loadLeadsFromDB(categoryFilter, selectedRegions, 1, searchQuery);
-      }, 500);
+      }, searchQuery ? 500 : 0); // 검색어가 있을 때만 디바운스
       return () => clearTimeout(timer);
     }
-  }, [searchQuery]);
+  }, [categoryFilter, selectedRegions, statusFilter, searchQuery, initialLoading, loadLeadsFromDB]);
 
-  // 페이지 변경 시 로드
+  // 페이지 변경 시 로드 (디바운스 불필요)
   useEffect(() => {
-    if (!initialLoading) {
+    if (!initialLoading && currentPage !== 1) {
       loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery);
     }
-  }, [currentPage]);
+  }, [currentPage, initialLoading, loadLeadsFromDB]); // categoryFilter 등은 위 효과에서 1페이지로 리셋하므로 여기서는 currentPage만 감시 가능 (또는 전체 포함)
 
-  // 설정 로드
-  const loadSettings = async () => {
-    const result = await getSettings();
-    if (result.success) {
-      setSettings(result.settings);
-    }
-  };
-
-  // DB에서 리드 로드 (선택된 업종 및 지역 필터 적용)
-  const loadLeadsFromDB = useCallback(async (
-    category?: BusinessCategory,
-    regions?: string[],
-    page: number = 1,
-    search: string = ''
-  ) => {
-    setIsLoading(true);
-    const result = await getLeads({
-      category: category || categoryFilter,
-      regions: regions || selectedRegions,
-      status: statusFilter === 'ALL' ? undefined : statusFilter,
-      searchQuery: search || searchQuery,
-      page: page,
-      pageSize: PAGE_SIZE
-    });
-
-    if (result.success) {
-      setLeads(result.leads);
-      setTotalCount(result.count || 0);
-      setCurrentPage(page);
-
-      // 진행상황 일괄 조회 (API 호출 최적화)
-      if (result.leads.length > 0) {
-        const leadIds = result.leads.map(l => l.id);
-        const progressData = await getProgressBatch(leadIds);
-        setSalesProgressMap(progressData);
-      }
-    }
-    setIsLoading(false);
-  }, [categoryFilter, selectedRegions, statusFilter, searchQuery]);
 
   // API 연결 테스트
   const checkConnection = useCallback(async () => {
@@ -572,12 +562,7 @@ function LeadManagerContent() {
             <div className="flex items-center gap-3 group cursor-pointer" onClick={() => router.push('/')}>
               { }
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 bg-[--logo-bg] shadow-[--logo-glow]"
-                 
-                style={{
-                  '--logo-bg': 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                  '--logo-glow': '0 4px 15px rgba(60, 181, 74, 0.25)',
-                } as React.CSSProperties}
+                className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 bg-gradient-to-br from-[var(--metro-line2)] to-[var(--metro-line4)] shadow-[0_4px_15px_rgba(60,181,74,0.25)]"
               >
                 <Train className="w-5 h-5 text-white" />
               </div>
@@ -769,11 +754,10 @@ function LeadManagerContent() {
                           });
                         }}
                         className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${selectedRegions.includes(region.code)
-                          ? 'text-white'
+                          ? 'text-white bg-[--region-color]'
                           : 'text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'
                           }`}
-                         
-                        style={selectedRegions.includes(region.code) ? { background: region.color } : {}}
+                        style={{ '--region-color': region.color } as React.CSSProperties}
                       >
                         {region.name}
                       </button>
@@ -805,10 +789,9 @@ function LeadManagerContent() {
                       key={mode}
                       onClick={() => setViewMode(mode)}
                       title={`${mode === 'grid' ? '그리드' : mode === 'list' ? '리스트' : '지도'} 보기`}
-                      className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                      className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow bg-[--btn-color]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
                         }`}
-                       
-                      style={viewMode === mode ? { background: color } : {}}
+                      style={{ '--btn-color': color } as React.CSSProperties}
                     >
                       <Icon className="w-4 h-4" />
                     </button>
@@ -835,9 +818,7 @@ function LeadManagerContent() {
                   <button
                     onClick={refreshData}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 bg-[--btn-bg]"
-                     
-                    style={{ '--btn-bg': 'var(--metro-line2)' } as React.CSSProperties}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 bg-[var(--metro-line2)]"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
                     {isLoading ? `${loadingProgress.current}/${loadingProgress.total}` : '새로고침'}

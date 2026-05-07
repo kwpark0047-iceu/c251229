@@ -57,6 +57,7 @@
 .header-blur {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--bg-primary) 86%, transparent) 0%, color-mix(in srgb, var(--bg-primary) 76%, transparent) 100%);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   backdrop-filter: blur(18px) saturate(1.2);
 }
 
@@ -68,6 +69,7 @@
 .glass-panel {
   background: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
   border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, white 10%);
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
   backdrop-filter: blur(16px) saturate(1.15);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14);
 }
