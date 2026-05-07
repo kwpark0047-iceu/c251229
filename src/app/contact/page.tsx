@@ -379,77 +379,93 @@ export default function ContactPage() {
 
   const handleDownloadPDF = async () => {
     if (!proposalRef.current) return;
+    setIsDownloading(true);
 
-    // 동적 import로 html2canvas와 jspdf 로드
-    const html2canvas = (await import('html2canvas')).default;
-    const { jsPDF } = await import('jspdf');
+    try {
+      // 동적 import로 html2canvas와 jspdf 로드
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
 
-    const element = proposalRef.current;
+      const element = proposalRef.current;
 
-    // 폰트 로딩 대기
-    if (document.fonts && document.fonts.ready) {
-      await document.fonts.ready;
-    }
+      // 폰트 로딩 대기
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
 
-    // 폰트 완전 로딩을 위한 추가 대기
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      // 폰트 완전 로딩을 위한 추가 대기
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      imageTimeout: 30000,
-      onclone: (clonedDoc) => {
-        // Google Fonts CSS를 클론된 문서에 직접 삽입
-        const style = clonedDoc.createElement('style');
-        style.textContent = `
-          @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
-          * {
-            font-family: 'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', -apple-system, BlinkMacSystemFont, sans-serif !important;
-          }
-        `;
-        clonedDoc.head.appendChild(style);
-
-        // 클론된 요소에 폰트 강제 적용
-        const clonedElement = clonedDoc.body.querySelector('[data-proposal-content]');
-        if (clonedElement instanceof HTMLElement) {
-          clonedElement.style.cssText += `
-            font-family: 'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', sans-serif !important;
-          `;
-          clonedElement.querySelectorAll('*').forEach((el) => {
-            if (el instanceof HTMLElement) {
-              el.style.fontFamily = "'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', sans-serif";
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false,
+        imageTimeout: 30000,
+        onclone: (clonedDoc) => {
+          // Google Fonts CSS를 클론된 문서에 직접 삽입
+          const style = clonedDoc.createElement('style');
+          style.textContent = `
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+            * {
+              font-family: 'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', -apple-system, BlinkMacSystemFont, sans-serif !important;
             }
-          });
-        }
-      },
-    });
+          `;
+          clonedDoc.head.appendChild(style);
 
-    const imgData = canvas.toDataURL('image/png', 1.0);
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = 210;
-    const pageHeight = 297;
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          // 클론된 요소에 폰트 강제 적용
+          const clonedElement = clonedDoc.body.querySelector('[data-proposal-content]');
+          if (clonedElement instanceof HTMLElement) {
+            clonedElement.style.cssText += `
+              font-family: 'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', sans-serif !important;
+              color: #1a1a1a !important;
+            `;
+            clonedElement.querySelectorAll('*').forEach((el) => {
+              if (el instanceof HTMLElement) {
+                el.style.fontFamily = "'Noto Sans KR', 'Malgun Gothic', '맑은 고딕', sans-serif";
+                // 텍스트 가독성을 위해 컬러 명시
+                const color = window.getComputedStyle(el).color;
+                if (color === 'rgba(0, 0, 0, 0)' || color === 'transparent') {
+                   // Skip transparent
+                } else {
+                   // ensure some default if needed, but let's keep it mostly as is
+                }
+              }
+            });
+          }
+        },
+      });
 
-    let heightLeft = imgHeight;
-    let position = 0;
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // 첫 페이지
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
-    heightLeft -= pageHeight;
+      let heightLeft = imgHeight;
+      let position = 0;
 
-    // 추가 페이지
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
+      // 첫 페이지
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
       heightLeft -= pageHeight;
-    }
 
-    pdf.save(`AI추천_제안서_${proposal?.id || 'proposal'}.pdf`);
+      // 추가 페이지
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`AI추천_제안서_${proposal?.id || 'proposal'}.pdf`);
+    } catch (error) {
+      console.error('PDF 생성 중 오류 발생:', error);
+      alert('PDF 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleSendEmail = async () => {
@@ -985,6 +1001,7 @@ export default function ContactPage() {
                                       src={plan.imageUrl}
                                       alt={`${station.stationName} ${plan.planType}`}
                                       className="w-full h-full object-cover"
+                                      crossOrigin="anonymous"
                                     />
                                   </div>
                                   <div className="p-2 bg-[var(--bg-tertiary)]/50 text-center">
