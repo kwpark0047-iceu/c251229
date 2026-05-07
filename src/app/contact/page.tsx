@@ -481,6 +481,7 @@ export default function ContactPage() {
     setIsSendingEmail(true);
 
     try {
+      console.log('제안서 이메일 발송 시도:', confirmEmail);
       const response = await fetch('/api/contact/send-proposal', {
         method: 'POST',
         headers: {
@@ -496,12 +497,14 @@ export default function ContactPage() {
 
       if (result.success) {
         setEmailSent(true);
+        alert('제안서가 이메일로 성공적으로 발송되었습니다.');
       } else {
-        alert(result.message || '이메일 발송에 실패했습니다.');
+        console.error('이메일 발송 실패:', result.message);
+        alert(result.message || '이메일 발송에 실패했습니다. 이메일 주소를 확인해주세요.');
       }
     } catch (error) {
       console.error('Email send error:', error);
-      alert('이메일 발송 중 서버 오류가 발생했습니다.');
+      alert('이메일 발송 중 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setIsSendingEmail(false);
     }
@@ -1120,7 +1123,7 @@ export default function ContactPage() {
                         type="email"
                         value={confirmEmail}
                         onChange={(e) => setConfirmEmail(e.target.value)}
-                        placeholder="이메일 주소 입력"
+                        placeholder="예: contact@example.com"
                         className="flex-1 bg-[var(--bg-tertiary)] border border-[var(--glass-border)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[#00A5DE] transition-all"
                       />
                     </div>
