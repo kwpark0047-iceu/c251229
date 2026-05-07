@@ -343,7 +343,6 @@ export default function ContactPage() {
   const [emailSent, setEmailSent] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
-  const proposalRef = useRef<HTMLDivElement>(null);
   const [visibleLines] = useState<string[]>(DEFAULT_VISIBLE_LINES);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
