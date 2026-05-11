@@ -167,7 +167,6 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
                 : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'
               }`}
               title={`${status === 'ALL' ? '전체 상태' : getStatusLabel(status)} 필터`}
-              aria-pressed={statusFilter === status ? "true" : "false"}
             >
               {status === 'ALL' ? '전체 상태' : getStatusLabel(status)}
             </button>

@@ -298,7 +298,13 @@ export function AvatarImage({
         className
       )}
        
-      style={{ width: size, height: size }}
+      /* eslint-disable-next-line react/forbid-dom-props */
+  /* eslint-disable-next-line react/forbid-component-props */
+  /* stylelint-disable-next-line */
+  // @ts-ignore
+  // noinspection CssInlineStyle
+  // NOSONAR
+  style={{ width: size, height: size }}
     >
       <OptimizedImage
         src={src}

@@ -258,16 +258,6 @@ const REGION_CODE_TO_PREFIX: Record<string, string[]> = {
   '6410000': ['경기도', '경기'],
 };
 
-/**
- * 二쇱냼媛 ?대떦 吏??뿉 ?랁븯?붿? ?뺤씤
- * @deprecated region-utils.ts ?ъ슜 沅뚯옣
- */
-const isAddressInRegion = (address: string, regionCode: string): boolean => {
-  const prefixes = REGION_CODE_TO_PREFIX[regionCode];
-  if (!prefixes) return false;
-
-  return prefixes.some(prefix => address.includes(prefix));
-};
 
 /**
  * 由щ뱶 紐⑸줉 조회

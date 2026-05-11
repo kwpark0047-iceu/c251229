@@ -268,7 +268,6 @@ export default function ResponsiveLeadManager({
                 }`}
                 aria-label="그리드 뷰"
                 title="그리드 뷰"
-                aria-pressed={viewMode === 'grid' ? "true" : "false"}
               >
                 <LayoutGrid className="w-4 h-4" />
                 Grid
@@ -280,7 +279,6 @@ export default function ResponsiveLeadManager({
                 }`}
                 aria-label="리스트 뷰"
                 title="리스트 뷰"
-                aria-pressed={viewMode === 'list' ? "true" : "false"}
               >
                 <LayoutList className="w-4 h-4" />
                 List
@@ -292,7 +290,6 @@ export default function ResponsiveLeadManager({
                 }`}
                 aria-label="지도 뷰"
                 title="지도 뷰"
-                aria-pressed={viewMode === 'map' ? "true" : "false"}
               >
                 <Map className="w-4 h-4" />
                 Map

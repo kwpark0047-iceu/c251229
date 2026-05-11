@@ -1,8 +1,8 @@
-﻿/**
- * 서울 吏?섏쿋 광고 영업 시스템- API 연동 로직
- * 서버사이드API瑜??듯빐 LocalData.go.kr ?곗씠??議고쉶
+/**
+ * 서울 지하철 광고 영업 시스템 - API 연동 로직
+ * 서버사이드 API를 통해 LocalData.go.kr 데이터 조회
  *
- * 보안: API ?ㅻ뒗 ?쒕쾭?먯꽌留?愿由щ릺硫?클라이언트에 노출되지 않습니다.
+ * 보안: API 키는 서버에서만 관리되며 클라이언트에 노출되지 않습니다.
  */
 
 import { Lead, Settings, BusinessCategory, CATEGORY_SERVICE_IDS, CATEGORY_LABELS, ServiceIdInfo } from './types';
@@ -16,7 +16,7 @@ import { removeDuplicateLeads } from './deduplication-utils';
 import { safeFetch, ApiError } from './api-client';
 
 /**
- * API 호출 결과 ???
+ * API 호출 결과 타입
  */
 interface FetchResult {
   success: boolean;
@@ -26,14 +26,14 @@ interface FetchResult {
 }
 
 /**
- * ?쒕쾭 API 응답??임시 리드 ???
+ * 서버 API 응답용 임시 리드 타입
  */
 interface RawLead {
   bizName: string;
   bizId?: string;
-  mgtNo?: string;         // 愿由щ쾲??
-  trdStateNm?: string;    // 영업?곹깭紐?
-  dtlStateNm?: string;    // ?곸꽭영업?곹깭紐?
+  mgtNo?: string;         // 관리번호
+  trdStateNm?: string;    // 영업상태명
+  dtlStateNm?: string;    // 상세영업상태명
   licenseDate?: string;
   roadAddress?: string;
   lotAddress?: string;
@@ -44,8 +44,8 @@ interface RawLead {
 }
 
 /**
- * 서버사이드API瑜??듯빐 LocalData ?곗씠??議고쉶
- * API ?ㅻ뒗 ?쒕쾭?먯꽌 안전하게 愿由щ맗?덈떎.
+ * 서버사이드 API를 통해 LocalData 데이터 조회
+ * API 키는 서버에서 안전하게 관리됩니다.
  */
 export async function fetchLocalDataAPI(
   settings: Settings,
@@ -73,7 +73,7 @@ export async function fetchLocalDataAPI(
         pageIndex,
         pageSize,
       }),
-      maxRetries: 2, // ?섎룞 由ы듃?쇱씠 ?ы븿 珥?3??
+      maxRetries: 2,
     });
 
     if (!result.success) {
@@ -81,7 +81,7 @@ export async function fetchLocalDataAPI(
         success: false,
         leads: [],
         totalCount: 0,
-        message: result.error || result.message || 'API ?몄텧??실패했습니다.',
+        message: result.error || result.message || 'API 호출에 실패했습니다.',
       };
     }
 
@@ -108,7 +108,7 @@ export async function fetchLocalDataAPI(
 }
 
 /**
- * 서울 ?대┛?곗씠??愿묒옣 API瑜??듯빐 서울???섏썝 ?명뿀媛 ?뺣낫 議고쉶
+ * 서울 열린데이터 광장 API를 통해 서울시 의원 인허가 정보 조회
  */
 export async function fetchSeoulClinicAPI(
   startIndex: number = 1,
@@ -124,7 +124,7 @@ export async function fetchSeoulClinicAPI(
         success: false,
         leads: [],
         totalCount: 0,
-        message: result.error || '서울 ?곗씠??API ?몄텧??실패했습니다.',
+        message: result.error || '서울 데이터 API 호출에 실패했습니다.',
       };
     }
 
@@ -148,7 +148,7 @@ export async function fetchSeoulClinicAPI(
 }
 
 /**
- * 서울 ?대┛?곗씠??愿묒옣 API瑜??듯빐 서울??蹂묒썝 ?명뿀媛 ?뺣낫 議고쉶
+ * 서울 열린데이터 광장 API를 통해 서울시 병원 인허가 정보 조회
  */
 export async function fetchSeoulHospitalAPI(
   startIndex: number = 1,
@@ -164,7 +164,7 @@ export async function fetchSeoulHospitalAPI(
         success: false,
         leads: [],
         totalCount: 0,
-        message: result.error || '서울 ?곗씠??API ?몄텧??실패했습니다.',
+        message: result.error || '서울 데이터 API 호출에 실패했습니다.',
       };
     }
 
@@ -188,15 +188,13 @@ export async function fetchSeoulHospitalAPI(
 }
 
 /**
- * 서울 ?곗씠??API??임시 리드 ?곗씠?곕? 처리 (醫뚰몴 蹂?? 역 매칭)
+ * 서울 데이터 API의 임시 리드 데이터를 처리 (좌표 변환, 역 매칭)
  */
 async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALDATA_010102'): Promise<Lead[]> {
   const { subwayDataManager } = await import('./kric-data-manager');
   await subwayDataManager.getAllSubwayData();
 
   const processedLeads = (await Promise.all(rawLeads.map(async (raw) => {
-    // 서울 ?곗씠???꾨뱶 留ㅽ븨 (?몃뜑諛??놁쓬 二쇱쓽): 
-    // BPLCNM (?ъ뾽?λ챸), RDNWHLADDR (?꾨줈紐낆＜??, SITEWHLADDR (吏踰덉＜??, SITETEL (전화번호), X (醫뚰몴X), Y (醫뚰몴Y)
     const bizName = raw.BPLCNM || '';
     if (!bizName) return null;
 
@@ -206,8 +204,6 @@ async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALD
     let stationDistance: number | undefined;
     let stationLines: string[] | undefined;
 
-    // 서울 ?곗씠?곗쓽 醫뚰몴(X, Y)??以묐??먯젏(GRS80)
-    // 媛믪뿉 怨듬갚???ы븿?섏뼱 ?덉쓣 ???덉쑝誘濡?trim 처리
     const x = parseFloat((raw.X || '0').toString().trim());
     const y = parseFloat((raw.Y || '0').toString().trim());
 
@@ -230,11 +226,9 @@ async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALD
       }
     }
 
-    // ?쒕퉬??ID???곕Ⅸ 카테고리 寃곗젙
     const { CATEGORY_SERVICE_IDS } = await import('./types');
     let category: any = 'OTHER';
     
-    // CATEGORY_SERVICE_IDS??紐⑤뱺 카테고리瑜??쒗쉶?섎ŉ ?대떦 serviceId瑜??ы븿?섎뒗 카테고리 李얘린
     let serviceName = '알 수 없는 서비스';
     for (const [cat, services] of Object.entries(CATEGORY_SERVICE_IDS)) {
       const foundService = services.find(s => s.id === serviceId);
@@ -275,18 +269,12 @@ async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALD
 }
 
 /**
- * 임시 리드 ?곗씠?곕? 처리 (醫뚰몴 蹂?? 역 매칭)
- */
-/**
- * 임시 리드 ?곗씠?곕? 처리 (醫뚰몴 蹂?? 역 매칭)
+ * 임시 리드 데이터를 처리 (좌표 변환, 역 매칭)
  */
 async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo): Promise<Lead[]> {
   const { subwayDataManager } = await import('./kric-data-manager');
-
-  // 罹먯떆 ?뚮컢
   await subwayDataManager.getAllSubwayData();
 
-  // 제외 ?ㅼ썙???뺤쓽 (의료기관 寃?????욎씠??鍮꾪?寃?업종)
   const excludeKeywords = [
     '약국', '편의점', '세븐일레븐', '씨유', '지에스', 'GS25', 'CU', '7-ELEVEN',
     '이마트', '안경', '콘택트', '안경원', '다이소', '올리브영', '롭스', '랄라블라'
@@ -296,8 +284,6 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
     const subject = (raw.medicalSubject || '').replace(/\s+/g, '');
     const bizName = (raw.bizName || '').replace(/\s+/g, '');
 
-    // 의료기관 愿???쒕퉬?ㅼ씠嫄곕굹 카테고리媛 HEALTH???뚮쭔 ?뺣? 필터링?곸슜
-    // 泥댁쑁?쒖꽕(SPORTS) ???ㅻⅨ 카테고리??필터링제외 (상호명에 '안경' 등이 포함될 수 있음)
     const isMedicalService = serviceInfo?.id?.startsWith('01_01') || serviceInfo?.id?.startsWith('01_03');
     const isHealthCategory = serviceInfo?.category === 'HEALTH';
     
@@ -315,7 +301,6 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
     let stationDistance: number | undefined;
     let stationLines: string[] | undefined;
 
-    // 醫뚰몴 蹂??(GRS80 -> WGS84)
     if (raw.coordX && raw.coordY) {
       const { convertGRS80ToWGS84 } = await import('./utils');
       const converted = convertGRS80ToWGS84(raw.coordX, raw.coordY);
@@ -332,13 +317,11 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
           stationDistance = nearest.distance;
           stationLines = nearest.station.lines;
 
-          // 媛??媛源뚯슫 출구 번호 계산
           const nearestExit = await subwayDataManager.findNearestExit(nearest.station.name, latitude, longitude);
           if (nearestExit) {
             (raw as any).nearestExitNo = nearestExit;
           }
         }
-
       }
     }
 
@@ -360,11 +343,10 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
       detailedStatus: raw.dtlStateNm,
       category: serviceInfo?.category || 'OTHER',
       serviceId: serviceInfo?.id || 'UNKNOWN',
-      serviceName: serviceInfo?.name || '湲고?',
+      serviceName: serviceInfo?.name || '기타',
       nearestStation,
       nearestExitNo: (raw as any).nearestExitNo,
       stationDistance,
-
       stationLines,
       status: 'NEW',
     } as Lead;
@@ -374,31 +356,22 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
 }
 
 /**
- * 전체 ?곗씠??議고쉶 (?섏씠吏?ㅼ씠??처리)
- * @param settings - 설정 정보 (API ?ㅻ뒗 사용하지 않음)
- * @param startDate - 시작 날짜
- * @param endDate - 醫낅즺 ?좎쭨
- * @param onProgress - 진행 상황 콜백
- * @param category - 업종 카테고리 (선택)
+ * 모든 리드 조회 및 동기화 (고성능 병렬 처리 버전)
+ * 여러 지역과 서비스를 병렬로 조회하여 속도를 극대화합니다.
  */
 export async function fetchAllLeads(
   settings: Settings,
   startDate: Date,
   endDate: Date,
   onProgress?: (current: number, total: number, status?: string) => void,
-  category?: BusinessCategory,
-  selectedServiceIds?: string[]  // 선택???몃???ぉ ID??
+  category: BusinessCategory = 'ALL',
+  selectedServiceIds?: string[]
 ): Promise<FetchResult> {
   const pageSize = 100;
-  let allLeads: Lead[] = [];
-  const seenKeys = new Set<string>(); // 以묐났 泥댄겕??
-  const seenBizIds = new Set<string>(); // ?ъ뾽??ID 以묐났 泥댄겕??
-
-  // 카테고리??해당하는 ?쒕퉬??ID 목록
   let serviceIds: ServiceIdInfo[] = [];
 
+  // 1. 서비스 ID 목록 준비
   if (category === 'ALL' || !category) {
-    // 紐⑤뱺 카테고리???쒕퉬??ID瑜?합침 (ALL 제외)
     Object.entries(CATEGORY_SERVICE_IDS).forEach(([key, services]) => {
       if (key !== 'ALL') {
         serviceIds = [...serviceIds, ...services];
@@ -408,204 +381,137 @@ export async function fetchAllLeads(
     serviceIds = CATEGORY_SERVICE_IDS[category];
   }
 
-  // 선택???몃???ぉ???덉쑝硫??대떦 ??ぉ留?필터링
   if (selectedServiceIds && selectedServiceIds.length > 0) {
     serviceIds = serviceIds.filter(s => selectedServiceIds.includes(s.id));
   }
 
-  // 吏??肄붾뱶 목록 (?ㅼ쨷 吏??吏??
-  const regionCodes = settings.regionCodes?.length
-    ? settings.regionCodes
-    : [settings.regionCode];
+  const regionCodes = settings.regionCodes?.length ? settings.regionCodes : [settings.regionCode];
+  const regionNames: Record<string, string> = { '6110000': '서울', '6410000': '경기' };
 
-  // 吏??챸 留ㅽ븨
-  const regionNames: Record<string, string> = {
-    '6110000': '서울',
-    '6410000': '寃쎄린',
-  };
-
-  let totalProcessed = 0;
-  let estimatedTotal = serviceIds.length * regionCodes.length * 100;
-
+  // 2. 작업 목록 생성
+  const tasks: { regionCode: string; serviceInfo: ServiceIdInfo }[] = [];
   for (const regionCode of regionCodes) {
-    const regionName = regionNames[regionCode] || regionCode;
-
     for (const serviceInfo of serviceIds) {
-      const categoryLabel = CATEGORY_LABELS[serviceInfo.category] || serviceInfo.category;
-      onProgress?.(totalProcessed, estimatedTotal, `[${regionName}/${categoryLabel}] ${serviceInfo.name} 조회 중...`);
+      tasks.push({ regionCode, serviceInfo });
+    }
+  }
 
-      // 泥??섏씠吏 議고쉶
+  let completedTasks = 0;
+  const totalTasks = tasks.length;
+  let totalNewLeadsCount = 0;
+
+  onProgress?.(0, totalTasks, `동기화 시작 (총 ${totalTasks}개 서비스)...`);
+
+  // 3. 병렬 처리 엔진 (동시성 제한: 3)
+  const CONCURRENCY_LIMIT = 3;
+  const results: Lead[] = [];
+  
+  const executeTask = async (task: { regionCode: string; serviceInfo: ServiceIdInfo }) => {
+    const { regionCode, serviceInfo } = task;
+    const regionName = regionNames[regionCode] || regionCode;
+    
+    try {
+      // 첫 페이지 조회
       let firstResult: FetchResult | undefined;
-      
-      // 서울 吏??씠怨??뱀젙 ?꾨Ц 업종(의료기관/의료유사泥대젰?⑤젴????寃쎌슦 서울 ?곗씠??API 우선 시도
       const isSeoulSpecialty = regionCode === '6110000' && 
         (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P' || 
          serviceInfo.id === 'LOCALDATA_010301' || serviceInfo.id === 'LOCALDATA_104201');
 
       if (isSeoulSpecialty) {
-        onProgress?.(totalProcessed, estimatedTotal, `[서울] 서울 ?곗씠??Portal?먯꽌 ${serviceInfo.name} 최신 정보 수집 중...`);
-        if (serviceInfo.id === '01_01_02_P') {
-          firstResult = await fetchSeoulClinicAPI(1, pageSize);
-        } else if (serviceInfo.id === '01_01_01_P') {
-          firstResult = await fetchSeoulHospitalAPI(1, pageSize);
-        } else if (serviceInfo.id === 'LOCALDATA_010301') {
-          // 의료유사전용 API 호출
-          const result = await safeFetch(`/api/seoul-data?service=quasi-medical&start=1&end=${pageSize}`, {
-            method: 'GET',
-          });
-          if (result.success) {
-            const leads = await processSeoulRawLeads(result.leads, 'LOCALDATA_010301');
-            firstResult = { success: true, leads, totalCount: result.totalCount };
-          } else {
-            firstResult = { success: false, leads: [], totalCount: 0, message: result.error };
-          }
+        if (serviceInfo.id === '01_01_02_P') firstResult = await fetchSeoulClinicAPI(1, pageSize);
+        else if (serviceInfo.id === '01_01_01_P') firstResult = await fetchSeoulHospitalAPI(1, pageSize);
+        else if (serviceInfo.id === 'LOCALDATA_010301') {
+          const res = await safeFetch(`/api/seoul-data?service=quasi-medical&start=1&end=${pageSize}`);
+          if (res.success) firstResult = { success: true, leads: await processSeoulRawLeads(res.leads, 'LOCALDATA_010301'), totalCount: res.totalCount };
         } else if (serviceInfo.id === 'LOCALDATA_104201') {
-          // 체력단련장업 전용 API 호출
-          const result = await safeFetch(`/api/seoul-data?service=fitness&start=1&end=${pageSize}`, {
-            method: 'GET',
-          });
-          if (result.success) {
-            const leads = await processSeoulRawLeads(result.leads, 'LOCALDATA_104201');
-            firstResult = { success: true, leads, totalCount: result.totalCount };
-          } else {
-            firstResult = { success: false, leads: [], totalCount: 0, message: result.error };
-          }
+          const res = await safeFetch(`/api/seoul-data?service=fitness&start=1&end=${pageSize}`);
+          if (res.success) firstResult = { success: true, leads: await processSeoulRawLeads(res.leads, 'LOCALDATA_104201'), totalCount: res.totalCount };
         }
       } else {
-        firstResult = await fetchLocalDataAPI(
-          settings,
-          startDate,
-          endDate,
-          1,
-          pageSize,
-          serviceInfo,
-          regionCode
-        );
+        firstResult = await fetchLocalDataAPI(settings, startDate, endDate, 1, pageSize, serviceInfo, regionCode);
       }
 
-      if (!firstResult) {
-        console.error(`[${regionName}] ${serviceInfo.name} 조회 실패: 응답??鍮꾩뼱 ?덉뒿?덈떎.`);
-        continue;
+      if (!firstResult || !firstResult.success || firstResult.leads.length === 0) {
+        completedTasks++;
+        onProgress?.(completedTasks, totalTasks, `[${regionName}] ${serviceInfo.name}: 데이터 없음`);
+        return;
       }
 
-      if (!firstResult.success) {
-        console.error(`[${regionName}] ${serviceInfo.name} 조회 실패:`, firstResult.message);
-        continue;
-      }
-
-      // 1?섏씠吏 ?곗씠??利됱떆 ???諛??좉퇋 ?щ? ?뺤씤
+      // 첫 페이지 즉시 저장 및 신규 확인
       const { saveLeads } = await import('./supabase-service');
       const saveResult = await saveLeads(firstResult.leads, undefined);
       
-      // ??λ맂 ?좉퇋 ?곗씠?곕쭔 寃곌낵???ы븿 (?붾㈃ ?쒖떆??
-      allLeads = [...allLeads, ...saveResult.newLeads];
-      totalProcessed += firstResult.leads.length;
-      
-      // ?좉퇋 ?곗씠?곌? ?섎굹???녾퀬 이미 기존 데이터가 많은 경우, 서울 ?곗씠?곕뒗 理쒖떊?쒖씠誘濡?議곌린 醫낅즺 媛??
-      const isSeoulAPI = regionCode === '6110000' && (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P');
+      totalNewLeadsCount += saveResult.newCount;
+      results.push(...saveResult.newLeads);
 
-      // 珥?예상 건수 업데이트
-      const remainingServices = serviceIds.length - serviceIds.indexOf(serviceInfo) - 1;
-      const remainingRegions = regionCodes.length - regionCodes.indexOf(regionCode) - 1;
-      estimatedTotal = Math.max(
-        estimatedTotal,
-        totalProcessed + (remainingServices + remainingRegions * serviceIds.length) * 50
-      );
-      onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name}: ${firstResult.totalCount}건`);
-
-      // 異붽? ?섏씠吏 議고쉶
+      // 추가 페이지 처리 (필요한 경우)
       const totalPages = Math.ceil(firstResult.totalCount / pageSize);
-
-      for (let pageIndex = 2; pageIndex <= totalPages; pageIndex++) {
-        let result: FetchResult | undefined;
-        
-        const isSeoulSpecialty = regionCode === '6110000' && 
-          (serviceInfo.id === '01_01_02_P' || serviceInfo.id === '01_01_01_P' || 
-           serviceInfo.id === 'LOCALDATA_010301' || serviceInfo.id === 'LOCALDATA_104201');
-
-        if (isSeoulSpecialty) {
-          const start = (pageIndex - 1) * pageSize + 1;
-          const end = pageIndex * pageSize;
-
-          if (serviceInfo.id === '01_01_02_P') {
-            result = await fetchSeoulClinicAPI(start, end);
-          } else if (serviceInfo.id === '01_01_01_P') {
-            result = await fetchSeoulHospitalAPI(start, end);
-          } else if (serviceInfo.id === 'LOCALDATA_010301') {
-            // 의료유사?섏씠吏?ㅼ씠??
-            const apiResult = await safeFetch(`/api/seoul-data?service=quasi-medical&start=${start}&end=${end}`, {
-              method: 'GET',
-            });
-            if (apiResult.success) {
-              const leads = await processSeoulRawLeads(apiResult.leads, 'LOCALDATA_010301');
-              result = { success: true, leads, totalCount: apiResult.totalCount };
-            } else {
-              result = { success: false, leads: [], totalCount: 0 };
+      if (totalPages > 1) {
+        for (let p = 2; p <= Math.min(totalPages, 5); p++) { // 동기화 성능을 위해 최대 5페이지로 제한
+          let pageResult: FetchResult | undefined;
+          if (isSeoulSpecialty) {
+            const start = (p - 1) * pageSize + 1;
+            const end = p * pageSize;
+            const endpointMap: Record<string, string> = {
+              'LOCALDATA_010301': 'quasi-medical',
+              'LOCALDATA_104201': 'fitness'
+            };
+            
+            if (serviceInfo.id === '01_01_02_P') pageResult = await fetchSeoulClinicAPI(start, end);
+            else if (serviceInfo.id === '01_01_01_P') pageResult = await fetchSeoulHospitalAPI(start, end);
+            else if (endpointMap[serviceInfo.id]) {
+              const res = await safeFetch(`/api/seoul-data?service=${endpointMap[serviceInfo.id]}&start=${start}&end=${end}`);
+              if (res.success) pageResult = { success: true, leads: await processSeoulRawLeads(res.leads, serviceInfo.id), totalCount: res.totalCount };
             }
-          } else if (serviceInfo.id === 'LOCALDATA_104201') {
-            // 체력단련장업 ?섏씠吏?ㅼ씠??
-            const apiResult = await safeFetch(`/api/seoul-data?service=fitness&start=${start}&end=${end}`, {
-              method: 'GET',
-            });
-            if (apiResult.success) {
-              const leads = await processSeoulRawLeads(apiResult.leads, 'LOCALDATA_104201');
-              result = { success: true, leads, totalCount: apiResult.totalCount };
-            } else {
-              result = { success: false, leads: [], totalCount: 0 };
-            }
+          } else {
+            pageResult = await fetchLocalDataAPI(settings, startDate, endDate, p, pageSize, serviceInfo, regionCode);
           }
-        } else {
-          result = await fetchLocalDataAPI(
-            settings,
-            startDate,
-            endDate,
-            pageIndex,
-            pageSize,
-            serviceInfo,
-            regionCode
-          );
-        }
 
-        if (!result) {
-          console.error(`[${regionName}] ${serviceInfo.name} ?섏씠吏 ${pageIndex} 조회 실패: 응답??鍮꾩뼱 ?덉뒿?덈떎.`);
-          continue;
+          if (pageResult?.success && pageResult.leads.length > 0) {
+            const psr = await saveLeads(pageResult.leads, undefined);
+            totalNewLeadsCount += psr.newCount;
+            results.push(...psr.newLeads);
+            
+            // 신규 데이터가 없으면 과거 데이터로 판단하고 중단 (최적화)
+            if (psr.newCount === 0 && !isSeoulSpecialty) break;
+          }
         }
-
-        if (result.success) {
-          // 利됱떆 DB ???諛??좉퇋 ?щ? ?뺤씤
-          const { saveLeads } = await import('./supabase-service');
-          const pageSaveResult = await saveLeads(result.leads, undefined);
-          
-          allLeads = [...allLeads, ...pageSaveResult.newLeads];
-          totalProcessed += result.leads.length;
-          onProgress?.(totalProcessed, estimatedTotal, `[${regionName}] ${serviceInfo.name}: ${totalProcessed}嫄?(?좉퇋: ${pageSaveResult.newCount})`);
-          
-          // 서울 ?곗씠??API??寃쎌슦, ?좉퇋 ?곗씠?곌? ?놁쑝硫??대? 怨쇨굅 ?곗씠??援ш컙??吏꾩엯??寃껋씠誘濡?以묐떒
-        } else {
-          console.error(`[${regionName}] ${serviceInfo.name} ?섏씠吏 ${pageIndex} 조회 실패`);
-        }
-
-        // API 호출 간격 (Rate Limiting 방지)
-        await new Promise(resolve => setTimeout(resolve, 200));
       }
 
-      // 서비스 간 간격
-      await new Promise(resolve => setTimeout(resolve, 300));
+      completedTasks++;
+      onProgress?.(completedTasks, totalTasks, `[${regionName}] ${serviceInfo.name}: ${firstResult.totalCount}건 확인 (${totalNewLeadsCount}건 신규)`);
+      
+    } catch (err) {
+      console.error(`[Task Error] ${regionName}/${serviceInfo.name}:`, err);
+      completedTasks++;
     }
-  }
+  };
 
-  onProgress?.(allLeads.length, allLeads.length, '완료');
+  // 4. 동시 실행 제어 (Pool 방식)
+  const pool = [...tasks];
+  const workers = Array(Math.min(CONCURRENCY_LIMIT, pool.length))
+    .fill(null)
+    .map(async () => {
+      while (pool.length > 0) {
+        const task = pool.shift();
+        if (task) await executeTask(task);
+      }
+    });
+
+  await Promise.all(workers);
+
+  onProgress?.(totalTasks, totalTasks, `동기화 완료 (총 ${totalNewLeadsCount}건 신규 추가)`);
 
   return {
     success: true,
-    leads: allLeads,
-    totalCount: allLeads.length,
+    leads: results,
+    totalCount: results.length,
   };
 }
 
 /**
  * API 연결 테스트
- * 서버의 API 키가 올바르게 설정되었는지 ?뺤씤
+ * 서버의 API 키가 올바르게 설정되었는지 확인
  */
 export async function testAPIConnection(settings: Settings): Promise<{ success: boolean; message: string }> {
   try {

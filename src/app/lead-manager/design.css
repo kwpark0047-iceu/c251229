@@ -62,13 +62,13 @@
 }
 
 .header-scrolled {
-  border-bottom-color: color-mix(in srgb, var(--border-subtle) 65%, white 12%);
+  border-bottom-color: var(--border-subtle);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
 .glass-panel {
   background: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, white 10%);
+  border: 1px solid var(--border-subtle);
   -webkit-backdrop-filter: blur(16px) saturate(1.15);
   backdrop-filter: blur(16px) saturate(1.15);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14);
@@ -122,7 +122,7 @@
 /* Fixed color-mix support for older browsers */
 .header-scrolled {
   border-bottom-color: rgba(255, 255, 255, 0.1); /* Fallback */
-  border-bottom-color: color-mix(in srgb, var(--border-subtle) 65%, white 12%);
+  border-bottom-color: var(--border-subtle);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
@@ -130,7 +130,7 @@
   background: rgba(15, 23, 42, 0.72); /* Fallback for dark theme */
   background: color-mix(in srgb, var(--bg-secondary) 72%, transparent);
   border: 1px solid rgba(255, 255, 255, 0.1); /* Fallback */
-  border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, white 10%);
+  border: 1px solid var(--border-subtle);
   -webkit-backdrop-filter: blur(16px) saturate(1.15);
   backdrop-filter: blur(16px) saturate(1.15);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.14);

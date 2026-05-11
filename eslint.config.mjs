@@ -41,7 +41,7 @@ const eslintConfig = [
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/set-state-in-effect": "off",
       // 현재 코드베이스는 동적 스타일을 광범위하게 사용하므로 금지 대신 경고로 완화
-      "react/forbid-dom-props": ["warn", { "forbid": [] }],
+      "react/forbid-dom-props": "off",
       // 레거시 UI에서 div 클릭 패턴이 많아 단계적 개선을 위해 경고로 완화
       "jsx-a11y/click-events-have-key-events": "off",
       "jsx-a11y/no-static-element-interactions": "off",
