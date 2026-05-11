@@ -262,7 +262,6 @@ function LeadManagerContent() {
   }, [loadSettings, loadLeadsFromDB]);
 
   // 로그아웃 처리
-  // 로그아웃 처리
   const handleSignOut = async () => {
     try {
       // 1. 서버 측 API를 호출하여 쿠키 완벽 삭제 및 세션 종료
@@ -276,25 +275,6 @@ function LeadManagerContent() {
     } catch (e) {
       console.error('로그아웃 중 예외 발생:', e);
       localStorage.clear();
-      window.location.href = '/auth';
-    }
-  };
-
-    try {
-      const result = await signOut();
-      if (result.success) {
-        // Next.js 캐시 및 미들웨어 상태 초기화를 위해 하드 리로드 수행
-        window.location.href = '/auth';
-      } else {
-        console.error('로그아웃 에러:', result.message);
-        localStorage.clear();
-        clearCookies();
-        window.location.href = '/auth';
-      }
-    } catch (e) {
-      console.error('로그아웃 중 예외 발생:', e);
-      localStorage.clear();
-      clearCookies();
       window.location.href = '/auth';
     }
   };
