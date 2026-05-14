@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "tdd-workflow": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "skillPath": "skills/tdd-workflow/SKILL.md",
+      "computedHash": "c03b44b81e6baa41000b3ce8305640900721becc1e707f4dbdf65b1c6d76d300"
+    }
+  }
+}

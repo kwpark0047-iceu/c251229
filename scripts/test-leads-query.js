@@ -1,12 +1,12 @@
-const { createClient } = require('@supabase/supabase-js');
-const dotenv = require('dotenv');
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function checkDatabase() {
+async function testFetchLeads() {
   console.log('=== 가장 최근에 추가된 리드 5개 조회 ===');
   const { data: recentLeads, error: recentError } = await supabase
     .from('leads')
@@ -35,4 +35,4 @@ async function checkDatabase() {
   }
 }
 
-checkDatabase();
+testFetchLeads();

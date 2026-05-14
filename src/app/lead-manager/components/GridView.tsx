@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 그리드 뷰 컴포넌트 - Neo-Seoul Transit Design
+ * 그리드 뷰 컴포넌트 - Neo-Seoul Transit Design (최적화 버전)
  * 병원 리드를 카드 형태로 표시
  */
 
@@ -30,7 +30,6 @@ interface GridViewProps {
   onMapView: (lead: Lead) => void;
   salesProgressMap?: Map<string, SalesProgress[]>;
   isFieldMode?: boolean;
-  // 페이지네이션 관련 추가
   currentPage: number;
   totalCount: number;
   pageSize: number;
@@ -69,7 +68,6 @@ export default function GridView({
         ))}
       </div>
 
-      {/* 페이지네이션 UI */}
       {totalCount > pageSize && (
         <div className="mt-8 mb-4 flex items-center justify-center gap-2">
           <button
@@ -118,7 +116,6 @@ export default function GridView({
         </div>
       )}
 
-      {/* 리드 상세 패널 */}
       {selectedLeadId && (
         <LeadDetailPanel
           leadId={selectedLeadId}
@@ -133,7 +130,6 @@ export default function GridView({
   );
 }
 
-// 하이라이트 렌더링 컴포넌트 (렌더 밖에서 정의)
 function HighlightText({ text, searchQuery, className }: { text: string; searchQuery: string; className?: string }) {
   const parts = getHighlightParts(text, searchQuery);
   return (
@@ -168,73 +164,34 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
   return (
     <>
       <div
-        className={`parallax-card group relative rounded-pro border overflow-hidden cursor-pointer bg-[var(--glass-bg)] border-[var(--glass-border)] ${getCardClass()}`}
-        /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-          '--delay': `${index * 30}ms`,
-           
+        className={`group relative rounded-pro border overflow-hidden cursor-pointer bg-[var(--glass-bg)] border-[var(--glass-border)] ${getCardClass()}`}
+        style={{
+          '--delay': `${index * 20}ms`,
         } as React.CSSProperties}
         onClick={(e) => {
           if ((e.target as HTMLElement).closest('button, a')) return;
           onSelect();
         }}
-        onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          const x = ((e.clientX - rect.left) / rect.width) * 100;
-          const y = ((e.clientY - rect.top) / rect.height) * 100;
-          e.currentTarget.style.setProperty('--mouse-x', `${x}%`);
-          e.currentTarget.style.setProperty('--mouse-y', `${y}%`);
-        }}
       >
-        {/* 호버 시 글로우 효과 */}
         <div
-          /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
+          style={{
             '--glow-gradient': `radial-gradient(circle at 50% 0%, ${statusColor.glow} 0%, transparent 70%)`,
-             
           } as React.CSSProperties}
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-[image:var(--glow-gradient)]"
         />
 
-        {/* 상단 - 상태 표시 */}
         <div
           className="relative px-4 py-3 border-b bg-[--status-bg] border-[--status-border]"
-          /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
+          style={{
             '--status-bg': statusColor.bg,
             '--status-border': statusColor.border,
-             
           } as React.CSSProperties}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span
                 className="text-sm font-semibold text-[--status-text]"
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{ 
-                  '--status-text': statusColor.text,
-                   
-                } as React.CSSProperties}
+                style={{ '--status-text': statusColor.text } as React.CSSProperties}
               >
                 {STATUS_LABELS[lead.status]}
               </span>
@@ -247,17 +204,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                   setIsStatusOpen(!isStatusOpen);
                 }}
                 className="p-1.5 rounded-lg transition-colors hover:bg-white/10 text-[--status-text]"
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{ 
-                  '--status-text': statusColor.text,
-                   
-                } as React.CSSProperties}
-                title="상태 변경"
+                style={{ '--status-text': statusColor.text } as React.CSSProperties}
               >
                 <ChevronDown className="w-4 h-4" />
               </button>
@@ -275,30 +222,24 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
           </div>
         </div>
 
-        {/* 본문 */}
         <div className="relative p-4">
-          {/* 병원명 - 클릭 시 지도 뷰로 이동 */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onMapView?.();
             }}
             className="font-bold text-[var(--text-primary)] mb-2 line-clamp-1 text-left w-full hover:text-[var(--metro-line4)] hover:underline transition-colors"
-            title={`${lead.bizName} - 지도에서 보기`}
           >
             <HighlightText text={lead.bizName} searchQuery={searchQuery} />
           </button>
 
-          {/* 진료과목 */}
           {lead.medicalSubject && (
             <p className="text-sm text-[var(--text-muted)] mb-3 line-clamp-1">
               <HighlightText text={lead.medicalSubject} searchQuery={searchQuery} />
             </p>
           )}
 
-          {/* 정보 목록 */}
           <div className="space-y-2.5 text-sm">
-            {/* 주소 */}
             <div className="flex items-start gap-2.5 text-[var(--text-secondary)]">
               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--metro-line3)]" />
               <span className="line-clamp-2">
@@ -306,7 +247,6 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               </span>
             </div>
 
-            {/* 인근역 */}
             {lead.nearestStation && (
               <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">
                 <Train className="w-4 h-4 flex-shrink-0 text-[var(--metro-line4)]" />
@@ -320,39 +260,17 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                         <span
                           key={line}
                           className="w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold shadow-sm bg-[--line-color]"
-                          /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{ 
-                            '--line-color': LINE_COLORS[line] || '#888',  
-                          } as React.CSSProperties}
+                          style={{ '--line-color': LINE_COLORS[line] || '#888' } as React.CSSProperties}
                         >
                           {line}
                         </span>
                       ))}
                     </div>
                   )}
-                  {lead.stationDistance && (
-                    <span className="text-[var(--text-muted)]">
-                      ({formatDistance(lead.stationDistance)})
-                    </span>
-                  )}
                 </div>
               </div>
             )}
 
-            {/* 인허가일 */}
-            {lead.licenseDate && (
-              <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">
-                <Calendar className="w-4 h-4 flex-shrink-0 text-[var(--metro-line5)]" />
-                <span>{lead.licenseDate}</span>
-              </div>
-            )}
-
-            {/* 담당자 */}
             {lead.assignedToName && (
               <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">
                 <User className="w-4 h-4 flex-shrink-0 text-[var(--metro-line9)]" />
@@ -362,16 +280,8 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               </div>
             )}
           </div>
-
-          {/* 필드 모드일 때 추가 여백 및 강조 (선택적) */}
-          {isFieldMode && (
-            <div className="mt-3">
-              {/* 필드 모드에서는 중요 정보만 강조 */}
-            </div>
-          )}
         </div>
 
-        {/* 하단 액션 버튼 - 필드 모드에서 더 크게 표시 */}
         <div
           className={`relative px-4 border-t flex gap-4 ${isFieldMode ? 'py-4' : 'py-3'} border-[var(--border-subtle)] bg-[var(--bg-tertiary)]`}
         >
@@ -381,7 +291,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                 e.stopPropagation();
                 setShowCallModal(true);
               }}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 shadow-[0_2px_10px_rgba(60,181,74,0.3)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'} bg-[var(--metro-line2)]`}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line2)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
             >
               <Phone className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
               통화
@@ -392,7 +302,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               e.stopPropagation();
               onSelect();
             }}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 shadow-[0_2px_10px_rgba(50,164,206,0.3)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'} bg-[var(--metro-line4)]`}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line4)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
           >
             <FileText className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
             제안
@@ -400,7 +310,6 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
         </div>
       </div>
 
-      {/* 통화 기록 모달 */}
       {showCallModal && (
         <CallLogModal
           leadId={lead.id}
@@ -414,21 +323,12 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
   );
 }
 
-interface StatusDropdownProps {
-  currentStatus: LeadStatus;
-  onSelect: (status: LeadStatus) => void;
-  onClose: () => void;
-}
-
-function StatusDropdown({ currentStatus, onSelect, onClose }: StatusDropdownProps) {
+function StatusDropdown({ currentStatus, onSelect, onClose }: { currentStatus: LeadStatus; onSelect: (status: LeadStatus) => void; onClose: () => void }) {
   const statuses: LeadStatus[] = ['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'];
 
   return (
     <>
-      {/* 백드롭 */}
       <div className="fixed inset-0 z-10" onClick={onClose} />
-
-      {/* 드롭다운 메뉴 */}
       <div
         className="absolute right-0 top-full mt-2 w-40 rounded-xl border py-2 z-20 bg-[var(--glass-bg)] border-[var(--glass-border)] backdrop-blur-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
       >
@@ -438,35 +338,15 @@ function StatusDropdown({ currentStatus, onSelect, onClose }: StatusDropdownProp
             <button
               key={status}
               onClick={() => onSelect(status)}
-              className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors ${status === currentStatus
-                ? 'bg-[var(--bg-secondary)]'
-                : 'hover:bg-[var(--bg-secondary)]'
-                }`}
+              className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors ${status === currentStatus ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}`}
             >
               <div
                 className="w-3 h-3 rounded-full border-2 bg-[--dot-bg] border-[--dot-border]"
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                  '--dot-bg': color.bg,
-                  '--dot-border': color.border,
-                   
-                } as React.CSSProperties}
+                style={{ '--dot-bg': color.bg, '--dot-border': color.border } as React.CSSProperties}
               />
               <span
                 className="font-medium text-[--status-text]"
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{ '--status-text': color.text,  
-                } as React.CSSProperties}
+                style={{ '--status-text': color.text } as React.CSSProperties}
               >
                 {STATUS_LABELS[status]}
               </span>

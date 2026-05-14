@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Info, Tag, ExternalLink } from 'lucide-react';
 import { FloorPlan, AdInventory, AD_TYPE_LABELS, AVAILABILITY_LABELS, AVAILABILITY_COLORS } from '../../types';
+import { getLineDisplayName } from '../../utils/subway-utils';
 
 interface StationFloorPlansProps {
     floorPlans: FloorPlan[];
@@ -24,7 +25,16 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
             const itemStation = cleanName(item.stationName);
             const planStation = cleanName(selectedFloorPlan.stationName);
             
-            // 3. 위치 좌표가 도면에 매핑되어 있는지 확인
+            // 3. 노선 매칭 (환승역 대응)
+            if (itemStation === planStation && selectedFloorPlan.lineNumber) {
+                const lineName = getLineDisplayName(selectedFloorPlan.lineNumber);
+                // 인벤토리 설명에 해당 노선명이 포함되어 있는지 확인
+                if (item.description && !item.description.includes(lineName)) {
+                    return false;
+                }
+            }
+            
+            // 4. 위치 좌표가 도면에 매핑되어 있는지 확인
             return itemStation === planStation && item.spotPositionX && item.spotPositionY;
           })
         : [];
