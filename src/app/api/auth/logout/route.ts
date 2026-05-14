@@ -44,15 +44,19 @@ function expireSupabaseCookies(request: NextRequest, response: NextResponse) {
   cookieNames.forEach((name) => expireAuthCookie(response, name))
 }
 
-async function logout(request: NextRequest) {
-  const response = NextResponse.json({ success: true }, {
-    headers: {
-      'Cache-Control': 'no-store, max-age=0',
-    },
-  })
-
+async function logout(request: NextRequest, shouldRedirect = false) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  let response: NextResponse;
+  
+  if (shouldRedirect) {
+    response = NextResponse.redirect(new URL('/auth?logout=1', request.url))
+  } else {
+    response = NextResponse.json({ success: true })
+  }
+
+  response.headers.set('Cache-Control', 'no-store, max-age=0')
 
   if (supabaseUrl && supabaseAnonKey) {
     const supabase = createServerClient(
@@ -80,9 +84,12 @@ async function logout(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  return logout(request)
+  return logout(request, false)
 }
 
 export async function GET(request: NextRequest) {
-  return logout(request)
+  // URL에 redirect=0이 명시되어 있지 않으면 기본적으로 리다이렉트 수행
+  const redirectParam = request.nextUrl.searchParams.get('redirect')
+  const shouldRedirect = redirectParam !== '0'
+  return logout(request, shouldRedirect)
 }

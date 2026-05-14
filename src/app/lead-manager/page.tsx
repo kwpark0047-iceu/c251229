@@ -284,16 +284,17 @@ function LeadManagerContent() {
   // 로그아웃 처리
   const handleSignOut = async () => {
     try {
+      // 1. 클라이언트 측 세션 정리 시도
       const supabase = createClient();
       await resetSupabaseBrowserSession(supabase);
-      window.location.href = '/auth?logout=1';
+      
+      // 2. 서버 측 세션 파기 및 리다이렉트를 위해 전용 API 호출
+      // 이 방식은 미들웨어의 파라미터 감지에만 의존하지 않고 확실하게 서버 세션을 종료합니다.
+      window.location.href = '/api/auth/logout?redirect=1';
     } catch (e) {
       console.error('로그아웃 중 예외 발생:', e);
-      if (typeof window !== 'undefined') {
-        localStorage.clear();
-        sessionStorage.clear();
-      }
-      window.location.href = '/auth?logout=1';
+      // 오류 발생 시에도 강제 리다이렉트
+      window.location.href = '/api/auth/logout?redirect=1';
     }
   };
 
