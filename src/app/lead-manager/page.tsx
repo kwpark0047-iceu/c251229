@@ -246,31 +246,30 @@ function LeadManagerContent() {
       let restoredCategory: BusinessCategory = 'ALL';
       let restoredRegions: string[] = ['6110000', '6410000'];
 
-      if (typeof window !== 'undefined') {
-        const savedCategory = localStorage.getItem('leadManager_categoryFilter');
-        if (savedCategory) {
-          restoredCategory = savedCategory as BusinessCategory;
-          setCategoryFilter(restoredCategory);
-        }
+      try {
+        if (typeof window !== 'undefined') {
+          const savedCategory = localStorage.getItem('leadManager_categoryFilter');
+          if (savedCategory) {
+            restoredCategory = savedCategory as BusinessCategory;
+            setCategoryFilter(restoredCategory);
+          }
 
-        const savedRegions = localStorage.getItem('leadManager_selectedRegions');
-        if (savedRegions) {
-          try {
-            restoredRegions = JSON.parse(savedRegions);
-            setSelectedRegions(restoredRegions);
-          } catch (e) {
-            console.error('Failed to parse saved regions:', e);
+          const savedRegions = localStorage.getItem('leadManager_selectedRegions');
+          if (savedRegions) {
+            try {
+              restoredRegions = JSON.parse(savedRegions);
+              setSelectedRegions(restoredRegions);
+            } catch (e) {
+              console.error('Failed to parse saved regions:', e);
+            }
+          }
+
+          const savedTheme = localStorage.getItem('leadManager_activeTheme') as ThemeType;
+          if (savedTheme) {
+            applyThemeVariables(savedTheme);
           }
         }
 
-        const savedTheme = localStorage.getItem('leadManager_activeTheme') as ThemeType;
-        if (savedTheme) {
-          applyThemeVariables(savedTheme);
-        }
-      }
-
-    const init = async () => {
-      try {
         console.log('[Init] Starting initialization...');
         const user = await getCurrentUser();
         setUserInfo(user);
@@ -280,13 +279,12 @@ function LeadManagerContent() {
         await loadLeadsFromDB(restoredCategory, restoredRegions, 1, '', user);
       } catch (error) {
         console.error('[Init] Error during initialization:', error);
-        // 사용자에게 알림은 표시하되, 초기 로딩 상태는 해제하여 UI를 볼 수 있게 함
       } finally {
         setInitialLoading(false);
       }
     };
     init();
-  }, [loadSettings, loadLeadsFromDB, restoredCategory, restoredRegions]);
+  }, [loadSettings, loadLeadsFromDB]);
 
   // 로그아웃 처리
   const handleSignOut = async () => {
