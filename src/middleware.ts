@@ -6,11 +6,30 @@ export async function middleware(request: NextRequest) {
   const logoutParam = request.nextUrl.searchParams.get('logout')
 
   // 0. 최우선 순위: 로그아웃 파라미터 감지 시 즉시 세션 파기 및 리다이렉트
-  if (logoutParam === '1') {
+  if (logoutParam === '1' || request.url.includes('logout=1')) {
     console.log('[Middleware] Priority Logout Detected')
     const url = new URL('/auth', request.url)
     const response = NextResponse.redirect(url)
     
+    // 서버 사이드 로그아웃 시도
+    if (supabaseUrl && supabaseAnonKey) {
+      try {
+        const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+          cookies: {
+            getAll() { return request.cookies.getAll() },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                response.cookies.set(name, value, options)
+              })
+            },
+          },
+        })
+        await supabase.auth.signOut()
+      } catch (e) {
+        console.error('[Middleware] SignOut error:', e)
+      }
+    }
+
     // 쿠키 삭제 (도메인/경로 명시)
     const hostname = request.headers.get('host')?.split(':')[0] || ''
     request.cookies.getAll().forEach((cookie) => {
@@ -98,8 +117,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // 인증 페이지에 로그인된 사용자 접근 시 → 대시보드로
-    if (isAuthRoute && user) {
+    // 인증 페이지에 로그인된 사용자 접근 시 → 대시보드로 (단, 로그아웃 요청 중인 경우 리다이렉트 차단)
+    if (isAuthRoute && user && logoutParam !== '1') {
       console.log('[Middleware] Redirecting to /lead-manager (authenticated)')
       const url = request.nextUrl.clone()
       const redirect = url.searchParams.get('redirect') || '/lead-manager'
