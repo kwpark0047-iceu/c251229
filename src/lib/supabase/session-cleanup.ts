@@ -4,6 +4,17 @@ function isSupabaseStorageKey(key: string) {
   return key.startsWith('sb-') || key.toLowerCase().includes('supabase')
 }
 
+function getSupabaseProjectRef() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!supabaseUrl) return null
+
+  try {
+    return new URL(supabaseUrl).hostname.split('.')[0]
+  } catch {
+    return null
+  }
+}
+
 function removeMatchingStorage(storage: Storage) {
   const keys = Array.from({ length: storage.length }, (_, index) => storage.key(index))
     .filter((key): key is string => !!key && isSupabaseStorageKey(key))
@@ -40,10 +51,18 @@ export function clearSupabaseBrowserState() {
   removeMatchingStorage(window.localStorage)
   removeMatchingStorage(window.sessionStorage)
 
-  const cookieNames = document.cookie
+  const cookieNames = new Set(document.cookie
     .split(';')
     .map((cookie) => cookie.trim().split('=')[0])
-    .filter((name) => name && (name.startsWith('sb-') || name.toLowerCase().includes('supabase')))
+    .filter((name) => name && (name.startsWith('sb-') || name.toLowerCase().includes('supabase'))))
+
+  const projectRef = getSupabaseProjectRef()
+  if (projectRef) {
+    cookieNames.add(`sb-${projectRef}-auth-token`)
+    cookieNames.add(`sb-${projectRef}-auth-token.0`)
+    cookieNames.add(`sb-${projectRef}-auth-token.1`)
+    cookieNames.add(`sb-${projectRef}-code-verifier`)
+  }
 
   const domains = getCookieDomains()
   cookieNames.forEach((name) => {

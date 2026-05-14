@@ -1,51 +1,88 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function POST(request: Request) {
-  const cookieStore = await cookies()
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+function getSupabaseProjectRef() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!supabaseUrl) return null
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options)
-          })
-        },
-      },
-    }
+  try {
+    return new URL(supabaseUrl).hostname.split('.')[0]
+  } catch {
+    return null
+  }
+}
+
+function isSupabaseCookie(name: string) {
+  return name.startsWith('sb-') || name.toLowerCase().includes('supabase')
+}
+
+function expireAuthCookie(response: NextResponse, name: string) {
+  response.cookies.set(name, '', {
+    path: '/',
+    maxAge: 0,
+    expires: new Date(0),
+    sameSite: 'lax',
+  })
+}
+
+function expireSupabaseCookies(request: NextRequest, response: NextResponse) {
+  const projectRef = getSupabaseProjectRef()
+  const cookieNames = new Set(
+    request.cookies
+      .getAll()
+      .map((cookie) => cookie.name)
+      .filter(isSupabaseCookie)
   )
 
-  // Supabase 세션 종료
-  await supabase.auth.signOut()
-
-  const response = NextResponse.json({ success: true })
-
-  // 응답 객체에 직접 쿠키 삭제 명령 설정 (브라우저에서 확실히 제거됨)
-  const allCookies = cookieStore.getAll()
-  for (const cookie of allCookies) {
-    // Supabase 관련 모든 쿠키 타겟팅 (auth-token, refresh-token 등)
-    if (cookie.name.includes('supabase') || cookie.name.startsWith('sb-')) {
-      // 1. 응답 객체에서 쿠키 만료 처리 (secure 속성 생략하여 로컬/운영 모두 호환되도록)
-      response.cookies.set(cookie.name, '', {
-        path: '/',
-        maxAge: 0,
-        expires: new Date(0),
-        sameSite: 'lax'
-      });
-      
-      // 2. 혹시 모를 상황을 위해 delete 메서드로 명시적 삭제 병행
-      response.cookies.delete(cookie.name);
-    }
+  if (projectRef) {
+    cookieNames.add(`sb-${projectRef}-auth-token`)
+    cookieNames.add(`sb-${projectRef}-auth-token.0`)
+    cookieNames.add(`sb-${projectRef}-auth-token.1`)
+    cookieNames.add(`sb-${projectRef}-code-verifier`)
   }
 
+  cookieNames.forEach((name) => expireAuthCookie(response, name))
+}
+
+async function logout(request: NextRequest) {
+  const response = NextResponse.json({ success: true }, {
+    headers: {
+      'Cache-Control': 'no-store, max-age=0',
+    },
+  })
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (supabaseUrl && supabaseAnonKey) {
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options)
+            })
+          },
+        },
+      }
+    )
+
+    await supabase.auth.signOut().catch(() => undefined)
+  }
+
+  expireSupabaseCookies(request, response)
   return response
+}
+
+export async function POST(request: NextRequest) {
+  return logout(request)
+}
+
+export async function GET(request: NextRequest) {
+  return logout(request)
 }

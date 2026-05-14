@@ -286,14 +286,14 @@ function LeadManagerContent() {
     try {
       const supabase = createClient();
       await resetSupabaseBrowserSession(supabase);
-      window.location.href = '/auth';
+      window.location.href = '/auth?logout=1';
     } catch (e) {
       console.error('로그아웃 중 예외 발생:', e);
       if (typeof window !== 'undefined') {
         localStorage.clear();
         sessionStorage.clear();
       }
-      window.location.href = '/auth';
+      window.location.href = '/auth?logout=1';
     }
   };
 

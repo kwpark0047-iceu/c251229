@@ -3,12 +3,37 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const logoutParam = request.nextUrl.searchParams.get('logout')
+
+  // 0. 최우선 순위: 로그아웃 파라미터 감지 시 즉시 세션 파기 및 리다이렉트
+  if (logoutParam === '1') {
+    console.log('[Middleware] Priority Logout Detected')
+    const url = new URL('/auth', request.url)
+    const response = NextResponse.redirect(url)
+    
+    // 쿠키 삭제 (도메인/경로 명시)
+    const hostname = request.headers.get('host')?.split(':')[0] || ''
+    request.cookies.getAll().forEach((cookie) => {
+      if (cookie.name.startsWith('sb-') || cookie.name.toLowerCase().includes('supabase')) {
+        const options = { path: '/', maxAge: 0, expires: new Date(0), sameSite: 'lax' as const }
+        response.cookies.set(cookie.name, '', options)
+        
+        // Vercel 등 배포 환경 도메인 처리
+        if (hostname.includes('.') && !hostname.startsWith('localhost')) {
+          const parts = hostname.split('.')
+          if (parts.length >= 2) {
+            response.cookies.set(cookie.name, '', { ...options, domain: `.${parts.slice(-2).join('.')}` })
+          }
+        }
+      }
+    })
+    return response
+  }
 
   console.log('[Middleware] pathname:', pathname)
 
-  // 랜딩 페이지는 항상 통과 (리다이렉트 없음)
+  // 랜딩 페이지는 항상 통과
   if (pathname === '/') {
-    console.log('[Middleware] Landing page - passing through')
     return NextResponse.next()
   }
 
@@ -17,7 +42,6 @@ export async function middleware(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.log('[Middleware] No env vars, passing through')
     return NextResponse.next()
   }
 
