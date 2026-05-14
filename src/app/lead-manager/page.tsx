@@ -8,7 +8,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-
   Settings as SettingsIcon,
   RefreshCw,
   ChevronLeft,
@@ -19,13 +18,10 @@ import {
   Wifi,
   WifiOff,
   Download,
-
   Package,
   Users,
   Upload,
-
   Calendar,
-
   LogOut,
   Building2,
   Copy,
@@ -84,11 +80,23 @@ import BackgroundEffect from './components/BackgroundEffect';
 import NotificationCenter from '@/components/NotificationCenter';
 import { useNotification } from '@/context/NotificationContext';
 import { createClient } from '@/lib/supabase/client';
+import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup';
 import './design.css';
 import { applyThemeVariables, ThemeType, getCardClass } from './utils/design-tokens';
 
+function getOneYearDateRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setFullYear(start.getFullYear() - 1);
+  return { start, end };
+}
 
-
+function formatDateForLeadQuery(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+}
 
 function LeadManagerContent() {
   const router = useRouter();
@@ -101,7 +109,6 @@ function LeadManagerContent() {
   // 상태 관리
   const [leads, setLeads] = useState<Lead[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  // 필드 모드 (현장 영업용 간소화 뷰)
   const [isFieldMode, setIsFieldMode] = useState(false);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -111,16 +118,15 @@ function LeadManagerContent() {
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>('ALL');
-  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);  // 선택된 세부 서비스 ID들
-  const [searchQuery, setSearchQuery] = useState<string>('');  // 검색 기능
-  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [mainTab, setMainTab] = useState<MainTab>(initialTab);
   const [showInventoryUpload, setShowInventoryUpload] = useState(false);
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
   const [loadingStatus, setLoadingStatus] = useState<string>('');
-  const [mapFocusLead, setMapFocusLead] = useState<Lead | null>(null);  // 지도에서 포커스할 리드
-  const [salesProgressMap, setSalesProgressMap] = useState<Map<string, SalesProgress[]>>(new Map());  // 리드별 진행상황
-  const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);  // 통계 대시보드 확장 상태
+  const [mapFocusLead, setMapFocusLead] = useState<Lead | null>(null);
+  const [salesProgressMap, setSalesProgressMap] = useState<Map<string, SalesProgress[]>>(new Map());
+  const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);
 
   // 스케줄 관련 상태
   const [scheduleView, setScheduleView] = useState<'calendar' | 'board'>('calendar');
@@ -135,16 +141,12 @@ function LeadManagerContent() {
   const [copiedInviteCode, setCopiedInviteCode] = useState(false);
   const [onlineUsersCount, setOnlineUsersCount] = useState(0);
 
-  // 날짜 범위 (기본: 전월 24일 ~ 오늘, LocalData API 제한)
-  const [dateRange, setDateRange] = useState({
-    start: getPreviousMonth24th(),
-    end: new Date(),
-  });
+  // 날짜 범위 (기본값: 최근 6개월)
+  const [dateRange, setDateRange] = useState(getOneYearDateRange);
 
-  // 선택된 지역 (서울, 경기도) - localStorage에서 복원
+  // 선택된 지역
   const [selectedRegions, setSelectedRegions] = useState<string[]>(['6110000', '6410000']);
 
-  // 지역 코드 매핑
   const [isScrolled, setIsScrolled] = useState(false);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -160,7 +162,6 @@ function LeadManagerContent() {
   // 단축키 설정
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // '/' 키 입력 시 검색창 포커스 (input/textarea 제외)
       if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
         e.preventDefault();
         searchInputRef.current?.focus();
@@ -191,70 +192,89 @@ function LeadManagerContent() {
     }
   }, []);
 
-  // DB에서 리드 로드 (선택된 업종 및 지역 필터 적용)
+  // DB에서 리드 로드
   const loadLeadsFromDB = useCallback(async (
     category?: BusinessCategory,
     regions?: string[],
     page: number = 1,
-    search: string = ''
+    search: string = '',
+    user?: UserInfo | null
   ) => {
     setIsLoading(true);
-    const result = await getLeads({
-      category: category || categoryFilter,
-      regions: regions || selectedRegions,
-      status: statusFilter === 'ALL' ? undefined : statusFilter,
-      searchQuery: search || searchQuery,
-      page: page,
-      pageSize: PAGE_SIZE
-    });
+    const currentUser = user !== undefined ? user : userInfo;
+    
+    try {
+      const result = await getLeads({
+        category: category || categoryFilter,
+        regions: regions || selectedRegions,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        searchQuery: search || searchQuery,
+        startDate: formatDateForLeadQuery(dateRange.start),
+        endDate: formatDateForLeadQuery(dateRange.end),
+        page: page,
+        pageSize: PAGE_SIZE,
+        userInfo: currentUser || undefined
+      });
 
-    if (result.success) {
-      setLeads(result.leads);
-      setTotalCount(result.count || 0);
-      setCurrentPage(page);
+      if (result.success) {
+        setLeads(result.leads);
+        setTotalCount(result.count || 0);
+        setCurrentPage(page);
 
-      // 진행상황 일괄 조회 (API 호출 최적화)
-      if (result.leads.length > 0) {
-        const leadIds = result.leads.map(l => l.id);
-        const progressData = await getProgressBatch(leadIds);
-        setSalesProgressMap(progressData);
+        if (result.leads.length > 0) {
+          const leadIds = result.leads.map(l => l.id);
+          const progressData = await getProgressBatch(leadIds);
+          setSalesProgressMap(progressData);
+        }
+      } else {
+        console.error('[LoadLeads] API Error:', result.message);
+        showNotification('error', result.message || '데이터를 불러오지 못했습니다.');
       }
+    } catch (error) {
+      console.error('[LoadLeads] Exception:', error);
+      showNotification('error', '데이터 로딩 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, [categoryFilter, selectedRegions, statusFilter, searchQuery]);
+  }, [categoryFilter, selectedRegions, statusFilter, searchQuery, dateRange, showNotification, userInfo]);
 
   // 설정 및 데이터 로드
   useEffect(() => {
     const init = async () => {
       setInitialLoading(true);
 
-      // localStorage에서 필터 설정 복원 (Hydration 오류 방지를 위해 마운트 후 처리)
+      let restoredCategory: BusinessCategory = 'ALL';
+      let restoredRegions: string[] = ['6110000', '6410000'];
+
       if (typeof window !== 'undefined') {
         const savedCategory = localStorage.getItem('leadManager_categoryFilter');
-        if (savedCategory) setCategoryFilter(savedCategory as BusinessCategory);
+        if (savedCategory) {
+          restoredCategory = savedCategory as BusinessCategory;
+          setCategoryFilter(restoredCategory);
+        }
 
         const savedRegions = localStorage.getItem('leadManager_selectedRegions');
         if (savedRegions) {
           try {
-            setSelectedRegions(JSON.parse(savedRegions));
+            restoredRegions = JSON.parse(savedRegions);
+            setSelectedRegions(restoredRegions);
           } catch (e) {
             console.error('Failed to parse saved regions:', e);
           }
+        }
+
+        const savedTheme = localStorage.getItem('leadManager_activeTheme') as ThemeType;
+        if (savedTheme) {
+          applyThemeVariables(savedTheme);
         }
       }
 
       const user = await getCurrentUser();
       setUserInfo(user);
       await loadSettings();
-      await loadLeadsFromDB();
-
-      // Load saved theme
-      if (typeof window !== 'undefined') {
-        const savedTheme = localStorage.getItem('leadManager_activeTheme') as ThemeType;
-        if (savedTheme) {
-          applyThemeVariables(savedTheme);
-        }
-      }
+      
+      // 복원된 값을 사용하여 즉시 로드 (사용자 정보 포함)
+      await loadLeadsFromDB(restoredCategory, restoredRegions, 1, '', user);
 
       setInitialLoading(false);
     };
@@ -264,137 +284,107 @@ function LeadManagerContent() {
   // 로그아웃 처리
   const handleSignOut = async () => {
     try {
-      // 1. 서버 측 API를 호출하여 쿠키 완벽 삭제 및 세션 종료
-      await fetch('/api/auth/logout', { method: 'POST' });
-      
-      // 2. 클라이언트 측 로컬 스토리지 정리
-      localStorage.clear();
-      
-      // 3. 브라우저 캐시 우회를 위해 완전히 새 페이지로 로드
+      const supabase = createClient();
+      await resetSupabaseBrowserSession(supabase);
       window.location.href = '/auth';
     } catch (e) {
       console.error('로그아웃 중 예외 발생:', e);
-      localStorage.clear();
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+      }
       window.location.href = '/auth';
     }
   };
 
-  // 실시간 활성 계정(Presence) 동기화
+  // 실시간 접속자
   useEffect(() => {
-    if (!userInfo?.id) return;
-
     const supabase = createClient();
-    const channel = supabase.channel('lead-manager-global-presence', {
-      config: {
-        presence: {
-          key: userInfo.id,
-        },
-      },
+    const channel = supabase.channel('online-users', {
+      config: { presence: { key: userInfo?.email || 'anonymous' } }
     });
 
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        const entries = Object.values(state).flat() as Array<{ user_id?: string }>;
-        const uniqueEntries = entries.filter(
-          (entry, index, arr) =>
-            entry.user_id && arr.findIndex((candidate) => candidate.user_id === entry.user_id) === index
-        );
-        setOnlineUsersCount(uniqueEntries.length);
+        setOnlineUsersCount(Object.keys(state).length);
       })
       .subscribe(async (status: string) => {
-        if (status !== 'SUBSCRIBED') return;
-        await channel.track({
-          user_id: userInfo.id,
-          email: userInfo.email,
-          organization_id: userInfo.organizationId,
-          online_at: new Date().toISOString(),
-        });
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ online_at: new Date().toISOString() });
+        }
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
-  }, [userInfo?.id, userInfo?.email, userInfo?.organizationId]);
+  }, [userInfo]);
 
-  // 초대 코드 복사
   const copyInviteCode = () => {
     if (userInfo?.inviteCode) {
       navigator.clipboard.writeText(userInfo.inviteCode);
       setCopiedInviteCode(true);
       setTimeout(() => setCopiedInviteCode(false), 2000);
+      showNotification('info', '초대 코드가 복사되었습니다.');
     }
   };
 
-  // 지역 필터 변경 시 localStorage에 저장
+  // 필터 변경 감지 및 저장
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (!initialLoading && typeof window !== 'undefined') {
       localStorage.setItem('leadManager_selectedRegions', JSON.stringify(selectedRegions));
     }
-  }, [selectedRegions]);
+  }, [selectedRegions, initialLoading]);
 
-  // 업종 필터 변경 시 localStorage에 저장
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (!initialLoading && typeof window !== 'undefined') {
       localStorage.setItem('leadManager_categoryFilter', categoryFilter);
     }
-  }, [categoryFilter]);
+  }, [categoryFilter, initialLoading]);
 
-  // 필터 및 검색어 변경 시 DB에서 다시 로드 (페이지 1로 초기화)
+  // 필터 변경 시 리드 재로드
   useEffect(() => {
-    if (!initialLoading) {
-      const timer = setTimeout(() => {
-        loadLeadsFromDB(categoryFilter, selectedRegions, 1, searchQuery);
-      }, searchQuery ? 500 : 0); // 검색어가 있을 때만 디바운스
-      return () => clearTimeout(timer);
-    }
-  }, [categoryFilter, selectedRegions, statusFilter, searchQuery, initialLoading, loadLeadsFromDB]);
-
-  // 페이지 변경 시 로드 (디바운스 불필요)
-  useEffect(() => {
-    if (!initialLoading && currentPage !== 1) {
+    // userInfo가 아직 로드되지 않았으면 대기 (Super Admin 여부 확인을 위해 필요)
+    if (!initialLoading && userInfo) {
+      console.log('[Effect] Filters changed, reloading leads...', {
+        categoryFilter,
+        selectedRegions,
+        statusFilter,
+        searchQuery,
+        hasUser: !!userInfo
+      });
       loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery);
     }
-  }, [currentPage, initialLoading, loadLeadsFromDB, categoryFilter, selectedRegions, searchQuery]);
+  }, [categoryFilter, selectedRegions, statusFilter, currentPage, searchQuery, dateRange, loadLeadsFromDB, initialLoading, userInfo]);
 
-
-  // API 연결 테스트
   const checkConnection = useCallback(async () => {
     const result = await testAPIConnection(settings);
     setIsConnected(result.success);
     showNotification(result.success ? 'success' : 'error', result.message);
   }, [settings, showNotification]);
 
-  // 데이터 새로고침 (API에서 최근 7일 데이터 가져오기)
   const refreshData = async () => {
     setIsLoading(true);
     setLoadingProgress({ current: 0, total: 0 });
-    setLoadingStatus('최근 7일 데이터 동기화 준비 중...');
+    setLoadingStatus('설정된 기간의 데이터 동기화 준비 중...');
 
-    // 최근 7일 날짜 계산
-    const today = new Date();
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(today.getDate() - 7);
-
-    // UI 날짜 범위 업데이트 (동기화되는 범위를 사용자에게 보여줌)
-    setDateRange({
-      start: sevenDaysAgo,
-      end: today
-    });
+    // 현재 UI에 설정된 날짜 범위 유지
+    const startDate = dateRange.start;
+    const endDate = dateRange.end;
 
     try {
       const searchSettings: any = {
         ...settings,
         regionCodes: selectedRegions,
-        status: (statusFilter === 'ALL' ? undefined : statusFilter) as any,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
         serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined,
         searchQuery: searchQuery.trim(),
       };
 
       const result = await fetchAllLeads(
         searchSettings,
-        sevenDaysAgo,
-        today,
+        startDate,
+        endDate,
         (current, total, status) => {
           setLoadingProgress({ current, total });
           if (status) setLoadingStatus(status);
@@ -405,22 +395,10 @@ function LeadManagerContent() {
 
       if (result.success) {
         setLoadingStatus('데이터베이스 업데이트 완료!');
-        await loadLeadsFromDB();
+        await loadLeadsFromDB(categoryFilter, selectedRegions, 1, searchQuery);
         
-        const regionNames = selectedRegions
-          .map(code => REGION_OPTIONS.find(r => r.code === code)?.name || code)
-          .join('+');
-        const serviceNames = selectedServiceIds.length > 0
-          ? CATEGORY_SERVICE_IDS[categoryFilter]
-            .filter(s => selectedServiceIds.includes(s.id))
-            .map(s => s.name)
-            .join(', ')
-          : '전체';
-          
-        showNotification(
-          'success',
-          `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}/${serviceNames}] 최근 7일간 신규 리드 ${result.leads.length}건이 동기화되었습니다.`
-        );
+        const regionNames = selectedRegions.map(code => REGION_OPTIONS.find(r => r.code === code)?.name || code).join('+');
+        showNotification('success', `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}] 신규 리드 ${result.leads.length}건이 동기화되었습니다.`);
       } else {
         showNotification('error', result.message || '데이터 조회에 실패했습니다.');
       }
@@ -432,84 +410,43 @@ function LeadManagerContent() {
     }
   };
 
-
-  // 필터링된 리드 목록 (카테고리, 상태, 검색어, 서비스 ID 및 노이즈 필터링 통합 적용)
   const filteredLeads = useMemo(() => {
-    // 1. 노이즈 키워드 정의
-    const excludeKeywords = [
-      '약국', '편의점', '세븐일레븐', '씨유', '지에스', 'GS25', 'CU', '7-ELEVEN', 
-      '이마트', '안경', '콘택트', '안경원', '다이소', '올리브영', '롭스', '랄라블라'
-    ];
+    if (!leads.length) return [];
+    const query = searchQuery.trim().toLowerCase();
+    const excludeKeywords = ['약국', '편의점', '세븐일레븐', '씨유', '지에스', 'GS25', 'CU', '7-ELEVEN', '이마트', '안경', '콘택트', '안경원', '다이소', '올리브영', '롭스', '랄라블라'];
 
-    // 2. 기본 필터링 (카테고리, 상태, 서비스 ID, 검색어)
-    let filtered = leads.filter(lead => {
-      // 카테고리 필터
+    return leads.filter(lead => {
       if (categoryFilter !== 'ALL' && lead.category !== categoryFilter) return false;
-      
-      // 상태 필터
       if (statusFilter !== 'ALL' && lead.status !== statusFilter) return false;
-      
-      // 서비스 ID 필터 (세부항목)
       if (selectedServiceIds.length > 0 && !selectedServiceIds.includes(lead.serviceId || '')) return false;
       
-      // 검색어 필터
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const isInName = lead.bizName.toLowerCase().includes(query);
-        const isInAddress = (lead.roadAddress || '').toLowerCase().includes(query);
-        const isInStation = (lead.nearestStation || '').toLowerCase().includes(query);
-        if (!isInName && !isInAddress && !isInStation) return false;
+      if (query) {
+        if (!lead.bizName.toLowerCase().includes(query) && 
+            !(lead.roadAddress || '').toLowerCase().includes(query) && 
+            !(lead.nearestStation || '').toLowerCase().includes(query)) {
+          return false;
+        }
       }
 
-      // 3. HEALTH 카테고리 전용 노이즈 필터링 (강력 적용)
-      if (lead.category === 'HEALTH' || categoryFilter === 'HEALTH') {
+      if (lead.category === 'HEALTH') {
         const bizName = (lead.bizName || '').replace(/\s+/g, '');
-        const subject = (lead.medicalSubject || '').replace(/\s+/g, '');
-        const isExcluded = excludeKeywords.some(keyword => {
-          const k = keyword.replace(/\s+/g, '');
-          return bizName.includes(k) || subject.includes(k);
-        });
-        if (isExcluded) return false;
+        // 사용자가 검색어를 명시적으로 입력하지 않았을 때만 제외 키워드 필터링 동작
+        if (!query && excludeKeywords.some(k => bizName.includes(k))) return false;
       }
-
       return true;
     });
-
-    // 4. 강력한 중복 제거 로직 적용
-    return removeDuplicateLeads(filtered, {
-      checkBizId: true,
-      checkSimilarity: false,
-      similarityThreshold: 0.8
-    }).uniqueLeads;
   }, [leads, categoryFilter, statusFilter, selectedServiceIds, searchQuery]);
 
-  // 리드 상태 변경
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     const result = await updateLeadStatus(leadId, newStatus);
-
     if (result.success) {
-      setLeads(prev =>
-        prev.map(lead => {
-          if (lead.id !== leadId) return lead;
-
-          const updatedLead = { ...lead, status: newStatus };
-
-          // 컨택완료 시 담당자 정보도 업데이트
-          if (newStatus === 'CONTACTED' && result.assignedToName) {
-            updatedLead.assignedToName = result.assignedToName;
-            updatedLead.assignedAt = new Date().toISOString();
-          }
-
-          return updatedLead;
-        })
-      );
+      setLeads(prev => prev.map(lead => lead.id === leadId ? { ...lead, status: newStatus, assignedToName: newStatus === 'CONTACTED' ? result.assignedToName : lead.assignedToName, assignedAt: newStatus === 'CONTACTED' ? new Date().toISOString() : lead.assignedAt } : lead));
       showNotification('success', result.message);
     } else {
       showNotification('error', result.message);
     }
   };
 
-  // 설정 저장
   const handleSaveSettings = async (newSettings: Settings) => {
     setSettings(newSettings);
     await saveSettings(newSettings);
@@ -517,7 +454,6 @@ function LeadManagerContent() {
     showNotification('success', '설정이 저장되었습니다.');
   };
 
-  // 날짜 이동
   const moveDate = (days: number) => {
     setDateRange(prev => ({
       start: new Date(prev.start.getTime() + days * 24 * 60 * 60 * 1000),
@@ -525,31 +461,10 @@ function LeadManagerContent() {
     }));
   };
 
-  // 메시지 표시
-  const showMessage = (type: 'success' | 'error' | 'info', text: string) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage(null), 5000);
-  };
-
-  // CSV 내보내기
   const exportToCSV = () => {
     const headers = ['병원명', '주소', '전화번호', '진료과목', '인근역', '거리', '상태', '인허가일'];
-    const rows = filteredLeads.map(lead => [
-      lead.bizName,
-      lead.roadAddress || lead.lotAddress || '',
-      lead.phone || '',
-      lead.medicalSubject || '',
-      lead.nearestStation || '',
-      lead.stationDistance ? `${lead.stationDistance}m` : '',
-      STATUS_LABELS[lead.status],
-      lead.licenseDate || '',
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
-    ].join('\n');
-
+    const rows = filteredLeads.map(lead => [lead.bizName, lead.roadAddress || lead.lotAddress || '', lead.phone || '', lead.medicalSubject || '', lead.nearestStation || '', lead.stationDistance ? `${lead.stationDistance}m` : '', STATUS_LABELS[lead.status], lead.licenseDate || '']);
+    const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -559,20 +474,12 @@ function LeadManagerContent() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] relative overflow-x-hidden">
-      {/* 배경 효과 */}
       <BackgroundEffect />
-
-      {/* 헤더 */}
       <header className={`header-blur border-b border-[var(--glass-border)] sticky top-0 z-40 backdrop-blur-xl transition-all duration-300 ${isScrolled ? 'header-scrolled bg-[var(--bg-primary)]/95 h-14' : 'h-16 bg-[var(--bg-primary)]/80'}`}>
-        {/* 상단 헤더: 로고 + 탭 + 사용자 */}
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="flex items-center justify-between h-16">
-            {/* 로고 */}
             <div className="flex items-center gap-3 group cursor-pointer" onClick={() => router.push('/')}>
-              { }
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 bg-gradient-to-br from-[var(--metro-line2)] to-[var(--metro-line4)] shadow-[0_4px_15px_rgba(60,181,74,0.25)]"
-              >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 bg-gradient-to-br from-[var(--metro-line2)] to-[var(--metro-line4)] shadow-[0_4px_15px_rgba(60,181,74,0.25)]">
                 <Train className="w-5 h-5 text-white" />
               </div>
               <div className="hidden sm:block">
@@ -581,7 +488,6 @@ function LeadManagerContent() {
               </div>
             </div>
 
-            {/* 메인 탭 - 중앙 */}
             <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg-tertiary)]/80 border border-[var(--border-subtle)]">
               {[
                 { key: 'leads' as MainTab, icon: Users, label: '리드' },
@@ -591,22 +497,11 @@ function LeadManagerContent() {
                 { key: 'floor-plans' as MainTab, icon: FileImage, label: '도면' },
                 ...(userInfo?.isSuperAdmin ? [{ key: 'admin' as MainTab, icon: Shield, label: '관리' }] : []),
               ].map(({ key, icon: Icon, label }) => (
-                 
                 <button
                   key={key}
                   onClick={() => setMainTab(key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${mainTab === key
-                    ? 'text-white shadow-[0_2px_10px_var(--tab-glow)] bg-[--tab-bg]'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-                    }`}
-                   
-                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${mainTab === key ? 'text-white shadow-[0_2px_10px_var(--tab-glow)] bg-[--tab-bg]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`}
+                  style={{
                     '--tab-bg': mainTab === key ? METRO_TAB_COLORS[key].active : 'transparent',
                     '--tab-glow': mainTab === key ? METRO_TAB_COLORS[key].glow : 'transparent',
                   } as React.CSSProperties}
@@ -617,107 +512,48 @@ function LeadManagerContent() {
               ))}
             </div>
 
-            {/* 우측 컨트롤 */}
             <div className="flex items-center gap-2">
-              <div
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]"
-                title="실시간 활성 계정"
-              >
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]" title="실시간 활성 계정">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-xs text-[var(--text-muted)]">활성 계정</span>
                 <span className="text-xs font-semibold text-[var(--text-primary)]">{onlineUsersCount}명</span>
               </div>
               <NotificationCenter />
               <ThemeToggle />
-
-              {/* 설정 */}
-              <button
-                onClick={() => setIsSettingsOpen(true)}
-                className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
-                title="설정"
-              >
+              <button onClick={() => setIsSettingsOpen(true)} className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors" title="설정">
                 <SettingsIcon className="w-5 h-5" />
               </button>
-
-              {/* 사용자 메뉴 */}
               <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  title="사용자 메뉴"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
-                >
-                  { }
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-[--avatar-bg]"
-                     
-                    /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                      '--avatar-bg': 'linear-gradient(135deg, var(--metro-line7) 0%, var(--metro-line5) 100%)',
-                    } as React.CSSProperties}
-                  >
-                    <span className="text-white text-sm font-bold">
-                      {userInfo?.email?.charAt(0).toUpperCase() || 'U'}
-                    </span>
+                <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[--avatar-bg]" style={{ '--avatar-bg': 'linear-gradient(135deg, var(--metro-line7) 0%, var(--metro-line5) 100%)' } as React.CSSProperties}>
+                    <span className="text-white text-sm font-bold">{userInfo?.email?.charAt(0).toUpperCase() || 'U'}</span>
                   </div>
                 </button>
-
-                {/* 드롭다운 메뉴 */}
                 {showUserMenu && (
-                   
-                  <div
-                    className="absolute right-0 top-full mt-2 w-72 rounded-xl border border-[var(--glass-border)] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 bg-[--glass-bg] shadow-[--glass-shadow] backdrop-blur-[20px]"
-                     
-                    /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                      '--glass-bg': 'var(--glass-bg)',
-                      '--glass-shadow': '0 20px 40px rgba(0,0,0,0.4)',
-                    } as React.CSSProperties}
-                  >
+                  <div className="absolute right-0 top-full mt-2 w-72 rounded-xl border border-[var(--glass-border)] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 bg-[--glass-bg] shadow-[--glass-shadow] backdrop-blur-[20px]" style={{ '--glass-bg': 'var(--glass-bg)', '--glass-shadow': '0 20px 40px rgba(0,0,0,0.4)' } as React.CSSProperties}>
                     <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
                       <p className="text-sm font-semibold text-[var(--text-primary)]">{userInfo?.email}</p>
                       {userInfo?.organizationName && (
                         <div className="flex items-center gap-2 mt-1.5">
                           <Building2 className="w-3.5 h-3.5 text-[var(--metro-line4)]" />
                           <span className="text-xs text-[var(--text-secondary)]">{userInfo.organizationName}</span>
-                          {userInfo.role === 'owner' && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-[var(--metro-line5)] text-white">
-                              관리자
-                            </span>
-                          )}
+                          {userInfo.role === 'owner' && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-[var(--metro-line5)] text-white">관리자</span>}
                         </div>
                       )}
                     </div>
-
                     {userInfo?.role === 'owner' && userInfo?.inviteCode && (
                       <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
                         <p className="text-[10px] text-[var(--text-muted)] mb-1.5 font-medium">팀 초대 코드</p>
                         <div className="flex items-center gap-2">
-                          <code className="flex-1 text-xs font-mono bg-[var(--bg-secondary)] text-[var(--metro-line2)] px-2.5 py-1.5 rounded-lg">
-                            {userInfo.inviteCode}
-                          </code>
-                          <button onClick={copyInviteCode} title="초대 코드 복사" className="p-1.5 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors">
+                          <code className="flex-1 text-xs font-mono bg-[var(--bg-secondary)] text-[var(--metro-line2)] px-2.5 py-1.5 rounded-lg">{userInfo.inviteCode}</code>
+                          <button onClick={copyInviteCode} className="p-1.5 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors">
                             {copiedInviteCode ? <Check className="w-3.5 h-3.5 text-[var(--metro-line2)]" /> : <Copy className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
                           </button>
                         </div>
                       </div>
                     )}
-
-                    <button
-                      onClick={handleSignOut}
-                      className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      로그아웃
+                    <button onClick={handleSignOut} className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2 transition-colors">
+                      <LogOut className="w-4 h-4" /> 로그아웃
                     </button>
                   </div>
                 )}
@@ -726,156 +562,45 @@ function LeadManagerContent() {
           </div>
         </div>
 
-        {/* 하단 헤더: 컨트롤 바 (리드 탭에서만) */}
         {mainTab === 'leads' && (
           <div className="border-t border-[var(--border-subtle)]/50 bg-[var(--bg-secondary)]/30">
             <div className="max-w-[1400px] mx-auto px-6 py-2.5">
               <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-4">
-                {/* 왼쪽: 날짜 + 지역 */}
                 <div className="flex items-center gap-3">
-                  {/* 날짜 범위 */}
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                     <Calendar className="w-4 h-4 text-[var(--metro-line5)]" />
-                    <input
-                      id="start-date"
-                      name="startDate"
-                      type="date"
-                      title="시작 날짜"
-                      value={dateRange.start.toISOString().split('T')[0]}
-                      onChange={(e) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))}
-                      className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none"
-                    />
+                    <input type="date" value={dateRange.start.toISOString().split('T')[0]} onChange={(e) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))} className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none" />
                     <span className="text-[var(--text-muted)] text-xs">~</span>
-                    <input
-                      id="end-date"
-                      name="endDate"
-                      type="date"
-                      title="종료 날짜"
-                      value={dateRange.end.toISOString().split('T')[0]}
-                      onChange={(e) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))}
-                      className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none"
-                    />
+                    <input type="date" value={dateRange.end.toISOString().split('T')[0]} onChange={(e) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))} className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none" />
                     <div className="flex border-l border-[var(--border-subtle)] pl-2 ml-1">
-                      <button onClick={() => moveDate(-30)} title="이전 달" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors">
-                        <ChevronLeft className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                      </button>
-                      <button onClick={() => moveDate(30)} title="다음 달" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors">
-                        <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                      </button>
+                      <button onClick={() => moveDate(-30)} className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronLeft className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
+                      <button onClick={() => moveDate(30)} className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
                     </div>
                   </div>
-
-                  {/* 지역 선택 */}
                   <div className="flex items-center gap-1.5">
                     {REGION_OPTIONS.map(region => (
-                       
-                      <button
-                        key={region.code}
-                        onClick={() => {
-                          setSelectedRegions(prev => {
-                            if (prev.includes(region.code)) {
-                              if (prev.length === 1) return prev;
-                              return prev.filter(c => c !== region.code);
-                            }
-                            return [...prev, region.code];
-                          });
-                        }}
-                        className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${selectedRegions.includes(region.code)
-                          ? 'text-white bg-[--region-color]'
-                          : 'text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'
-                          }`}
-                        /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{ '--region-color': region.color } as React.CSSProperties}
-                      >
-                        {region.name}
-                      </button>
+                      <button key={region.code} onClick={() => setSelectedRegions(prev => prev.includes(region.code) ? (prev.length === 1 ? prev : prev.filter(c => c !== region.code)) : [...prev, region.code])} className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${selectedRegions.includes(region.code) ? 'text-white bg-[--region-color]' : 'text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'}`} style={{ '--region-color': region.color } as React.CSSProperties}>{region.name}</button>
                     ))}
                   </div>
                 </div>
-
-                {/* 가운데: 뷰 모드 */}
                 <div className="flex gap-1 p-0.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
-                  {/* 필드 모드 토글 (모바일에서 유용) */}
-                  <button
-                    onClick={() => setIsFieldMode(!isFieldMode)}
-                    className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all ${isFieldMode
-                      ? 'bg-[var(--metro-line2)] text-white shadow-sm'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-                      }`}
-                    title="현장 모드 (간소화 뷰)"
-                  >
-                    <Zap className="w-4 h-4" />
-                  </button>
+                  <button onClick={() => setIsFieldMode(!isFieldMode)} className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all ${isFieldMode ? 'bg-[var(--metro-line2)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`} title="현장 모드"><Zap className="w-4 h-4" /></button>
                   <div className="w-px bg-[var(--border-subtle)] my-1" />
                   {[
                     { mode: 'grid' as ViewMode, icon: LayoutGrid, color: 'var(--metro-line2)' },
                     { mode: 'list' as ViewMode, icon: List, color: 'var(--metro-line4)' },
                     { mode: 'map' as ViewMode, icon: MapIcon, color: 'var(--metro-line3)' },
                   ].map(({ mode, icon: Icon, color }) => (
-                     
-                    <button
-                      key={mode}
-                      onClick={() => setViewMode(mode)}
-                      title={`${mode === 'grid' ? '그리드' : mode === 'list' ? '리스트' : '지도'} 보기`}
-                      className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow bg-[--btn-color]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                        }`}
-                      /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{ '--btn-color': color } as React.CSSProperties}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </button>
+                    <button key={mode} onClick={() => setViewMode(mode)} className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow bg-[--btn-color]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`} style={{ '--btn-color': color } as React.CSSProperties}><Icon className="w-4 h-4" /></button>
                   ))}
                 </div>
-
-                {/* 오른쪽: 액션 버튼들 */}
                 <div className="flex items-center gap-2">
-                  {/* API 상태 */}
-                  <button
-                    onClick={checkConnection}
-                    className={`p-2 rounded-lg transition-all ${isConnected === null
-                      ? 'text-[var(--text-muted)]'
-                      : isConnected
-                        ? 'text-[var(--metro-line2)] bg-[var(--metro-line2)]/10'
-                        : 'text-red-400 bg-red-500/10'
-                      }`}
-                    title="API 연결 상태"
-                  >
-                    {isConnected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+                  <button onClick={checkConnection} className={`p-2 rounded-lg transition-all ${isConnected === null ? 'text-[var(--text-muted)]' : isConnected ? 'text-[var(--metro-line2)] bg-[var(--metro-line2)]/10' : 'text-red-400 bg-red-500/10'}`} title="연결 상태">{isConnected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}</button>
+                  <button onClick={refreshData} disabled={isLoading} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 bg-[var(--metro-line2)]">
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} /> {isLoading ? `${loadingProgress.current}/${loadingProgress.total}` : '새로고침'}
                   </button>
-
-                  {/* 새로고침 */}
-                  <button
-                    onClick={refreshData}
-                    disabled={isLoading}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 bg-[var(--metro-line2)]"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-                    {isLoading ? `${loadingProgress.current}/${loadingProgress.total}` : '새로고침'}
-                  </button>
-
-                  {/* 내보내기 */}
-                  <button
-                    onClick={exportToCSV}
-                    className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--metro-line5)] hover:bg-[var(--bg-secondary)] transition-colors"
-                    title="CSV 내보내기"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
-
-                  {/* 백업 - 관리자/오너 전용 */}
-                  <RoleGuard allowedRoles={['owner', 'admin']}>
-                    <BackupButton />
-                  </RoleGuard>
+                  <button onClick={exportToCSV} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--metro-line5)] hover:bg-[var(--bg-secondary)] transition-colors" title="CSV 내보내기"><Download className="w-4 h-4" /></button>
+                  <RoleGuard allowedRoles={['owner', 'admin']}><BackupButton /></RoleGuard>
                 </div>
               </div>
             </div>
@@ -883,181 +608,44 @@ function LeadManagerContent() {
         )}
       </header>
 
-      {/* 콜백 알림 */}
-      <CallbackNotification
-        onLeadClick={(leadId) => {
-          // 리드 상세 패널 열기 (추후 구현)
-          console.log('Lead clicked:', leadId);
-        }}
-      />
+      <CallbackNotification onLeadClick={(id) => console.log('Lead clicked:', id)} />
 
-      {/* 리드 탭일 때만 통계 바 및 필터 바 표시 */}
       {mainTab === 'leads' && (
         <>
-          {/* 통계 대시보드 */}
           <div className="max-w-[1400px] mx-auto px-6 pt-6">
-            <StatsDashboard
-              leads={leads}
-              isExpanded={isDashboardExpanded}
-              onToggle={() => setIsDashboardExpanded(!isDashboardExpanded)}
-              onStatusFilter={setStatusFilter}
-              currentStatusFilter={statusFilter}
-            />
+            <StatsDashboard leads={leads} isExpanded={isDashboardExpanded} onToggle={() => setIsDashboardExpanded(!isDashboardExpanded)} onStatusFilter={setStatusFilter} currentStatusFilter={statusFilter} />
           </div>
-
-          {/* 필터 바 */}
           <div className="bg-[var(--bg-secondary)]/30 border-b border-[var(--border-subtle)]/50">
             <div className="max-w-[1400px] mx-auto px-6 py-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                {/* 왼쪽: 검색 + 필터 */}
                 <div className="flex flex-wrap items-center gap-4">
-                  {/* 검색바 */}
                   <div className="relative hidden sm:block">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-                    <input
-                      id="lead-search-main"
-                      name="leadSearchMain"
-                      ref={searchInputRef}
-                      type="text"
-                      placeholder="병원명, 주소, 역이름 검색... ('/' 키로 포커스)"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent w-64 transition-all"
-                    />
+                    <input ref={searchInputRef} type="text" placeholder="병원명, 주소, 역이름 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent w-64 transition-all" />
                   </div>
-
-                  {/* 모바일 검색 버튼 */}
-                  <button
-                    title="검색"
-                    className="sm:hidden p-2.5 rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-                  >
-                    <Search className="w-5 h-5" />
-                  </button>
-
-                  <div className="h-8 w-px bg-[var(--border-subtle)] hidden sm:block" />
-
-                  {/* 업종 카테고리 */}
                   <div className="flex items-center gap-2 flex-wrap">
                     {(Object.keys(CATEGORY_LABELS) as BusinessCategory[]).map(category => {
                       const colors = CATEGORY_COLORS[category];
                       const count = category === 'ALL' ? leads.length : leads.filter(l => l.category === category).length;
-                      const getCategoryColor = () => {
-                        if (colors.bg.includes('red')) return 'var(--metro-line1)';
-                        if (colors.bg.includes('amber')) return 'var(--metro-line3)';
-                        if (colors.bg.includes('orange')) return 'var(--metro-line3)';
-                        if (colors.bg.includes('purple')) return 'var(--metro-line5)';
-                        if (colors.bg.includes('cyan')) return 'var(--metro-line4)';
-                        if (colors.bg.includes('emerald')) return 'var(--metro-line2)';
-                        if (colors.bg.includes('lime')) return 'var(--metro-line7)';
-                        if (colors.bg.includes('pink')) return 'var(--metro-line8)';
-                        if (colors.bg.includes('yellow')) return 'var(--metro-line9)';
-                        if (colors.bg.includes('rose')) return 'var(--metro-line6)';
-                        return 'var(--metro-line9)';
-                      };
-                      return (
-                         
-                        <button
-                          key={category}
-                          onClick={() => {
-                            setCategoryFilter(category);
-                            setSelectedServiceIds([]);
-                          }}
-                          className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${categoryFilter === category
-                            ? 'text-white shadow-md bg-[--cat-color]'
-                            : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'
-                            }`}
-                           
-                          /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                            '--cat-color': categoryFilter === category ? getCategoryColor() : 'transparent',
-                          } as React.CSSProperties}
-                        >
-                          {category === 'ALL' ? '전체 업종' : CATEGORY_LABELS[category]}
-                          {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
-                        </button>
-                      );
+                      const catColor = colors.bg.includes('red') ? 'var(--metro-line1)' : colors.bg.includes('amber') || colors.bg.includes('orange') ? 'var(--metro-line3)' : colors.bg.includes('purple') ? 'var(--metro-line5)' : colors.bg.includes('cyan') ? 'var(--metro-line4)' : colors.bg.includes('emerald') ? 'var(--metro-line2)' : colors.bg.includes('lime') ? 'var(--metro-line7)' : colors.bg.includes('pink') ? 'var(--metro-line8)' : colors.bg.includes('yellow') ? 'var(--metro-line9)' : colors.bg.includes('rose') ? 'var(--metro-line6)' : 'var(--metro-line9)';
+                      return <button key={category} onClick={() => { setCategoryFilter(category); setSelectedServiceIds([]); }} className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${categoryFilter === category ? 'text-white shadow-md bg-[--cat-color]' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`} style={{ '--cat-color': categoryFilter === category ? catColor : 'transparent' } as React.CSSProperties}>{category === 'ALL' ? '전체 업종' : CATEGORY_LABELS[category]}{count > 0 && <span className="ml-1 opacity-70">({count})</span>}</button>;
                     })}
                   </div>
-
-                  <div className="h-6 w-px bg-[var(--border-subtle)]" />
-
-                  {/* 상태 필터 */}
                   <div className="flex items-center gap-2">
                     {(['ALL', 'NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as const).map((status, idx) => {
                       const statusColors = ['var(--metro-line9)', 'var(--metro-line2)', 'var(--metro-line4)', 'var(--metro-line5)', 'var(--metro-line3)'];
-                      return (
-                         
-                        <button
-                          key={status}
-                          onClick={() => setStatusFilter(status)}
-                          className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${statusFilter === status
-                            ? 'text-white shadow-md bg-[--status-color]'
-                            : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'
-                            }`}
-                           
-                          /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                            '--status-color': statusFilter === status ? statusColors[idx] : 'transparent',
-                          } as React.CSSProperties}
-                        >
-                          {status === 'ALL' ? '전체 상태' : STATUS_LABELS[status]}
-                          {status !== 'ALL' && <span className="ml-1 opacity-70">({leads.filter(l => l.status === status).length})</span>}
-                        </button>
-                      );
+                      return <button key={status} onClick={() => setStatusFilter(status)} className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${statusFilter === status ? 'text-white shadow-md bg-[--status-color]' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`} style={{ '--status-color': statusFilter === status ? statusColors[idx] : 'transparent' } as React.CSSProperties}>{status === 'ALL' ? '전체 상태' : STATUS_LABELS[status]}{status !== 'ALL' && <span className="ml-1 opacity-70">({leads.filter(l => l.status === status).length})</span>}</button>;
                     })}
                   </div>
-
-                  <div className="h-6 w-px bg-[var(--border-subtle)]" />
-
-                  <span className="text-sm font-semibold text-[var(--metro-line2)]">
-                    {filteredLeads.length}건
-                  </span>
+                  <span className="text-sm font-semibold text-[var(--metro-line2)]">{filteredLeads.length}건</span>
                 </div>
-
-                {/* 세부항목 선택 */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-[var(--text-muted)]">세부:</span>
-                  <button
-                    onClick={() => setSelectedServiceIds([])}
-                    className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${selectedServiceIds.length === 0
-                      ? 'bg-[var(--metro-line2)] text-white'
-                      : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                      }`}
-                  >
-                    전체 서비스
-                  </button>
+                  <button onClick={() => setSelectedServiceIds([])} className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${selectedServiceIds.length === 0 ? 'bg-[var(--metro-line2)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}>전체 서비스</button>
                   {CATEGORY_SERVICE_IDS[categoryFilter].map(service => {
                     const isSelected = selectedServiceIds.includes(service.id);
                     const serviceCount = leads.filter(l => l.serviceId === service.id).length;
-                    return (
-                      <button
-                        key={service.id}
-                        onClick={() => {
-                          if (isSelected) {
-                            setSelectedServiceIds(prev => prev.filter(id => id !== service.id));
-                          } else {
-                            setSelectedServiceIds(prev => [...prev, service.id]);
-                          }
-                        }}
-                        className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${isSelected
-                          ? 'bg-[var(--metro-line4)] text-white'
-                          : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                          }`}
-                      >
-                        {service.name}
-                        {serviceCount > 0 && <span className="ml-1 opacity-70">({serviceCount})</span>}
-                      </button>
-                    );
+                    return <button key={service.id} onClick={() => setSelectedServiceIds(prev => isSelected ? prev.filter(id => id !== service.id) : [...prev, service.id])} className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${isSelected ? 'bg-[var(--metro-line4)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}>{service.name}{serviceCount > 0 && <span className="ml-1 opacity-70">({serviceCount})</span>}</button>;
                   })}
                 </div>
               </div>
@@ -1066,391 +654,77 @@ function LeadManagerContent() {
         </>
       )}
 
-      {/* 모바일에서 오버레이 필터 또는 간소화된 필터 UI가 필요할 수 있음 (현재는 데스크탑 구조 유지하며 반응형 적용) */}
-
-      {/* 인벤토리 탭일 때 업로드 버튼 바 */}
-      {
-        mainTab === 'inventory' && (
-          <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50 backdrop-blur-sm">
-            <div className="max-w-[1400px] mx-auto px-6 py-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-[var(--text-primary)]">광고매체 인벤토리</h2>
-                { }
-                <button
-                  onClick={() => setShowInventoryUpload(true)}
-                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105 bg-[--btn-bg] shadow-[--btn-glow]"
-                   
-                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                    '--btn-bg': 'var(--metro-line2)',
-                    '--btn-glow': '0 4px 15px rgba(60, 181, 74, 0.3)',
-                  } as React.CSSProperties}
-                >
-                  <Upload className="w-4 h-4" />
-                  엑셀 업로드
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
-
-      {/* 스케줄 탭일 때 헤더 바 */}
-      {
-        mainTab === 'schedule' && (
-          <div className="border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50 backdrop-blur-sm">
-            <div className="max-w-[1400px] mx-auto px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-lg font-bold text-[var(--text-primary)]">업무 스케줄</h2>
-                  <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
-                    <button
-                      onClick={() => setScheduleView('calendar')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${scheduleView === 'calendar'
-                        ? 'bg-[var(--metro-line5)] text-white shadow-md'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                        }`}
-                    >
-                      <Calendar className="w-4 h-4" />
-                      캘린더
-                    </button>
-                    <button
-                      onClick={() => setScheduleView('board')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${scheduleView === 'board'
-                        ? 'bg-[var(--metro-line5)] text-white shadow-md'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                        }`}
-                    >
-                      <LayoutGrid className="w-4 h-4" />
-                      업무현황
-                    </button>
-                  </div>
-                </div>
-                { }
-                <button
-                  onClick={() => {
-                    setSelectedTask(null);
-                    setTaskFormDefaultDate(undefined);
-                    setShowTaskForm(true);
-                  }}
-                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105 bg-[--btn-bg] shadow-[--btn-glow]"
-                   
-                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                    '--btn-bg': 'var(--metro-line5)',
-                    '--btn-glow': '0 4px 15px rgba(153, 108, 172, 0.3)',
-                  } as React.CSSProperties}
-                >
-                  <Calendar className="w-4 h-4" />
-                  새 업무
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
-
-      {/* 메인 컨텐츠 */}
       <main className="max-w-[1400px] mx-auto px-6 py-8 pb-24 md:pb-8 relative z-10">
         {!userInfo?.isApproved ? (
           <div className={`rounded-3xl border border-amber-200 shadow-2xl p-12 text-center max-w-2xl mx-auto mt-20 animate-in fade-in slide-in-from-bottom-4 duration-500 ${getCardClass()}`}>
-            <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-8 rotate-3 shadow-lg">
-              <Shield className="w-10 h-10 animate-pulse" />
-            </div>
+            <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg"><Shield className="w-10 h-10 animate-pulse" /></div>
             <h2 className="text-2xl font-bold text-slate-900 mb-4">승인 대기 중</h2>
-            <p className="text-slate-600 mb-10 leading-relaxed text-lg">
-              현재 가입 승인 대기 단계입니다.<br />
-              관리자가 승인한 후 시스템을 이용하실 수 있습니다.<br />
-              잠시만 기다려 주시거나 관리자에게 문의하세요.
-            </p>
+            <p className="text-slate-600 mb-10 text-lg">관리자가 승인한 후 시스템을 이용하실 수 있습니다.</p>
             <div className="flex flex-col gap-4">
-              <button 
-                onClick={() => window.location.reload()}
-                className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-indigo-100 flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="w-5 h-5" />
-                새로고침하여 상태 확인
-              </button>
-              <button 
-                onClick={handleSignOut}
-                className="px-8 py-4 text-slate-500 hover:bg-slate-100 rounded-2xl transition-colors font-medium"
-              >
-                다른 계정으로 로그인
-              </button>
+              <button onClick={() => window.location.reload()} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"><RefreshCw className="w-5 h-5" /> 새로고침</button>
+              <button onClick={handleSignOut} className="px-8 py-4 text-slate-500 hover:bg-slate-100 rounded-2xl font-medium">다른 계정 로그인</button>
             </div>
           </div>
         ) : mainTab === 'leads' ? (
           <>
             {initialLoading ? (
               <div className="flex flex-col items-center justify-center py-24">
-                { }
-                <div
-                  id="loading-spinner"
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 animate-float bg-[--loading-bg] shadow-[--loading-glow]"
-                   
-                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                    '--loading-bg': 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)',
-                    '--loading-glow': '0 0 20px rgba(60, 181, 74, 0.4)',
-                  } as React.CSSProperties}
-                >
-                  <RefreshCw className="w-8 h-8 text-white" />
-                </div>
-                <p className="text-[var(--text-secondary)] font-medium">Supabase에서 데이터를 불러오는 중...</p>
+                <div id="loading-spinner" className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 animate-float bg-[--loading-bg] shadow-[--loading-glow]" style={{ '--loading-bg': 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)', '--loading-glow': '0 0 20px rgba(60, 181, 74, 0.4)' } as React.CSSProperties}><RefreshCw className="w-8 h-8 text-white" /></div>
+                <p className="text-[var(--text-secondary)] font-medium">데이터 로딩 중...</p>
               </div>
             ) : isLoading ? (
               <div className="flex flex-col items-center justify-center py-24">
-                { }
-                <div
-                  id="loading-spinner"
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative bg-[--loading-bg] shadow-[--loading-glow]"
-                   
-                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                    '--loading-bg': 'linear-gradient(135deg, var(--metro-line4) 0%, var(--metro-line2) 100%)',
-                    '--loading-glow': '0 8px 30px rgba(50, 164, 206, 0.3)',
-                  } as React.CSSProperties}
-                >
-                  <RefreshCw className="w-8 h-8 text-white" />
-                </div>
-                <p className="text-[var(--text-secondary)] font-medium mb-2">
-                  [{CATEGORY_LABELS[categoryFilter]}] 공공데이터 API에서 데이터를 가져오는 중...
-                </p>
-                {loadingStatus && (
-                  <p className="text-sm text-[var(--metro-line2)] font-semibold">{loadingStatus}</p>
-                )}
+                <div id="loading-spinner" className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-[--loading-bg] shadow-[--loading-glow]" style={{ '--loading-bg': 'linear-gradient(135deg, var(--metro-line4) 0%, var(--metro-line2) 100%)', '--loading-glow': '0 8px 30px rgba(50, 164, 206, 0.3)' } as React.CSSProperties}><RefreshCw className="w-8 h-8 text-white" /></div>
+                <p className="text-[var(--text-secondary)] font-medium mb-2">공공데이터 동기화 중...</p>
+                {loadingStatus && <p className="text-sm text-[var(--metro-line2)] font-semibold">{loadingStatus}</p>}
                 {loadingProgress.total > 0 && (
                   <div className="mt-4 w-64">
                     <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-                      { }
-                      <div
-                        className="h-full rounded-full transition-all duration-300 bg-[--progress-bg] w-[--progress-width]"
-                         
-                        /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                          '--progress-width': `${(loadingProgress.current / loadingProgress.total) * 100}%`,
-                          '--progress-bg': 'linear-gradient(90deg, var(--metro-line2), var(--metro-line4))',
-                        } as React.CSSProperties}
-                      />
+                      <div className="h-full bg-[var(--metro-line2)] transition-all duration-300" style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }} />
                     </div>
-                    <p className="text-xs text-[var(--text-muted)] mt-2 text-center">
-                      {loadingProgress.current} / {loadingProgress.total}
-                    </p>
                   </div>
                 )}
               </div>
             ) : filteredLeads.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-center">
-                { }
-                <div
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 bg-[var(--bg-tertiary)] border-2 border-dashed border-[var(--border-subtle)]"
-                >
-                  <List className="w-10 h-10 text-[var(--text-muted)]" />
-                </div>
-                <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3">저장된 데이터가 없습니다</h3>
-                <p className="text-[var(--text-muted)] mb-6 max-w-md">
-                  새로고침 버튼을 눌러 공공데이터 API에서 데이터를 가져오세요.
-                </p>
-                <button
-                  onClick={refreshData}
-                  className="metro-btn-primary flex items-center gap-2.5"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  API에서 데이터 가져오기
-                </button>
+                <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 bg-[var(--bg-tertiary)] border-2 border-dashed border-[var(--border-subtle)]"><List className="w-10 h-10 text-[var(--text-muted)]" /></div>
+                <h3 className="text-xl font-bold text-[var(--text-primary)] mb-3">데이터가 없습니다</h3>
+                <button onClick={refreshData} className="metro-btn-primary flex items-center gap-2.5"><RefreshCw className="w-4 h-4" /> 데이터 가져오기</button>
               </div>
             ) : (
               <>
-                {viewMode === 'grid' && (
-                  <GridView
-                    leads={filteredLeads}
-                    onStatusChange={handleStatusChange}
-                    searchQuery={searchQuery}
-                    onMapView={(lead) => {
-                      setMapFocusLead(lead);
-                      setViewMode('map');
-                    }}
-                    salesProgressMap={salesProgressMap}
-                    isFieldMode={isFieldMode}
-                    currentPage={currentPage}
-                    totalCount={totalCount}
-                    pageSize={PAGE_SIZE}
-                    onPageChange={(page: number) => setCurrentPage(page)}
-                  />
-                )}
-                {viewMode === 'list' && (
-                  <ListView
-                    leads={filteredLeads}
-                    onStatusChange={handleStatusChange}
-                    searchQuery={searchQuery}
-                    onMapView={(lead) => {
-                      setMapFocusLead(lead);
-                      setViewMode('map');
-                    }}
-                    salesProgressMap={salesProgressMap}
-                    currentPage={currentPage}
-                    totalCount={totalCount}
-                    pageSize={PAGE_SIZE}
-                    onPageChange={(page: number) => setCurrentPage(page)}
-                  />
-                )}
-                {viewMode === 'map' && (
-                  <MapView
-                    leads={filteredLeads}
-                    onStatusChange={handleStatusChange}
-                    onListView={() => setViewMode('list')}
-                    focusLead={mapFocusLead}
-                    onFocusClear={() => setMapFocusLead(null)}
-                  />
-                )}
+                {viewMode === 'grid' && <GridView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} isFieldMode={isFieldMode} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} />}
+                {viewMode === 'list' && <ListView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} />}
+                {viewMode === 'map' && <MapView leads={filteredLeads} onStatusChange={handleStatusChange} onListView={() => setViewMode('list')} focusLead={mapFocusLead} onFocusClear={() => setMapFocusLead(null)} />}
               </>
             )}
           </>
         ) : mainTab === 'inventory' ? (
-          <InventoryTable
-            key={inventoryRefreshKey}
-            onRefresh={() => setInventoryRefreshKey(k => k + 1)}
-          />
+          <InventoryTable key={inventoryRefreshKey} onRefresh={() => setInventoryRefreshKey(k => k + 1)} />
         ) : mainTab === 'schedule' ? (
           <div key={scheduleRefreshKey}>
-            {scheduleView === 'calendar' ? (
-              <ScheduleCalendar
-                onDateSelect={(date) => {
-                  setTaskFormDefaultDate(date);
-                }}
-                onEventClick={(event) => {
-                  if (event.type === 'task') {
-                    const taskId = event.id.replace('task-', '');
-                    setSelectedTask({
-                      id: taskId,
-                      taskType: event.taskType || 'OTHER',
-                      title: event.title,
-                      dueDate: event.date,
-                      dueTime: event.time,
-                      status: event.status || 'PENDING',
-                      priority: event.priority || 'MEDIUM',
-                      leadId: event.leadId,
-                    } as TaskWithLead);
-                    setShowTaskForm(true);
-                  }
-                }}
-                onAddTask={(date) => {
-                  setSelectedTask(null);
-                  setTaskFormDefaultDate(date);
-                  setShowTaskForm(true);
-                }}
-              />
-            ) : (
-              <TaskBoard
-                onTaskClick={(task) => {
-                  setSelectedTask(task);
-                  setShowTaskForm(true);
-                }}
-              />
-            )}
+            {scheduleView === 'calendar' ? <ScheduleCalendar onDateSelect={setTaskFormDefaultDate} onEventClick={(e) => { if (e.type === 'task') { setSelectedTask({ id: e.id.replace('task-', ''), taskType: e.taskType || 'OTHER', title: e.title, dueDate: e.date, dueTime: e.time, status: e.status || 'PENDING', priority: e.priority || 'MEDIUM', leadId: e.leadId } as TaskWithLead); setShowTaskForm(true); } }} onAddTask={(d) => { setSelectedTask(null); setTaskFormDefaultDate(d); setShowTaskForm(true); }} /> : <TaskBoard onTaskClick={(t) => { setSelectedTask(t); setShowTaskForm(true); }} />}
           </div>
         ) : mainTab === 'proposals' ? (
           <ProposalsView defaultOpenUpload={initialTab === 'proposals' && initialAction === 'upload'} />
         ) : mainTab === 'floor-plans' ? (
-          <div className="-mx-6 -my-8 h-[calc(100vh-140px)]">
-            <FloorPlansView />
-          </div>
+          <div className="-mx-6 -my-8 h-[calc(100vh-140px)]"><FloorPlansView /></div>
         ) : (
           <SuperAdminDashboard />
         )}
       </main>
 
-      {
-        showInventoryUpload && (
-          <InventoryUploadModal
-            onClose={() => setShowInventoryUpload(false)}
-            onSuccess={() => {
-              setInventoryRefreshKey(k => k + 1);
-              showNotification('success', '인벤토리가 업로드되었습니다.');
-            }}
-          />
-        )
-      }
-
-      {
-        isSettingsOpen && (
-          <SettingsModal
-            settings={settings}
-            onSave={handleSaveSettings}
-            onClose={() => setIsSettingsOpen(false)}
-            onDataChanged={() => loadLeadsFromDB()}
-          />
-        )
-      }
-
-      {
-        showTaskForm && (
-          <TaskFormModal
-            task={selectedTask}
-            defaultDate={taskFormDefaultDate}
-            onSave={() => {
-              setShowTaskForm(false);
-              setSelectedTask(null);
-              setScheduleRefreshKey(k => k + 1);
-              showNotification('success', selectedTask ? '업무가 수정되었습니다.' : '업무가 생성되었습니다.');
-            }}
-            onClose={() => {
-              setShowTaskForm(false);
-              setSelectedTask(null);
-            }}
-          />
-        )
-      }
-      {/* 모바일 하단 네비게이션 */}
-      <MobileNavBar
-        activeTab={mainTab}
-        onTabChange={(tab) => {
-          setMainTab(tab);
-          if (viewMode === 'map') setViewMode('grid');
-        }}
-        onViewModeChange={(mode) => setViewMode(mode)}
-        onSettingsClick={() => setIsSettingsOpen(true)}
-        className="anchored-bottom"
-      />
+      {showInventoryUpload && <InventoryUploadModal onClose={() => setShowInventoryUpload(false)} onSuccess={() => { setInventoryRefreshKey(k => k + 1); showNotification('success', '업로드되었습니다.'); }} />}
+      {isSettingsOpen && <SettingsModal settings={settings} onSave={handleSaveSettings} onClose={() => setIsSettingsOpen(false)} onDataChanged={() => loadLeadsFromDB()} />}
+      {showTaskForm && <TaskFormModal task={selectedTask} defaultDate={taskFormDefaultDate} onSave={() => { setShowTaskForm(false); setSelectedTask(null); setScheduleRefreshKey(k => k + 1); showNotification('success', '업무가 저장되었습니다.'); }} onClose={() => { setShowTaskForm(false); setSelectedTask(null); }} />}
+      <MobileNavBar activeTab={mainTab} onTabChange={(t) => { setMainTab(t); if (viewMode === 'map') setViewMode('grid'); }} onViewModeChange={setViewMode} onSettingsClick={() => setIsSettingsOpen(true)} className="anchored-bottom" />
     </div>
   );
 }
 
 export default function LeadManagerPage() {
   return (
-    <React.Suspense fallback={
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
-          <p className="text-indigo-300 font-medium animate-pulse">시스템 로딩 중...</p>
-        </div>
-      </div>
-    }>
+    <React.Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-12 h-12 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div></div>}>
       <LeadManagerContent />
     </React.Suspense>
   );

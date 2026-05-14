@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client'
+import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup'
 export interface UserInfo {
   id: string;
   email: string;
@@ -116,10 +117,13 @@ export async function getOrganizationId(): Promise<string | null> {
 export async function signOut(): Promise<{ success: boolean; message: string }> {
   const supabase = createClient()
 
-  const { error } = await supabase.auth.signOut()
-
-  if (error) {
-    return { success: false, message: error.message }
+  try {
+    await resetSupabaseBrowserSession(supabase)
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : '로그아웃 중 오류가 발생했습니다.',
+    }
   }
 
   return { success: true, message: '로그아웃되었습니다.' }

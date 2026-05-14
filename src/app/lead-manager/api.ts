@@ -447,7 +447,7 @@ export async function fetchAllLeads(
       // 추가 페이지 처리 (필요한 경우)
       const totalPages = Math.ceil(firstResult.totalCount / pageSize);
       if (totalPages > 1) {
-        for (let p = 2; p <= Math.min(totalPages, 5); p++) { // 동기화 성능을 위해 최대 5페이지로 제한
+        for (let p = 2; p <= totalPages; p++) {
           let pageResult: FetchResult | undefined;
           if (isSeoulSpecialty) {
             const start = (p - 1) * pageSize + 1;
@@ -472,8 +472,6 @@ export async function fetchAllLeads(
             totalNewLeadsCount += psr.newCount;
             results.push(...psr.newLeads);
             
-            // 신규 데이터가 없으면 과거 데이터로 판단하고 중단 (최적화)
-            if (psr.newCount === 0 && !isSeoulSpecialty) break;
           }
         }
       }

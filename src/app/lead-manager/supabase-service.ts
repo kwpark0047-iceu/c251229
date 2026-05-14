@@ -20,6 +20,13 @@ interface SaveLeadsResult {
   newLeads: Lead[];
 }
 
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
 
 /**
  * 관리번호(MGTNO) 목록을 기준으로 이미 존재하는 리드의 관리번호 목록을 반환
@@ -31,22 +38,31 @@ export async function checkExistingLeadsByMgtNo(
   if (mgtNos.length === 0) return new Set();
   
   const supabase = getSupabase();
-  let query = supabase
-    .from('leads')
-    .select('mgt_no')
-    .in('mgt_no', mgtNos);
+  const existing = new Set<string>();
 
-  if (organizationId) {
-    query = query.eq('organization_id', organizationId);
-  }
+  for (const chunk of chunkArray([...new Set(mgtNos)], 500)) {
+    let query = supabase
+      .from('leads')
+      .select('mgt_no')
+      .in('mgt_no', chunk);
 
-  const { data, error } = await query;
+    if (organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+
+    const { data, error } = await query;
     
-  if (error) {
-    console.error('[Supabase] checkExistingLeadsByMgtNo Error:', error);
-    return new Set();
+    if (error) {
+      console.error('[Supabase] checkExistingLeadsByMgtNo Error:', error);
+      continue;
+    }
+
+    (data || []).forEach((item: { mgt_no: string }) => {
+      if (item.mgt_no) existing.add(item.mgt_no);
+    });
   }
-  return new Set((data || []).map((item: { mgt_no: string }) => item.mgt_no));
+
+  return existing;
 }
 
 /**
@@ -68,8 +84,11 @@ export async function saveLeads(
 
     // 조직 ID 가져오기(전달되지 않은 경우)
     const orgId = organizationId ?? await getOrganizationId();
-
-    onProgress?.(0, leads.length, '비타겟 업종 필터링 중...');
+    
+    console.log('[saveLeads] Starting save process:', {
+      leadCount: leads.length,
+      orgId
+    });
 
     // 0. 비타겟 업종 필터링(HEALTH 카테고리에만 적용)
     const filteredLeads = leads.filter(lead => {
@@ -99,26 +118,31 @@ export async function saveLeads(
     if (leadsWithoutMgtNo.length > 0) {
       // 상호명 목록으로 필터링해 최소한의 데이터만 가져옴
       const bizNames = [...new Set(leadsWithoutMgtNo.map(l => l.bizName))];
-      let existingQuery = supabase
-        .from('leads')
-        .select('biz_name, road_address, biz_id')
-        .in('biz_name', bizNames.slice(0, 500));
+      for (const bizNameChunk of chunkArray(bizNames, 500)) {
+        let existingQuery = supabase
+          .from('leads')
+          .select('biz_name, road_address, biz_id')
+          .in('biz_name', bizNameChunk);
 
-      if (orgId) {
-        existingQuery = existingQuery.eq('organization_id', orgId);
+        if (orgId) {
+          existingQuery = existingQuery.eq('organization_id', orgId);
+        }
+
+        const { data: existingData } = await existingQuery;
+
+        (existingData || []).forEach((row: any) => {
+          existingKeySet.add(createLeadKey(row.biz_name, row.road_address, row.biz_id));
+          if (row.biz_id) existingBizIdSet.add(row.biz_id);
+        });
       }
-
-      const { data: existingData } = await existingQuery;
-
-      (existingData || []).forEach((row: any) => {
-        existingKeySet.add(createLeadKey(row.biz_name, row.road_address, row.biz_id));
-        if (row.biz_id) existingBizIdSet.add(row.biz_id);
-      });
     }
 
     // 신규 데이터만 필터링
     const realNewLeads: Lead[] = [];
     const dbDuplicates: Lead[] = [];
+    const seenMgtNos = new Set<string>();
+    const seenKeys = new Set<string>();
+    const seenBizIds = new Set<string>();
 
     filteredLeads.forEach(lead => {
       // 愿由щ쾲?몃줈 우선 체크
@@ -128,10 +152,19 @@ export async function saveLeads(
       }
 
       const key = createLeadKey(lead.bizName, lead.roadAddress, lead.bizId);
-      if (existingKeySet.has(key) || (lead.bizId && existingBizIdSet.has(lead.bizId))) {
+      const isDuplicateInDb = existingKeySet.has(key) || (lead.bizId && existingBizIdSet.has(lead.bizId));
+      const isDuplicateInImport =
+        (!!lead.mgtNo && seenMgtNos.has(lead.mgtNo)) ||
+        seenKeys.has(key) ||
+        (!!lead.bizId && seenBizIds.has(lead.bizId));
+
+      if (isDuplicateInDb || isDuplicateInImport) {
         dbDuplicates.push(lead);
       } else {
         realNewLeads.push(lead);
+        if (lead.mgtNo) seenMgtNos.add(lead.mgtNo);
+        seenKeys.add(key);
+        if (lead.bizId) seenBizIds.add(lead.bizId);
       }
     });
 
@@ -269,26 +302,47 @@ export async function getLeads(filters?: {
   nearestStation?: string;
   startDate?: string;
   endDate?: string;
-  regions?: string[];  // 吏??코드 諛곗뿴 (?? ['6110000', '6410000'])
-  searchQuery?: string; // 寃?됱뼱
-  page?: number;       // ?섏씠吏 踰덊샇 (1遺???쒖옉)
-  pageSize?: number;   // ?섏씠吏 ?ш린 (湲곕낯媛? 50)
+  regions?: string[];  // 지역코드 배열 (예: ['6110000', '6410000'])
+  searchQuery?: string; // 검색어
+  page?: number;       // 페이지 번호 (1부터 시작)
+  pageSize?: number;   // 페이지 크기 (기본값 50)
+  userInfo?: any;      // 사용자 정보 (추가)
 }): Promise<{ success: boolean; leads: Lead[]; count: number; message?: string }> {
   try {
     const supabase = getSupabase();
 
-    // ?섏씠吏?ㅼ씠??湲곕낯媛?
+    // 페이지네이션 기본값
     const page = filters?.page || 1;
     const pageSize = filters?.pageSize || 50;
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
+    // 사용자 정보 확인
+    const user = filters?.userInfo;
+    const isSuperAdmin = user?.isSuperAdmin || user?.email === 'kwpark0047@gmail.com';
+    const organizationId = user?.organizationId;
+
+    console.log('[getLeads] Querying with filters:', {
+      category: filters?.category,
+      regions: filters?.regions,
+      status: filters?.status,
+      isSuperAdmin,
+      organizationId,
+      page
+    });
+
     let query = supabase
       .from('leads')
       .select('*', { count: 'exact' })
-      .order('license_date', { ascending: false, nullsFirst: false });
+      // 최신 동기화된 데이터(인허가 일자가 누락된 경우 포함)가 항상 상단에 노출되도록 created_at 기준으로 정렬
+      .order('created_at', { ascending: false });
 
-    // ?꾪꽣 ?곸슜
+    // 조직 필터링 (슈퍼 어드민이 아닌 경우만 적용)
+    if (!isSuperAdmin && organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+
+    // 필터 적용
     if (filters?.status) {
       query = query.eq('status', filters.status);
     }
@@ -320,28 +374,35 @@ export async function getLeads(filters?: {
       const prefixes: string[] = [];
       // region-utils??getRegionPrefixes ?ъ슜
 
-      // region-utils??getRegionPrefixes ?ъ슜
-      // filters.regions??string[]?댁?留?RegionCode[]濡?罹먯뒪???꾩슂?????덉쓬
+      // ?곌린??코드 諛곗뿴??吏€??諛곗뿴
       const regionPrefixes = getRegionPrefixes(filters.regions as RegionCode[]);
 
       if (regionPrefixes.length > 0) {
-        // OR 議곌굔 ?앹꽦: road_address.ilike.?묐몢??
-        // lot_address??泥댄겕?섍퀬 ?띕떎硫?蹂듭옟?댁?吏留? 蹂댄넻 road_address媛 硫붿씤
-        const orConditions = regionPrefixes
-          .map(prefix => `road_address.ilike.${prefix}%`)
-          .join(',');
+        // 도로명 주소와 지번 주소 모두 체크 (공백이나 누락 대응을 위해 % 포함)
+        const conditions: string[] = [];
+        regionPrefixes.forEach(prefix => {
+          // 접두어로 시작하거나 포함되는 경우 모두 대응
+          conditions.push(`road_address.ilike.%${prefix}%`);
+          conditions.push(`lot_address.ilike.%${prefix}%`);
+        });
 
-        query = query.or(orConditions);
+        // 공공데이터 특성상 주소가 누락된(null) 신규 데이터가 유실되지 않도록 예외 허용
+        conditions.push('road_address.is.null');
+        conditions.push('lot_address.is.null');
+
+        query = query.or(conditions.join(','));
       }
     }
 
-    // ?섏씠吏?ㅼ씠???곸슜
+    // ?섏씠吏€?ㅼ씠???곸슜
     const { data, count, error } = await query.range(from, to);
 
     if (error) {
-      console.error('由щ뱶 조회 ?ㅻ쪟:', error);
+      console.error('리드 조회 오류:', error);
       return { success: false, leads: [], count: 0, message: error.message };
     }
+
+    console.log(`[getLeads] Success: found ${data?.length || 0} leads (total ${count || 0})`);
 
     // DB ?곗씠?곕? Lead 媛앹껜濡?蹂??
     let leads: Lead[] = (data || []).map((row: any) => ({
@@ -374,6 +435,7 @@ export async function getLeads(filters?: {
       assignedAt: row.assigned_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      organizationId: row.organization_id,
     }));
 
     // ?꾩옱 ?섏씠吏 ??以묐났 ?쒓굅 (global 以묐났 ?쒓굅???섏씠吏?ㅼ씠?섍낵 ?명솚?섏? ?딆쓬)

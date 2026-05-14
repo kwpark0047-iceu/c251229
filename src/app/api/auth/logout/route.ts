@@ -27,13 +27,25 @@ export async function POST(request: Request) {
   // Supabase 세션 종료
   await supabase.auth.signOut()
 
-  // 쿠키 수동 삭제 (만약을 대비해 모든 관련 쿠키 제거)
+  const response = NextResponse.json({ success: true })
+
+  // 응답 객체에 직접 쿠키 삭제 명령 설정 (브라우저에서 확실히 제거됨)
   const allCookies = cookieStore.getAll()
   for (const cookie of allCookies) {
-    if (cookie.name.includes('supabase') || cookie.name.includes('sb-')) {
-      cookieStore.delete(cookie.name)
+    // Supabase 관련 모든 쿠키 타겟팅 (auth-token, refresh-token 등)
+    if (cookie.name.includes('supabase') || cookie.name.startsWith('sb-')) {
+      // 1. 응답 객체에서 쿠키 만료 처리 (secure 속성 생략하여 로컬/운영 모두 호환되도록)
+      response.cookies.set(cookie.name, '', {
+        path: '/',
+        maxAge: 0,
+        expires: new Date(0),
+        sameSite: 'lax'
+      });
+      
+      // 2. 혹시 모를 상황을 위해 delete 메서드로 명시적 삭제 병행
+      response.cookies.delete(cookie.name);
     }
   }
 
-  return NextResponse.json({ success: true })
+  return response
 }

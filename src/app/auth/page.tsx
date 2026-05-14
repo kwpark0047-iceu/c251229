@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, Suspense, useEffect, useMemo, useRef } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup'
 
 // 에러 메시지 변환 함수
 function getErrorMessage(error: Error | unknown): string {
@@ -113,7 +114,6 @@ function StationDot({ color, delay, size = 8 }: { color: string; delay: number; 
 }
 
 function AuthContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') || '/lead-manager'
 
@@ -156,14 +156,18 @@ function AuthContent() {
     setLoading(true)
     setError(null)
 
-    if (!supabase) {
-      setError('서버 설정 오류입니다. 관리자에게 문의해주세요.')
-      setLoading(false)
-      return
-    }
-
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      if (!supabase) {
+        setError('서버 설정 오류입니다. 관리자에게 문의해주세요.')
+        setLoading(false)
+        return
+      }
+
+      // 기존 계정의 Supabase 쿠키와 브라우저 저장소를 먼저 정리한 뒤 새 계정으로 로그인한다.
+      await resetSupabaseBrowserSession(supabase)
+      const freshSupabase = createClient()
+
+      const { error } = await freshSupabase.auth.signInWithPassword({
         email,
         password,
       })
@@ -174,8 +178,8 @@ function AuthContent() {
         return
       }
 
-      router.push(redirect)
-      router.refresh()
+      // 계정 전환 시 세션 동기화를 확실히 하기 위해 전체 페이지 새로고침 리다이렉트 사용
+      window.location.href = redirect
     } catch (err) {
       setError(getErrorMessage(err))
       setLoading(false)
