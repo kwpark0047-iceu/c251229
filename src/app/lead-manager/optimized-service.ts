@@ -346,7 +346,7 @@ export async function getLeadStatsCached(organizationId: string): Promise<{
       .from('leads')
       .select('id', { count: 'exact' })
       .eq('organization_id', organizationId)
-      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+      .gte('created_at', new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString()),
   ]);
 
   const stats = {

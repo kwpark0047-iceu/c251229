@@ -167,7 +167,7 @@ function AuthContent() {
       await resetSupabaseBrowserSession(supabase)
       const freshSupabase = createClient()
 
-      const { error } = await freshSupabase.auth.signInWithPassword({
+      const { data, error } = await freshSupabase.auth.signInWithPassword({
         email,
         password,
       })
@@ -179,6 +179,14 @@ function AuthContent() {
       }
 
       // 계정 전환 시 세션 동기화를 확실히 하기 위해 전체 페이지 새로고침 리다이렉트 사용
+      const signedInEmail = data.user?.email?.toLowerCase()
+      if (!signedInEmail || signedInEmail !== email.trim().toLowerCase()) {
+        await resetSupabaseBrowserSession(freshSupabase)
+        setError('로그인 계정 확인에 실패했습니다. 다시 로그인해주세요.')
+        setLoading(false)
+        return
+      }
+
       window.location.href = redirect
     } catch (err) {
       setError(getErrorMessage(err))

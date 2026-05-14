@@ -18,6 +18,7 @@ import { calculateDistance } from './utils';
 import { SUBWAY_STATIONS } from './constants';
 import { getOrganizationId } from './auth-service';
 import { mapColorToStatus, findTargetDateColumnIndex } from './utils/excel-color-utils';
+import { getLineDisplayName, normalizeLineCode } from './utils/subway-utils';
 
 // ============================================
 // 엑셀 파싱 및 업로드
@@ -173,7 +174,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
       const statusValue = (row as any)._status_override || 'AVAILABLE';
 
       const descParts = [];
-      if (line) descParts.push(`${line}호선`);
+      if (line) descParts.push(getLineDisplayName(line));
       if (grade) descParts.push(`${grade}등급`);
       if (memo) descParts.push(memo);
 
@@ -305,7 +306,7 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
     // 설명에 호선, 등급, 메모 포함
     const memo = getValueByKey(['메모', '설명', 'description']);
     const descParts = [];
-    if (line) descParts.push(`${line}호선`);
+    if (line) descParts.push(getLineDisplayName(line));
     if (grade) descParts.push(`${grade}등급`);
     if (memo) descParts.push(memo);
 
@@ -791,6 +792,8 @@ export async function getFloorPlansForStation(
     const dedicatedPlans: FloorPlan[] = (plansData || []).map((row: any) => ({
       id: row.id,
       stationName: row.station_name,
+      lineNumber: row.line_number,
+      planType: row.plan_type,
       floorName: row.floor_name,
       imageUrl: row.image_url,
       thumbnailUrl: row.thumbnail_url,
@@ -838,6 +841,8 @@ export async function getAllFloorPlans(): Promise<FloorPlan[]> {
   return data.map((row: any) => ({
     id: row.id,
     stationName: row.station_name,
+    lineNumber: row.line_number,
+    planType: row.plan_type,
     floorName: row.floor_name,
     imageUrl: row.image_url,
     thumbnailUrl: row.thumbnail_url,
@@ -854,6 +859,8 @@ export async function saveFloorPlan(
   imageUrl: string,
   options?: {
     floorName?: string;
+    lineNumber?: string;
+    planType?: string;
     width?: number;
     height?: number;
   }
@@ -866,12 +873,14 @@ export async function saveFloorPlan(
       .from('floor_plans')
       .upsert({
         station_name: stationName,
+        line_number: normalizeLineCode(options?.lineNumber || '2'), // 정규화된 코드 저장
+        plan_type: options?.planType || 'station_layout',
         image_url: imageUrl,
         floor_name: options?.floorName || 'B1',
         width: options?.width || null,
         height: options?.height || null,
         organization_id: orgId,
-      }, { onConflict: 'station_name' });
+      }, { onConflict: 'station_name,line_number,plan_type,floor_name' });
 
     if (error) {
       return { success: false, message: error.message };
