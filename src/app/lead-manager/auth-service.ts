@@ -5,6 +5,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup'
+
 export interface UserInfo {
   id: string;
   email: string;
@@ -44,42 +45,49 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     return null
   }
 
-  // 조직 정보 조회 (멤버십이 없을 수 있으므로 maybeSingle 사용)
-  const { data: memberData } = await supabase
-    .from('organization_members')
-    .select(`
-      role,
-      organization_id,
-      organizations (
-        id,
-        name,
-        invite_code
-      )
-    `)
-    .eq('user_id', user.id)
-    .maybeSingle()
+  // 타임아웃 처리를 위한 헬퍼 (3초 내 응답 없으면 중단)
+  const timeoutPromise = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error('Auth Query Timeout')), ms));
 
-  // organizations는 단일 객체로 반환됨 (single() 사용 시)
-  const orgData = memberData?.organizations as unknown
-  const org = orgData as { id: string; name: string; invite_code: string } | null
-
-  // 프로필 정보 조회 (승인 여부, 슈퍼 어드민 여부, 등급 정보)
+  let memberData: any = null;
   let profile: any = null;
+
   try {
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('is_approved, is_super_admin, tier, trial_expires_at')
-      .eq('id', user.id)
-      .maybeSingle()
+    const authData: any = await Promise.race([
+      (async () => {
+        // 조직 정보 조회
+        const { data: member } = await supabase
+          .from('organization_members')
+          .select(`
+            role,
+            organization_id,
+            organizations (
+              id,
+              name,
+              invite_code
+            )
+          `)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        // 프로필 정보 조회
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('is_approved, is_super_admin, tier, trial_expires_at')
+          .eq('id', user.id)
+          .maybeSingle();
+          
+        return { member, prof };
+      })(),
+      timeoutPromise(3000)
+    ]);
     
-    if (!profileError) {
-      profile = profileData;
-    }
+    memberData = authData?.member;
+    profile = authData?.prof;
   } catch (e) {
-    console.warn('Profiles table not found or inaccessible, using fallback roles.');
+    console.warn('[Auth] Profile/Org retrieval timed out or failed:', e);
   }
 
-  // kwpark0047@gmail.com 하드코딩 백업 (DB에 반영 전 보안용)
+  const org = memberData?.organizations as { id: string; name: string; invite_code: string } | null
   const isSuperAdminAccount = user.email === 'kwpark0047@gmail.com'
 
   return {
@@ -101,7 +109,6 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     trialExpiresAt: profile?.trial_expires_at || null,
   }
 }
-
 
 /**
  * 현재 사용자의 조직 ID 조회
@@ -501,10 +508,9 @@ export async function updateUserTier(userId: string, targetEmail: string, tier: 
   }
 }
 
-// ----------------------------------------------------------------------------
-// SUPER ADMIN: 활동 로그(Audit Log) 및 통계 관련 로직 추가
-// ----------------------------------------------------------------------------
-
+/**
+ * [슈퍼 어드민 전용] 모든 사용자 활동 로그 조회
+ */
 export async function getAllUserLogs(limit = 100) {
   try {
     const supabase = createClient();
@@ -514,7 +520,6 @@ export async function getAllUserLogs(limit = 100) {
       return { success: false, message: '권한이 없습니다.', logs: [] };
     }
 
-    // 통합 활동 로그(activity_logs) 조회
     const { data: logs, error } = await supabase
       .from('activity_logs')
       .select('*')
@@ -529,6 +534,9 @@ export async function getAllUserLogs(limit = 100) {
   }
 }
 
+/**
+ * 특정 사용자의 활동 로그 조회
+ */
 export async function getUserLogs(userId: string, limit = 50) {
   try {
     const supabase = createClient();
@@ -538,7 +546,6 @@ export async function getUserLogs(userId: string, limit = 50) {
       return { success: false, message: '권한이 없습니다.', logs: [] };
     }
 
-    // 특정 사용자의 통합 활동 로그 조회
     const { data: logs, error } = await supabase
       .from('activity_logs')
       .select('*')
@@ -556,7 +563,6 @@ export async function getUserLogs(userId: string, limit = 50) {
 
 /**
  * [슈퍼 어드민 전용] 사용자 프로필 영구 삭제
- * @param userId - 삭제할 사용자의 ID
  */
 export async function deleteUserProfile(userId: string): Promise<{ success: boolean; message: string }> {
   const supabase = createClient();
@@ -566,7 +572,6 @@ export async function deleteUserProfile(userId: string): Promise<{ success: bool
     return { success: false, message: '권한이 없습니다.' };
   }
 
-  // 본인 계정 삭제 방지
   if (currentUser.id === userId) {
     return { success: false, message: '자신의 계정은 삭제할 수 없습니다.' };
   }
@@ -613,7 +618,7 @@ export async function getAdminNotifications(limit = 20): Promise<{
 }
 
 /**
- * [슈퍼 어드민 전용] 알림 읽음 처리
+ * 알림 읽음 처리
  */
 export async function markNotificationAsRead(notificationId: string): Promise<{ success: boolean }> {
   const supabase = createClient();
@@ -627,7 +632,7 @@ export async function markNotificationAsRead(notificationId: string): Promise<{ 
 }
 
 /**
- * [슈퍼 어드민 전용] 모든 알림 읽음 처리
+ * 모든 알림 읽음 처리
  */
 export async function markAllNotificationsAsRead(): Promise<{ success: boolean }> {
   const supabase = createClient();
@@ -642,4 +647,3 @@ export async function markAllNotificationsAsRead(): Promise<{ success: boolean }
   if (error) return { success: false };
   return { success: true };
 }
-

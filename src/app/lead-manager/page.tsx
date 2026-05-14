@@ -269,17 +269,24 @@ function LeadManagerContent() {
         }
       }
 
-      const user = await getCurrentUser();
-      setUserInfo(user);
-      await loadSettings();
-      
-      // 복원된 값을 사용하여 즉시 로드 (사용자 정보 포함)
-      await loadLeadsFromDB(restoredCategory, restoredRegions, 1, '', user);
-
-      setInitialLoading(false);
+    const init = async () => {
+      try {
+        console.log('[Init] Starting initialization...');
+        const user = await getCurrentUser();
+        setUserInfo(user);
+        await loadSettings();
+        
+        // 복원된 값을 사용하여 즉시 로드 (사용자 정보 포함)
+        await loadLeadsFromDB(restoredCategory, restoredRegions, 1, '', user);
+      } catch (error) {
+        console.error('[Init] Error during initialization:', error);
+        // 사용자에게 알림은 표시하되, 초기 로딩 상태는 해제하여 UI를 볼 수 있게 함
+      } finally {
+        setInitialLoading(false);
+      }
     };
     init();
-  }, [loadSettings, loadLeadsFromDB]);
+  }, [loadSettings, loadLeadsFromDB, restoredCategory, restoredRegions]);
 
   // 로그아웃 처리
   const handleSignOut = async () => {
@@ -414,8 +421,6 @@ function LeadManagerContent() {
   const filteredLeads = useMemo(() => {
     if (!leads.length) return [];
     const query = searchQuery.trim().toLowerCase();
-    const excludeKeywords = ['약국', '편의점', '세븐일레븐', '씨유', '지에스', 'GS25', 'CU', '7-ELEVEN', '이마트', '안경', '콘택트', '안경원', '다이소', '올리브영', '롭스', '랄라블라'];
-
     return leads.filter(lead => {
       if (categoryFilter !== 'ALL' && lead.category !== categoryFilter) return false;
       if (statusFilter !== 'ALL' && lead.status !== statusFilter) return false;
@@ -429,11 +434,6 @@ function LeadManagerContent() {
         }
       }
 
-      if (lead.category === 'HEALTH') {
-        const bizName = (lead.bizName || '').replace(/\s+/g, '');
-        // 사용자가 검색어를 명시적으로 입력하지 않았을 때만 제외 키워드 필터링 동작
-        if (!query && excludeKeywords.some(k => bizName.includes(k))) return false;
-      }
       return true;
     });
   }, [leads, categoryFilter, statusFilter, selectedServiceIds, searchQuery]);

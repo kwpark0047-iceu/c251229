@@ -137,10 +137,22 @@ function AuthContent() {
     // 마운트 상태를 ref로 추적하고 state는 한 번만 업데이트
     if (!mountedRef.current) {
       mountedRef.current = true
-       
       setMounted(true)
+      
+      // 로그아웃 파라미터 감지 시 클라이언트 사이드에서도 세션 강제 정리 (Fail-safe)
+      if (searchParams.get('logout') === '1' && supabase) {
+        const forceLogout = async () => {
+          console.log('[AuthPage] Force Logout Parameter Detected')
+          await resetSupabaseBrowserSession(supabase)
+          // 파라미터를 제거하고 페이지 새로고침 (클린 상태로 만들기)
+          const newUrl = new URL(window.location.href)
+          newUrl.searchParams.delete('logout')
+          window.location.replace(newUrl.pathname + newUrl.search)
+        }
+        forceLogout()
+      }
     }
-  }, [])
+  }, [searchParams, supabase])
 
   const supabase = useMemo(() => {
     try {

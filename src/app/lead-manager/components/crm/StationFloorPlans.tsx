@@ -18,24 +18,32 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
     const currentInventory = selectedFloorPlan 
         ? inventory.filter(item => {
             // 1. floor_plan_id 직접 매칭 (가장 정확)
-            if (item.floorPlanUrl === selectedFloorPlan.imageUrl) return true;
+            if (item.floorPlanId === selectedFloorPlan.id || item.floorPlanUrl === selectedFloorPlan.imageUrl) return true;
             
             // 2. 역 이름 매칭 (공백 제거, '역' 접미사 통일)
-            const cleanName = (name: string) => name.replace(/\s+/g, '').replace(/역$/, '');
+            const cleanName = (name: string) => (name || '').replace(/\s+/g, '').replace(/역$/, '');
             const itemStation = cleanName(item.stationName);
             const planStation = cleanName(selectedFloorPlan.stationName);
             
+            if (itemStation !== planStation) return false;
+
             // 3. 노선 매칭 (환승역 대응)
-            if (itemStation === planStation && selectedFloorPlan.lineNumber) {
-                const lineName = getLineDisplayName(selectedFloorPlan.lineNumber);
-                // 인벤토리 설명에 해당 노선명이 포함되어 있는지 확인
-                if (item.description && !item.description.includes(lineName)) {
+            // 인벤토리 설명에 다른 호선이 명시적으로 포함되어 있고 현재 호선은 없는 경우만 제외
+            if (selectedFloorPlan.lineNumber && item.description) {
+                const currentLineName = getLineDisplayName(selectedFloorPlan.lineNumber);
+                const otherLines = ['1호선', '2호선', '3호선', '4호선', '5호선', '6호선', '7호선', '8호선', '9호선', '수인분당', '신분당', '경의중앙', '공항철도']
+                    .filter(l => l !== currentLineName);
+                
+                const mentionsOtherLine = otherLines.some(l => item.description?.includes(l));
+                const mentionsCurrentLine = item.description.includes(currentLineName);
+
+                if (mentionsOtherLine && !mentionsCurrentLine) {
                     return false;
                 }
             }
             
             // 4. 위치 좌표가 도면에 매핑되어 있는지 확인
-            return itemStation === planStation && item.spotPositionX && item.spotPositionY;
+            return !!(item.spotPositionX && item.spotPositionY);
           })
         : [];
 
