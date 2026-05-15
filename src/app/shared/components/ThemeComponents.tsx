@@ -116,6 +116,7 @@ export function ThemeSelector() {
                   }
                 `}
                 role="option"
+                aria-selected={theme === value}
               >
                 <Icon className="w-4 h-4" />
                 <div className="flex-1 text-left">

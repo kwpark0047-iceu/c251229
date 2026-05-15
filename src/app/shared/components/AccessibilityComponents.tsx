@@ -222,6 +222,7 @@ export function AccessibleToggle({
         ref={toggleRef}
         type="button"
         role="switch"
+        aria-checked={checked}
         aria-label={label}
         title={label}
         onClick={handleToggle}

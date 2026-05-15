@@ -133,6 +133,15 @@ function AuthContent() {
   const mountedRef = useRef(false)
   const [mounted, setMounted] = useState(false)
 
+  const supabase = useMemo(() => {
+    try {
+      return createClient()
+    } catch (e) {
+      console.error('Supabase 클라이언트 생성 실패:', e)
+      return null
+    }
+  }, [])
+
   useEffect(() => {
     // 마운트 상태를 ref로 추적하고 state는 한 번만 업데이트
     if (!mountedRef.current) {
@@ -153,15 +162,6 @@ function AuthContent() {
       }
     }
   }, [searchParams, supabase])
-
-  const supabase = useMemo(() => {
-    try {
-      return createClient()
-    } catch (e) {
-      console.error('Supabase 클라이언트 생성 실패:', e)
-      return null
-    }
-  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

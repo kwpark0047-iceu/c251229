@@ -11,6 +11,7 @@ import { createLeadKey } from './lead-utils';
 import { removeDuplicateLeads } from './deduplication-utils';
 import { RegionCode, getRegionPrefixes } from './region-utils';
 import { ActivityService } from './activity-service';
+import { chunkArray } from '@/lib/utils/array-utils';
 
 interface SaveLeadsResult {
   success: boolean;
@@ -18,14 +19,6 @@ interface SaveLeadsResult {
   newCount: number;
   skippedCount: number;
   newLeads: Lead[];
-}
-
-function chunkArray<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size));
-  }
-  return chunks;
 }
 
 /**
@@ -209,10 +202,10 @@ export async function saveLeads(
         category: lead.category || 'OTHER',
         service_id: lead.serviceId || null,
         service_name: lead.serviceName || null,
-        nearest_station: lead.nearest_station || null,
+        nearest_station: lead.nearestStation || null,
         station_distance: lead.stationDistance ? Math.round(lead.stationDistance) : null,
         station_lines: lead.stationLines || null,
-        nearest_exit_no: lead.nearest_exit_no || null,
+        nearest_exit_no: lead.nearestExitNo || null,
         status: lead.status || 'NEW',
         notes: lead.notes || null,
         organization_id: orgId,

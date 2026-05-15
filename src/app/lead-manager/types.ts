@@ -339,6 +339,7 @@ export interface AdInventory {
   availabilityStatus: AvailabilityStatus;
   availableFrom?: string;
   availableTo?: string;
+  floorPlanId?: string;
   floorPlanUrl?: string;
   spotPositionX?: number;
   spotPositionY?: number;
