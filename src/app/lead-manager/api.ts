@@ -288,11 +288,11 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
     const isHealthCategory = serviceInfo?.category === 'HEALTH';
     
     if (isMedicalService || isHealthCategory) {
-      const isExcluded = excludeKeywords.some(keyword => {
-        const k = keyword.replace(/\s+/g, '');
-        return subject.includes(k) || bizName.includes(k);
-      });
-      if (isExcluded) return null;
+      // const isExcluded = excludeKeywords.some(keyword => {
+      //   const k = keyword.replace(/\s+/g, '');
+      //   return subject.includes(k) || bizName.includes(k);
+      // });
+      // if (isExcluded) return null;
     }
 
     let latitude: number | undefined;
