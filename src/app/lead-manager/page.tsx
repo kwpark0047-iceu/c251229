@@ -284,7 +284,8 @@ function LeadManagerContent() {
       }
     };
     init();
-  }, [loadSettings, loadLeadsFromDB]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 로그아웃 처리
   const handleSignOut = async () => {
@@ -361,7 +362,8 @@ function LeadManagerContent() {
       });
       loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery);
     }
-  }, [categoryFilter, selectedRegions, statusFilter, currentPage, searchQuery, dateRange, loadLeadsFromDB, initialLoading, userInfo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryFilter, selectedRegions, statusFilter, currentPage, searchQuery, dateRange, initialLoading, userInfo]);
 
   const checkConnection = useCallback(async () => {
     const result = await testAPIConnection(settings);
