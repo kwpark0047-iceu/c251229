@@ -88,9 +88,10 @@ export async function GET(request: NextRequest) {
     // DB 동기화 요청인 경우 Supabase에 저장
     if (sync && leads.length > 0) {
       const supabase = await createClient();
+      const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
       const { error: dbError } = await supabase
         .from('leads')
-        .upsert(leads, { onConflict: 'mgt_no' });
+        .upsert(dbLeads, { onConflict: 'mgt_no' });
 
       if (dbError) {
         console.error('[GG Data API] DB 저장 오류:', dbError);
