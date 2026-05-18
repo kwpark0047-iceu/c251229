@@ -95,9 +95,9 @@ async function syncClinics() {
       const bizName = String(row['사업장명'] || '').trim();
       if (!bizName) continue;
 
-      const roadAddress = String(row['도로명전체주소'] || '').trim();
-      const lotAddress = String(row['소재지전체주소'] || '').trim();
-      const phone = String(row['소재지전화'] || '').trim() || String(row['소재지전화번호'] || '').trim();
+      const roadAddress = String(row['도로명주소'] || '').trim();
+      const lotAddress = String(row['지번주소'] || '').trim();
+      const phone = String(row['전화번호'] || '').trim();
       const operatingStatus = String(row['영업상태명'] || '').trim(); 
       const isOperating = operatingStatus && operatingStatus.includes('영업');
       if (!isOperating) continue; // 영업 중이 아닌 사업장 스킵

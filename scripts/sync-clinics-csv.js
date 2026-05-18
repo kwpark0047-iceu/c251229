@@ -87,9 +87,9 @@ async function syncClinics() {
       const bizName = String(row['사업장명'] || '').trim();
       if (!bizName) continue;
 
-      const roadAddress = String(row['도로명전체주소'] || '').trim();
-      const lotAddress = String(row['소재지전체주소'] || '').trim();
-      const phone = String(row['소재지전화'] || '').trim();
+      const roadAddress = String(row['도로명주소'] || '').trim();
+      const lotAddress = String(row['지번주소'] || '').trim();
+      const phone = String(row['전화번호'] || '').trim();
       const operatingStatus = String(row['영업상태명'] || '').trim(); // '영업/정상' 등
       const detailedStatus = String(row['상세영업상태명'] || '').trim();
       const licenseDateStr = String(row['인허가일자'] || '').trim();
