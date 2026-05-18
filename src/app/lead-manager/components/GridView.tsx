@@ -203,6 +203,8 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                   e.stopPropagation();
                   setIsStatusOpen(!isStatusOpen);
                 }}
+                title="상태 변경 메뉴 열기"
+                aria-label="상태 변경 메뉴 열기"
                 className="p-1.5 rounded-lg transition-colors hover:bg-white/10 text-[--status-text]"
                 style={{ '--status-text': statusColor.text } as React.CSSProperties}
               >
@@ -228,6 +230,8 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               e.stopPropagation();
               onMapView?.();
             }}
+            title={`${lead.bizName} 지도에서 보기`}
+            aria-label={`${lead.bizName} 지도에서 보기`}
             className="font-bold text-[var(--text-primary)] mb-2 line-clamp-1 text-left w-full hover:text-[var(--metro-line4)] hover:underline transition-colors"
           >
             <HighlightText text={lead.bizName} searchQuery={searchQuery} />

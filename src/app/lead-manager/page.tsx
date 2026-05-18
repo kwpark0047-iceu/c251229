@@ -570,12 +570,12 @@ function LeadManagerContent() {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                     <Calendar className="w-4 h-4 text-[var(--metro-line5)]" />
-                    <input type="date" value={dateRange.start.toISOString().split('T')[0]} onChange={(e) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))} className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none" />
+                    <input type="date" aria-label="시작 날짜" title="시작 날짜" value={dateRange.start.toISOString().split('T')[0]} onChange={(e) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))} className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none" />
                     <span className="text-[var(--text-muted)] text-xs">~</span>
-                    <input type="date" value={dateRange.end.toISOString().split('T')[0]} onChange={(e) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))} className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none" />
+                    <input type="date" aria-label="종료 날짜" title="종료 날짜" value={dateRange.end.toISOString().split('T')[0]} onChange={(e) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))} className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none" />
                     <div className="flex border-l border-[var(--border-subtle)] pl-2 ml-1">
-                      <button onClick={() => moveDate(-30)} className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronLeft className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
-                      <button onClick={() => moveDate(30)} className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
+                      <button onClick={() => moveDate(-30)} title="이전 30일 이동" aria-label="이전 30일 이동" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronLeft className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
+                      <button onClick={() => moveDate(30)} title="다음 30일 이동" aria-label="다음 30일 이동" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -588,11 +588,11 @@ function LeadManagerContent() {
                   <button onClick={() => setIsFieldMode(!isFieldMode)} className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all ${isFieldMode ? 'bg-[var(--metro-line2)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`} title="현장 모드"><Zap className="w-4 h-4" /></button>
                   <div className="w-px bg-[var(--border-subtle)] my-1" />
                   {[
-                    { mode: 'grid' as ViewMode, icon: LayoutGrid, color: 'var(--metro-line2)' },
-                    { mode: 'list' as ViewMode, icon: List, color: 'var(--metro-line4)' },
-                    { mode: 'map' as ViewMode, icon: MapIcon, color: 'var(--metro-line3)' },
-                  ].map(({ mode, icon: Icon, color }) => (
-                    <button key={mode} onClick={() => setViewMode(mode)} className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow bg-[--btn-color]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`} style={{ '--btn-color': color } as React.CSSProperties}><Icon className="w-4 h-4" /></button>
+                    { mode: 'grid' as ViewMode, icon: LayoutGrid, color: 'var(--metro-line2)', name: '그리드 보기' },
+                    { mode: 'list' as ViewMode, icon: List, color: 'var(--metro-line4)', name: '목록 보기' },
+                    { mode: 'map' as ViewMode, icon: MapIcon, color: 'var(--metro-line3)', name: '지도 보기' },
+                  ].map(({ mode, icon: Icon, color, name }) => (
+                    <button key={mode} onClick={() => setViewMode(mode)} title={name} aria-label={name} className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow bg-[--btn-color]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`} style={{ '--btn-color': color } as React.CSSProperties}><Icon className="w-4 h-4" /></button>
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
