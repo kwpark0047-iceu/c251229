@@ -9,8 +9,9 @@ import {
 } from '@/lib/seoul-data-api';
 
 /**
- * 서울 열린데이터 광장 API 프록시
- */
+ * ?�울 ?�린?�이??광장 API ?�록?? */
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const service = searchParams.get('service');
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
   const endIndex = parseInt(searchParams.get('end') || '100');
   const query = searchParams.get('query') || '';
   
-  // 클라이언트가 전달한 커스텀 API 키 파싱
+  // ?�라?�언?��? ?�달??커스?� API ???�싱
   const customApiKey = request.headers.get('x-api-key') || searchParams.get('apiKey') || undefined;
 
   if (!service) {

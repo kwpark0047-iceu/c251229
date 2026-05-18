@@ -1,7 +1,5 @@
 /**
- * 경기도 데이터 드림 (data.gg.go.kr) API 서버사이드 라우트
- * 의원 인허가 상세 현황 데이터 조회 및 동기화
- */
+ * 경기???�이???�림 (data.gg.go.kr) API ?�버?�이???�우?? * ?�원 ?�허가 ?�세 ?�황 ?�이??조회 �??�기?? */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
@@ -10,6 +8,8 @@ import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
 const GG_CLINIC_API_KEY = process.env.GG_CLINIC_API_KEY || 'c9c5e32c0aff406bbe3de0f7af75f6f8';
 const API_ENDPOINT = 'https://openapi.gg.go.kr/AsembyStus';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const activeApiKey = customApiKey || GG_CLINIC_API_KEY;
     if (!activeApiKey) {
       return NextResponse.json(
-        { success: false, error: 'API 키가 설정되지 않았습니다.' },
+        { success: false, error: 'API ?��? ?�정?��? ?�았?�니??' },
         { status: 500 }
       );
     }
@@ -38,19 +38,19 @@ export async function GET(request: NextRequest) {
       apiUrl.searchParams.set('SIGUN_NM', sigunNm);
     }
 
-    console.log(`[GG Clinic API] 요청: pIndex=${pIndex}, pSize=${pSize}, sigunNm=${sigunNm || '전체'}, sync=${sync}`);
+    console.log(`[GG Clinic API] ?�청: pIndex=${pIndex}, pSize=${pSize}, sigunNm=${sigunNm || '?�체'}, sync=${sync}`);
 
     const response = await fetch(apiUrl.toString());
     
     if (!response.ok) {
-      throw new Error(`API 응답 오류: ${response.status}`);
+      throw new Error(`API ?�답 ?�류: ${response.status}`);
     }
 
     const data = await response.json();
 
     if (!data.AsembyStus) {
       const errorCode = data.RESULT?.CODE || 'UNKNOWN';
-      const errorMsg = data.RESULT?.MESSAGE || '데이터를 찾을 수 없습니다.';
+      const errorMsg = data.RESULT?.MESSAGE || '?�이?��? 찾을 ???�습?�다.';
       
       return NextResponse.json({
         success: false,
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const totalCount = head.find((h: any) => h.list_total_count)?.list_total_count || 0;
     const rows = data.AsembyStus[1].row || [];
 
-    // 리드 형식으로 매핑
+    // 리드 ?�식?�로 매핑
     const leads = rows.map((row: any) => {
       const lat = parseFloat(row.REFINE_WGS84_LAT);
       const lng = parseFloat(row.REFINE_WGS84_LOGT);
@@ -73,8 +73,8 @@ export async function GET(request: NextRequest) {
         road_address: row.REFINE_ROADNM_ADDR || '',
         lot_address: row.REFINE_LOTNO_ADDR || '',
         phone: row.LOCPLC_FACLT_TELNO || '',
-        medical_subject: row.TREAT_SBJECT_CONT_INFO || '의원',
-        service_name: row.BIZCOND_DIV_NM_INFO || '의원',
+        medical_subject: row.TREAT_SBJECT_CONT_INFO || '?�원',
+        service_name: row.BIZCOND_DIV_NM_INFO || '?�원',
         category: 'HEALTH',
         latitude: lat || null,
         longitude: lng || null,
@@ -82,23 +82,21 @@ export async function GET(request: NextRequest) {
         station_lines: nearest ? nearest.station.lines : null,
         station_distance: nearest ? nearest.distance : null,
         status: 'NEW',
-        operating_status: row.BSN_STATE_NM === '정상' ? '영업중' : '폐업/휴업',
+        operating_status: row.BSN_STATE_NM === '?�상' ? '?�업�? : '?�업/?�업',
         mgt_no: `GG_CLINIC_${row.BIZPLC_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
-        region_code: '6410000', // 경기도
-      };
+        region_code: '6410000', // 경기??      };
     });
 
-    // DB 동기화
-    if (sync && leads.length > 0) {
+    // DB ?�기??    if (sync && leads.length > 0) {
       const supabase = await createClient();
       const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
       const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
 
       if (dbError) {
-        console.error('[GG Clinic API] DB 저장 오류:', dbError);
+        console.error('[GG Clinic API] DB ?�???�류:', dbError);
         return NextResponse.json({
           success: false,
-          error: `DB 저장 실패: ${dbError.message}`,
+          error: `DB ?�???�패: ${dbError.message}`,
         });
       }
     }
@@ -116,7 +114,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[GG Clinic API] 오류:', error);
+    console.error('[GG Clinic API] ?�류:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }

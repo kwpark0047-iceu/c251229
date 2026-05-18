@@ -1,7 +1,5 @@
 /**
- * 서울 오픈데이터 광장 (data.seoul.go.kr) API 서버사이드 라우트
- * 의원 인허가 상세 현황 데이터 조회 및 동기화
- */
+ * ?�울 ?�픈?�이??광장 (data.seoul.go.kr) API ?�버?�이???�우?? * ?�원 ?�허가 ?�세 ?�황 ?�이??조회 �??�기?? */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
@@ -10,6 +8,10 @@ import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
 const SEOUL_DATA_API_KEY = process.env.SEOUL_DATA_CLINIC_API_KEY || process.env.SEOUL_DATA_API_KEY || '6d7a6b6c766b777033346b53716455';
 const API_ENDPOINT = 'http://openapi.seoul.go.kr:8088';
+
+export const dynamic = 'force-dynamic';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -20,18 +22,18 @@ export async function GET(request: NextRequest) {
   try {
     if (!SEOUL_DATA_API_KEY) {
       return NextResponse.json(
-        { success: false, error: '서울 데이터 API 키가 설정되지 않았습니다.' },
+        { success: false, error: '?�울 ?�이??API ?��? ?�정?��? ?�았?�니??' },
         { status: 500 }
       );
     }
 
-    // 서울시 API는 시작인덱스와 종료인덱스를 명시해야 함 (1-based)
+    // ?�울??API???�작?�덱?��? 종료?�덱?��? 명시?�야 ??(1-based)
     const startIndex = (pIndex - 1) * pSize + 1;
     const endIndex = pIndex * pSize;
 
     const apiUrl = `${API_ENDPOINT}/${SEOUL_DATA_API_KEY}/json/LOCALDATA_010102/${startIndex}/${endIndex}`;
 
-    console.log(`[Seoul Clinic API] 요청: pIndex=${pIndex}, pSize=${pSize}, range=${startIndex}~${endIndex}, sync=${sync}`);
+    console.log(`[Seoul Clinic API] ?�청: pIndex=${pIndex}, pSize=${pSize}, range=${startIndex}~${endIndex}, sync=${sync}`);
 
     const response = await fetch(apiUrl, {
       method: 'GET',
@@ -39,14 +41,14 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      throw new Error(`API 응답 오류: ${response.status}`);
+      throw new Error(`API ?�답 ?�류: ${response.status}`);
     }
 
     const data = await response.json();
 
     if (!data.LOCALDATA_010102) {
       const errorCode = data.RESULT?.CODE || 'UNKNOWN';
-      const errorMsg = data.RESULT?.MESSAGE || '데이터를 찾을 수 없습니다.';
+      const errorMsg = data.RESULT?.MESSAGE || '?�이?��? 찾을 ???�습?�다.';
       
       return NextResponse.json({
         success: false,
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
     const totalCount = parseInt(data.LOCALDATA_010102.list_total_count) || 0;
     const rows = data.LOCALDATA_010102.row || [];
 
-    // 리드 형식으로 매핑
+    // 리드 ?�식?�로 매핑
     const leads = rows.map((row: any) => {
       const rawX = parseFloat(row.X);
       const rawY = parseFloat(row.Y);
@@ -80,8 +82,8 @@ export async function GET(request: NextRequest) {
         road_address: row.RDNWHLADDR || row.SITEWHLADDR || '',
         lot_address: row.SITEWHLADDR || '',
         phone: row.SITETEL || '',
-        medical_subject: row.MEDEXTRITEMSCNNM || row.UPTAENM || '의원',
-        service_name: row.METRORGASSRNM || row.UPTAENM || '의원',
+        medical_subject: row.MEDEXTRITEMSCNNM || row.UPTAENM || '?�원',
+        service_name: row.METRORGASSRNM || row.UPTAENM || '?�원',
         category: 'HEALTH',
         latitude: lat,
         longitude: lng,
@@ -89,25 +91,23 @@ export async function GET(request: NextRequest) {
         station_lines: nearest ? nearest.station.lines : null,
         station_distance: nearest ? nearest.distance : null,
         status: 'NEW',
-        operating_status: row.TRDSTATENM === '영업/정상' || row.DTLSTATENM === '영업중' ? '영업중' : '폐업/휴업',
+        operating_status: row.TRDSTATENM === '?�업/?�상' || row.DTLSTATENM === '?�업�? ? '?�업�? : '?�업/?�업',
         mgt_no: row.MGTNO || `SEOUL_CLINIC_${row.BPLCNM}_${row.RDNWHLADDR}`.replace(/\s+/g, ''),
-        region_code: '1100000', // 서울특별시
-      };
+        region_code: '1100000', // ?�울?�별??      };
     });
 
-    // DB 동기화
-    if (sync && leads.length > 0) {
+    // DB ?�기??    if (sync && leads.length > 0) {
       const supabase = await createClient();
-      // DB 스키마에 region_code 컬럼이 없으므로 제외
+      // DB ?�키마에 region_code 컬럼???�으므�??�외
       const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
       
       const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
 
       if (dbError) {
-        console.error('[Seoul Clinic API] DB 저장 오류:', dbError);
+        console.error('[Seoul Clinic API] DB ?�???�류:', dbError);
         return NextResponse.json({
           success: false,
-          error: `DB 저장 실패: ${dbError.message}`,
+          error: `DB ?�???�패: ${dbError.message}`,
         });
       }
     }
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[Seoul Clinic API] 오류:', error);
+    console.error('[Seoul Clinic API] ?�류:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }

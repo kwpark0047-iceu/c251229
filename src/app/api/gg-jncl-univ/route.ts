@@ -1,7 +1,5 @@
 /**
- * 경기도 데이터 드림 (data.gg.go.kr) API 서버사이드 라우트
- * 전문 및 대학교 현황 데이터 조회 및 동기화
- */
+ * 경기???�이???�림 (data.gg.go.kr) API ?�버?�이???�우?? * ?�문 �??�?�교 ?�황 ?�이??조회 �??�기?? */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
@@ -10,6 +8,8 @@ import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
 const GG_JNCL_UNIV_API_KEY = process.env.GG_JNCL_UNIV_API_KEY || '0f12a235134748c0a4b9dbce97405083';
 const API_ENDPOINT = 'https://openapi.gg.go.kr/Jnclluniv';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const activeApiKey = customApiKey || GG_JNCL_UNIV_API_KEY;
     if (!activeApiKey) {
       return NextResponse.json(
-        { success: false, error: 'API 키가 설정되지 않았습니다.' },
+        { success: false, error: 'API ?��? ?�정?��? ?�았?�니??' },
         { status: 500 }
       );
     }
@@ -33,19 +33,19 @@ export async function GET(request: NextRequest) {
     apiUrl.searchParams.set('pIndex', pIndex);
     apiUrl.searchParams.set('pSize', pSize);
 
-    console.log(`[GG Jncl Univ API] 요청: pIndex=${pIndex}, pSize=${pSize}, sync=${sync}`);
+    console.log(`[GG Jncl Univ API] ?�청: pIndex=${pIndex}, pSize=${pSize}, sync=${sync}`);
 
     const response = await fetch(apiUrl.toString());
     
     if (!response.ok) {
-      throw new Error(`API 응답 오류: ${response.status}`);
+      throw new Error(`API ?�답 ?�류: ${response.status}`);
     }
 
     const data = await response.json();
 
     if (!data.Jnclluniv) {
       const errorCode = data.RESULT?.CODE || 'UNKNOWN';
-      const errorMsg = data.RESULT?.MESSAGE || '데이터를 찾을 수 없습니다.';
+      const errorMsg = data.RESULT?.MESSAGE || '?�이?��? 찾을 ???�습?�다.';
       
       return NextResponse.json({
         success: false,
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     const totalCount = head.find((h: any) => h.list_total_count)?.list_total_count || 0;
     const rows = data.Jnclluniv[1].row || [];
 
-    // 리드 형식으로 매핑
+    // 리드 ?�식?�로 매핑
     const leads = rows.map((row: any) => {
       const lat = parseFloat(row.REFINE_WGS84_LAT);
       const lng = parseFloat(row.REFINE_WGS84_LOGT);
@@ -68,8 +68,8 @@ export async function GET(request: NextRequest) {
         road_address: row.REFINE_ROADNM_ADDR || '',
         lot_address: row.REFINE_LOTNO_ADDR || '',
         phone: '', 
-        medical_subject: row.SCHOOL_DIV_NM || '대학교',
-        service_name: '전문 및 대학교',
+        medical_subject: row.SCHOOL_DIV_NM || '?�?�교',
+        service_name: '?�문 �??�?�교',
         category: 'EDUCATION',
         latitude: lat || null,
         longitude: lng || null,
@@ -77,14 +77,13 @@ export async function GET(request: NextRequest) {
         station_lines: nearest ? nearest.station.lines : null,
         station_distance: nearest ? nearest.distance : null,
         status: 'NEW',
-        operating_status: '영업중',
+        operating_status: '?�업�?,
         mgt_no: `GG_JNCL_${row.FACLT_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
         region_code: '6410000',
       };
     });
 
-    // DB 동기화
-    if (sync && leads.length > 0) {
+    // DB ?�기??    if (sync && leads.length > 0) {
       const supabase = await createClient();
       const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
       const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
@@ -92,7 +91,7 @@ export async function GET(request: NextRequest) {
       if (dbError) {
         return NextResponse.json({
           success: false,
-          error: `DB 저장 실패: ${dbError.message}`,
+          error: `DB ?�???�패: ${dbError.message}`,
         });
       }
     }

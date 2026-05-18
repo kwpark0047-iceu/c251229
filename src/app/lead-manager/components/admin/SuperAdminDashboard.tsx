@@ -361,7 +361,10 @@ export default function SuperAdminDashboard({ user }: Props) {
         }
       }
 
-      const response = await fetch(finalPath);
+      // 브라우저 및 Next.js 라우터 캐시 완벽 우회를 위한 캐시 무효화 파라미터 추가
+      finalPath += `&_t=${Date.now()}`;
+
+      const response = await fetch(finalPath, { cache: 'no-store' });
       const result = await response.json();
       if (result.success) {
         alert(`동기화 성공: ${result.leads?.length || 0}건의 데이터를 처리했습니다.`);
