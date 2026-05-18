@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { findNearestStation } from '@/app/lead-manager/utils';
+import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
 const GG_DATA_API_KEY = process.env.GG_DATA_API_KEY || 'e9efa0682eef460cb25cefcc42c52484';
 const API_ENDPOINT = 'https://openapi.gg.go.kr/TninsttInstutM';
@@ -16,9 +17,11 @@ export async function GET(request: NextRequest) {
   const pSize = searchParams.get('pSize') || '100';
   const sigunNm = searchParams.get('sigunNm'); // 시군명 필터 (옵션)
   const sync = searchParams.get('sync') === 'true'; // DB 동기화 여부
+  const customApiKey = searchParams.get('apiKey');
 
   try {
-    if (!GG_DATA_API_KEY) {
+    const activeApiKey = customApiKey || GG_DATA_API_KEY;
+    if (!activeApiKey) {
       return NextResponse.json(
         { success: false, error: 'API 키가 설정되지 않았습니다.' },
         { status: 500 }
@@ -26,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     const apiUrl = new URL(API_ENDPOINT);
-    apiUrl.searchParams.set('KEY', GG_DATA_API_KEY);
+    apiUrl.searchParams.set('KEY', activeApiKey);
     apiUrl.searchParams.set('Type', 'json');
     apiUrl.searchParams.set('pIndex', pIndex);
     apiUrl.searchParams.set('pSize', pSize);
@@ -89,9 +92,7 @@ export async function GET(request: NextRequest) {
     if (sync && leads.length > 0) {
       const supabase = await createClient();
       const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
-      const { error: dbError } = await supabase
-        .from('leads')
-        .upsert(dbLeads, { onConflict: 'mgt_no' });
+      const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
 
       if (dbError) {
         console.error('[GG Data API] DB 저장 오류:', dbError);

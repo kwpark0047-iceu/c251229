@@ -5,7 +5,8 @@ import {
   Users, Shield, CheckCircle, XCircle, Building, 
   Search, Filter, Activity,
   Settings, History, Download, FileText, Calendar,
-  BarChart3, UserCheck, X, AlertCircle, Trash2, GraduationCap, Utensils
+  BarChart3, UserCheck, X, AlertCircle, Trash2, GraduationCap, Utensils,
+  Plus, Edit
 } from 'lucide-react';
 import { 
   getAllProfiles, 
@@ -170,6 +171,147 @@ export default function SuperAdminDashboard({ user }: Props) {
   const [toastNotification, setToastNotification] = useState<any | null>(null);
   const [syncingSector, setSyncingSector] = useState<string | null>(null);
 
+  // Dynamic API Configuration States
+  const [apiConfigs, setApiConfigs] = useState<any[]>([]);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<any | null>(null);
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, { success: boolean; duration?: number; error?: string }>>({});
+
+  // Load API configurations from LocalStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('antigravity_api_configs');
+      if (saved) {
+        try {
+          setApiConfigs(JSON.parse(saved));
+        } catch {
+          setApiConfigs([]);
+        }
+      } else {
+        // Preload default active keys for seamless UX
+        const defaults = [
+          {
+            id: 'default-seoul-clinic',
+            name: '서울시 의원 인허가 API',
+            type: 'seoul-clinic',
+            apiKey: '6d7a6b6c766b777033346b53716455',
+            sigunNm: '',
+            isActive: true,
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'default-gg-clinic',
+            name: '경기도 의원 상세 API',
+            type: 'gg-clinic',
+            apiKey: 'c9c5e32c0aff406bbe3de0f7af75f6f8',
+            sigunNm: '',
+            isActive: true,
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'default-gg-academy',
+            name: '경기도 학원/교습소 API',
+            type: 'gg-academy',
+            apiKey: 'e9efa0682eef460cb25cefcc42c52484',
+            sigunNm: '',
+            isActive: true,
+            createdAt: new Date().toISOString()
+          }
+        ];
+        localStorage.setItem('antigravity_api_configs', JSON.stringify(defaults));
+        setApiConfigs(defaults);
+      }
+    }
+  }, []);
+
+  const handleSaveConfig = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const type = formData.get('type') as string;
+    const apiKey = formData.get('apiKey') as string;
+    const sigunNm = formData.get('sigunNm') as string || '';
+    const isActive = formData.get('isActive') === 'true';
+
+    if (!name || !type || !apiKey) {
+      alert('필수 항목을 모두 작성해주세요.');
+      return;
+    }
+
+    let updatedConfigs;
+    if (editingConfig) {
+      updatedConfigs = apiConfigs.map(c => c.id === editingConfig.id ? {
+        ...c,
+        name,
+        type,
+        apiKey,
+        sigunNm,
+        isActive,
+        updatedAt: new Date().toISOString()
+      } : c);
+    } else {
+      const newConfig = {
+        id: `config-${Date.now()}`,
+        name,
+        type,
+        apiKey,
+        sigunNm,
+        isActive,
+        createdAt: new Date().toISOString()
+      };
+      updatedConfigs = [...apiConfigs, newConfig];
+    }
+
+    setApiConfigs(updatedConfigs);
+    localStorage.setItem('antigravity_api_configs', JSON.stringify(updatedConfigs));
+    setShowConfigModal(false);
+    setEditingConfig(null);
+  };
+
+  const handleDeleteConfig = (id: string) => {
+    if (!confirm('정말 이 API 설정을 삭제하시겠습니까?')) return;
+    const updatedConfigs = apiConfigs.filter(c => c.id !== id);
+    setApiConfigs(updatedConfigs);
+    localStorage.setItem('antigravity_api_configs', JSON.stringify(updatedConfigs));
+    
+    const newResults = { ...testResults };
+    delete newResults[id];
+    setTestResults(newResults);
+  };
+
+  const handleTestConnection = async (id: string, type: string, apiKey: string, sigunNm?: string) => {
+    setTestingId(id);
+    setTestResults(prev => ({
+      ...prev,
+      [id]: { success: false, error: '검증 중...' }
+    }));
+
+    try {
+      const url = `/api/api-test?type=${type}&apiKey=${encodeURIComponent(apiKey)}&sigunNm=${encodeURIComponent(sigunNm || '')}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.success) {
+        setTestResults(prev => ({
+          ...prev,
+          [id]: { success: true, duration: data.duration }
+        }));
+      } else {
+        setTestResults(prev => ({
+          ...prev,
+          [id]: { success: false, error: data.error || '연결 실패' }
+        }));
+      }
+    } catch (err) {
+      setTestResults(prev => ({
+        ...prev,
+        [id]: { success: false, error: '네트워크 연결 오류' }
+      }));
+    } finally {
+      setTestingId(null);
+    }
+  };
 
   const loadData = useCallback(async () => {
     // 최초 로딩 시에만 스피너 표시
@@ -196,7 +338,30 @@ export default function SuperAdminDashboard({ user }: Props) {
     
     setSyncingSector(sector);
     try {
-      const response = await fetch(`${apiPath}${apiPath.includes('?') ? '&' : '?'}sync=true`);
+      let finalPath = `${apiPath}${apiPath.includes('?') ? '&' : '?'}sync=true`;
+      
+      // sectorKey 매핑하여 활성 API 키 주입
+      const typeMap: Record<string, string> = {
+        academy: 'gg-academy',
+        clinic: 'gg-clinic',
+        hospital: 'gg-hospital',
+        univ: 'gg-univ',
+        restaurant: 'gg-restaurant',
+        jncl: 'gg-jncl-univ',
+        'seoul-clinic': 'seoul-clinic'
+      };
+      
+      const mappedType = typeMap[sector] || sector;
+      const activeConfig = apiConfigs.find(c => c.type === mappedType && c.isActive);
+      
+      if (activeConfig && activeConfig.apiKey) {
+        finalPath += `&apiKey=${encodeURIComponent(activeConfig.apiKey)}`;
+        if (activeConfig.sigunNm) {
+          finalPath += `&sigunNm=${encodeURIComponent(activeConfig.sigunNm)}`;
+        }
+      }
+
+      const response = await fetch(finalPath);
       const result = await response.json();
       if (result.success) {
         alert(`동기화 성공: ${result.leads?.length || 0}건의 데이터를 처리했습니다.`);
@@ -1011,8 +1176,139 @@ export default function SuperAdminDashboard({ user }: Props) {
         )}
 
         {activeTab === 'data' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
+            {/* API Key Vault - 설정 관리 센터 */}
+            <div className="bg-white/[0.02] backdrop-blur-xl p-8 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-2 bg-indigo-500/20 rounded-lg">
+                      <Settings className="w-5 h-5 text-indigo-400" />
+                    </div>
+                    <h3 className="font-black text-white text-xl uppercase tracking-tighter">API KEY VAULT (설정 관리 센터)</h3>
+                  </div>
+                  <p className="text-xs text-slate-500 font-bold uppercase tracking-tight ml-10">
+                    공공데이터 API 통신을 위한 엔드포인트 커스텀 키 등록, 수정, 삭제 및 실시간 연결 유효성을 검증합니다.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingConfig(null);
+                    setShowConfigModal(true);
+                  }}
+                  className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-[0.1em] transition-all active:scale-95 shadow-lg shadow-indigo-500/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  새 API 키 추가
+                </button>
+              </div>
+
+              {/* API 키 목록 */}
+              <div className="relative z-10 overflow-x-auto rounded-2xl border border-white/5 bg-[#0D0D0D]/60 backdrop-blur-md">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-white/5 bg-white/[0.02] text-slate-400 font-bold uppercase tracking-wider">
+                      <th className="p-4">API 이름</th>
+                      <th className="p-4">연동 엔드포인트</th>
+                      <th className="p-4">API KEY</th>
+                      <th className="p-4">시군/세부조건</th>
+                      <th className="p-4">상태</th>
+                      <th className="p-4 text-right">관리 / 검증</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-slate-300 font-medium">
+                    {apiConfigs.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-slate-500 font-bold uppercase tracking-wider">
+                          등록된 API 키 설정이 없습니다. 신규 설정을 추가해주세요.
+                        </td>
+                      </tr>
+                    ) : (
+                      apiConfigs.map((config) => {
+                        const isTesting = testingId === config.id;
+                        const result = testResults[config.id];
+                        
+                        return (
+                          <tr key={config.id} className="hover:bg-white/[0.01] transition-colors">
+                            <td className="p-4 font-black text-white">{config.name}</td>
+                            <td className="p-4 font-mono text-slate-400 uppercase">{config.type}</td>
+                            <td className="p-4 font-mono text-slate-500">
+                              {config.apiKey ? `${config.apiKey.slice(0, 6)}****************${config.apiKey.slice(-4)}` : '-'}
+                            </td>
+                            <td className="p-4">{config.sigunNm || '-'}</td>
+                            <td className="p-4">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${
+                                config.isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500 border border-slate-700'
+                              }`}>
+                                {config.isActive ? '사용중' : '중지'}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right flex items-center justify-end gap-2">
+                              {/* 연결 테스트 결과 표시 */}
+                              {result && (
+                                <span className={`text-[10px] font-bold mr-2 ${
+                                  result.success ? 'text-emerald-400 animate-pulse' : 'text-rose-400'
+                                }`}>
+                                  {result.success ? `SUCCESS (${result.duration}ms)` : `ERROR: ${result.error}`}
+                                </span>
+                              )}
+                              
+                              <button
+                                onClick={() => handleTestConnection(config.id, config.type, config.apiKey, config.sigunNm)}
+                                disabled={isTesting}
+                                className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 ${
+                                  isTesting ? 'bg-white/5 border-white/5 text-slate-500 cursor-not-allowed' : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-300'
+                                }`}
+                              >
+                                {isTesting ? '확인 중...' : '연결 확인'}
+                              </button>
+                              
+                              <button
+                                onClick={() => {
+                                  setEditingConfig(config);
+                                  setShowConfigModal(true);
+                                }}
+                                className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-indigo-400 hover:text-indigo-300 transition-colors"
+                                title="수정"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              
+                              <button
+                                onClick={() => handleDeleteConfig(config.id)}
+                                className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-rose-400 hover:text-rose-300 transition-colors"
+                                title="삭제"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Sync cards grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 서울열린광장 의원 데이터 */}
+              <SyncCard 
+                sectorKey="seoul-clinic"
+                id="sync-seoul-clinic-btn"
+                title="서울열린광장 의원 데이터"
+                subtitle="Seoul Open Data Integration"
+                description="서울 열린데이터 광장(Seoul Open Data) API를 통해 서울시 관내 의원급 의료기관 정보를 실시간 동기화합니다. GRS80/TM 중부원점 좌표계를 WGS84 위경도로 자동 변환하고 인근 역사 도면과 매칭합니다."
+                icon={Activity}
+                colorName="cyan"
+                features={["서울시 25개 자치구 전체 데이터 연계", "GRS80/TM 중부원점 좌표계 자동 변환", "업종 자동 분류 및 역세권 리드 생성 (HEALTH)"]}
+                apiPath="/api/seoul-clinics"
+                syncingSector={syncingSector}
+                onSync={handleSync}
+              />
+
               <SyncCard 
                 sectorKey="academy"
                 id="sync-gg-btn"
@@ -1109,6 +1405,123 @@ export default function SuperAdminDashboard({ user }: Props) {
           </div>
         )}
       </div>
+
+      {/* API Key Vault 설정 모달 */}
+      {showConfigModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[90] p-4 animate-in fade-in duration-200">
+          <div className="bg-[#0D0D0D]/95 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-float">
+            <div className="flex justify-between items-center p-6 border-b border-white/5 bg-white/[0.02]">
+              <div>
+                <h3 className="text-lg font-black text-white flex items-center gap-2 uppercase tracking-tighter">
+                  <Settings className="w-5 h-5 text-indigo-400" />
+                  {editingConfig ? 'API 설정 정보 수정' : '신규 API 설정 등록'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 uppercase tracking-tight">공공데이터 통신 노드 추가 및 매개변수 바인딩</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowConfigModal(false);
+                  setEditingConfig(null);
+                }} 
+                className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                aria-label="모달 닫기"
+              >
+                <X className="w-5 h-5"/>
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveConfig}>
+              <div className="p-6 space-y-4 text-xs">
+                <div className="space-y-1.5">
+                  <label className="font-black text-slate-400 uppercase tracking-widest block">API 설정 이름 *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    placeholder="예: 서울시 의원 인허가 API"
+                    defaultValue={editingConfig?.name || ''}
+                    className="w-full bg-[#151515] border border-white/10 rounded-xl p-3 text-white outline-none focus:border-indigo-500 transition-colors font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-black text-slate-400 uppercase tracking-widest block">API 연동 유형 *</label>
+                  <select
+                    name="type"
+                    required
+                    defaultValue={editingConfig?.type || 'seoul-clinic'}
+                    className="w-full bg-[#151515] border border-white/10 rounded-xl p-3 text-white outline-none focus:border-indigo-500 transition-colors font-medium"
+                  >
+                    <option value="seoul-clinic">서울시 의원 인허가 정보 (LOCALDATA_010102)</option>
+                    <option value="seoul-hospital">서울시 병원 인허가 정보 (LOCALDATA_010101)</option>
+                    <option value="gg-clinic">경기도 의원 상세 현황 (AsembyStus)</option>
+                    <option value="gg-hospital">경기도 병원 상세 현황 (GgMedctnstus)</option>
+                    <option value="gg-academy">경기도 학원/교습소 현황 (GenmstClassStus)</option>
+                    <option value="gg-restaurant">경기도 일반음식점 현황 (Genrestrt)</option>
+                    <option value="gg-jncl-univ">경기도 전문대학 현황 (GgJnclUnivStus)</option>
+                    <option value="gg-univ">경기도 대학교 현황 (GgUnivStus)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-black text-slate-400 uppercase tracking-widest block">공공데이터 API KEY *</label>
+                  <input
+                    type="text"
+                    name="apiKey"
+                    required
+                    placeholder="인증 키를 정확하게 입력해주세요."
+                    defaultValue={editingConfig?.apiKey || ''}
+                    className="w-full bg-[#151515] border border-white/10 rounded-xl p-3 text-white outline-none focus:border-indigo-500 transition-colors font-mono font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-black text-slate-400 uppercase tracking-widest block">시군명 (경기도 전용 / 선택)</label>
+                  <input
+                    type="text"
+                    name="sigunNm"
+                    placeholder="예: 수원시, 성남시 (미입력 시 전체)"
+                    defaultValue={editingConfig?.sigunNm || ''}
+                    className="w-full bg-[#151515] border border-white/10 rounded-xl p-3 text-white outline-none focus:border-indigo-500 transition-colors font-medium"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">※ 서울시 데이터에는 적용되지 않습니다.</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-black text-slate-400 uppercase tracking-widest block">활성화 여부 *</label>
+                  <select
+                    name="isActive"
+                    required
+                    defaultValue={editingConfig?.isActive ? 'true' : 'false'}
+                    className="w-full bg-[#151515] border border-white/10 rounded-xl p-3 text-white outline-none focus:border-indigo-500 transition-colors font-medium"
+                  >
+                    <option value="true">활성화 (ACTIVE)</option>
+                    <option value="false">비활성화 (INACTIVE)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="p-6 bg-white/[0.02] border-t border-white/5 flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setShowConfigModal(false);
+                    setEditingConfig(null);
+                  }} 
+                  className="flex-1 py-3 border border-white/10 rounded-xl font-bold uppercase tracking-wider text-slate-400 hover:text-white transition-colors"
+                >
+                  취소
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl uppercase tracking-wider transition-colors shadow-lg shadow-indigo-500/20"
+                >
+                  저장하기
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* 조직 및 역할 관리 모달 (기존과 동일) */}
       {showOrgModal && selectedProfile && (
