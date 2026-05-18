@@ -167,8 +167,8 @@ async function main() {
         longitude: longitude,
         coord_x: cx || null,
         coord_y: cy || null,
-        nearest_station: matchResult ? matchResult.station.name : null,
-        station_lines: matchResult ? matchResult.station.lines : null,
+        nearest_station: (matchResult && matchResult.station) ? matchResult.station.name : null,
+        station_lines: (matchResult && matchResult.station) ? matchResult.station.lines : null,
         station_distance: matchResult ? Math.round(matchResult.distance * 1000) : 0, // distance in meters
         status: 'NEW'
       });

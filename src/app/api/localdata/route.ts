@@ -21,11 +21,15 @@ interface LocalDataParams {
 
 export async function POST(request: NextRequest) {
   try {
+    // 클라이언트가 전달한 커스텀 API 키 파싱
+    const customApiKey = request.headers.get('x-api-key') || request.nextUrl.searchParams.get('apiKey') || undefined;
+    const authKey = customApiKey || LOCALDATA_API_KEY;
+
     // API 키 확인
-    if (!LOCALDATA_API_KEY) {
-      console.error('[LocalData API] API 키가 설정되지 않았습니다. Vercel 환경변수 LOCALDATA_API_KEY를 확인하세요.');
+    if (!authKey) {
+      console.error('[LocalData API] API 키가 설정되지 않았습니다.');
       return NextResponse.json(
-        { success: false, error: '서버 설정 오류: LOCALDATA_API_KEY 환경변수가 누락되었습니다.' },
+        { success: false, error: '서버 설정 오류: API 키가 누락되었습니다.' },
         { status: 503 }
       );
     }
@@ -51,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // API URL 구성 (API 키는 서버에서만 사용)
     const apiUrl = new URL(API_ENDPOINT);
-    apiUrl.searchParams.set('authKey', LOCALDATA_API_KEY);
+    apiUrl.searchParams.set('authKey', authKey);
     apiUrl.searchParams.set('opnSvcId', serviceId);
     apiUrl.searchParams.set('localCode', regionCode);
     apiUrl.searchParams.set('lastModTsBgn', startDate);

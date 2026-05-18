@@ -60,11 +60,28 @@ export async function fetchLocalDataAPI(
   const region = regionCode || settings.regionCode;
 
   try {
+    let localDataKey = '';
+    if (settings.apiKey) {
+      try {
+        const keys = JSON.parse(settings.apiKey);
+        localDataKey = keys.localdata || '';
+      } catch (e) {
+        if (!settings.apiKey.startsWith('{')) {
+          localDataKey = settings.apiKey;
+        }
+      }
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (localDataKey) {
+      headers['x-api-key'] = localDataKey;
+    }
+
     const result = await safeFetch('/api/localdata', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         serviceId,
         regionCode: region,
@@ -112,11 +129,26 @@ export async function fetchLocalDataAPI(
  */
 export async function fetchSeoulClinicAPI(
   startIndex: number = 1,
-  endIndex: number = 100
+  endIndex: number = 100,
+  settings?: Settings
 ): Promise<FetchResult> {
   try {
+    let seoulKey = '';
+    if (settings?.apiKey) {
+      try {
+        const keys = JSON.parse(settings.apiKey);
+        seoulKey = keys.seoul || '';
+      } catch (e) {}
+    }
+
+    const headers: Record<string, string> = {};
+    if (seoulKey) {
+      headers['x-api-key'] = seoulKey;
+    }
+
     const result = await safeFetch(`/api/seoul-data?service=clinic&start=${startIndex}&end=${endIndex}`, {
       method: 'GET',
+      headers,
     });
 
     if (!result.success) {
@@ -152,11 +184,26 @@ export async function fetchSeoulClinicAPI(
  */
 export async function fetchSeoulHospitalAPI(
   startIndex: number = 1,
-  endIndex: number = 100
+  endIndex: number = 100,
+  settings?: Settings
 ): Promise<FetchResult> {
   try {
+    let seoulKey = '';
+    if (settings?.apiKey) {
+      try {
+        const keys = JSON.parse(settings.apiKey);
+        seoulKey = keys.seoul || '';
+      } catch (e) {}
+    }
+
+    const headers: Record<string, string> = {};
+    if (seoulKey) {
+      headers['x-api-key'] = seoulKey;
+    }
+
     const result = await safeFetch(`/api/seoul-data?service=hospital&start=${startIndex}&end=${endIndex}`, {
       method: 'GET',
+      headers,
     });
 
     if (!result.success) {
@@ -411,6 +458,15 @@ export async function fetchAllLeads(
     const regionName = regionNames[regionCode] || regionCode;
     
     try {
+      let seoulKey = '';
+      if (settings?.apiKey) {
+        try {
+          const keys = JSON.parse(settings.apiKey);
+          seoulKey = keys.seoul || '';
+        } catch (e) {}
+      }
+      const seoulHeaders = seoulKey ? { 'x-api-key': seoulKey } : undefined;
+
       // 첫 페이지 조회
       let firstResult: FetchResult | undefined;
       const isSeoulSpecialty = regionCode === '6110000' && 
@@ -418,13 +474,17 @@ export async function fetchAllLeads(
          serviceInfo.id === 'LOCALDATA_010301' || serviceInfo.id === 'LOCALDATA_104201');
 
       if (isSeoulSpecialty) {
-        if (serviceInfo.id === '01_01_02_P') firstResult = await fetchSeoulClinicAPI(1, pageSize);
-        else if (serviceInfo.id === '01_01_01_P') firstResult = await fetchSeoulHospitalAPI(1, pageSize);
+        if (serviceInfo.id === '01_01_02_P') firstResult = await fetchSeoulClinicAPI(1, pageSize, settings);
+        else if (serviceInfo.id === '01_01_01_P') firstResult = await fetchSeoulHospitalAPI(1, pageSize, settings);
         else if (serviceInfo.id === 'LOCALDATA_010301') {
-          const res = await safeFetch(`/api/seoul-data?service=quasi-medical&start=1&end=${pageSize}`);
+          const res = await safeFetch(`/api/seoul-data?service=quasi-medical&start=1&end=${pageSize}`, {
+            headers: seoulHeaders
+          });
           if (res.success) firstResult = { success: true, leads: await processSeoulRawLeads(res.leads, 'LOCALDATA_010301'), totalCount: res.totalCount };
         } else if (serviceInfo.id === 'LOCALDATA_104201') {
-          const res = await safeFetch(`/api/seoul-data?service=fitness&start=1&end=${pageSize}`);
+          const res = await safeFetch(`/api/seoul-data?service=fitness&start=1&end=${pageSize}`, {
+            headers: seoulHeaders
+          });
           if (res.success) firstResult = { success: true, leads: await processSeoulRawLeads(res.leads, 'LOCALDATA_104201'), totalCount: res.totalCount };
         }
       } else {
@@ -457,10 +517,12 @@ export async function fetchAllLeads(
               'LOCALDATA_104201': 'fitness'
             };
             
-            if (serviceInfo.id === '01_01_02_P') pageResult = await fetchSeoulClinicAPI(start, end);
-            else if (serviceInfo.id === '01_01_01_P') pageResult = await fetchSeoulHospitalAPI(start, end);
+            if (serviceInfo.id === '01_01_02_P') pageResult = await fetchSeoulClinicAPI(start, end, settings);
+            else if (serviceInfo.id === '01_01_01_P') pageResult = await fetchSeoulHospitalAPI(start, end, settings);
             else if (endpointMap[serviceInfo.id]) {
-              const res = await safeFetch(`/api/seoul-data?service=${endpointMap[serviceInfo.id]}&start=${start}&end=${end}`);
+              const res = await safeFetch(`/api/seoul-data?service=${endpointMap[serviceInfo.id]}&start=${start}&end=${end}`, {
+                headers: seoulHeaders
+              });
               if (res.success) pageResult = { success: true, leads: await processSeoulRawLeads(res.leads, serviceInfo.id), totalCount: res.totalCount };
             }
           } else {

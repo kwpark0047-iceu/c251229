@@ -396,7 +396,7 @@ export async function uploadInventoryExcel(
           description: row.description || null,
           organization_id: orgId,
         };
-      }).filter(Boolean);
+      }).filter((row): row is Exclude<typeof row, null> => row !== null);
 
       if (dbRows.length > 0) {
         const { error } = await supabase

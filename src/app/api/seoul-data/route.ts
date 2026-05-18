@@ -17,6 +17,9 @@ export async function GET(request: NextRequest) {
   const startIndex = parseInt(searchParams.get('start') || '1');
   const endIndex = parseInt(searchParams.get('end') || '100');
   const query = searchParams.get('query') || '';
+  
+  // 클라이언트가 전달한 커스텀 API 키 파싱
+  const customApiKey = request.headers.get('x-api-key') || searchParams.get('apiKey') || undefined;
 
   if (!service) {
     return NextResponse.json({ success: false, error: 'Service ID is required' }, { status: 400 });
@@ -27,25 +30,25 @@ export async function GET(request: NextRequest) {
 
     switch (service) {
       case 'clinic':
-        result = await getSeoulClinicLicenseData(startIndex, endIndex);
+        result = await getSeoulClinicLicenseData(startIndex, endIndex, customApiKey);
         break;
       case 'hospital':
-        result = await getSeoulHospitalLicenseData(startIndex, endIndex);
+        result = await getSeoulHospitalLicenseData(startIndex, endIndex, customApiKey);
         break;
       case 'quasi-medical':
-        result = await getSeoulQuasiMedicalLicenseData(startIndex, endIndex);
+        result = await getSeoulQuasiMedicalLicenseData(startIndex, endIndex, customApiKey);
         break;
       case 'fitness':
-        result = await getSeoulFitnessLicenseData(startIndex, endIndex);
+        result = await getSeoulFitnessLicenseData(startIndex, endIndex, customApiKey);
         break;
       case 'arrival':
         if (!query) return NextResponse.json({ success: false, error: 'Station name is required' }, { status: 400 });
-        const arrivals = await getRealtimeArrival(query);
+        const arrivals = await getRealtimeArrival(query, customApiKey);
         result = { success: true, data: arrivals };
         break;
       case 'stations':
         if (!query) return NextResponse.json({ success: false, error: 'Line name is required' }, { status: 400 });
-        const stations = await getSeoulStationsByLine(query);
+        const stations = await getSeoulStationsByLine(query, customApiKey);
         result = { success: true, data: stations };
         break;
       default:
