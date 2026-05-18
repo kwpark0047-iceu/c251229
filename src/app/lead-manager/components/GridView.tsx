@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS, STATUS_METRO_COLORS, LINE_COLORS, SalesProgress } from '../types';
-import { formatDistance, truncateString, getHighlightParts } from '../utils';
+import { formatDistance, truncateString, getHighlightParts, findNearestStation } from '../utils';
 import CallLogModal from './crm/CallLogModal';
 import LeadDetailPanel from './crm/LeadDetailPanel';
 import { ProgressDots } from './crm/ProgressChecklist';
@@ -244,6 +244,15 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
           )}
 
           <div className="space-y-2.5 text-sm">
+            {lead.licenseDate && (
+              <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">
+                <Calendar className="w-4 h-4 flex-shrink-0 text-[var(--metro-line5)]" />
+                <span>
+                  인허가일: <span className="font-medium text-[var(--text-primary)]">{lead.licenseDate}</span>
+                </span>
+              </div>
+            )}
+
             <div className="flex items-start gap-2.5 text-[var(--text-secondary)]">
               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--metro-line3)]" />
               <span className="line-clamp-2">
@@ -251,29 +260,50 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               </span>
             </div>
 
-            {lead.nearestStation && (
-              <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">
-                <Train className="w-4 h-4 flex-shrink-0 text-[var(--metro-line4)]" />
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-[var(--text-primary)]">
-                    <HighlightText text={lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'} searchQuery={searchQuery} />
-                  </span>
-                  {lead.stationLines && (
-                    <div className="flex gap-1">
-                      {lead.stationLines.slice(0, 3).map(line => (
-                        <span
-                          key={line}
-                          className="w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold shadow-sm bg-[--line-color]"
-                          style={{ '--line-color': LINE_COLORS[line] || '#888' } as React.CSSProperties}
-                        >
-                          {line}
-                        </span>
-                      ))}
+            <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">
+              <Train className="w-4 h-4 flex-shrink-0 text-[var(--metro-line4)]" />
+              {(() => {
+                // DB에 값이 없으면 실시간 계산
+                const calcStation = (!lead.nearestStation && lead.latitude && lead.longitude) 
+                  ? findNearestStation(lead.latitude, lead.longitude) 
+                  : null;
+                  
+                const displayStation = lead.nearestStation || (calcStation ? calcStation.station.name : null);
+                const displayDistance = lead.stationDistance || (calcStation ? calcStation.distance : null);
+                const displayLines = lead.stationLines || (calcStation ? calcStation.station.lines : []);
+
+                return displayStation ? (
+                  <div className="flex flex-col gap-1 w-full">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-[var(--text-primary)]">
+                        <HighlightText text={displayStation.endsWith('역') ? displayStation : displayStation + '역'} searchQuery={searchQuery} />
+                      </span>
+                      {displayDistance && (
+                        <span className="text-xs text-[var(--text-muted)]">({formatDistance(displayDistance)})</span>
+                      )}
+                      {displayLines && displayLines.length > 0 && (
+                        <div className="flex gap-1 ml-1">
+                          {displayLines.slice(0, 3).map(line => (
+                            <span
+                              key={line}
+                              className="w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold shadow-sm bg-[--line-color]"
+                              style={{ '--line-color': LINE_COLORS[line] || '#888' } as React.CSSProperties}
+                            >
+                              {line}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
+                    <div className="flex items-center text-xs text-[var(--text-muted)]">
+                      <span>출구: <span className="font-medium text-[var(--text-secondary)]">{lead.nearestExitNo ? `${lead.nearestExitNo}번 출구` : '미확인'}</span></span>
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-[var(--text-muted)] text-xs italic">인근역 정보 없음</span>
+                );
+              })()}
+            </div>
 
             {lead.assignedToName && (
               <div className="flex items-center gap-2.5 text-[var(--text-secondary)]">

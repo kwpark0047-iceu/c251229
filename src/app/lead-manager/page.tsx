@@ -627,26 +627,24 @@ function LeadManagerContent() {
                   <div className="flex items-center gap-2 flex-wrap">
                     {(Object.keys(CATEGORY_LABELS) as BusinessCategory[]).map(category => {
                       const colors = CATEGORY_COLORS[category];
-                      const count = category === 'ALL' ? leads.length : leads.filter(l => l.category === category).length;
                       const catColor = colors.bg.includes('red') ? 'var(--metro-line1)' : colors.bg.includes('amber') || colors.bg.includes('orange') ? 'var(--metro-line3)' : colors.bg.includes('purple') ? 'var(--metro-line5)' : colors.bg.includes('cyan') ? 'var(--metro-line4)' : colors.bg.includes('emerald') ? 'var(--metro-line2)' : colors.bg.includes('lime') ? 'var(--metro-line7)' : colors.bg.includes('pink') ? 'var(--metro-line8)' : colors.bg.includes('yellow') ? 'var(--metro-line9)' : colors.bg.includes('rose') ? 'var(--metro-line6)' : 'var(--metro-line9)';
-                      return <button key={category} onClick={() => { setCategoryFilter(category); setSelectedServiceIds([]); }} className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${categoryFilter === category ? 'text-white shadow-md bg-[--cat-color]' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`} style={{ '--cat-color': categoryFilter === category ? catColor : 'transparent' } as React.CSSProperties}>{category === 'ALL' ? '전체 업종' : CATEGORY_LABELS[category]}{count > 0 && <span className="ml-1 opacity-70">({count})</span>}</button>;
+                      return <button key={category} onClick={() => { setCategoryFilter(category); setSelectedServiceIds([]); }} className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${categoryFilter === category ? 'text-white shadow-md bg-[--cat-color]' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`} style={{ '--cat-color': categoryFilter === category ? catColor : 'transparent' } as React.CSSProperties}>{category === 'ALL' ? '전체 업종' : CATEGORY_LABELS[category]}</button>;
                     })}
                   </div>
                   <div className="flex items-center gap-2">
                     {(['ALL', 'NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as const).map((status, idx) => {
                       const statusColors = ['var(--metro-line9)', 'var(--metro-line2)', 'var(--metro-line4)', 'var(--metro-line5)', 'var(--metro-line3)'];
-                      return <button key={status} onClick={() => setStatusFilter(status)} className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${statusFilter === status ? 'text-white shadow-md bg-[--status-color]' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`} style={{ '--status-color': statusFilter === status ? statusColors[idx] : 'transparent' } as React.CSSProperties}>{status === 'ALL' ? '전체 상태' : STATUS_LABELS[status]}{status !== 'ALL' && <span className="ml-1 opacity-70">({leads.filter(l => l.status === status).length})</span>}</button>;
+                      return <button key={status} onClick={() => setStatusFilter(status)} className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${statusFilter === status ? 'text-white shadow-md bg-[--status-color]' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`} style={{ '--status-color': statusFilter === status ? statusColors[idx] : 'transparent' } as React.CSSProperties}>{status === 'ALL' ? '전체 상태' : STATUS_LABELS[status]}</button>;
                     })}
                   </div>
-                  <span className="text-sm font-semibold text-[var(--metro-line2)]">{filteredLeads.length}건</span>
+                  <span className="text-sm font-semibold text-[var(--metro-line2)]">{totalCount.toLocaleString()}건 조회됨</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-[var(--text-muted)]">세부:</span>
                   <button onClick={() => setSelectedServiceIds([])} className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${selectedServiceIds.length === 0 ? 'bg-[var(--metro-line2)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}>전체 서비스</button>
                   {CATEGORY_SERVICE_IDS[categoryFilter].map(service => {
                     const isSelected = selectedServiceIds.includes(service.id);
-                    const serviceCount = leads.filter(l => l.serviceId === service.id).length;
-                    return <button key={service.id} onClick={() => setSelectedServiceIds(prev => isSelected ? prev.filter(id => id !== service.id) : [...prev, service.id])} className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${isSelected ? 'bg-[var(--metro-line4)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}>{service.name}{serviceCount > 0 && <span className="ml-1 opacity-70">({serviceCount})</span>}</button>;
+                    return <button key={service.id} onClick={() => setSelectedServiceIds(prev => isSelected ? prev.filter(id => id !== service.id) : [...prev, service.id])} className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${isSelected ? 'bg-[var(--metro-line4)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}>{service.name}</button>;
                   })}
                 </div>
               </div>

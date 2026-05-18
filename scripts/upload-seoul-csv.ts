@@ -131,6 +131,7 @@ async function run() {
     
     return {
       biz_name: row['사업장명'],
+      license_date: row['인허가일자'] || null,
       road_address: row['도로명주소'] || row['지번주소'] || '',
       lot_address: row['지번주소'] || '',
       phone: row['전화번호'] || '',
