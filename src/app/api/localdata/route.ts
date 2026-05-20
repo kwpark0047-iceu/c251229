@@ -5,6 +5,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+// Vercel Serverless Function 타임아웃 설정 (Pro 플랜의 경우 60초 이상 활용 가능)
+export const maxDuration = 60;
+
 // 환경변수에서 API 키 로드 (서버에서만 접근 가능)
 // 환경변수에서 API 키 로드 (서버에서만 접근 가능)
 const LOCALDATA_API_KEY = process.env.LOCALDATA_API_KEY || 'ZDYYNAzHrNEn=IvlfUsvSF0mPGcXK463jxO3en762Us=';
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // API 호출
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 50000); // 30초 -> 50초로 연장
 
     const response = await fetch(apiUrl.toString(), {
       method: 'GET',
@@ -115,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     if ((error as Error).name === 'AbortError') {
       return NextResponse.json(
-        { success: false, error: 'API 요청 시간 초과 (30초)' },
+        { success: false, error: 'API 요청 시간 초과 (50초)' },
         { status: 504 }
       );
     }

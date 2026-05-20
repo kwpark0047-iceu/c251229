@@ -176,7 +176,8 @@ export async function saveLeads(
       };
     }
 
-    const BATCH_SIZE = 50;
+    // 한 번에 저장할 배치 크기를 늘려 DB 호출(왕복) 횟수를 대폭 줄임
+    const BATCH_SIZE = 200;
     let savedCount = 0;
 
     for (let i = 0; i < newLeads.length; i += BATCH_SIZE) {
@@ -227,12 +228,15 @@ export async function saveLeads(
         }
 
         if (error.code === '23505') {
+          console.warn(`[Supabase] 중복 키 에러(23505) 발생. ${dbLeads.length}건 배치에 대해 개별 삽입 시도...`);
           for (const dbLead of dbLeads) {
             const { error: singleError } = await supabase
               .from('leads')
               .insert(dbLead);
             if (!singleError) {
               savedCount++;
+            } else if (singleError.code !== '23505') {
+               console.error(`[Supabase] 개별 삽입 에러:`, singleError);
             }
           }
           continue;

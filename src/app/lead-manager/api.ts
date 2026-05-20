@@ -449,9 +449,13 @@ export async function fetchAllLeads(
 
   onProgress?.(0, totalTasks, `동기화 시작 (총 ${totalTasks}개 서비스)...`);
 
-  // 3. 병렬 처리 엔진 (동시성 제한: 3)
-  const CONCURRENCY_LIMIT = 3;
+  // 3. 병렬 처리 엔진 (동시성 제한: 2로 낮추어 서버 과부하 방지)
+  const CONCURRENCY_LIMIT = 2;
   const results: Lead[] = [];
+  
+  // 딜레이 유틸리티 함수
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   
   const executeTask = async (task: { regionCode: string; serviceInfo: ServiceIdInfo }) => {
     const { regionCode, serviceInfo } = task;
@@ -533,13 +537,19 @@ export async function fetchAllLeads(
             const psr = await saveLeads(pageResult.leads, undefined);
             totalNewLeadsCount += psr.newCount;
             results.push(...psr.newLeads);
-            
           }
+          
+          // 각 페이지 호출 사이에 500ms 딜레이를 주어 Rate Limit 및 과부하 방지
+          await delay(500);
         }
       }
 
       completedTasks++;
       onProgress?.(completedTasks, totalTasks, `[${regionName}] ${serviceInfo.name}: ${firstResult.totalCount}건 확인 (${totalNewLeadsCount}건 신규)`);
+      
+      // 서비스/지역 간 작업 전환 시 1초 딜레이
+      await delay(1000);
+
       
     } catch (err) {
       console.error(`[Task Error] ${regionName}/${serviceInfo.name}:`, err);
