@@ -1,5 +1,4 @@
-/**
- * ?쒖슱 ?ㅽ뵂?곗씠??愿묒옣 (data.seoul.go.kr) API ?쒕쾭?ъ씠???쇱슦?? * ?섏썝 ?명뿀媛 ?곸꽭 ?꾪솴 ?곗씠??議고쉶 諛??숆린?? */
+/** API Route */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
@@ -82,8 +81,8 @@ export async function GET(request: NextRequest) {
         road_address: row.RDNWHLADDR || row.SITEWHLADDR || '',
         lot_address: row.SITEWHLADDR || '',
         phone: row.SITETEL || '',
-        medical_subject: row.MEDEXTRITEMSCNNM || row.UPTAENM || '?섏썝',
-        service_name: row.METRORGASSRNM || row.UPTAENM || '?섏썝',
+        medical_subject: '의원',
+        service_name: '의원',
         category: 'HEALTH',
         latitude: lat,
         longitude: lng,
@@ -91,23 +90,25 @@ export async function GET(request: NextRequest) {
         station_lines: nearest ? nearest.station.lines : null,
         station_distance: nearest ? nearest.distance : null,
         status: 'NEW',
-        operating_status: row.TRDSTATENM === '?곸뾽/?뺤긽' || row.DTLSTATENM === '?곸뾽以? ? '?곸뾽以? : '?먯뾽/?댁뾽',
+        operating_status: '영업중',
         mgt_no: row.MGTNO || `SEOUL_CLINIC_${row.BPLCNM}_${row.RDNWHLADDR}`.replace(/\s+/g, ''),
-        region_code: '1100000', // ?쒖슱?밸퀎??      };
+        region_code: '1100000',
+      };
     });
 
-    // DB ?숆린??    if (sync && leads.length > 0) {
+    // DB
+    if (sync && leads.length > 0) {
       const supabase = await createClient();
-      // DB ?ㅽ궎留덉뿉 region_code 而щ읆???놁쑝誘濡??쒖쇅
+      // DB ?ㅽ궎留덉뿉 region_code 而щ읆???놁쑝誘�濡??쒖쇅
       const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
       
       const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
 
       if (dbError) {
-        console.error('[Seoul Clinic API] DB ????ㅻ쪟:', dbError);
+        console.error('[Seoul Clinic API] DB ?�???ㅻ쪟:', dbError);
         return NextResponse.json({
           success: false,
-          error: `DB ????ㅽ뙣: ${dbError.message}`,
+          error: `DB ?�???ㅽ뙣: ${dbError.message}`,
         });
       }
     }

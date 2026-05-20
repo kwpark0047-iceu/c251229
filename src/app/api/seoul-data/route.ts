@@ -8,8 +8,7 @@ import {
   getSeoulStationsByLine
 } from '@/lib/seoul-data-api';
 
-/**
- * ?쒖슱 ?대┛?곗씠??愿묒옣 API ?꾨줉?? */
+/** API Route */
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
   const endIndex = parseInt(searchParams.get('end') || '100');
   const query = searchParams.get('query') || '';
   
-  // ?대씪?댁뼵?멸? ?꾨떖??而ㅼ뒪? API ???뚯떛
+  // ?대씪?댁뼵?멸? ?꾨떖??而ㅼ뒪?� API ???뚯떛
   const customApiKey = request.headers.get('x-api-key') || searchParams.get('apiKey') || undefined;
 
   if (!service) {

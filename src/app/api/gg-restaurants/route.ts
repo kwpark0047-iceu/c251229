@@ -1,5 +1,4 @@
-/**
- * 寃쎄린???곗씠???쒕┝ (data.gg.go.kr) API ?쒕쾭?ъ씠???쇱슦?? * ?쇰컲?뚯떇???명뿀媛 諛??곸뾽?꾪솴 ?곗씠??議고쉶 諛??숆린?? */
+/** API Route */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
@@ -73,8 +72,8 @@ export async function GET(request: NextRequest) {
         road_address: row.REFINE_ROADNM_ADDR || '',
         lot_address: row.REFINE_LOTNO_ADDR || '',
         phone: '', // API?먯꽌 ?뺤씤 ?꾩슂
-        medical_subject: row.SANITTN_BIZCOND_NM || '?쇰컲?뚯떇??,
-        service_name: '?쇰컲?뚯떇??,
+        medical_subject: '의원',
+        service_name: '의원',
         category: 'FOOD',
         latitude: lat || null,
         longitude: lng || null,
@@ -82,21 +81,23 @@ export async function GET(request: NextRequest) {
         station_lines: nearest ? nearest.station.lines : null,
         station_distance: nearest ? nearest.distance : null,
         status: 'NEW',
-        operating_status: row.BSN_STATE_NM === '?곸뾽' ? '?곸뾽以? : '?먯뾽/?댁뾽',
+        operating_status: '영업중',
         mgt_no: `GG_REST_${row.BIZPLC_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
-        region_code: '6410000', // 寃쎄린??      };
+        region_code: '6410000',
+      };
     });
 
-    // DB ?숆린??    if (sync && leads.length > 0) {
+    // DB
+    if (sync && leads.length > 0) {
       const supabase = await createClient();
       const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
       const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
 
       if (dbError) {
-        console.error('[GG Rest API] DB ????ㅻ쪟:', dbError);
+        console.error('[GG Rest API] DB ?�???ㅻ쪟:', dbError);
         return NextResponse.json({
           success: false,
-          error: `DB ????ㅽ뙣: ${dbError.message}`,
+          error: `DB ?�???ㅽ뙣: ${dbError.message}`,
         });
       }
     }
