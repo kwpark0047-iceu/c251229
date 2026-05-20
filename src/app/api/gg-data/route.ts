@@ -1,5 +1,5 @@
 /**
- * 경기???�이???�림 (data.gg.go.kr) API ?�버?�이???�우?? * ?�원 �?교습???�황 ?�이??조회 �??�기?? */
+ * 寃쎄린???곗씠???쒕┝ (data.gg.go.kr) API ?쒕쾭?ъ씠???쇱슦?? * ?숈썝 諛?援먯뒿???꾪솴 ?곗씠??議고쉶 諛??숆린?? */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
@@ -15,15 +15,15 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const pIndex = searchParams.get('pIndex') || '1';
   const pSize = searchParams.get('pSize') || '100';
-  const sigunNm = searchParams.get('sigunNm'); // ?�군�??�터 (?�션)
-  const sync = searchParams.get('sync') === 'true'; // DB ?�기???��?
+  const sigunNm = searchParams.get('sigunNm'); // ?쒓뎔紐??꾪꽣 (?듭뀡)
+  const sync = searchParams.get('sync') === 'true'; // DB ?숆린???щ?
   const customApiKey = searchParams.get('apiKey');
 
   try {
     const activeApiKey = customApiKey || GG_DATA_API_KEY;
     if (!activeApiKey) {
       return NextResponse.json(
-        { success: false, error: 'API ?��? ?�정?��? ?�았?�니??' },
+        { success: false, error: 'API ?ㅺ? ?ㅼ젙?섏? ?딆븯?듬땲??' },
         { status: 500 }
       );
     }
@@ -38,19 +38,19 @@ export async function GET(request: NextRequest) {
       apiUrl.searchParams.set('SIGUN_NM', sigunNm);
     }
 
-    console.log(`[GG Data API] ?�청: pIndex=${pIndex}, pSize=${pSize}, sigunNm=${sigunNm || '?�체'}, sync=${sync}`);
+    console.log(`[GG Data API] ?붿껌: pIndex=${pIndex}, pSize=${pSize}, sigunNm=${sigunNm || '?꾩껜'}, sync=${sync}`);
 
     const response = await fetch(apiUrl.toString());
     
     if (!response.ok) {
-      throw new Error(`API ?�답 ?�류: ${response.status}`);
+      throw new Error(`API ?묐떟 ?ㅻ쪟: ${response.status}`);
     }
 
     const data = await response.json();
 
     if (!data.TninsttInstutM) {
       const errorCode = data.RESULT?.CODE || 'UNKNOWN';
-      const errorMsg = data.RESULT?.MESSAGE || '?�이?��? 찾을 ???�습?�다.';
+      const errorMsg = data.RESULT?.MESSAGE || '?곗씠?곕? 李얠쓣 ???놁뒿?덈떎.';
       
       return NextResponse.json({
         success: false,
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const totalCount = head.find((h: any) => h.list_total_count)?.list_total_count || 0;
     const rows = data.TninsttInstutM[1].row || [];
 
-    // 리드 ?�식?�로 매핑
+    // 由щ뱶 ?뺤떇?쇰줈 留ㅽ븨
     const leads = rows.map((row: any) => {
       const lat = parseFloat(row.REFINE_WGS84_LAT);
       const lng = parseFloat(row.REFINE_WGS84_LOGT);
@@ -73,33 +73,33 @@ export async function GET(request: NextRequest) {
         road_address: row.REFINE_ROADNM_ADDR || '',
         lot_address: row.REFINE_LOTNO_ADDR || '',
         phone: row.TELNO || '',
-        medical_subject: row.LE_CRSE_NM || '?�원', // 교습과정명을 ?�태명으�??�용
-        service_name: row.INDUTY_DIV_NM, // ?�원 ?�는 교습??        category: 'EDUCATION',
+        medical_subject: row.LE_CRSE_NM || '?숈썝', // 援먯뒿怨쇱젙紐낆쓣 ?낇깭紐낆쑝濡??쒖슜
+        service_name: row.INDUTY_DIV_NM, // ?숈썝 ?먮뒗 援먯뒿??        category: 'EDUCATION',
         latitude: lat || null,
         longitude: lng || null,
         nearest_station: nearest ? nearest.station.name : null,
         station_lines: nearest ? nearest.station.lines : null,
         station_distance: nearest ? nearest.distance : null,
         status: 'NEW',
-        operating_status: row.FACLT_STAT_NM === '?�영' ? '?�업�? : '?�업/?�업',
+        operating_status: row.FACLT_STAT_NM === '?댁쁺' ? '?곸뾽以? : '?먯뾽/?댁뾽',
         mgt_no: `GG_${row.FACLT_NM}_${row.REFINE_ZIPNO || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
-        region_code: '6410000', // 경기??      };
+        region_code: '6410000', // 寃쎄린??      };
     });
 
-    // DB ?�기???�청??경우 Supabase???�??    if (sync && leads.length > 0) {
+    // DB ?숆린???붿껌??寃쎌슦 Supabase?????    if (sync && leads.length > 0) {
       const supabase = await createClient();
       const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
       const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
 
       if (dbError) {
-        console.error('[GG Data API] DB ?�???�류:', dbError);
+        console.error('[GG Data API] DB ????ㅻ쪟:', dbError);
         return NextResponse.json({
           success: false,
-          error: `DB ?�???�패: ${dbError.message}`,
+          error: `DB ????ㅽ뙣: ${dbError.message}`,
         });
       }
       
-      console.log(`[GG Data API] ${leads.length}�??�기???�료`);
+      console.log(`[GG Data API] ${leads.length}嫄??숆린???꾨즺`);
     }
 
     return NextResponse.json({
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       totalCount,
       leads: leads.map((l: any) => ({
         ...l,
-        bizName: l.biz_name, // ?�위 ?�환?�을 ?�해 camelCase ?�드 추�?
+        bizName: l.biz_name, // ?섏쐞 ?명솚?깆쓣 ?꾪빐 camelCase ?꾨뱶 異붽?
         roadAddress: l.road_address,
         nearestStation: l.nearest_station,
         stationDistance: l.station_distance,
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[GG Data API] ?�류:', error);
+    console.error('[GG Data API] ?ㅻ쪟:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }

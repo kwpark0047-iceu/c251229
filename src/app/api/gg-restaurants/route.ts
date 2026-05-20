@@ -1,5 +1,5 @@
 /**
- * 경기???�이???�림 (data.gg.go.kr) API ?�버?�이???�우?? * ?�반?�식???�허가 �??�업?�황 ?�이??조회 �??�기?? */
+ * 寃쎄린???곗씠???쒕┝ (data.gg.go.kr) API ?쒕쾭?ъ씠???쇱슦?? * ?쇰컲?뚯떇???명뿀媛 諛??곸뾽?꾪솴 ?곗씠??議고쉶 諛??숆린?? */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const activeApiKey = customApiKey || GG_REST_API_KEY;
     if (!activeApiKey) {
       return NextResponse.json(
-        { success: false, error: 'API ?��? ?�정?��? ?�았?�니??' },
+        { success: false, error: 'API ?ㅺ? ?ㅼ젙?섏? ?딆븯?듬땲??' },
         { status: 500 }
       );
     }
@@ -38,19 +38,19 @@ export async function GET(request: NextRequest) {
       apiUrl.searchParams.set('SIGUN_NM', sigunNm);
     }
 
-    console.log(`[GG Rest API] ?�청: pIndex=${pIndex}, pSize=${pSize}, sigunNm=${sigunNm || '?�체'}, sync=${sync}`);
+    console.log(`[GG Rest API] ?붿껌: pIndex=${pIndex}, pSize=${pSize}, sigunNm=${sigunNm || '?꾩껜'}, sync=${sync}`);
 
     const response = await fetch(apiUrl.toString());
     
     if (!response.ok) {
-      throw new Error(`API ?�답 ?�류: ${response.status}`);
+      throw new Error(`API ?묐떟 ?ㅻ쪟: ${response.status}`);
     }
 
     const data = await response.json();
 
     if (!data.Genrestrtjpnfood) {
       const errorCode = data.RESULT?.CODE || 'UNKNOWN';
-      const errorMsg = data.RESULT?.MESSAGE || '?�이?��? 찾을 ???�습?�다.';
+      const errorMsg = data.RESULT?.MESSAGE || '?곗씠?곕? 李얠쓣 ???놁뒿?덈떎.';
       
       return NextResponse.json({
         success: false,
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     const totalCount = head.find((h: any) => h.list_total_count)?.list_total_count || 0;
     const rows = data.Genrestrtjpnfood[1].row || [];
 
-    // 리드 ?�식?�로 매핑
+    // 由щ뱶 ?뺤떇?쇰줈 留ㅽ븨
     const leads = rows.map((row: any) => {
       const lat = parseFloat(row.REFINE_WGS84_LAT);
       const lng = parseFloat(row.REFINE_WGS84_LOGT);
@@ -72,9 +72,9 @@ export async function GET(request: NextRequest) {
         biz_name: row.BIZPLC_NM,
         road_address: row.REFINE_ROADNM_ADDR || '',
         lot_address: row.REFINE_LOTNO_ADDR || '',
-        phone: '', // API?�서 ?�인 ?�요
-        medical_subject: row.SANITTN_BIZCOND_NM || '?�반?�식??,
-        service_name: '?�반?�식??,
+        phone: '', // API?먯꽌 ?뺤씤 ?꾩슂
+        medical_subject: row.SANITTN_BIZCOND_NM || '?쇰컲?뚯떇??,
+        service_name: '?쇰컲?뚯떇??,
         category: 'FOOD',
         latitude: lat || null,
         longitude: lng || null,
@@ -82,21 +82,21 @@ export async function GET(request: NextRequest) {
         station_lines: nearest ? nearest.station.lines : null,
         station_distance: nearest ? nearest.distance : null,
         status: 'NEW',
-        operating_status: row.BSN_STATE_NM === '?�업' ? '?�업�? : '?�업/?�업',
+        operating_status: row.BSN_STATE_NM === '?곸뾽' ? '?곸뾽以? : '?먯뾽/?댁뾽',
         mgt_no: `GG_REST_${row.BIZPLC_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
-        region_code: '6410000', // 경기??      };
+        region_code: '6410000', // 寃쎄린??      };
     });
 
-    // DB ?�기??    if (sync && leads.length > 0) {
+    // DB ?숆린??    if (sync && leads.length > 0) {
       const supabase = await createClient();
       const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
       const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
 
       if (dbError) {
-        console.error('[GG Rest API] DB ?�???�류:', dbError);
+        console.error('[GG Rest API] DB ????ㅻ쪟:', dbError);
         return NextResponse.json({
           success: false,
-          error: `DB ?�???�패: ${dbError.message}`,
+          error: `DB ????ㅽ뙣: ${dbError.message}`,
         });
       }
     }
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[GG Rest API] ?�류:', error);
+    console.error('[GG Rest API] ?ㅻ쪟:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }
