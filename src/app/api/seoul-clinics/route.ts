@@ -10,8 +10,6 @@ const API_ENDPOINT = 'http://openapi.seoul.go.kr:8088';
 
 export const dynamic = 'force-dynamic';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const pIndex = parseInt(searchParams.get('pIndex') || '1');
