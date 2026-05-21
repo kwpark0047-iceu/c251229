@@ -241,95 +241,9 @@ export default function ListView({
                   <h3 className="font-bold text-[var(--text-primary)]">
                     <HighlightText text={lead.bizName} searchQuery={searchQuery} />
                   </h3>
-                  <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                    <HighlightText text={lead.medicalSubject || ''} searchQuery={searchQuery} />
-                  </p>
-                </div>
-                <div
-                  className="px-2 py-1 rounded text-[10px] font-bold bg-[--status-bg] text-[--status-text] border border-[--status-border]"
-                   
-   
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                    '--status-bg': STATUS_METRO_COLORS[lead.status].bg,
-                    '--status-text': STATUS_METRO_COLORS[lead.status].text,
-                    '--status-border': STATUS_METRO_COLORS[lead.status].border,
-                     
-                  } as React.CSSProperties}
-                >
-                  {STATUS_LABELS[lead.status]}
-                </div>
-              </div>
 
-              <div className="space-y-1.5 text-xs text-[var(--text-secondary)]">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-4 flex justify-center">📍</span>
-                  <span className="line-clamp-1">{lead.roadAddress || lead.lotAddress}</span>
-  onPageChange
-}: ListViewProps) {
-  const [sortField, setSortField] = useState<SortField>('licenseDate');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
-  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
-  const [callModalLeadId, setCallModalLeadId] = useState<string | null>(null);
 
-  const selectedLead = leads.find(l => l.id === selectedLeadId);
-  const callModalLead = leads.find(l => l.id === callModalLeadId);
 
-  // 정렬 처리
-  const sortedLeads = [...leads].sort((a, b) => {
-    let aVal: string | number = '';
-    let bVal: string | number = '';
-
-    switch (sortField) {
-      case 'bizName':
-        aVal = a.bizName || '';
-        bVal = b.bizName || '';
-        break;
-      case 'nearestStation':
-        aVal = a.nearestStation || '';
-        bVal = b.nearestStation || '';
-        break;
-      case 'stationDistance':
-        aVal = a.stationDistance || 999999;
-        bVal = b.stationDistance || 999999;
-        break;
-      case 'licenseDate':
-        aVal = a.licenseDate || '';
-        bVal = b.licenseDate || '';
-        break;
-      case 'status':
-        aVal = a.status;
-        bVal = b.status;
-        break;
-      case 'createdAt':
-        aVal = a.createdAt || '';
-        bVal = b.createdAt || '';
-        break;
-    }
-
-    if (typeof aVal === 'string' && typeof bVal === 'string') {
-      return sortOrder === 'asc'
-        ? aVal.localeCompare(bVal, 'ko')
-        : bVal.localeCompare(aVal, 'ko');
-    }
-
-    return sortOrder === 'asc'
-      ? (aVal as number) - (bVal as number)
-      : (bVal as number) - (aVal as number);
-  });
-
-  // 정렬 토글
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  };
 
   return (
     <>

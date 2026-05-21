@@ -84,14 +84,12 @@ import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup';
 import './design.css';
 import { applyThemeVariables, ThemeType, getCardClass } from './utils/design-tokens';
 
- 
-function getDefaultDateRange() {
+function getThreeMonthsDateRange() {
   const end = new Date();
-  const start = new Date();
+  const start = new Date(end);
   start.setMonth(start.getMonth() - 3); // 최근 3개월 데이터 로드
   return { start, end };
 }
-
 
 function formatDateForLeadQuery(date: Date) {
   const year = date.getFullYear();
@@ -144,7 +142,7 @@ function LeadManagerContent() {
   const [onlineUsersCount, setOnlineUsersCount] = useState(0);
 
   // 날짜 범위 (기본값: 최근 6개월)
-  const [dateRange, setDateRange] = useState(getOneYearDateRange);
+  const [dateRange, setDateRange] = useState(getThreeMonthsDateRange);
 
   // 선택된 지역
   const [selectedRegions, setSelectedRegions] = useState<string[]>(['6110000', '6410000']);
@@ -745,7 +743,7 @@ function LeadManagerContent() {
               )}
             </div>
           </>
-        )        ) : mainTab === 'proposals' ? (
+                ) : mainTab === 'proposals' ? (
           <ProposalsView defaultOpenUpload={initialTab === 'proposals' && initialAction === 'upload'} />
         ) : mainTab === 'floor-plans' ? (
           <div className="-mx-6 -my-8 h-[calc(100vh-140px)]"><FloorPlansView /></div>

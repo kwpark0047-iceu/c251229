@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Train, Trash2, AlertCircle } from 'lucide-react';
+import { Search, Train, Trash2, AlertCircle, Upload } from 'lucide-react';
 import InventoryUploadModal from './InventoryUploadModal';
 import {
   AdInventory,
@@ -108,18 +108,27 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
         <h3 className="text-lg font-medium text-slate-700 mb-2">
           등록된 광고매체가 없습니다
         </h3>
-        <p className="text-slate-500">
+        <p className="text-slate-500 mb-6">
           엑셀 파일을 업로드하여 광고매체를 등록하세요.
         </p>
-        <InventoryUploadModal
-          isOpen={showUploadModal}
-          onClose={() => setShowUploadModal(false)}
-          onSuccess={() => {
-            setShowUploadModal(false);
-            loadInventory();
-            onRefresh?.();
-          }}
-        />
+        <button
+          onClick={() => setShowUploadModal(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Upload className="w-4 h-4" />
+          신규 데이터 업로드
+        </button>
+
+        {showUploadModal && (
+          <InventoryUploadModal
+            onClose={() => setShowUploadModal(false)}
+            onSuccess={() => {
+              setShowUploadModal(false);
+              loadInventory();
+              onRefresh?.();
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -128,7 +137,6 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
     <>
       {showUploadModal && (
         <InventoryUploadModal
-          isOpen={showUploadModal}
           onClose={() => setShowUploadModal(false)}
           onSuccess={() => {
             setShowUploadModal(false);
@@ -138,40 +146,36 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
         />
       )}
       <div className="space-y-4">
-      {/* 필터 바 */}
-      <div className="flex flex-wrap gap-4 items-center">
-        {/* 검색 */}
+        {/* 필터 바 */}
+        <div className="flex flex-wrap gap-4 items-center">
+          {/* 검색 */}
           <div className="relative w-64 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            id="inventory-search"
-            type="text"
-            placeholder="역명 또는 위치코드 검색..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            aria-label="인벤토리 검색"
-          />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              id="inventory-search"
+              type="text"
+              placeholder="역명 또는 위치코드 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              aria-label="인벤토리 검색"
+            />
           </div>
 
           {/* 업로드 버튼 */}
           <button
             type="button"
             onClick={() => setShowUploadModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-[var(--metro-line4)] text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 shadow-sm"
           >
-            업로드
+            <Upload className="w-4 h-4" />
+            신규 업로드
           </button>
 
           {/* 상태 필터 */}
           <select
             id="inventory-status-filter"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as AvailabilityStatus | 'ALL')}
-          className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          title="상태별 필터링"
-          aria-label="상태별 필터링"
-        >
+            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
           <option value="ALL">모든 상태</option>
           <option value="AVAILABLE">사용 가능</option>
           <option value="RESERVED">예약됨</option>
@@ -313,5 +317,6 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
         })}
       </div>
     </div>
+    </>
   );
 }
