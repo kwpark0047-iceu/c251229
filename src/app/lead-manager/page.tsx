@@ -84,12 +84,22 @@ import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup';
 import './design.css';
 import { applyThemeVariables, ThemeType, getCardClass } from './utils/design-tokens';
 
-function getOneYearDateRange() {
+'use client';
+
+/**
+ * 서울 지하철 광고 영업 시스템 (Lead Manager)
+ * 메인 대시보드 페이지 - Neo-Seoul Transit Design
+ */
+
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+... (no change) 
+function getDefaultDateRange() {
   const end = new Date();
-  const start = new Date(end);
-  start.setFullYear(start.getFullYear() - 50); // 50년치 데이터 로드 (필터링 방지)
+  const start = new Date();
+  start.setMonth(start.getMonth() - 3); // 최근 3개월 데이터 로드
   return { start, end };
 }
+
 
 function formatDateForLeadQuery(date: Date) {
   const year = date.getFullYear();
