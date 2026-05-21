@@ -1097,8 +1097,8 @@ export default function SuperAdminDashboard({ user }: Props) {
                   <div 
                     key={log.id} 
                     className="relative pl-12 group animate-in fade-in slide-in-from-left-4" 
-                    /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                     
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -1667,8 +1667,8 @@ export default function SuperAdminDashboard({ user }: Props) {
               <div className="absolute -bottom-1 left-0 right-0 h-1 bg-emerald-500/40 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-emerald-500 animate-[shimmer_8s_linear_forwards] origin-left" 
-                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                   
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

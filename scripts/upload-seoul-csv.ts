@@ -97,7 +97,7 @@ async function upsertLeadsByMgtNo(leads: any[]) {
 }
 
 async function run() {
-  const filePath = 'D:\\Downloads\\서울시 의원 인허가 정보 (260518).csv';
+  const filePath = 'D:\\Downloads\\서울시 의원 인허가 정보 (260520).csv';
   console.log(`Reading ${filePath}...`);
   
   const buffer = fs.readFileSync(filePath);

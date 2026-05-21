@@ -307,8 +307,8 @@ export function ThemeTransition({ children }: { children: React.ReactNode }) {
         ${isTransitioning ? 'scale-95 opacity-50' : 'scale-100 opacity-100'}
       `}
        
-      /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+       
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

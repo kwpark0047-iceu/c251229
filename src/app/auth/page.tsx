@@ -51,8 +51,8 @@ function MetroLine({ color, delay, position }: { color: string; delay: number; p
     <div
       className={`absolute ${position} w-[2px] h-[40%] opacity-0 bg-gradient-to-b from-transparent via-[var(--line-color)] to-transparent animate-[fadeIn_1s_ease-out_var(--delay)_forwards]`}
        
-      /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+       
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -71,8 +71,8 @@ function StationDot({ color, delay, size = 8 }: { color: string; delay: number; 
     <div
       className="relative opacity-0 animate-[scaleIn_0.5s_ease-out_var(--delay)_forwards]"
        
-      /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+       
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -84,8 +84,8 @@ function StationDot({ color, delay, size = 8 }: { color: string; delay: number; 
       <div
         className="rounded-full w-[var(--size)] h-[var(--size)] bg-[var(--dot-color)] shadow-[0_0_calc(var(--size)*2)_var(--dot-glow)]"
          
-        /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+         
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -99,8 +99,8 @@ function StationDot({ color, delay, size = 8 }: { color: string; delay: number; 
       <div
         className="absolute inset-0 rounded-full animate-ping [animation-duration:2s] bg-[var(--dot-color)] opacity-40"
          
-        /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+         
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -442,8 +442,8 @@ function AuthContent() {
                     : 'text-[var(--text-secondary)] bg-transparent'
                 }`}
                  
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

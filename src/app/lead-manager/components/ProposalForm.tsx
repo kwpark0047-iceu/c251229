@@ -506,8 +506,8 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                             key={line}
                             className="w-6 h-6 rounded-full text-white text-xs flex items-center justify-center font-bold bg-[--line-color]"
                              
-                            /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                             
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

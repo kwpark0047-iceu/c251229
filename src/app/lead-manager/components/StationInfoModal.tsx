@@ -66,8 +66,8 @@ export default function StationInfoModal({
         <div
           className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-[--header-bg]"
            
-          /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+           
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -81,8 +81,8 @@ export default function StationInfoModal({
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold bg-[--line-color]"
                  
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

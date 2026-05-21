@@ -42,8 +42,8 @@ export default function LineSelector({
               }
             `}
              
-            /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+             
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -58,8 +58,8 @@ export default function LineSelector({
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-[image:var(--hover-glow)]"
                  
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -73,8 +73,8 @@ export default function LineSelector({
             <Train
               className={`w-4 h-4 relative ${isSelected ? 'text-white' : 'text-[--line-color]'}`}
                
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

@@ -91,8 +91,8 @@ function TaskCard({
 
   return (
     <div
-      /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+       
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -126,8 +126,8 @@ function TaskCard({
           {showMenu && (
             <div
               className="absolute right-0 top-full mt-1 py-1 rounded-lg border shadow-lg z-10 min-w-[120px] bg-[--glass-bg] border-[--glass-border]"
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -269,8 +269,8 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
           <div
             key={i}
             className={`p-5 rounded-2xl border transition-all hover:translate-y-[-4px] animate-fade-in-up shadow-[--item-shadow] bg-[--item-bg] border-[--item-border]`}
-            /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+             
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -288,8 +288,8 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
               {item.label}
             </div>
             <div className={`text-3xl font-display text-[--item-color]`} 
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -355,8 +355,8 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
               <div
                 key={column.status}
                 className="rounded-2xl border p-4 bg-[--glass-bg] border-[--glass-border]"
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -370,8 +370,8 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
                 {/* 而щ읆 ?ㅻ뜑 */}
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-[--column-color]"
-                    /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                     
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -380,8 +380,8 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
                     } as React.CSSProperties}>{column.icon}</span>
                   <h3
                     className="font-semibold text-[--column-color]"
-                    /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                     
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

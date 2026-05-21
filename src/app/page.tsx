@@ -108,15 +108,15 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-6 -mt-16 relative z-20">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, i) => (
-            <div key={i} className="glass-card p-8 animate-float-subtle" /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+            <div key={i} className="glass-card p-8 animate-float-subtle"  
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
   // NOSONAR
   style={{ animationDelay: `${i * 150}ms` }}>
-              <div className="text-3xl font-black mb-2" /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+              <div className="text-3xl font-black mb-2"  
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -161,15 +161,15 @@ export default function Home() {
                 key={feature.title}
                 className="glass-card-elevated p-8 group hover:scale-[1.03] transition-transform duration-500"
               >
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-8" /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-8"  
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
   // NOSONAR
   style={{ background: `${feature.color}15` }}>
-                  <feature.icon size={28} /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                  <feature.icon size={28}  
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

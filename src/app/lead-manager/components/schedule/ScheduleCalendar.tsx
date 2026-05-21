@@ -225,8 +225,8 @@ export default function ScheduleCalendar({
               <div
                 key={index}
                 onClick={() => handleDateClick(date)}
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -292,8 +292,8 @@ export default function ScheduleCalendar({
                           : `${typeColors.bg.replace('100', '100/10')} ${typeColors.text} border-${typeColors.text.split('-')[1]}-500/20`
                           }`}
                         title={event.title}
-                        /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                         
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

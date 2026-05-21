@@ -14,8 +14,8 @@ export default function BackgroundEffect() {
             />
             <div
                 className="absolute bottom-[-30%] left-[-10%] w-[800px] h-[800px] rounded-full animate-float-subtle opacity-10 bg-orb-blue delay-[--delay]"
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -27,8 +27,8 @@ export default function BackgroundEffect() {
             />
             <div
                 className="absolute top-[20%] left-[20%] w-[400px] h-[400px] rounded-full animate-pulse-glow opacity-5 bg-orb-purple duration-[--duration]"
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

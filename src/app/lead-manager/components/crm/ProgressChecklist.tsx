@@ -85,8 +85,8 @@ export default function ProgressChecklist({
         <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-blue-500 rounded-full transition-all duration-300 w-[--progress-width]"
-            /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+             
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

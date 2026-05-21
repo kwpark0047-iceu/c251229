@@ -5,7 +5,7 @@
  * 메인 대시보드 페이지 - Neo-Seoul Transit Design
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Settings as SettingsIcon,
@@ -149,6 +149,7 @@ function LeadManagerContent() {
 
   const [isScrolled, setIsScrolled] = useState(false);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const filterTimeoutRef = useRef<any>(null);
 
   // 스크롤 감지
   useEffect(() => {
@@ -336,34 +337,33 @@ function LeadManagerContent() {
     }
   };
 
-  // 필터 변경 감지 및 저장
+  // 필터 변경 감지 및 저장 (디바운스 적용)
   useEffect(() => {
-    if (!initialLoading && typeof window !== 'undefined') {
-      localStorage.setItem('leadManager_selectedRegions', JSON.stringify(selectedRegions));
-    }
-  }, [selectedRegions, initialLoading]);
-
-  useEffect(() => {
-    if (!initialLoading && typeof window !== 'undefined') {
-      localStorage.setItem('leadManager_categoryFilter', categoryFilter);
-    }
-  }, [categoryFilter, initialLoading]);
-
-  // 필터 변경 시 리드 재로드
-  useEffect(() => {
-    // userInfo가 아직 로드되지 않았으면 대기 (Super Admin 여부 확인을 위해 필요)
     if (!initialLoading && userInfo) {
-      console.log('[Effect] Filters changed, reloading leads...', {
-        categoryFilter,
-        selectedRegions,
-        statusFilter,
-        searchQuery,
-        hasUser: !!userInfo
-      });
-      loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery);
+      if (filterTimeoutRef.current) {
+        clearTimeout(filterTimeoutRef.current);
+      }
+      filterTimeoutRef.current = setTimeout(() => {
+        console.log('[Effect] Filters changed, reloading leads...', {
+          categoryFilter,
+          selectedRegions,
+          statusFilter,
+          searchQuery,
+          hasUser: !!userInfo,
+        });
+        loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery);
+      }, 300);
     }
+    return () => {
+      if (filterTimeoutRef.current) {
+        clearTimeout(filterTimeoutRef.current);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryFilter, selectedRegions, statusFilter, currentPage, searchQuery, dateRange, initialLoading, userInfo]);
+
+// Removed duplicate filter effect; debounce logic above handles data fetching.
+
 
   const checkConnection = useCallback(async () => {
     const result = await testAPIConnection(settings);
@@ -419,24 +419,31 @@ function LeadManagerContent() {
   };
 
   const filteredLeads = useMemo(() => {
-    if (!leads.length) return [];
-    const query = searchQuery.trim().toLowerCase();
-    return leads.filter(lead => {
-      if (categoryFilter !== 'ALL' && lead.category !== categoryFilter) return false;
-      if (statusFilter !== 'ALL' && lead.status !== statusFilter) return false;
-      if (selectedServiceIds.length > 0 && !selectedServiceIds.includes(lead.serviceId || '')) return false;
-      
-      if (query) {
-        if (!lead.bizName.toLowerCase().includes(query) && 
-            !(lead.roadAddress || '').toLowerCase().includes(query) && 
-            !(lead.nearestStation || '').toLowerCase().includes(query)) {
-          return false;
-        }
+  if (!leads.length) return [];
+  const query = searchQuery.trim().toLowerCase();
+  const filtered = leads.filter(lead => {
+    if (categoryFilter !== 'ALL' && lead.category !== categoryFilter) return false;
+    if (statusFilter !== 'ALL' && lead.status !== statusFilter) return false;
+    if (selectedServiceIds.length > 0 && !selectedServiceIds.includes(lead.serviceId || '')) return false;
+    if (query) {
+      if (
+        !lead.bizName?.toLowerCase().includes(query) &&
+        !(lead.roadAddress || '').toLowerCase().includes(query) &&
+        !(lead.nearestStation || '').toLowerCase().includes(query)
+      ) {
+        return false;
       }
-
-      return true;
-    });
-  }, [leads, categoryFilter, statusFilter, selectedServiceIds, searchQuery]);
+    }
+    return true;
+  });
+  // Sort by licenseDate descending (newest first)
+  const sorted = filtered.sort((a, b) => {
+    const dateA = a.licenseDate ? new Date(a.licenseDate).getTime() : 0;
+    const dateB = b.licenseDate ? new Date(b.licenseDate).getTime() : 0;
+    return dateB - dateA;
+  });
+  return sorted;
+}, [leads, categoryFilter, statusFilter, selectedServiceIds, searchQuery]);
 
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     const result = await updateLeadStatus(leadId, newStatus);
@@ -699,8 +706,12 @@ function LeadManagerContent() {
             )}
           </>
         ) : mainTab === 'inventory' ? (
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={() => setShowInventoryUpload(true)} className="flex items-center gap-2 px-4 py-2 bg-[var(--metro-line2)] text-white rounded-md hover:bg-[var(--metro-line2)]/80 transition-colors">
+              <Upload className="w-4 h-4" /> 엑셀 업로드
+            </button>
+          </div>
           <InventoryTable key={inventoryRefreshKey} onRefresh={() => setInventoryRefreshKey(k => k + 1)} />
-        ) : mainTab === 'schedule' ? (
           <div key={scheduleRefreshKey}>
             {scheduleView === 'calendar' ? <ScheduleCalendar onDateSelect={setTaskFormDefaultDate} onEventClick={(e) => { if (e.type === 'task') { setSelectedTask({ id: e.id.replace('task-', ''), taskType: e.taskType || 'OTHER', title: e.title, dueDate: e.date, dueTime: e.time, status: e.status || 'PENDING', priority: e.priority || 'MEDIUM', leadId: e.leadId } as TaskWithLead); setShowTaskForm(true); } }} onAddTask={(d) => { setSelectedTask(null); setTaskFormDefaultDate(d); setShowTaskForm(true); }} /> : <TaskBoard onTaskClick={(t) => { setSelectedTask(t); setShowTaskForm(true); }} />}
           </div>

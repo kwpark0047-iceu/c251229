@@ -155,8 +155,8 @@ export default function FloorPlansView() {
           <div
             className="p-2 rounded-xl bg-[--line-bg]"
              
-            /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+             
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -167,8 +167,8 @@ export default function FloorPlansView() {
           >
             <MapPin className="w-5 h-5 text-[--line-color]" 
                
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -212,8 +212,8 @@ export default function FloorPlansView() {
             disabled={plans.length === 0}
             className="flex items-center gap-2 px-3 py-2 rounded-xl text-white font-semibold disabled:opacity-50 transition-all shadow-md active:scale-95 bg-[--line-color]"
              
-            /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+             
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -240,8 +240,8 @@ export default function FloorPlansView() {
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-[--line-color]" 
                  
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -255,8 +255,8 @@ export default function FloorPlansView() {
             <div className="text-center">
               <MapPin className="w-16 h-16 mx-auto mb-4 opacity-20 text-[--line-color]" 
                  
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

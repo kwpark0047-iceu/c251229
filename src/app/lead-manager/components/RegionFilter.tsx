@@ -81,8 +81,8 @@ export default function RegionFilter({
               onClick={() => handleRegionToggle(region.code)}
               disabled={disabled}
                
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -103,8 +103,8 @@ export default function RegionFilter({
               <div
                 className="w-2 h-2 rounded-full bg-[--region-color]"
                  
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -172,8 +172,8 @@ export function RegionStats({ addresses, className = '' }: RegionStatsProps) {
                 <div
                   className="w-2 h-2 rounded-full bg-[--region-color]"
                    
-                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                   
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -290,8 +290,8 @@ export function RegionDropdown({
                     <div
                       className="w-2 h-2 rounded-full bg-[--region-color]"
                        
-                      /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                       
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

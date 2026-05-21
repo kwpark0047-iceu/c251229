@@ -24,7 +24,7 @@ export const REGION_OPTIONS = [
 
 // 기본 API 키 (deprecated - 서버에서 환경변수로 관리됨)
 // 환경변수 LOCALDATA_API_KEY에 설정하세요
-export const DEFAULT_API_KEY = 'hxOJfL8Q8p70CnIkVXfHy5UFw3yVBh7MPRQwQy0l2QI=';
+export const DEFAULT_API_KEY = '{"seoul":"6d7a6b6c766b777033346b53716455"}';
 
 // CORS 프록시 옵션
 export const CORS_PROXIES = [

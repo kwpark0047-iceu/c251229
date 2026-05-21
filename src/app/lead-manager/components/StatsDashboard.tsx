@@ -80,8 +80,8 @@ function CustomTooltip({ active, payload, label }: any) {
     return (
       <div
         className="px-3 py-2 rounded-lg shadow-xl border backdrop-blur-md bg-[--glass-bg] border-[--glass-border]"
-        /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+         
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -96,8 +96,8 @@ function CustomTooltip({ active, payload, label }: any) {
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-[--entry-color]" 
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -403,8 +403,8 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                     <div
                       className="h-full transition-all duration-1000 bg-[--line-color] w-[--line-width]"
                        
-                      /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                       
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -451,8 +451,8 @@ function MetricCard({
       <div className="flex items-center justify-between mb-4">
         <div className="p-2.5 rounded-xl bg-[--bg-tint]" 
            
-          /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+           
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -460,8 +460,8 @@ function MetricCard({
   style={{ '--bg-tint': `${color}15` } as React.CSSProperties}>
           <Icon className="w-5 h-5 text-[--icon-color]" 
              
-            /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+             
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

@@ -307,7 +307,8 @@ export async function getLeads(filters?: {
     let query = supabase
       .from('leads')
       .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .neq('id', Date.now());
 
     if (!isSuperAdmin && organizationId) {
       query = query.eq('organization_id', organizationId);

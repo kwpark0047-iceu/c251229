@@ -467,7 +467,11 @@ export async function fetchAllLeads(
         try {
           const keys = JSON.parse(settings.apiKey);
           seoulKey = keys.seoul || '';
-        } catch (e) {}
+        } catch (e) {
+          if (!settings.apiKey.startsWith('{')) {
+            seoulKey = settings.apiKey;
+          }
+        }
       }
       const seoulHeaders = seoulKey ? { 'x-api-key': seoulKey } : undefined;
 
@@ -478,18 +482,68 @@ export async function fetchAllLeads(
          serviceInfo.id === 'LOCALDATA_010301' || serviceInfo.id === 'LOCALDATA_104201');
 
       if (isSeoulSpecialty) {
-        if (serviceInfo.id === '01_01_02_P') firstResult = await fetchSeoulClinicAPI(1, pageSize, settings);
-        else if (serviceInfo.id === '01_01_01_P') firstResult = await fetchSeoulHospitalAPI(1, pageSize, settings);
-        else if (serviceInfo.id === 'LOCALDATA_010301') {
-          const res = await safeFetch(`/api/seoul-data?service=quasi-medical&start=1&end=${pageSize}`, {
-            headers: seoulHeaders
-          });
-          if (res.success) firstResult = { success: true, leads: await processSeoulRawLeads(res.leads, 'LOCALDATA_010301'), totalCount: res.totalCount };
-        } else if (serviceInfo.id === 'LOCALDATA_104201') {
-          const res = await safeFetch(`/api/seoul-data?service=fitness&start=1&end=${pageSize}`, {
-            headers: seoulHeaders
-          });
-          if (res.success) firstResult = { success: true, leads: await processSeoulRawLeads(res.leads, 'LOCALDATA_104201'), totalCount: res.totalCount };
+        const endpointMap: Record<string, string> = {
+          '01_01_02_P': 'clinic',
+          '01_01_01_P': 'hospital',
+          'LOCALDATA_010301': 'quasi-medical',
+          'LOCALDATA_104201': 'fitness'
+        };
+        const svc = endpointMap[serviceInfo.id];
+        
+        // 1. 전체 개수 파악을 위해 1건만 조회
+        const resCount = await safeFetch(`/api/seoul-data?service=${svc}&start=1&end=1`, { headers: seoulHeaders });
+        
+        if (resCount.success && resCount.totalCount > 0) {
+           const total = resCount.totalCount;
+           let currentEnd = total;
+           let allNewLeads: Lead[] = [];
+           
+           const maxPagesToFetch = 10; // 너무 많이 조회하지 않도록 제한 (최대 1000건)
+           let pagesFetched = 0;
+           let reachedOlderData = false;
+           
+           const startStr = formatDateToAPI(startDate); // YYYYMMDD
+           const endStr = formatDateToAPI(endDate);
+           
+           while (currentEnd > 0 && pagesFetched < maxPagesToFetch && !reachedOlderData) {
+               const currentStart = Math.max(1, currentEnd - pageSize + 1);
+               const tmpRes = await safeFetch(`/api/seoul-data?service=${svc}&start=${currentStart}&end=${currentEnd}`, { headers: seoulHeaders });
+               
+               if (tmpRes.success && tmpRes.leads && tmpRes.leads.length > 0) {
+                   const processed = await processSeoulRawLeads(tmpRes.leads, serviceInfo.id);
+                   
+                   // 날짜 필터링 (인허가일자 없는 데이터는 포함)
+                   const validLeads = processed.filter(l => {
+                     if (!l.licenseDate) return true;
+                     const d = l.licenseDate.replace(/-/g, '');
+                     return d >= startStr && d <= endStr;
+                   });
+                   
+                   allNewLeads.push(...validLeads);
+                   
+                   // 가장 오래된 날짜 확인 (데이터가 최신순이 아닐 수 있으나, 일반적으로 인덱스 끝이 최신임)
+                   const oldestInBatch = tmpRes.leads.reduce((min: string, r: any) => {
+                       const d = (r.APVPERMYMD || '').replace(/-/g, '');
+                       return (d < min && d !== '') ? d : min;
+                   }, '99999999');
+                   
+                   if (oldestInBatch !== '99999999' && oldestInBatch < startStr) {
+                       reachedOlderData = true;
+                   }
+               }
+               
+               currentEnd = currentStart - 1;
+               pagesFetched++;
+               await delay(300); // API Rate Limit 방지
+           }
+           
+           firstResult = {
+               success: true,
+               leads: allNewLeads,
+               totalCount: allNewLeads.length
+           };
+        } else {
+           firstResult = { success: true, leads: [], totalCount: 0 };
         }
       } else {
         firstResult = await fetchLocalDataAPI(settings, startDate, endDate, 1, pageSize, serviceInfo, regionCode);
@@ -509,27 +563,12 @@ export async function fetchAllLeads(
       results.push(...saveResult.newLeads);
 
       // 추가 페이지 처리 (필요한 경우)
-      const totalPages = Math.ceil(firstResult.totalCount / pageSize);
+      // 서울 데이터는 위에서 지정된 기간 내의 최신 데이터를 모두 조회했으므로 추가 페이지 처리를 건너뜁니다.
+      const totalPages = isSeoulSpecialty ? 1 : Math.ceil(firstResult.totalCount / pageSize);
       if (totalPages > 1) {
         for (let p = 2; p <= totalPages; p++) {
           let pageResult: FetchResult | undefined;
-          if (isSeoulSpecialty) {
-            const start = (p - 1) * pageSize + 1;
-            const end = p * pageSize;
-            const endpointMap: Record<string, string> = {
-              'LOCALDATA_010301': 'quasi-medical',
-              'LOCALDATA_104201': 'fitness'
-            };
-            
-            if (serviceInfo.id === '01_01_02_P') pageResult = await fetchSeoulClinicAPI(start, end, settings);
-            else if (serviceInfo.id === '01_01_01_P') pageResult = await fetchSeoulHospitalAPI(start, end, settings);
-            else if (endpointMap[serviceInfo.id]) {
-              const res = await safeFetch(`/api/seoul-data?service=${endpointMap[serviceInfo.id]}&start=${start}&end=${end}`, {
-                headers: seoulHeaders
-              });
-              if (res.success) pageResult = { success: true, leads: await processSeoulRawLeads(res.leads, serviceInfo.id), totalCount: res.totalCount };
-            }
-          } else {
+          if (!isSeoulSpecialty) {
             pageResult = await fetchLocalDataAPI(settings, startDate, endDate, p, pageSize, serviceInfo, regionCode);
           }
 

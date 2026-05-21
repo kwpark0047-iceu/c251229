@@ -49,11 +49,16 @@ export default function GridView({
   onPageChange
 }: GridViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const sortedLeads = useMemo(() => leads.slice().sort((a, b) => {
+    const dateA = a.licenseDate ? new Date(a.licenseDate).getTime() : 0;
+    const dateB = b.licenseDate ? new Date(b.licenseDate).getTime() : 0;
+    return dateB - dateA;
+  }), [leads]);
 
   return (
     <>
       <div className={`grid gap-4 ${isFieldMode ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}>
-        {leads.map((lead, index) => (
+        {sortedLeads.map((lead, index) => (
           <LeadCard
             key={lead.id}
             lead={lead}

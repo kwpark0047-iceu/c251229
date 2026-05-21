@@ -574,8 +574,8 @@ export default function ContactPage() {
             <Link
               href="/"
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-medium transition-all hover:scale-105"
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -598,8 +598,8 @@ export default function ContactPage() {
             <div className="text-center mb-10">
               <div
                 className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6"
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -796,8 +796,8 @@ export default function ContactPage() {
                 ref={proposalRef}
                 data-proposal-content="true"
                 className="space-y-6"
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -890,8 +890,8 @@ export default function ContactPage() {
                         <span
                           key={idx}
                           className="px-4 py-2 rounded-xl text-white font-medium"
-                          /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                           
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -924,8 +924,8 @@ export default function ContactPage() {
                       <div
                         key={station.rank}
                         className="p-4 rounded-xl border border-[var(--border-subtle)]"
-                        /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                         
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -939,8 +939,8 @@ export default function ContactPage() {
                         <div className="flex items-center gap-3 mb-3">
                           <span
                             className="w-10 h-10 rounded-full text-white text-lg font-bold flex items-center justify-center"
-                            /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                             
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -956,8 +956,8 @@ export default function ContactPage() {
                                 <span
                                   key={line}
                                   className="px-2 py-0.5 rounded text-white text-xs font-medium"
-                                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                                   
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -1073,8 +1073,8 @@ export default function ContactPage() {
                         <div
                           key={line}
                           className="px-5 py-3 rounded-xl text-white font-bold text-lg"
-                          /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                           
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -1235,15 +1235,15 @@ export default function ContactPage() {
           `}</style>
 
         {/* 왼쪽: 서울 지하철 지도 */}
-        <div className="w-[calc(50%-2.5rem)] sticky top-16 h-[calc(100vh-4rem)]" /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+        <div className="w-[calc(50%-2.5rem)] sticky top-16 h-[calc(100vh-4rem)]"  
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
   // NOSONAR
   style={{ zIndex: 1 }}>
-          <div className="h-full rounded-r-3xl overflow-hidden border-r border-[var(--border-subtle)] relative" /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+          <div className="h-full rounded-r-3xl overflow-hidden border-r border-[var(--border-subtle)] relative"  
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -1252,8 +1252,8 @@ export default function ContactPage() {
             <MapContainer
               center={[37.52, 126.95]}
               zoom={11}
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -1303,8 +1303,8 @@ export default function ContactPage() {
                             <span
                               key={line}
                               className="w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold"
-                              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -1336,8 +1336,8 @@ export default function ContactPage() {
               </div>
               {proposal && (
                 <div className="flex items-center gap-2 text-xs mt-1">
-                  <span className="w-3 h-3 rounded-full bg-[#00A5DE]" /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                  <span className="w-3 h-3 rounded-full bg-[#00A5DE]"  
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { FileText, ChevronDown, ChevronUp, MessageSquare, User } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS, STATUS_METRO_COLORS, LINE_COLORS, SalesProgress } from '../types';
-import { formatDistance, formatPhoneNumber, truncateString, getHighlightParts } from '../utils';
+import { formatDistance, formatPhoneNumber, truncateString, getHighlightParts, findNearestStation } from '../utils';
 import { ProgressDots } from './crm/ProgressChecklist';
 import CallLogModal from './crm/CallLogModal';
 import LeadDetailPanel from './crm/LeadDetailPanel';
@@ -247,8 +247,8 @@ export default function ListView({
                 </div>
                 <div
                   className="px-2 py-1 rounded text-[10px] font-bold bg-[--status-bg] text-[--status-text] border border-[--status-border]"
-                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                   
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -268,42 +268,240 @@ export default function ListView({
                 <div className="flex items-center gap-1.5">
                   <span className="w-4 flex justify-center">📍</span>
                   <span className="line-clamp-1">{lead.roadAddress || lead.lotAddress}</span>
-                </div>
-                {lead.nearestStation && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-4 flex justify-center">🚉</span>
-                    <span>
-                      {lead.nearestStation}
-                      {lead.stationDistance && ` (${formatDistance(lead.stationDistance)})`}
-                    </span>
-                  </div>
-                )}
-              </div>
+  onPageChange
+}: ListViewProps) {
+  const [sortField, setSortField] = useState<SortField>('licenseDate');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [callModalLeadId, setCallModalLeadId] = useState<string | null>(null);
 
-              <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-dashed border-[var(--border-subtle)]">
-                {lead.phone && (
-                  <a
-                    href={`tel:${lead.phone}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-1.5 text-[var(--metro-line2)] font-bold text-xs"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    전화
-                  </a>
-                )}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedLeadId(lead.id);
-                  }}
-                  className="flex items-center gap-1.5 text-[var(--metro-line4)] font-bold text-xs"
+  const selectedLead = leads.find(l => l.id === selectedLeadId);
+  const callModalLead = leads.find(l => l.id === callModalLeadId);
+
+  // 정렬 처리
+  const sortedLeads = [...leads].sort((a, b) => {
+    let aVal: string | number = '';
+    let bVal: string | number = '';
+
+    switch (sortField) {
+      case 'bizName':
+        aVal = a.bizName || '';
+        bVal = b.bizName || '';
+        break;
+      case 'nearestStation':
+        aVal = a.nearestStation || '';
+        bVal = b.nearestStation || '';
+        break;
+      case 'stationDistance':
+        aVal = a.stationDistance || 999999;
+        bVal = b.stationDistance || 999999;
+        break;
+      case 'licenseDate':
+        aVal = a.licenseDate || '';
+        bVal = b.licenseDate || '';
+        break;
+      case 'status':
+        aVal = a.status;
+        bVal = b.status;
+        break;
+      case 'createdAt':
+        aVal = a.createdAt || '';
+        bVal = b.createdAt || '';
+        break;
+    }
+
+    if (typeof aVal === 'string' && typeof bVal === 'string') {
+      return sortOrder === 'asc'
+        ? aVal.localeCompare(bVal, 'ko')
+        : bVal.localeCompare(aVal, 'ko');
+    }
+
+    return sortOrder === 'asc'
+      ? (aVal as number) - (bVal as number)
+      : (bVal as number) - (aVal as number);
+  });
+
+  // 정렬 토글
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  return (
+    <>
+      <div
+        className="rounded-xl border overflow-hidden bg-[var(--glass-bg)] border-[var(--glass-border)] shadow-[0_4px_30px_rgba(0,0,0,0.2)]"
+      >
+        {/* 데스크톱: 테이블 뷰 */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr
+                className="border-b bg-[var(--bg-tertiary)] border-[var(--border-subtle)]"
+              >
+                <th
+                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                  onClick={() => handleSort('bizName')}
                 >
-                  <FileText className="w-3.5 h-3.5" />
-                  제안
-                </button>
+                  <div className="flex items-center gap-1.5">
+                    병원명
+                    <SortIcon field="bizName" sortField={sortField} sortOrder={sortOrder} />
+                  </div>
+                </th>
+                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
+                  주소
+                </th>
+                <th
+                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                  onClick={() => handleSort('nearestStation')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    인근역
+                    <SortIcon field="nearestStation" sortField={sortField} sortOrder={sortOrder} />
+                  </div>
+                </th>
+                <th
+                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors whitespace-nowrap hidden md:table-cell"
+                  onClick={() => handleSort('stationDistance')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    거리
+                    <SortIcon field="stationDistance" sortField={sortField} sortOrder={sortOrder} />
+                  </div>
+                </th>
+                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
+                  전화번호
+                </th>
+                <th
+                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                  onClick={() => handleSort('licenseDate')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    인허가일
+                    <SortIcon field="licenseDate" sortField={sortField} sortOrder={sortOrder} />
+                  </div>
+                </th>
+                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
+                  진행
+                </th>
+                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
+                  담당자
+                </th>
+                <th
+                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    상태
+                    <SortIcon field="status" sortField={sortField} sortOrder={sortOrder} />
+                  </div>
+                </th>
+                <th className="px-5 py-4 text-center text-sm font-semibold text-[var(--text-secondary)]">
+                  액션
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedLeads.map((lead, index) => (
+                <LeadRow
+                  key={lead.id}
+                  lead={lead}
+                  index={index}
+                  onStatusChange={onStatusChange}
+                  onSelect={() => setSelectedLeadId(lead.id)}
+                  onCallLog={() => setCallModalLeadId(lead.id)}
+                  searchQuery={searchQuery}
+                  onMapView={() => onMapView?.(lead)}
+                  salesProgressMap={salesProgressMap}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 모바일: 카드 뷰 */}
+        <div className="md:hidden divide-y divide-[var(--border-subtle)]">
+          {sortedLeads.map((lead, index) => {
+            const computedDistance = lead.stationDistance ?? (lead.latitude && lead.longitude ? findNearestStation(lead.latitude, lead.longitude)?.distance : null);
+            return (
+              <div
+                key={lead.id}
+                className="p-4 active:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+                onClick={() => setSelectedLeadId(lead.id)}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-bold text-[var(--text-primary)]">
+                      <HighlightText text={lead.bizName} searchQuery={searchQuery} />
+                    </h3>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                      <HighlightText text={lead.medicalSubject || ''} searchQuery={searchQuery} />
+                    </p>
+                  </div>
+                  <div
+                    className="px-2 py-1 rounded text-[10px] font-bold bg-[--status-bg] text-[--status-text] border border-[--status-border]"
+                     
+   
+  /* stylelint-disable-next-line */
+  // @ts-ignore
+  // noinspection CssInlineStyle
+  // NOSONAR
+  style={{
+                      '--status-bg': STATUS_METRO_COLORS[lead.status].bg,
+                      '--status-text': STATUS_METRO_COLORS[lead.status].text,
+                      '--status-border': STATUS_METRO_COLORS[lead.status].border,
+                       
+                    } as React.CSSProperties}
+                  >
+                    {STATUS_LABELS[lead.status]}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 text-xs text-[var(--text-secondary)]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-4 flex justify-center">📍</span>
+                    <span className="line-clamp-1">{lead.roadAddress || lead.lotAddress}</span>
+                  </div>
+                  {lead.nearestStation && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-4 flex justify-center">🚉</span>
+                      <span>
+                        {lead.nearestStation}
+                        {computedDistance && ` (${formatDistance(computedDistance)})`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-dashed border-[var(--border-subtle)]">
+                  {lead.phone && (
+                    <a
+                      href={`tel:${lead.phone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 text-[var(--metro-line2)] font-bold text-xs"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      전화
+                    </a>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedLeadId(lead.id);
+                    }}
+                    className="flex items-center gap-1.5 text-[var(--metro-line4)] font-bold text-xs"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    제안
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* 페이지네이션 UI 추가 */}
@@ -407,6 +605,7 @@ interface LeadRowProps {
 
 function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery = '', onMapView, salesProgressMap }: LeadRowProps) {
   const statusColor = STATUS_METRO_COLORS[lead.status];
+  const computedDistance = lead.stationDistance ?? (lead.latitude && lead.longitude ? findNearestStation(lead.latitude, lead.longitude)?.distance : null);
 
   return (
     <tr
@@ -415,91 +614,12 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
         if ((e.target as HTMLElement).closest('button, a, select')) return;
         onSelect();
       }}
-      /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+       
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
   // NOSONAR
-  style={{
-        '--delay': `${index * 20}ms`,
-         
-      } as React.CSSProperties}
-    >
-      {/* 병원명 - 클릭 시 맵 뷰로 이동 */}
-      <td className="px-5 py-4">
-        <div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onMapView?.();
-            }}
-            className="font-semibold text-[var(--text-primary)] line-clamp-1 text-left hover:text-[var(--metro-line4)] hover:underline transition-colors"
-            title={`${lead.bizName} - 지도에서 보기`}
-          >
-            <HighlightText text={lead.bizName} searchQuery={searchQuery} />
-          </button>
-          {lead.medicalSubject && (
-            <div className="text-xs text-[var(--text-muted)] line-clamp-1 mt-0.5">
-              <HighlightText text={lead.medicalSubject} searchQuery={searchQuery} />
-            </div>
-          )}
-        </div>
-      </td>
-
-      {/* 주소 */}
-      <td className="px-5 py-4 hidden md:table-cell">
-        <span className="text-sm text-[var(--text-secondary)] line-clamp-1" title={lead.roadAddress || lead.lotAddress}>
-          <HighlightText text={truncateString(lead.roadAddress || lead.lotAddress || '-', 30)} searchQuery={searchQuery} />
-        </span>
-      </td>
-
-      {/* 인근역 */}
-      <td className="px-5 py-4">
-        {lead.nearestStation ? (
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-[var(--text-primary)]">
-              <HighlightText text={lead.nearestStation || ''} searchQuery={searchQuery} />
-              {lead.nearestExitNo && ` ${lead.nearestExitNo}번 출구`}
-            </span>
-
-            {lead.stationLines && (
-              <div className="flex gap-1">
-                {lead.stationLines.slice(0, 2).map(line => (
-                  <span
-                    key={line}
-                    className="w-5 h-5 rounded-full text-white text-[10px] flex items-center justify-center font-bold shadow-sm bg-[--line-color]"
-                     
-                    /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{ '--line-color': LINE_COLORS[line] || '#888' } as React.CSSProperties}
-                  >
-                    {line}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <span className="text-[var(--text-muted)]">-</span>
-        )}
-      </td>
-
-      {/* 거리 */}
-      <td className="px-5 py-4 hidden md:table-cell">
-        <span className="text-sm text-[var(--text-secondary)]">
-          {lead.stationDistance ? formatDistance(lead.stationDistance) : '-'}
-        </span>
-      </td>
-
-      {/* 전화번호 */}
-      <td className="px-5 py-4 hidden md:table-cell">
-        {lead.phone ? (
-          <a
             href={`tel:${lead.phone}`}
             className="text-sm font-medium hover:underline transition-colors text-[var(--metro-line4)]"
             onClick={(e) => e.stopPropagation()}
@@ -549,8 +669,8 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
           onClick={(e) => e.stopPropagation()}
           title="상태 변경"
           className="text-sm px-3 py-1.5 rounded-lg border font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)] appearance-none bg-[--status-bg] text-[--status-text] border-[--status-border]"
-          /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+           
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

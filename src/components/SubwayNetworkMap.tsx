@@ -51,8 +51,8 @@ export default function SubwayNetworkMap() {
                 ${selectedLine?.line === line.line ? 'shadow-[0_0_30px_var(--line-color)]' : 'opacity-70 hover:opacity-100'}
               `}
                
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -81,8 +81,8 @@ export default function SubwayNetworkMap() {
           {selectedLine ? (
             <div className="glass-card w-full max-w-3xl p-8 flex flex-col md:flex-row gap-8 animate-float items-center border-t-2" 
                   
-                 /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                  
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -93,8 +93,8 @@ export default function SubwayNetworkMap() {
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-xl"
                         
-                       /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                        
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

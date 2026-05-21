@@ -116,8 +116,8 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                                     <div
                                         key={item.id}
                                          
-                                        /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                                         
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

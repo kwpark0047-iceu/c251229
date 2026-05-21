@@ -140,7 +140,7 @@ export default function NotificationCenter() {
                     {/* 하단 푸터 */}
                     <div className="px-5 py-3 border-t border-[var(--border-subtle)] bg-white/5">
                         <button className="w-full text-center text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text-secondary)] uppercase tracking-widest transition-colors">
-                            VIEW ALL ACTIVITY
+                            전체 활동 보기
                         </button>
                     </div>
                 </div>

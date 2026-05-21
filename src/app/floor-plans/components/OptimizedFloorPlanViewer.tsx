@@ -310,8 +310,8 @@ export default function OptimizedFloorPlanViewer({
               <div
                 className="absolute border-2 border-[var(--metro-line2)] bg-[var(--metro-line2)]/10 pointer-events-none transition-all duration-200"
                  
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

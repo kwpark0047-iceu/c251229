@@ -76,8 +76,8 @@ export default function StatsBar({ leads }: StatsBarProps) {
               key={item.label}
               className="group relative flex items-center gap-4 p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] hover:border-[var(--glass-border)] transition-all duration-300 overflow-hidden delay-[--delay] glass-panel lift-hover metric-glow"
                
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -90,8 +90,8 @@ export default function StatsBar({ leads }: StatsBarProps) {
               <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[--glow-bg]"
                  
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -104,8 +104,8 @@ export default function StatsBar({ leads }: StatsBarProps) {
               <div
                 className="relative p-3 rounded-xl transition-transform duration-300 group-hover:scale-110 bg-[--item-bg]"
                  
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -116,8 +116,8 @@ export default function StatsBar({ leads }: StatsBarProps) {
               >
                 <item.icon
                   className="w-5 h-5 text-[--item-color]"
-                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                   
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -131,8 +131,8 @@ export default function StatsBar({ leads }: StatsBarProps) {
                 <p
                   className="text-2xl font-bold tracking-tight text-[--item-color]"
                    
-                  /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                   
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -152,8 +152,8 @@ export default function StatsBar({ leads }: StatsBarProps) {
           <div
             className="group relative flex items-center gap-4 p-4 rounded-xl border overflow-hidden transition-all duration-300 bg-[--rate-bg] border-[--rate-border] glass-panel lift-hover metric-glow"
              
-            /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+             
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -167,8 +167,8 @@ export default function StatsBar({ leads }: StatsBarProps) {
             <div
               className="absolute inset-0 opacity-50 bg-[--shimmer-bg] animate-[shimmer_3s_infinite]"
                
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -187,8 +187,8 @@ export default function StatsBar({ leads }: StatsBarProps) {
             <div
               className="relative p-3 rounded-xl bg-[--icon-bg] shadow-[--icon-shadow]"
                
-              /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+               
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -204,8 +204,8 @@ export default function StatsBar({ leads }: StatsBarProps) {
               <p
                 className="text-2xl font-bold tracking-tight bg-[--text-bg] bg-clip-text text-transparent"
                  
-                /* eslint-disable-next-line react/forbid-dom-props */
-  /* eslint-disable-next-line react/forbid-component-props */
+                 
+   
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
