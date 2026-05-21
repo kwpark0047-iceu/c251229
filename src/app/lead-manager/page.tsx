@@ -84,15 +84,7 @@ import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup';
 import './design.css';
 import { applyThemeVariables, ThemeType, getCardClass } from './utils/design-tokens';
 
-'use client';
-
-/**
- * 서울 지하철 광고 영업 시스템 (Lead Manager)
- * 메인 대시보드 페이지 - Neo-Seoul Transit Design
- */
-
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-... (no change) 
+ 
 function getDefaultDateRange() {
   const end = new Date();
   const start = new Date();
