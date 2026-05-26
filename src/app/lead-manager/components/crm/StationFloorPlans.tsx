@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Info, Tag, ExternalLink } from 'lucide-react';
+import { X, Info, Tag, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import { FloorPlan, AdInventory, AD_TYPE_LABELS, AVAILABILITY_LABELS, AVAILABILITY_COLORS } from '../../types';
 import { getLineDisplayName } from '../../utils/subway-utils';
 
@@ -11,8 +11,13 @@ interface StationFloorPlansProps {
 export default function StationFloorPlans({ floorPlans, inventory = [] }: StationFloorPlansProps) {
     const [selectedFloorPlan, setSelectedFloorPlan] = useState<FloorPlan | null>(null);
     const [selectedMarker, setSelectedMarker] = useState<AdInventory | null>(null);
+    const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
     if (floorPlans.length === 0) return null;
+
+    const handleImageError = (id: string) => {
+        setImageErrors(prev => ({ ...prev, [id]: true }));
+    };
 
     // 현재 선택된 도면의 인벤토리 및 마커 필터링
     const currentInventory = selectedFloorPlan 
@@ -69,11 +74,19 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                                 }
                             }}
                         >
-                            <img
-                                src={plan.thumbnailUrl || plan.imageUrl}
-                                alt={`${plan.stationName} ${plan.floorName || ''}`}
-                                className="w-full h-full object-cover"
-                            />
+                            {!imageErrors[plan.id] ? (
+                                <img
+                                    src={plan.thumbnailUrl || plan.imageUrl}
+                                    alt={`${plan.stationName} ${plan.floorName || ''}`}
+                                    className="w-full h-full object-cover"
+                                    onError={() => handleImageError(plan.id)}
+                                />
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                                    <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
+                                    <span className="text-xs">이미지 없음</span>
+                                </div>
+                            )}
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                             <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent text-white text-xs font-medium truncate">
                                 {plan.floorName || '도면'}
@@ -143,7 +156,7 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
 
                             {/* 마커 상세 정보 팝업 (Overlay) */}
                             {selectedMarker && (
-                                <div className="absolute bottom-6 right-6 w-72 bg-white/90 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 p-5 animate-in fade-in slide-in-from-bottom-4 duration-300 z-20">
+                                <div className="absolute bottom-6 right-6 w-72 bg-white/90 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 p-5 animate-in fade-in slide-in-from-bottom-4 duration-300 z-20 animate-float">
                                     <div className="flex justify-between items-start mb-3">
                                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${AVAILABILITY_COLORS[selectedMarker.availabilityStatus].bg} ${AVAILABILITY_COLORS[selectedMarker.availabilityStatus].text}`}>
                                             {AVAILABILITY_LABELS[selectedMarker.availabilityStatus]}

@@ -338,7 +338,7 @@ export default function ListView({
         </div>
       </div>
 
-      {/* 리드 상세 패널 */}
+            {/* 리드 상세 패널 */}
       {selectedLeadId && (
         <LeadDetailPanel
           leadId={selectedLeadId}

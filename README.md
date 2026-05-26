@@ -5,8 +5,8 @@ LocalData 기반의 병원/의원 인허가 데이터를 활용하여 지하철 
 ## 🚀 주요 기능
 
 ### 1. 리드 관리 (CRM)
-- **LocalData 연동**: 공공데이터포털의 인허가 데이터를 실시간으로 조회하고 DB에 저장합니다.
-- **중복 데이터 방지**: 상호명, 주소, 사업자등록번호 등을 복합적으로 분석하여 중복 리드를 자동으로 필터링합니다.
+- **LocalData 연동**: 공공데이터포털, 서울열린데이터광장, 경기도 공공데이터의 인허가 데이터를 실시간으로 조회하고 DB에 저장합니다.
+- **중복 데이터 방지**: 상호명, 주소, 전화번호, 이메일주소, 사업자등록번호 등을 복합적으로 분석하여 중복 리드를 자동으로 필터링합니다.
 - **다양한 뷰 모드**:
   - **그리드 뷰**: 카드 형태의 직관적인 리드 목록
   - **리스트 뷰**: 엑셀 스타일의 데이터 밀집형 뷰
@@ -28,11 +28,12 @@ LocalData 기반의 병원/의원 인허가 데이터를 활용하여 지하철 
 
 ## 🛠 기술 스택
 
-- **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
-- **Database**: [Supabase](https://supabase.com/) (PostgreSQL)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
+- **Database**: [Supabase](https://supabase.com/) (PostgreSQL + RLS + Storage)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **UI/UX**: Antigravity Design System (Glassmorphism, Floating UI)
 - **Icons**: [Lucide React](https://lucide.dev/)
-- **State Management**: React Hooks & Context API
+- **Testing**: [Vitest](https://vitest.dev/) (Unit/Integration Test)
 
 ## 🏁 시작하기
 
@@ -54,6 +55,8 @@ yarn install
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 LOCALDATA_API_KEY=your_api_key
+RESEND_API_KEY=your_resend_api_key
+KRIC_API_KEY=your_kric_api_key
 ```
 
 ### 3. 개발 서버 실행
@@ -66,7 +69,7 @@ npm run dev
 
 ## 📂 프로젝트 구조
 
-```
+```text
 src/
 ├── app/
 │   ├── lead-manager/       # 메인 애플리케이션 (Lead Manager)
@@ -76,20 +79,22 @@ src/
 │   │   └── page.tsx        # 메인 대시보드 페이지
 │   └── ...
 ├── components/             # 공통 UI 컴포넌트
-└── lib/                    # 유틸리티 및 설정
+└── lib/                    # 유틸리티 및 설정 (global.antigravity.config.ts 포함)
 ```
 
-## 🧪 테스트 및 배포
+## 🧪 테스트 및 CI/CD
 
 ### 로컬 테스트
 
 ```bash
-npm run test
+npm run test           # 전체 테스트 실행
+npm run test:coverage  # 커버리지 확인
 ```
 
-### 배포
+### CI/CD 파이프라인 (GitHub Actions)
 
-Vercel 또는 호환되는 호스팅 플랫폼에 배포할 수 있습니다. 메인 브랜치(`master`)에 푸시하면 자동으로 배포 파이프라인이 동작하도록 설정되어 있습니다.
+이 프로젝트는 `.github/workflows/ci.yml`을 통해 **Lint, TypeCheck, Test, Build** 파이프라인을 자동화하고 있습니다.
+메인 브랜치(또는 `develop`)에 푸시하거나 Pull Request를 생성할 때 파이프라인이 동작합니다.
 
 ---
 © 2026 Neo-Seoul Transit Sales System. All rights reserved.

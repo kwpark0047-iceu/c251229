@@ -110,10 +110,10 @@ body {
   backdrop-filter: blur(6px) saturate(180%);
 }
 
-/* 애니메이션 */
+/* 애니메이션 (Antigravity Rules 적용) */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
+  50% { transform: translateY(var(--antigravity-float-y, -20px)); }
 }
 
 @keyframes float-subtle {
@@ -126,7 +126,7 @@ body {
 @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-.animate-float { animation: float 5s ease-in-out infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
 .animate-float-subtle { animation: float-subtle 4s ease-in-out infinite; }
 .animate-fade-in-up { animation: fadeInUp 0.7s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
 .animate-fade-in-down { animation: fadeInDown 0.7s cubic-bezier(0.23, 1, 0.32, 1) forwards; }

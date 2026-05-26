@@ -7,7 +7,8 @@ import { FloorPlan } from '../../types';
 
 // Mock Lucide Icon
 vi.mock('lucide-react', () => ({
-    X: () => <span data-testid="close-icon">X</span>
+    X: () => <span data-testid="close-icon">X</span>,
+    Image: () => <span data-testid="image-icon">Image</span>
 }));
 
 const mockFloorPlans: FloorPlan[] = [
@@ -69,5 +70,14 @@ describe('StationFloorPlans', () => {
         fireEvent.click(screen.getByTestId('close-icon').parentElement!);
 
         expect(screen.queryByTestId('close-icon')).not.toBeInTheDocument();
+    });
+
+    it('should show fallback UI when image fails to load', () => {
+        render(<StationFloorPlans floorPlans={mockFloorPlans} />);
+        
+        const firstImage = screen.getByAltText('Gangnam B1');
+        fireEvent.error(firstImage);
+        
+        expect(screen.getByText('이미지 없음')).toBeInTheDocument();
     });
 });

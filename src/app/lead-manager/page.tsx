@@ -372,13 +372,23 @@ function LeadManagerContent() {
   }, [settings, showNotification]);
 
   const refreshData = async () => {
+    // Validate date range
+    const now = new Date();
+    let { start, end } = dateRange;
+    // Clamp future dates
+    if (start > now) start = now;
+    if (end > now) end = now;
+    // Ensure start <= end
+    if (start > end) {
+      const temp = start;
+      start = end;
+      end = temp;
+    }
+    setDateRange({ start, end });
+
     setIsLoading(true);
     setLoadingProgress({ current: 0, total: 0 });
     setLoadingStatus('설정된 기간의 데이터 동기화 준비 중...');
-
-    // 현재 UI에 설정된 날짜 범위 유지
-    const startDate = dateRange.start;
-    const endDate = dateRange.end;
 
     try {
       const searchSettings: any = {
@@ -391,8 +401,8 @@ function LeadManagerContent() {
 
       const result = await fetchAllLeads(
         searchSettings,
-        startDate,
-        endDate,
+        start,
+        end,
         (current, total, status) => {
           setLoadingProgress({ current, total });
           if (status) setLoadingStatus(status);
@@ -577,10 +587,39 @@ function LeadManagerContent() {
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                     <Calendar className="w-4 h-4 text-[var(--metro-line5)]" />
-                    <input type="date" aria-label="시작 날짜" title="시작 날짜" value={dateRange.start.toISOString().split('T')[0]} onChange={(e) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))} className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none" />
+                    <input
+                      type="date"
+                      aria-label="시작 날짜"
+                      title="시작 날짜"
+                      value={dateRange.start.toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (!val) return;
+                        const newStart = new Date(val);
+                        setDateRange((prev) => ({
+                          start: newStart,
+                          end: newStart > prev.end ? newStart : prev.end,
+                        }));
+                      }}
+                      className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none"
+                    />
                     <span className="text-[var(--text-muted)] text-xs">~</span>
-                    <input type="date" aria-label="종료 날짜" title="종료 날짜" value={dateRange.end.toISOString().split('T')[0]} onChange={(e) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))} className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none" />
-                    <div className="flex border-l border-[var(--border-subtle)] pl-2 ml-1">
+                    <input
+                      type="date"
+                      aria-label="종료 날짜"
+                      title="종료 날짜"
+                      value={dateRange.end.toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (!val) return;
+                        const newEnd = new Date(val);
+                        setDateRange((prev) => ({
+                          start: newEnd < prev.start ? newEnd : prev.start,
+                          end: newEnd,
+                        }));
+                      }}
+                      className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none"
+                    />                    <div className="flex border-l border-[var(--border-subtle)] pl-2 ml-1">
                       <button onClick={() => moveDate(-30)} title="이전 30일 이동" aria-label="이전 30일 이동" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronLeft className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
                       <button onClick={() => moveDate(30)} title="다음 30일 이동" aria-label="다음 30일 이동" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
                     </div>

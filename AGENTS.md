@@ -132,7 +132,8 @@ STATION_INFO_API_KEY=        # KRIC 역사 정보 (서버사이드)
 - 타입은 각 기능 폴더의 `types.ts`에 정의
 - 서비스 레이어: DB 스키마(snake_case) ↔ TS 인터페이스(camelCase) 변환을 인라인으로 처리
 - 지하철 노선 색상: CSS 변수 `--metro-line1` ~ `--metro-line9`
-- 글래스모피즘: `glass-card` 클래스
-- 다크모드: ThemeProvider 지원
+- UI/UX 및 글래스모피즘: `glass-card`, `animate-float` 등 Antigravity 디자인 시스템(GlobalAntigravityRules) 활용 (`src/lib/global.antigravity.config.ts` 참조)
+- 다크모드: ThemeProvider 지원 (기본 테마 'dark')
 - LocalData API: Rate limiting 방지 200ms 지연, 배치 저장 50건씩
 - 좌표계: `constants.ts`의 `PROJ4_DEFS`에 EPSG:5174, EPSG:5181, EPSG:5179, WGS84 정의
+- 테스트 및 CI: Vitest를 활용한 단위/통합 테스트 (커버리지 80% 목표), `.github/workflows/ci.yml`에서 자동 검증

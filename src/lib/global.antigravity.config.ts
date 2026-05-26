@@ -1,80 +1,69 @@
 /**
- * global.antigravity.config.ts
- * Ver 2.0.5 (K-Dev Edition) - 시스템 전역 반중력 규칙 설정
- * Last Deploy: 2026-02-04
+ * 파일명: global.antigravity.config.ts
+ * 작성자: 시스템 관리자
+ * 설명: 웹 애플리케이션 전역에 적용되는 '반중력(Antigravity)' 규칙 정의 파일입니다.
+ * UI 요소의 부유 효과 및 개발자를 짓누르는 레거시 환경을 제어합니다.
  */
 
 export const GlobalAntigravityRules = {
-    // 1. 물리 엔진 및 UI 설정
-    physics: {
-        isEnabled: true,
-        gravityCoefficient: -5.0, // 부드러운 부유를 위해 -5.0으로 조정
-        animation: {
-            type: 'css-keyframes',
-            duration: '3s',
-            timingFunction: 'ease-in-out',
-            infinite: true,
-        },
-        mobileOptimization: {
-            reduceParticles: true,
-            disableOnLowPowerMode: true,
-        },
+  // 1. 기본 물리 엔진 설정
+  physics: {
+    isEnabled: true, // 반중력 효과 켜짐
+    gravityCoefficient: -5.0, // 공중부양 위로
+    friction: 0.8, // 약간 느리게
+    animation: {
+      type: 'css-keyframes',
+      duration: '3s',
+      timingFunction: 'ease-in-out',
+      infinite: true,
     },
-
-    // 2. 적용 대상 (DOM 선택자)
-    targets: {
-        floatElements: [
-            '.glass-card',
-            '.modal-popup',
-            '.toast-notification',
-            '.task-card',
-            '.calendar-event',
-            '#loading-spinner',
-        ],
-        anchoredElements: [
-            'footer',
-            '.payment-button',
-            '.legal-disclaimer',
-            '.fixed-bottom-nav',
-        ],
+    mobileOptimization: {
+      reduceParticles: true,
+      disableOnLowPowerMode: true,
     },
+  },
 
-    // 3. 개발자 보호 규칙
-    devExperience: {
-        legacySupport: {
-            ie11: false,
-            activeX: 'blocked',
-        },
-        deploymentSafety: {
-            blockFridayDeploys: true,
-            timezone: 'Asia/Seoul',
-            alertMessage: '⚠️ 경고: 주말이라는 블랙홀에 빨려 들어갈 수 있습니다. 배포하시겠습니까?',
-        },
-        defaultTheme: 'dark',
-    },
-
-    // 4. 이스터 에그 및 테마 설정
-    anomalies: [
-        {
-            trigger: 'konami-code',
-            effect: 'invert-page',
-        }
+  // 2. 적용 대상 (DOM 선택자)
+  targets: {
+    floatElements: [
+      '.modal-popup',
+      '.toast-message',
+      '#loading-spinner',
+      '.floating-banner'
     ],
-    presentation: {
-        currentTheme: 'glass' as 'glass' | 'neo' | 'antigravity',
+    anchoredElements: [
+      'footer',
+      '.payment-btn',
+      '.fixed-bottom-nav',
+      '.legal-disclaimer'
+    ],
+  },
+
+  // 3. 성능 최적화 (안전 장치)
+  safetyProtocols: {
+    maxFps: 60,
+    pauseOnBackground: true,
+  },
+
+  // 4. 개발자 정신 건강 보호 규칙
+  devExperience: {
+    legacySupport: {
+      ie11: false,
+      activeX: 'blocked',
+    },
+    deploymentSafety: {
+      blockFridayDeploys: true,
+      alertMessage: "경고: 금요일 오후입니다. 지금 배포하면 주말이 사라질 수 있습니다.",
+    },
+    defaultTheme: 'dark', // 다크모드 강제
+  },
+
+  anomalies: [
+    {
+      trigger: 'konami-code',
+      effect: 'invert-page',
     }
+  ]
 } as const;
 
 export type AntigravityConfig = typeof GlobalAntigravityRules;
-
-/**
- * 금요일 배포 여부 체크 유틸리티
- */
-export const isDeploymentRiskTime = () => {
-    const now = new Date();
-    const day = now.getDay(); // 0(일) ~ 6(토)
-    const hour = now.getHours();
-
-    // 금요일(5) 오후 5시(17) 이후 체크
-    return day === 5 && hour >= 17;
-};
