@@ -336,16 +336,9 @@ export default function ListView({
             </button>
           </div>
         </div>
-      </div>
+        {selectedLeadId ? <LeadDetailPanel leadId={selectedLeadId} onClose={() => setSelectedLeadId(null)} onStatusChange={() => onStatusChange(selectedLeadId, selectedLead?.status || 'NEW')} /> : null}
 
-            {/* 리드 상세 패널 */}
-      {selectedLeadId && (
-        <LeadDetailPanel
-          leadId={selectedLeadId}
-          onClose={() => setSelectedLeadId(null)}
-          onStatusChange={() => onStatusChange(selectedLeadId, selectedLead?.status || 'NEW')}
-        />
-      )}
+
 
       {/* 통화 기록 모달 */}
       {callModalLeadId && callModalLead && (
@@ -389,13 +382,9 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
   // @ts-ignore
   // noinspection CssInlineStyle
   // NOSONAR
-            href={`tel:${lead.phone}`}
-            className="text-sm font-medium hover:underline transition-colors text-[var(--metro-line4)]"
-            onClick={(e) => e.stopPropagation()}
-            title="전화 걸기"
-          >
-            <HighlightText text={formatPhoneNumber(lead.phone)} searchQuery={searchQuery} />
-          </a>
+            <a href={`tel:${lead.phone}`} className="text-sm font-medium hover:underline transition-colors text-[var(--metro-line4)]" onClick={(e) => e.stopPropagation()} title="전화 걸기">
+  <HighlightText text={formatPhoneNumber(lead.phone)} searchQuery={searchQuery} />
+</a>
         ) : (
           <span className="text-[var(--text-muted)]">-</span>
         )}
