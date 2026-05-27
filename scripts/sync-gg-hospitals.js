@@ -11,6 +11,7 @@ const path = require('path');
 
 // .env.local 로드
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+require('../scripts/load-vault');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -92,13 +93,14 @@ async function syncHospitals() {
       if (!rows || rows.length === 0) break;
 
       const leads = rows
+      const leads = await Promise.all(rows
         .filter(row => row.BSN_STATE_NM === '영업중')
-        .map(row => {
+        .map(async row => {
           const lat = parseFloat(row.REFINE_WGS84_LAT);
           const lng = parseFloat(row.REFINE_WGS84_LOGT);
           const nearest = findNearestStation(lat, lng);
 
-          return {
+          const baseLead = {
             biz_name: row.BIZPLC_NM,
             road_address: row.REFINE_ROADNM_ADDR || '',
             lot_address: row.REFINE_LOTNO_ADDR || '',
@@ -117,7 +119,17 @@ async function syncHospitals() {
             region_code: '6410000', // 경기도
             assigned_to: null
           };
-        });
+          // Enrich with Naver data
+          const { enrichBusiness } = require('../src/app/lead-manager/naver-enrich-service');
+          const enrichment = await enrichBusiness(baseLead.biz_name, process.env.NAVER_CLIENT_ID, process.env.NAVER_CLIENT_SECRET);
+          return {
+            ...baseLead,
+            homepage_url: enrichment.website,
+            blog_url: enrichment.blog,
+            phone: enrichment.phone || baseLead.phone,
+            email: enrichment.email
+          };
+        }));
 
       if (leads.length > 0) {
         const { error } = await supabase
