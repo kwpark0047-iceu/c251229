@@ -92,6 +92,10 @@ export interface Lead {
   distance?: number;         // stationDistance의 별칭
   bizType?: string;          // medicalSubject 등의 별칭
   organizationId?: string;   // 조직 ID
+  homepage_url?: string;
+  blog_url?: string;
+  email?: string;
+  naver_place_id?: string;
 }
 
 

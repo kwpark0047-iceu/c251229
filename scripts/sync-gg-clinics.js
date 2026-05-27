@@ -9,8 +9,9 @@ const { createClient } = require('@supabase/supabase-js');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// .env.local 로드
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+// Load .env.local first
+dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
+require('../scripts/load-vault');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -91,33 +92,44 @@ async function syncClinics() {
       const rows = response.data.AsembyStus[1].row;
       if (!rows || rows.length === 0) break;
 
-      const leads = rows
-        .filter(row => row.BSN_STATE_NM === '정상') // 영업 중인 곳만
-        .map(row => {
-          const lat = parseFloat(row.REFINE_WGS84_LAT);
-          const lng = parseFloat(row.REFINE_WGS84_LOGT);
-          const nearest = findNearestStation(lat, lng);
-
-          return {
-            biz_name: row.BIZPLC_NM,
-            road_address: row.REFINE_ROADNM_ADDR || '',
-            lot_address: row.REFINE_LOTNO_ADDR || '',
-            phone: row.LOCPLC_FACLT_TELNO || '',
-            medical_subject: row.TREAT_SBJECT_CONT_INFO || '의원',
-            service_name: row.BIZCOND_DIV_NM_INFO || '의원',
-            category: 'HEALTH',
-            latitude: lat || null,
-            longitude: lng || null,
-            nearest_station: nearest ? nearest.name : null,
-            station_lines: nearest ? nearest.lines : null,
-            station_distance: nearest ? nearest.distance : null,
-            status: 'NEW',
-            operating_status: '영업중',
-            mgt_no: `GG_CLINIC_${row.BIZPLC_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
-            region_code: '6410000', // 경기도
-            assigned_to: null
-          };
-        });
+    // Build leads with enrichment async
+    const leadPromises = rows
+      .filter(row => row.BSN_STATE_NM === '정상') // 영업 중인 곳만
+      .map(async row => {
+        const lat = parseFloat(row.REFINE_WGS84_LAT);
+        const lng = parseFloat(row.REFINE_WGS84_LOGT);
+        const nearest = findNearestStation(lat, lng);
+        const baseLead = {
+          biz_name: row.BIZPLC_NM,
+          road_address: row.REFINE_ROADNM_ADDR || '',
+          lot_address: row.REFINE_LOTNO_ADDR || '',
+          phone: row.LOCPLC_FACLT_TELNO || '',
+          medical_subject: row.TREAT_SBJECT_CONT_INFO || '의원',
+          service_name: row.BIZCOND_DIV_NM_INFO || '의원',
+          category: 'HEALTH',
+          latitude: lat || null,
+          longitude: lng || null,
+          nearest_station: nearest ? nearest.name : null,
+          station_lines: nearest ? nearest.lines : null,
+          station_distance: nearest ? nearest.distance : null,
+          status: 'NEW',
+          operating_status: '영업중',
+          mgt_no: `GG_CLINIC_${row.BIZPLC_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
+          region_code: '6410000', // 경기도
+          assigned_to: null
+        };
+        // Enrich with Naver data
+        const { enrichBusiness } = require('../src/app/lead-manager/naver-enrich-service');
+        const enrichment = await enrichBusiness(baseLead.biz_name, process.env.NAVER_CLIENT_ID, process.env.NAVER_CLIENT_SECRET);
+        return {
+          ...baseLead,
+          homepage_url: enrichment.website,
+          blog_url: enrichment.blog,
+          phone: enrichment.phone || baseLead.phone,
+          email: enrichment.email
+        };
+      });
+    const leads = await Promise.all(leadPromises);
 
       if (leads.length > 0) {
         const { error } = await supabase

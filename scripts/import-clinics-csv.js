@@ -96,10 +96,12 @@ function excelDateToJSDate(serial) {
 
 function findStationByAddress(address) {
   if (!address || typeof address !== 'string') return null;
-  
-  // 주소에서 역 이름 찾기
+
+  const lowered = address.toLowerCase();
+  // Check each station; match full station name with '역' suffix to avoid partial matches
   for (const station of SUBWAY_STATIONS) {
-    if (address.includes(station.name)) {
+    const stationName = station.name.endsWith('역') ? station.name : `${station.name}역`;
+    if (lowered.includes(stationName.toLowerCase())) {
       return station;
     }
   }

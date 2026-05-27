@@ -143,7 +143,7 @@ export default function ListView({
                   주소
                 </th>
                 <th
-                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors min-w-[12rem] w-48"
+                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors min-w-[8rem] w-32"
                   onClick={() => handleSort('nearestStation')}
                 >
                   <div className="flex items-center gap-1.5">
@@ -406,15 +406,23 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
         </span>
       </td>
 
-      <td className="px-5 py-4">
-        <div className="text-sm font-medium text-[var(--text-primary)]">
-          {lead.nearestStation ? (
-            <HighlightText text={lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'} searchQuery={searchQuery} />
-          ) : (
-            <span className="text-[var(--text-muted)]">-</span>
-          )}
-        </div>
-      </td>
+        <td className="px-5 py-4 max-w-[12rem] overflow-visible whitespace-normal">
+          <div className="text-sm font-medium text-[var(--text-primary)]">
+            {(() => {
+              const station =
+                lead.nearestStation ??
+                (lead.latitude && lead.longitude ? findNearestStation(lead.latitude, lead.longitude)?.station.name : null);
+              return station ? (
+                <HighlightText
+                  text={station.endsWith('역') ? station : `${station}역`}
+                  searchQuery={searchQuery}
+                />
+              ) : (
+                <span className="text-[var(--text-muted)]">-</span>
+              );
+            })()}
+          </div>
+        </td>
 
       <td className="px-5 py-4 hidden md:table-cell">
         <span className="text-sm text-[var(--text-secondary)]">
