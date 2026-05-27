@@ -5,7 +5,7 @@
  * 병원 리드를 카드 형태로 표시
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Phone,
   FileText,

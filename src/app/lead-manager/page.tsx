@@ -49,6 +49,7 @@ import { removeDuplicateLeads } from './deduplication-utils';
 import GridView from './components/GridView';
 import ListView from './components/ListView';
 import SettingsModal from './components/SettingsModal';
+import SyncProgressModal from './components/SyncProgressModal';
 
 // MapView를 dynamic 임포트 (SSR 방지)
 import dynamic from 'next/dynamic';
@@ -125,6 +126,8 @@ function LeadManagerContent() {
   const [inventoryRefreshKey, setInventoryRefreshKey] = useState(0);
   const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [mapFocusLead, setMapFocusLead] = useState<Lead | null>(null);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, status: '' });
   const [salesProgressMap, setSalesProgressMap] = useState<Map<string, SalesProgress[]>>(new Map());
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);
 
@@ -386,8 +389,10 @@ function LeadManagerContent() {
     }
     setDateRange({ start, end });
 
+    setShowSyncModal(true);
     setIsLoading(true);
     setLoadingProgress({ current: 0, total: 0 });
+    setSyncProgress({ current: 0, total: 0, status: '설정된 기간의 데이터 동기화 준비 중...' });
     setLoadingStatus('설정된 기간의 데이터 동기화 준비 중...');
 
     try {
@@ -404,6 +409,7 @@ function LeadManagerContent() {
         start,
         end,
         (current, total, status) => {
+          setSyncProgress({ current, total, status: status || '' });
           setLoadingProgress({ current, total });
           if (status) setLoadingStatus(status);
         },
@@ -425,6 +431,7 @@ function LeadManagerContent() {
     } finally {
       setIsLoading(false);
       setLoadingStatus('');
+      setShowSyncModal(false);
     }
   };
 
@@ -791,6 +798,7 @@ function LeadManagerContent() {
         )}
       </main>
 
+      {showSyncModal && <SyncProgressModal current={syncProgress.current} total={syncProgress.total} status={syncProgress.status} onClose={() => setShowSyncModal(false)} />}
       {showInventoryUpload && <InventoryUploadModal onClose={() => setShowInventoryUpload(false)} onSuccess={() => { setInventoryRefreshKey(k => k + 1); showNotification('success', '업로드되었습니다.'); }} />}
       {isSettingsOpen && <SettingsModal settings={settings} onSave={handleSaveSettings} onClose={() => setIsSettingsOpen(false)} onDataChanged={() => loadLeadsFromDB()} />}
       {showTaskForm && <TaskFormModal task={selectedTask} defaultDate={taskFormDefaultDate} onSave={() => { setShowTaskForm(false); setSelectedTask(null); setScheduleRefreshKey(k => k + 1); showNotification('success', '업무가 저장되었습니다.'); }} onClose={() => { setShowTaskForm(false); setSelectedTask(null); }} />}

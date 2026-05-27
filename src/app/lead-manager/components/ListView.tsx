@@ -273,7 +273,7 @@ export default function ListView({
           })}
         </div>
 
-        {/* 페이지네이션 UI 추가 */}
+        {/* 페이지네이션 UI 개선: 현재 페이지와 전체 페이지를 기반으로 5개 페이지 번호를 중앙에 배치 */}
         <div
           className="px-6 py-4 flex items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]"
         >
@@ -295,35 +295,29 @@ export default function ListView({
               <ChevronUp className="w-5 h-5 -rotate-90" />
             </button>
 
-            <div className="flex items-center gap-1.5 px-2">
-              {Array.from({ length: Math.min(5, Math.ceil(totalCount / pageSize)) }, (_, i) => {
-                // 현재 페이지 주변의 페이지 번호 계산
-                const totalPages = Math.ceil(totalCount / pageSize);
-                let pageNum = i + 1;
-
-                if (totalPages > 5) {
-                  if (currentPage > 3) {
-                    pageNum = currentPage - 2 + i;
-                    if (pageNum + (4 - i) > totalPages) {
-                      pageNum = totalPages - 4 + i;
-                    }
-                  }
+            <div className="flex gap-1.5 px-2">
+              {(() => {
+                const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+                const start = Math.max(1, currentPage - 2);
+                const end = Math.min(totalPages, start + 4);
+                const pages = [];
+                for (let i = start; i <= end; i++) {
+                  pages.push(i);
                 }
-
-                if (pageNum > totalPages) return null;
-
-                return (
+                return pages.map((pageNum) => (
                   <button
                     key={pageNum}
                     onClick={() => onPageChange(pageNum)}
                     className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-200 ${
-                      currentPage === pageNum ? 'bg-[var(--metro-line4)] text-white' : 'text-[var(--text-secondary)] border border-[var(--glass-border)]'
+                      currentPage === pageNum
+                        ? 'bg-[var(--metro-line4)] text-white'
+                        : 'text-[var(--text-secondary)] border border-[var(--glass-border)]'
                     }`}
                   >
                     {pageNum}
                   </button>
-                );
-              })}
+                ));
+              })()}
             </div>
 
             <button
