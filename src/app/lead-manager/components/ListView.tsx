@@ -85,7 +85,25 @@ export default function ListView({
 
   // 정렬 처리
   const sortedLeads = [...leads].sort((a, b) => {
-    // 여기에 정렬 로직이 구현된다고 가정합니다.
+    let aValue: any = a[sortField];
+    let bValue: any = b[sortField];
+
+    if (sortField === 'stationDistance') {
+      aValue = a.stationDistance ?? (a.latitude && a.longitude ? findNearestStation(a.latitude, a.longitude)?.distance : 999999);
+      bValue = b.stationDistance ?? (b.latitude && b.longitude ? findNearestStation(b.latitude, b.longitude)?.distance : 999999);
+    } else if (sortField === 'licenseDate') {
+      aValue = a.licenseDate ? new Date(a.licenseDate).getTime() : 0;
+      bValue = b.licenseDate ? new Date(b.licenseDate).getTime() : 0;
+    } else if (sortField === 'createdAt') {
+      aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    } else {
+      aValue = aValue || '';
+      bValue = bValue || '';
+    }
+
+    if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
     return 0;
   });
 
@@ -372,6 +390,39 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       }}
     >
       <td className="px-5 py-4">
+        <div className="font-bold text-[var(--text-primary)]">
+          <HighlightText text={lead.bizName} searchQuery={searchQuery} />
+        </div>
+        {lead.medicalSubject && (
+          <div className="text-xs text-[var(--text-muted)] mt-0.5">
+            <HighlightText text={lead.medicalSubject} searchQuery={searchQuery} />
+          </div>
+        )}
+      </td>
+
+      <td className="px-5 py-4 hidden md:table-cell">
+        <span className="text-sm text-[var(--text-secondary)] line-clamp-1" title={lead.roadAddress || lead.lotAddress}>
+          <HighlightText text={truncateString(lead.roadAddress || lead.lotAddress || '-', 30)} searchQuery={searchQuery} />
+        </span>
+      </td>
+
+      <td className="px-5 py-4">
+        <div className="text-sm font-medium text-[var(--text-primary)]">
+          {lead.nearestStation ? (
+            <HighlightText text={lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'} searchQuery={searchQuery} />
+          ) : (
+            <span className="text-[var(--text-muted)]">-</span>
+          )}
+        </div>
+      </td>
+
+      <td className="px-5 py-4 hidden md:table-cell">
+        <span className="text-sm text-[var(--text-secondary)]">
+          {computedDistance ? formatDistance(computedDistance) : '-'}
+        </span>
+      </td>
+
+      <td className="px-5 py-4 hidden md:table-cell">
         {lead.phone ? (
           <a href={`tel:${lead.phone}`} className="text-sm font-medium hover:underline transition-colors text-[var(--metro-line4)]" onClick={(e) => e.stopPropagation()} title="전화 걸기">
             <HighlightText text={formatPhoneNumber(lead.phone)} searchQuery={searchQuery} />
