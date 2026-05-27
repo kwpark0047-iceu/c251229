@@ -143,7 +143,7 @@ export default function ListView({
                   주소
                 </th>
                 <th
-                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors min-w-[12rem] w-48"
                   onClick={() => handleSort('nearestStation')}
                 >
                   <div className="flex items-center gap-1.5">
@@ -172,7 +172,7 @@ export default function ListView({
                     <SortIcon field="licenseDate" sortField={sortField} sortOrder={sortOrder} />
                   </div>
                 </th>
-                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
+                <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell w-24">
                   진행
                 </th>
                 <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">

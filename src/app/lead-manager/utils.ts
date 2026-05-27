@@ -4,7 +4,7 @@
 
 import proj4 from 'proj4';
 // ESM/CJS 호환성을 위한 처리
-const proj = (typeof (proj4 as any).default === 'function') ? (proj4 as any).default : proj4;
+const proj = typeof proj4 === 'function' ? proj4 : ((proj4 as any).default || proj4);
 
 import { PROJ4_DEFS, SUBWAY_STATIONS } from './constants';
 import { SubwayStation } from './types';

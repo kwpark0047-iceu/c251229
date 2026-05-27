@@ -37,7 +37,7 @@ export const CORS_PROXIES = [
 export const DEFAULT_SETTINGS: Settings = {
   apiKey: DEFAULT_API_KEY,
   corsProxy: '/api/proxy?url=',
-  searchType: 'modified_date',
+  searchType: 'license_date',
   regionCode: '6110000',
   regionCodes: ['6110000', '6410000', '6280000'], // 서울, 경기도, 인천
 };

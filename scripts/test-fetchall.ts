@@ -5,7 +5,8 @@ async function test() {
   const settings: Settings = {
     apiKey: '{"seoul":"6d7a6b6c766b777033346b53716455"}',
     regionCode: '6110000',
-    theme: 'light'
+    corsProxy: '',
+    searchType: 'license_date'
   };
   
   // Test with last 10 days
