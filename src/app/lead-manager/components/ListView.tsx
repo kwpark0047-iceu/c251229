@@ -376,15 +376,12 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
         if ((e.target as HTMLElement).closest('button, a, select')) return;
         onSelect();
       }}
-       
-   
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-            <a href={`tel:${lead.phone}`} className="text-sm font-medium hover:underline transition-colors text-[var(--metro-line4)]" onClick={(e) => e.stopPropagation()} title="전화 걸기">
-  <HighlightText text={formatPhoneNumber(lead.phone)} searchQuery={searchQuery} />
-</a>
+    >
+      <td className="px-5 py-4">
+        {lead.phone ? (
+          <a href={`tel:${lead.phone}`} className="text-sm font-medium hover:underline transition-colors text-[var(--metro-line4)]" onClick={(e) => e.stopPropagation()} title="전화 걸기">
+            <HighlightText text={formatPhoneNumber(lead.phone)} searchQuery={searchQuery} />
+          </a>
         ) : (
           <span className="text-[var(--text-muted)]">-</span>
         )}
