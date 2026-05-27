@@ -307,7 +307,7 @@ export async function getLeads(filters?: {
     let query = supabase
       .from('leads')
       .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
+      .order('license_date', { ascending: false })
       
 
     if (!isSuperAdmin && organizationId) {
