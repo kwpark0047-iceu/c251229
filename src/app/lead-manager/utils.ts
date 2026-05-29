@@ -5,27 +5,21 @@
 import proj4 from 'proj4';
 
 // ESM/CJS 호환성을 위한 안전한 처리
-let proj: any = proj4;
-if (typeof proj.defs !== 'function') {
-  if (proj && proj.default && typeof proj.default.defs === 'function') {
-    proj = proj.default;
-  } else if (proj && proj.default && proj.default.default && typeof proj.default.default.defs === 'function') {
-    proj = proj.default.default;
-  }
-}
+// Resolve proj4 function for both ESM and CJS environments
+const projFunc: any = typeof proj4 === 'function' ? proj4 : (proj4 as any).default || proj4;
 
 import { PROJ4_DEFS, SUBWAY_STATIONS } from './constants';
 import { SubwayStation } from './types';
 
 // proj 좌표계 등록
-if (typeof proj.defs === 'function') {
-  proj.defs('EPSG5174', PROJ4_DEFS.EPSG5174);
-  proj.defs('EPSG5181', PROJ4_DEFS.EPSG5181);
-  proj.defs('EPSG5179', PROJ4_DEFS.EPSG5179);
-  proj.defs('WGS84', PROJ4_DEFS.WGS84);
+if (typeof projFunc.defs === 'function') {
+  projFunc.defs('EPSG5174', PROJ4_DEFS.EPSG5174);
+  projFunc.defs('EPSG5181', PROJ4_DEFS.EPSG5181);
+  projFunc.defs('EPSG5179', PROJ4_DEFS.EPSG5179);
+  projFunc.defs('WGS84', PROJ4_DEFS.WGS84);
   // KRIC API 전용 TM128 좌표계 정의 (중부원점 GRS80)
   const TM128 = '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs';
-  proj.defs('TM128', TM128);
+  projFunc.defs('TM128', TM128);
 } else {
   console.error('[Utils] proj.defs is not a function. proj4 initialization failed.');
 }
@@ -61,9 +55,8 @@ export function convertGRS80ToWGS84(x: number, y: number): { lat: number; lng: n
       return null;
     }
 
-    // 좌표계 자동 감지
     const sourceSystem = detectCoordinateSystem(x, y);
-    const result = proj(sourceSystem, 'WGS84', [x, y]);
+    const result = projFunc(sourceSystem, 'WGS84', [x, y]);
     
     // proj4 반환값이 배열인지 객체인지 처리
     let lng: number, lat: number;
@@ -120,7 +113,7 @@ export function convertKRICToWGS84(xcrd: string, ycrd: string): [number, number]
     }
 
     // proj4를 이용한 TM128 -> WGS84 변환
-    const result = proj('TM128', 'WGS84', [x, y]);
+    const result = projFunc('TM128', 'WGS84', [x, y]);
     
     // proj4 반환값이 배열인지 객체인지 처리
     let lng: number, lat: number;
