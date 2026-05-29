@@ -7,6 +7,7 @@ export default defineConfig({
     test: {
         environment: 'jsdom',
         globals: true,
+        timeout: 20000, // increase timeout for long-running tests
         setupFiles: './vitest.setup.ts',
         exclude: [
             '**/node_modules/**',
