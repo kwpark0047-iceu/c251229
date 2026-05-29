@@ -3,20 +3,32 @@
  */
 
 import proj4 from 'proj4';
-// ESM/CJS 호환성을 위한 처리
-const proj = typeof proj4 === 'function' ? proj4 : ((proj4 as any).default || proj4);
+
+// ESM/CJS 호환성을 위한 안전한 처리
+let proj: any = proj4;
+if (typeof proj.defs !== 'function') {
+  if (proj && proj.default && typeof proj.default.defs === 'function') {
+    proj = proj.default;
+  } else if (proj && proj.default && proj.default.default && typeof proj.default.default.defs === 'function') {
+    proj = proj.default.default;
+  }
+}
 
 import { PROJ4_DEFS, SUBWAY_STATIONS } from './constants';
 import { SubwayStation } from './types';
 
 // proj 좌표계 등록
-proj.defs('EPSG5174', PROJ4_DEFS.EPSG5174);
-proj.defs('EPSG5181', PROJ4_DEFS.EPSG5181);
-proj.defs('EPSG5179', PROJ4_DEFS.EPSG5179);
-proj.defs('WGS84', PROJ4_DEFS.WGS84);
-// KRIC API 전용 TM128 좌표계 정의 (중부원점 GRS80)
-const TM128 = '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs';
-proj.defs('TM128', TM128);
+if (typeof proj.defs === 'function') {
+  proj.defs('EPSG5174', PROJ4_DEFS.EPSG5174);
+  proj.defs('EPSG5181', PROJ4_DEFS.EPSG5181);
+  proj.defs('EPSG5179', PROJ4_DEFS.EPSG5179);
+  proj.defs('WGS84', PROJ4_DEFS.WGS84);
+  // KRIC API 전용 TM128 좌표계 정의 (중부원점 GRS80)
+  const TM128 = '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs';
+  proj.defs('TM128', TM128);
+} else {
+  console.error('[Utils] proj.defs is not a function. proj4 initialization failed.');
+}
 
 /**
  * 좌표값을 기반으로 좌표계 자동 감지
@@ -51,7 +63,19 @@ export function convertGRS80ToWGS84(x: number, y: number): { lat: number; lng: n
 
     // 좌표계 자동 감지
     const sourceSystem = detectCoordinateSystem(x, y);
-    const [lng, lat] = proj(sourceSystem, 'WGS84', [x, y]);
+    const result = proj(sourceSystem, 'WGS84', [x, y]);
+    
+    // proj4 반환값이 배열인지 객체인지 처리
+    let lng: number, lat: number;
+    if (Array.isArray(result)) {
+      lng = result[0];
+      lat = result[1];
+    } else if (result && typeof result === 'object') {
+      lng = (result as any).x;
+      lat = (result as any).y;
+    } else {
+      throw new Error(`Unexpected return type from proj4: ${typeof result}`);
+    }
 
     // 변환 결과 유효성 검사 (서울/경기 범위: 위도 33~43, 경도 124~132)
     if (lat < 33 || lat > 43 || lng < 124 || lng > 132) {
@@ -96,7 +120,19 @@ export function convertKRICToWGS84(xcrd: string, ycrd: string): [number, number]
     }
 
     // proj4를 이용한 TM128 -> WGS84 변환
-    const [lng, lat] = proj('TM128', 'WGS84', [x, y]);
+    const result = proj('TM128', 'WGS84', [x, y]);
+    
+    // proj4 반환값이 배열인지 객체인지 처리
+    let lng: number, lat: number;
+    if (Array.isArray(result)) {
+      lng = result[0];
+      lat = result[1];
+    } else if (result && typeof result === 'object') {
+      lng = (result as any).x;
+      lat = (result as any).y;
+    } else {
+      throw new Error(`Unexpected return type from proj4: ${typeof result}`);
+    }
 
     // 변환 결과 유효성 검증
     if (isNaN(lat) || isNaN(lng) || lat < 33 || lat > 43 || lng < 124 || lng > 132) {
