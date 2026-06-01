@@ -280,7 +280,7 @@ function LeadManagerContent() {
         await loadSettings();
         
         // 복원된 값을 사용하여 즉시 로드 (사용자 정보 포함)
-        await refreshData();
+        await loadLeadsFromDB(restoredCategory, restoredRegions, 1, '', user);
       } catch (error) {
         console.error('[Init] Error during initialization:', error);
       } finally {
