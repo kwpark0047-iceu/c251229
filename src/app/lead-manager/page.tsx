@@ -88,7 +88,7 @@ import { applyThemeVariables, ThemeType, getCardClass } from './utils/design-tok
 function getThreeMonthsDateRange() {
   const end = new Date();
   const start = new Date(end);
-  start.setMonth(start.getMonth() - 3); // 최근 3개월 데이터 로드
+  start.setMonth(start.getMonth() - 12); // 최근 12개월(1년) 데이터 로드 (기존 3개월에서 확장)
   return { start, end };
 }
 
@@ -727,7 +727,7 @@ function LeadManagerContent() {
             ) : isLoading ? (
               <div className="flex flex-col items-center justify-center py-24">
                 <div id="loading-spinner" className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-[--loading-bg] shadow-[--loading-glow]" style={{ '--loading-bg': 'linear-gradient(135deg, var(--metro-line4) 0%, var(--metro-line2) 100%)', '--loading-glow': '0 8px 30px rgba(50, 164, 206, 0.3)' } as React.CSSProperties}><RefreshCw className="w-8 h-8 text-white" /></div>
-                <p className="text-[var(--text-secondary)] font-medium mb-2">공공데이터 동기화 중...</p>
+                <p className="text-[var(--text-secondary)] font-medium mb-2">{loadingStatus ? '공공데이터 동기화 중...' : '데이터를 불러오는 중...'}</p>
                 {loadingStatus && <p className="text-sm text-[var(--metro-line2)] font-semibold">{loadingStatus}</p>}
                 {loadingProgress.total > 0 && (
                   <div className="mt-4 w-64">
