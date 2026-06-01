@@ -88,7 +88,7 @@ import { applyThemeVariables, ThemeType, getCardClass } from './utils/design-tok
 function getThreeMonthsDateRange() {
   const end = new Date();
   const start = new Date(end);
-  start.setMonth(start.getMonth() - 12); // 최근 12개월(1년) 데이터 로드 (기존 3개월에서 확장)
+  start.setMonth(start.getMonth() - 3); // 인허가일 기준 3개월 단위 조회를 위한 기본값
   return { start, end };
 }
 
@@ -479,11 +479,14 @@ function LeadManagerContent() {
     showNotification('success', '설정이 저장되었습니다.');
   };
 
-  const moveDate = (days: number) => {
-    setDateRange(prev => ({
-      start: new Date(prev.start.getTime() + days * 24 * 60 * 60 * 1000),
-      end: new Date(prev.end.getTime() + days * 24 * 60 * 60 * 1000),
-    }));
+  const moveDateByMonths = (months: number) => {
+    setDateRange(prev => {
+      const newStart = new Date(prev.start);
+      newStart.setMonth(newStart.getMonth() + months);
+      const newEnd = new Date(prev.end);
+      newEnd.setMonth(newEnd.getMonth() + months);
+      return { start: newStart, end: newEnd };
+    });
   };
 
   const exportToCSV = () => {
@@ -627,8 +630,8 @@ function LeadManagerContent() {
                       }}
                       className="text-xs bg-transparent border-0 text-[var(--text-secondary)] w-24 focus:outline-none"
                     />                    <div className="flex border-l border-[var(--border-subtle)] pl-2 ml-1">
-                      <button onClick={() => moveDate(-30)} title="이전 30일 이동" aria-label="이전 30일 이동" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronLeft className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
-                      <button onClick={() => moveDate(30)} title="다음 30일 이동" aria-label="다음 30일 이동" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
+                      <button onClick={() => moveDateByMonths(-3)} title="이전 3개월 이동" aria-label="이전 3개월 이동" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronLeft className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
+                      <button onClick={() => moveDateByMonths(3)} title="다음 3개월 이동" aria-label="다음 3개월 이동" className="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors"><ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" /></button>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
