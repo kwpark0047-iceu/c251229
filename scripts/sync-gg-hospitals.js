@@ -92,7 +92,6 @@ async function syncHospitals() {
       const rows = response.data.GgHosptlM[1].row;
       if (!rows || rows.length === 0) break;
 
-      const leads = rows
       const leads = await Promise.all(rows
         .filter(row => row.BSN_STATE_NM === '영업중')
         .map(async row => {
