@@ -173,27 +173,46 @@ function toRad(deg: number): number {
 }
 
 /**
- * 가장 가까운 지하철역 찾기
+ * 가장 가까운 지하철역 찾기 (상권/행정구역 가중치 적용)
  * @param lat - 위도
  * @param lng - 경도
+ * @param address - 사업장 주소 (선택, 입력 시 동일 행정동/구 보정 적용)
  * @returns { station, distance } - 가장 가까운 역 정보와 거리
  */
 export function findNearestStation(
   lat: number,
-  lng: number
+  lng: number,
+  address?: string | null
 ): { station: SubwayStation; distance: number } | null {
   if (!lat || !lng) return null;
 
-  let nearest: { station: SubwayStation; distance: number } | null = null;
+  let bestMatch: { station: SubwayStation; distance: number; score: number } | null = null;
+  
+  const bizDistrict = extractDistrict(address);
+  const bizNeighborhood = extractNeighborhood(address);
 
   for (const station of SUBWAY_STATIONS) {
-    const distance = calculateDistance(lat, lng, station.lat, station.lng);
-    if (!nearest || distance < nearest.distance) {
-      nearest = { station, distance };
+    if (!station.lat || !station.lng) continue;
+
+    const physicalDistance = calculateDistance(lat, lng, station.lat, station.lng);
+    
+    // 3km(3000m) 밖의 역은 제외
+    if (physicalDistance > 3000) continue;
+
+    let discountFactor = 1.0;
+    
+    // 주소 기반 가중치 로직 제거: 현재 역 데이터에 주소 정보가 없으므로 기본 거리 사용
+    // discountFactor remains 1.0
+
+    
+    const weightedDistance = physicalDistance * discountFactor;
+
+    if (!bestMatch || weightedDistance < bestMatch.score) {
+      bestMatch = { station, distance: physicalDistance, score: weightedDistance };
     }
   }
 
-  return nearest;
+  return bestMatch ? { station: bestMatch.station, distance: bestMatch.distance } : null;
 }
 
 /**

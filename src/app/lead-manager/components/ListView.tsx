@@ -222,7 +222,14 @@ export default function ListView({
               >
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h3 className="font-bold text-[var(--text-primary)]">
+                    <h3 
+                      className="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--metro-line4)] hover:underline inline-block"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMapView?.(lead);
+                      }}
+                      title="지도에서 보기"
+                    >
                       <HighlightText text={lead.bizName} searchQuery={searchQuery} />
                     </h3>
                     <p className="text-xs text-[var(--text-muted)] mt-0.5">
@@ -390,7 +397,14 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
       }}
     >
       <td className="px-5 py-4">
-        <div className="font-bold text-[var(--text-primary)]">
+        <div 
+          className="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--metro-line4)] hover:underline inline-block"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMapView?.();
+          }}
+          title="지도에서 보기"
+        >
           <HighlightText text={lead.bizName} searchQuery={searchQuery} />
         </div>
         {lead.medicalSubject && (

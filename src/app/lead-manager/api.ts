@@ -60,12 +60,13 @@ export async function fetchLocalDataAPI(
   const region = regionCode || settings.regionCode;
 
   try {
+    // Prepare API key
     let localDataKey = '';
     if (settings.apiKey) {
       try {
         const keys = JSON.parse(settings.apiKey);
         localDataKey = keys.localdata || '';
-      } catch (e) {
+      } catch {
         if (!settings.apiKey.startsWith('{')) {
           localDataKey = settings.apiKey;
         }
@@ -94,225 +95,88 @@ export async function fetchLocalDataAPI(
     });
 
     if (!result.success) {
-      return {
-        success: false,
-        leads: [],
-        totalCount: 0,
-        message: result.error || result.message || 'API 호출에 실패했습니다.',
-      };
+      return { success: false, leads: [], totalCount: 0, message: result.message };
     }
 
-    const leads = await processRawLeads(result.leads, serviceInfo);
+    const rawLeads = result.leads as any[];
+    // Process each raw lead similar to original implementation
+    const { subwayDataManager } = await import('./kric-data-manager');
+    await subwayDataManager.getAllSubwayData();
 
-    return {
-      success: true,
-      leads,
-      totalCount: result.totalCount,
-    };
+    const processedLeads = (await Promise.all(rawLeads.map(async (raw) => {
+      const bizName = raw.BPLCNM || '';
+      if (!bizName) return null;
 
-  } catch (error) {
-    console.error('[API] LocalData API Error:', error);
+      let latitude: number | undefined;
+      let longitude: number | undefined;
+      let nearestStation: string | undefined;
+      let stationDistance: number | undefined;
+      let stationLines: string[] | undefined;
 
-    return {
-      success: false,
-      leads: [],
-      totalCount: 0,
-      message: error instanceof ApiError
-        ? error.message
-        : `네트워크 오류: ${(error as Error).message}`,
-    };
-  }
-}
+      const x = parseFloat((raw.X || '0').toString().trim());
+      const y = parseFloat((raw.Y || '0').toString().trim());
 
-/**
- * 서울 열린데이터 광장 API를 통해 서울시 의원 인허가 정보 조회
- */
-export async function fetchSeoulClinicAPI(
-  startIndex: number = 1,
-  endIndex: number = 100,
-  settings?: Settings
-): Promise<FetchResult> {
-  try {
-    let seoulKey = '';
-    if (settings?.apiKey) {
-      try {
-        const keys = JSON.parse(settings.apiKey);
-        seoulKey = keys.seoul || '';
-      } catch (e) {}
-    }
+      if (x && y) {
+        const { convertGRS80ToWGS84 } = await import('./utils');
+        const converted = convertGRS80ToWGS84(x, y);
+        if (converted) {
+          latitude = converted.lat;
+          longitude = converted.lng;
 
-    const headers: Record<string, string> = {};
-    if (seoulKey) {
-      headers['x-api-key'] = seoulKey;
-    }
-
-    const result = await safeFetch(`/api/seoul-data?service=clinic&start=${startIndex}&end=${endIndex}`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!result.success) {
-      return {
-        success: false,
-        leads: [],
-        totalCount: 0,
-        message: result.error || '서울 데이터 API 호출에 실패했습니다.',
-      };
-    }
-
-    const leads = await processSeoulRawLeads(result.leads);
-
-    return {
-      success: true,
-      leads,
-      totalCount: result.totalCount,
-    };
-
-  } catch (error) {
-    console.error('[API] Seoul Clinic API Error:', error);
-    return {
-      success: false,
-      leads: [],
-      totalCount: 0,
-      message: `네트워크 오류: ${(error as Error).message}`,
-    };
-  }
-}
-
-/**
- * 서울 열린데이터 광장 API를 통해 서울시 병원 인허가 정보 조회
- */
-export async function fetchSeoulHospitalAPI(
-  startIndex: number = 1,
-  endIndex: number = 100,
-  settings?: Settings
-): Promise<FetchResult> {
-  try {
-    let seoulKey = '';
-    if (settings?.apiKey) {
-      try {
-        const keys = JSON.parse(settings.apiKey);
-        seoulKey = keys.seoul || '';
-      } catch (e) {}
-    }
-
-    const headers: Record<string, string> = {};
-    if (seoulKey) {
-      headers['x-api-key'] = seoulKey;
-    }
-
-    const result = await safeFetch(`/api/seoul-data?service=hospital&start=${startIndex}&end=${endIndex}`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!result.success) {
-      return {
-        success: false,
-        leads: [],
-        totalCount: 0,
-        message: result.error || '서울 데이터 API 호출에 실패했습니다.',
-      };
-    }
-
-    const leads = await processSeoulRawLeads(result.leads, 'LOCALDATA_010101');
-
-    return {
-      success: true,
-      leads,
-      totalCount: result.totalCount,
-    };
-
-  } catch (error) {
-    console.error('[API] Seoul Hospital API Error:', error);
-    return {
-      success: false,
-      leads: [],
-      totalCount: 0,
-      message: `네트워크 오류: ${(error as Error).message}`,
-    };
-  }
-}
-
-/**
- * 서울 데이터 API의 임시 리드 데이터를 처리 (좌표 변환, 역 매칭)
- */
-async function processSeoulRawLeads(rawLeads: any[], serviceId: string = 'LOCALDATA_010102'): Promise<Lead[]> {
-  const { subwayDataManager } = await import('./kric-data-manager');
-  await subwayDataManager.getAllSubwayData();
-
-  const processedLeads = (await Promise.all(rawLeads.map(async (raw) => {
-    const bizName = raw.BPLCNM || '';
-    if (!bizName) return null;
-
-    let latitude: number | undefined;
-    let longitude: number | undefined;
-    let nearestStation: string | undefined;
-    let stationDistance: number | undefined;
-    let stationLines: string[] | undefined;
-
-    const x = parseFloat((raw.X || '0').toString().trim());
-    const y = parseFloat((raw.Y || '0').toString().trim());
-
-    if (x && y) {
-      const { convertGRS80ToWGS84 } = await import('./utils');
-      const converted = convertGRS80ToWGS84(x, y);
-
-      if (converted) {
-        latitude = converted.lat;
-        longitude = converted.lng;
-
-        const bizAddress = raw.RDNWHLADDR || raw.SITEWHLADDR;
-        const nearest = await subwayDataManager.findNearbyStation(latitude, longitude, bizAddress);
-
-        if (nearest) {
-          nearestStation = nearest.station.name;
-          stationDistance = nearest.distance;
-          stationLines = nearest.station.lines;
+          const bizAddress = raw.RDNWHLADDR || raw.SITEWHLADDR;
+          const nearest = await subwayDataManager.findNearbyStation(latitude, longitude, bizAddress);
+          if (nearest) {
+            nearestStation = nearest.station.name;
+            stationDistance = nearest.distance;
+            stationLines = nearest.station.lines;
+          }
         }
       }
-    }
 
-    const { CATEGORY_SERVICE_IDS } = await import('./types');
-    let category: any = 'OTHER';
-    
-    let serviceName = '알 수 없는 서비스';
-    for (const [cat, services] of Object.entries(CATEGORY_SERVICE_IDS)) {
-      const foundService = services.find(s => s.id === serviceId);
-      if (foundService) {
-        category = cat;
-        serviceName = foundService.name;
-        break;
+      // Exclude 폐업 status
+      if (raw.DTLSTATENM && raw.DTLSTATENM.includes('폐업')) return null;
+
+      // Determine service name and category
+      const { CATEGORY_SERVICE_IDS } = await import('./types');
+      let serviceName = '알 수 없는 서비스';
+      for (const [cat, services] of Object.entries(CATEGORY_SERVICE_IDS)) {
+        const found = services.find(s => s.id === serviceId);
+        if (found) {
+          serviceName = found.name;
+          break;
+        }
       }
-    }
 
-    return {
-      id: generateUUID(),
-      bizName: raw.BPLCNM,
-      bizId: raw.BRNO || undefined,
-      licenseDate: raw.APVPERMYMD,
-      roadAddress: raw.RDNWHLADDR,
-      lotAddress: raw.SITEWHLADDR,
-      coordX: x,
-      coordY: y,
-      latitude,
-      longitude,
-      phone: raw.SITETEL,
-      medicalSubject: raw.UPTAENM || (category === 'HEALTH' ? '의원' : raw.UPTAENM),
-      mgtNo: raw.MGTNO,
-      operatingStatus: raw.TRDSTATENM,
-      detailedStatus: raw.DTLSTATENM,
-      category: category,
-      serviceId: serviceId,
-      serviceName: serviceName,
-      nearestStation,
-      stationDistance,
-      stationLines,
-      status: 'NEW',
-    } as Lead;
-  }))).filter((lead): lead is Lead => lead !== null);
+      return {
+        id: generateUUID(),
+        bizName: raw.BPLCNM,
+        bizId: raw.BRNO || undefined,
+        licenseDate: raw.APVPERMYMD || undefined,
+        roadAddress: raw.RDNWHLADDR,
+        lotAddress: raw.SITEWHLADDR,
+        coordX: x,
+        coordY: y,
+        latitude,
+        longitude,
+        phone: raw.SITETEL,
+        medicalSubject: raw.UPTAENM,
+        mgtNo: raw.MGTNO,
+        operatingStatus: raw.TRDSTATENM,
+        detailedStatus: raw.DTLSTATENM,
+        serviceId,
+        serviceName,
+        nearestStation,
+        stationDistance,
+        stationLines,
+        status: 'NEW',
+      } as Lead;
+    }))).filter((lead): lead is Lead => lead !== null);
 
-  return processedLeads;
+    return { success: true, leads: processedLeads, totalCount: result.totalCount ?? 0 };
+  } catch (error) {
+    console.error('[API] fetchLocalDataAPI error:', error);
+    return { success: false, leads: [], totalCount: 0, message: `연결 오류: ${(error as Error).message}` };
+  }
 }
 
 /**
@@ -330,6 +194,8 @@ async function processRawLeads(rawLeads: RawLead[], serviceInfo?: ServiceIdInfo)
   const processedLeads = (await Promise.all(rawLeads.map(async (raw) => {
     const subject = (raw.medicalSubject || '').replace(/\s+/g, '');
     const bizName = (raw.bizName || '').replace(/\s+/g, '');
+    // Exclude 폐업 status
+    if (raw.dtlStateNm && raw.dtlStateNm.includes('폐업')) return null;
 
     const isMedicalService = serviceInfo?.id?.startsWith('01_01') || serviceInfo?.id?.startsWith('01_03');
     const isHealthCategory = serviceInfo?.category === 'HEALTH';
@@ -453,8 +319,17 @@ export async function fetchAllLeads(
   const CONCURRENCY_LIMIT = 2;
   const results: Lead[] = [];
   
-  // 딜레이 유틸리티 함수
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+function getSeoulKey(settings?: Settings): string {
+  if (!settings?.apiKey) return '';
+  try {
+    const keys = JSON.parse(settings.apiKey);
+    return keys.seoul || '';
+  } catch {
+    return settings.apiKey.startsWith('{') ? '' : settings.apiKey;
+  }
+}
+
+function delay(ms: number): Promise<void> { return new Promise(res => setTimeout(res, ms)); }
 
   
   const executeTask = async (task: { regionCode: string; serviceInfo: ServiceIdInfo }) => {
@@ -498,7 +373,7 @@ export async function fetchAllLeads(
            let currentEnd = total;
            let allNewLeads: Lead[] = [];
            
-           const maxPagesToFetch = 10; // 너무 많이 조회하지 않도록 제한 (최대 1000건)
+           const maxPagesToFetch = Math.min(Math.ceil(total / pageSize), 100); // dynamic up to 100 pages (~10k records)
            let pagesFetched = 0;
            let reachedOlderData = false;
            
@@ -510,10 +385,24 @@ export async function fetchAllLeads(
                const tmpRes = await safeFetch(`/api/seoul-data?service=${svc}&start=${currentStart}&end=${currentEnd}`, { headers: seoulHeaders });
                
                if (tmpRes.success && tmpRes.leads && tmpRes.leads.length > 0) {
-                   const processed = await processSeoulRawLeads(tmpRes.leads, serviceInfo.id);
+                   const rawLeadsForProcess: RawLead[] = tmpRes.leads.map((r: any) => ({
+                     bizName: r.BPLCNM,
+                     bizId: r.BRNO || undefined,
+                     mgtNo: r.MGTNO,
+                     trdStateNm: r.TRDSTATENM,
+                     dtlStateNm: r.DTLSTATENM,
+                     licenseDate: r.APVPERMYMD || undefined,
+                     roadAddress: r.RDNWHLADDR,
+                     lotAddress: r.SITEWHLADDR,
+                     coordX: parseFloat((r.X || '0').toString().trim()) || undefined,
+                     coordY: parseFloat((r.Y || '0').toString().trim()) || undefined,
+                     phone: r.SITETEL,
+                     medicalSubject: r.UPTAENM,
+                   }));
+                   const processed = await processRawLeads(rawLeadsForProcess, serviceInfo);
                    
                    // 날짜 필터링 (인허가일자 없는 데이터는 포함)
-                   const validLeads = processed.filter(l => {
+                   const validLeads = processed.filter((l: Lead) => {
                      if (!l.licenseDate) return true;
                      const d = l.licenseDate.replace(/-/g, '');
                      return d >= startStr && d <= endStr;
@@ -534,7 +423,7 @@ export async function fetchAllLeads(
                
                currentEnd = currentStart - 1;
                pagesFetched++;
-               await delay(300); // API Rate Limit 방지
+        await delay(100); // API Rate Limit 방지
            }
            
            firstResult = {

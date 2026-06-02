@@ -26,8 +26,8 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<AvailabilityStatus | 'ALL'>('ALL');
-  const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [statusFilters, setStatusFilters] = useState<AvailabilityStatus[]>([]); // empty = all statuses
+  const [typeFilters, setTypeFilters] = useState<string[]>([]); // empty = all types
 
   const loadInventory = useCallback(async () => {
     setLoading(true);
@@ -51,10 +51,10 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
       item.locationCode.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      statusFilter === 'ALL' || item.availabilityStatus === statusFilter;
+      statusFilters.length === 0 || statusFilters.includes(item.availabilityStatus);
 
     const matchesType =
-      typeFilter === 'ALL' || item.adType === typeFilter;
+      typeFilters.length === 0 || typeFilters.includes(item.adType);
 
     return matchesSearch && matchesStatus && matchesType;
   });
@@ -146,63 +146,107 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
         />
       )}
       <div className="space-y-4">
-        {/* 필터 바 */}
-        <div className="flex flex-wrap gap-4 items-center">
-          {/* 검색 */}
-          <div className="relative w-64 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        {/* 상단 액션 및 검색 바 */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="relative w-72 max-w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
             <input
               id="inventory-search"
               type="text"
               placeholder="역명 또는 위치코드 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full pl-10 pr-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent transition-all text-[var(--text-primary)]"
               aria-label="인벤토리 검색"
             />
           </div>
+          
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-[var(--metro-line2)]">
+              {filteredInventory.length.toLocaleString()}건 조회됨
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowUploadModal(true)}
+              className="px-4 py-2 bg-[var(--metro-line2)] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-[0_4px_15px_rgba(60,181,74,0.3)]"
+            >
+              <Upload className="w-4 h-4" />
+              신규 업로드
+            </button>
+          </div>
+        </div>
 
-          {/* 업로드 버튼 */}
-          <button
-            type="button"
-            onClick={() => setShowUploadModal(true)}
-            className="px-4 py-2 bg-[var(--metro-line4)] text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5 shadow-sm"
-          >
-            <Upload className="w-4 h-4" />
-            신규 업로드
-          </button>
+        {/* 필터 그룹 */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 p-3 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[var(--text-muted)] w-10">상태</span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {(['AVAILABLE', 'RESERVED', 'OCCUPIED'] as AvailabilityStatus[]).map(status => {
+                const isSelected = statusFilters.includes(status);
+                const colorMap = {
+                  'AVAILABLE': 'var(--metro-line2)',
+                  'RESERVED': 'var(--metro-line4)',
+                  'OCCUPIED': 'var(--metro-line1)'
+                };
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => {
+                      setStatusFilters(prev =>
+                        prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+                      );
+                    }}
+                    className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium border ${
+                      isSelected 
+                        ? 'text-white shadow-sm border-transparent' 
+                        : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'
+                    }`}
+                     
+   
+  /* stylelint-disable-next-line */
+  // @ts-ignore
+  // noinspection CssInlineStyle
+  // NOSONAR
+  style={isSelected ? { backgroundColor: colorMap[status] } : undefined}
+                  >
+                    {AVAILABILITY_LABELS[status]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-          {/* 상태 필터 */}
-          <select
-            id="inventory-status-filter"
-            className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-          <option value="ALL">모든 상태</option>
-          <option value="AVAILABLE">사용 가능</option>
-          <option value="RESERVED">예약됨</option>
-          <option value="OCCUPIED">사용 중</option>
-        </select>
-
-        {/* 유형 필터 */}
-        <select
-          id="inventory-type-filter"
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          title="유형별 필터링"
-          aria-label="유형별 필터링"
-        >
-          <option value="ALL">모든 유형</option>
-          {adTypes.map(type => (
-            <option key={type} value={type}>
-              {AD_TYPE_LABELS[type] || type}
-            </option>
-          ))}
-        </select>
-
-        {/* 결과 수 */}
-        <span className="text-sm text-slate-500">
-          {filteredInventory.length}개
-        </span>
+          {adTypes.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:block w-px h-6 bg-[var(--border-subtle)] mr-2" />
+              <span className="text-xs font-semibold text-[var(--text-muted)] w-10">유형</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {adTypes.map(type => {
+                  const isSelected = typeFilters.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        setTypeFilters(prev =>
+                          prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+                        );
+                      }}
+                      className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium border ${
+                        isSelected 
+                          ? 'bg-[var(--metro-line9)] text-white shadow-sm border-transparent' 
+                          : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      {AD_TYPE_LABELS[type] || type}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 테이블 */}
@@ -316,7 +360,6 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
           );
         })}
       </div>
-    </div>
     </>
   );
 }

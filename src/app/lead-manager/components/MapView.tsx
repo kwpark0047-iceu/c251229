@@ -469,7 +469,11 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
     <div className="min-w-[240px] p-1 bg-[#0b0c10] text-[#c5c6c7]">
       <div className="mb-3">
         <button
-          onClick={() => onListView?.()}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onListView?.();
+          }}
           className="text-lg font-black text-white leading-tight hover:text-blue-400 transition-colors text-left"
           title={`${lead.bizName} - 리스트에서 보기`}
         >
