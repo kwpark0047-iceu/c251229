@@ -22,13 +22,15 @@ interface InventoryTableProps {
 }
 
 export default function InventoryTable({ onRefresh }: InventoryTableProps) {
+  // State definitions
   const [inventory, setInventory] = useState<AdInventory[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [statusFilters, setStatusFilters] = useState<AvailabilityStatus[]>([]); // empty = all statuses
-  const [typeFilters, setTypeFilters] = useState<string[]>([]); // empty = all types
+  const [statusFilters, setStatusFilters] = useState<AvailabilityStatus[]>([]);
+  const [typeFilters, setTypeFilters] = useState<string[]>([]);
 
+  // Load all inventory on mount
   const loadInventory = useCallback(async () => {
     setLoading(true);
     const result = await getInventory();
@@ -39,64 +41,54 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
   }, []);
 
   useEffect(() => {
-     
     loadInventory();
   }, [loadInventory]);
 
-  // 필터링된 인벤토리
+  // Apply client‑side filtering based on search, status, and type
   const filteredInventory = inventory.filter(item => {
     const matchesSearch =
       searchTerm === '' ||
       item.stationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.locationCode.toLowerCase().includes(searchTerm.toLowerCase());
-
     const matchesStatus =
       statusFilters.length === 0 || statusFilters.includes(item.availabilityStatus);
-
     const matchesType =
       typeFilters.length === 0 || typeFilters.includes(item.adType);
-
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  // 광고 유형 목록
-  const adTypes = [...new Set(inventory.map(i => i.adType))];
+  // 광고 유형 목록 (필터 UI 용)
+  const adTypes = Array.from(new Set(inventory.map(i => i.adType)));
 
-  // 상태 변경 (로컬 상태 직접 업데이트로 최적화)
+  // Optimistic status update
   const handleStatusChange = async (id: string, newStatus: AvailabilityStatus) => {
-    // 낙관적 업데이트: UI 먼저 변경
-    setInventory(prev => prev.map(item =>
-      item.id === id ? { ...item, availabilityStatus: newStatus } : item
-    ));
-
+    setInventory(prev =>
+      prev.map(item => (item.id === id ? { ...item, availabilityStatus: newStatus } : item))
+    );
     const result = await updateInventoryStatus(id, newStatus);
     if (!result.success) {
-      // 실패 시 원복을 위해 재조회
-      loadInventory();
+      // Re‑load on failure to ensure UI consistency
+      await loadInventory();
     }
   };
 
-  // 삭제 (로컬 상태 직접 업데이트로 최적화)
+  // Optimistic delete
   const handleDelete = async (id: string) => {
     if (!confirm('이 광고매체를 삭제하시겠습니까?')) return;
-
-    // 낙관적 업데이트: UI에서 먼저 제거
-    const previousInventory = inventory;
+    const previous = inventory;
     setInventory(prev => prev.filter(item => item.id !== id));
-
     const result = await deleteInventory(id);
     if (result.success) {
       onRefresh?.();
     } else {
-      // 실패 시 원복
-      setInventory(previousInventory);
+      setInventory(previous);
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
   }
@@ -105,12 +97,8 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
     return (
       <div className="text-center py-12">
         <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-slate-700 mb-2">
-          등록된 광고매체가 없습니다
-        </h3>
-        <p className="text-slate-500 mb-6">
-          엑셀 파일을 업로드하여 광고매체를 등록하세요.
-        </p>
+        <h3 className="text-lg font-medium text-slate-700 mb-2">등록된 광고매체가 없습니다</h3>
+        <p className="text-slate-500 mb-6">엑셀 파일을 업로드하여 광고매체를 등록하세요.</p>
         <button
           onClick={() => setShowUploadModal(true)}
           className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -118,7 +106,6 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
           <Upload className="w-4 h-4" />
           신규 데이터 업로드
         </button>
-
         {showUploadModal && (
           <InventoryUploadModal
             onClose={() => setShowUploadModal(false)}
@@ -155,12 +142,11 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
               type="text"
               placeholder="역명 또는 위치코드 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent transition-all text-[var(--text-primary)]"
               aria-label="인벤토리 검색"
             />
           </div>
-          
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-[var(--metro-line2)]">
               {filteredInventory.length.toLocaleString()}건 조회됨
@@ -175,18 +161,18 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
             </button>
           </div>
         </div>
-
         {/* 필터 그룹 */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 p-3 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl">
+          {/* 상태 필터 */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-[var(--text-muted)] w-10">상태</span>
             <div className="flex items-center gap-1.5 flex-wrap">
               {(['AVAILABLE', 'RESERVED', 'OCCUPIED'] as AvailabilityStatus[]).map(status => {
                 const isSelected = statusFilters.includes(status);
                 const colorMap = {
-                  'AVAILABLE': 'var(--metro-line2)',
-                  'RESERVED': 'var(--metro-line4)',
-                  'OCCUPIED': 'var(--metro-line1)'
+                  AVAILABLE: 'var(--metro-line2)',
+                  RESERVED: 'var(--metro-line4)',
+                  OCCUPIED: 'var(--metro-line1)',
                 };
                 return (
                   <button
@@ -197,18 +183,8 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
                         prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
                       );
                     }}
-                    className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium border ${
-                      isSelected 
-                        ? 'text-white shadow-sm border-transparent' 
-                        : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'
-                    }`}
-                     
-   
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={isSelected ? { backgroundColor: colorMap[status] } : undefined}
+                    className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium border ${isSelected ? 'text-white shadow-sm border-transparent' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'}`}
+                    style={isSelected ? { backgroundColor: colorMap[status] } : undefined}
                   >
                     {AVAILABILITY_LABELS[status]}
                   </button>
@@ -216,7 +192,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
               })}
             </div>
           </div>
-
+          {/* 광고 유형 필터 */}
           {adTypes.length > 0 && (
             <div className="flex items-center gap-2">
               <div className="hidden sm:block w-px h-6 bg-[var(--border-subtle)] mr-2" />
@@ -233,11 +209,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
                           prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
                         );
                       }}
-                      className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium border ${
-                        isSelected 
-                          ? 'bg-[var(--metro-line9)] text-white shadow-sm border-transparent' 
-                          : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'
-                      }`}
+                      className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium border ${isSelected ? 'bg-[var(--metro-line9)] text-white shadow-sm border-transparent' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'}`}
                     >
                       {AD_TYPE_LABELS[type] || type}
                     </button>
@@ -247,118 +219,60 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
             </div>
           )}
         </div>
-      </div>
 
-      {/* 테이블 */}
-      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
+        {/* 인벤토리 목록 테이블 */}
+        <div className="overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-[var(--bg-secondary)] text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  역명
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  위치코드
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  광고유형
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  크기
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  월단가
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  상태
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  액션
-                </th>
+                <th className="px-4 py-3 font-semibold">역명</th>
+                <th className="px-4 py-3 font-semibold">위치코드</th>
+                <th className="px-4 py-3 font-semibold">광고유형</th>
+                <th className="px-4 py-3 font-semibold">상태</th>
+                <th className="px-4 py-3 font-semibold text-center">작업</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
-              {filteredInventory.map(item => {
-                const statusColor = AVAILABILITY_COLORS[item.availabilityStatus];
-                return (
-                  <tr key={item.id} className="hover:bg-slate-50">
+            <tbody className="divide-y divide-[var(--border-subtle)]">
+              {filteredInventory.length > 0 ? (
+                filteredInventory.map((item) => (
+                  <tr key={item.id} className="hover:bg-[var(--bg-secondary)]/50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{item.stationName}</td>
+                    <td className="px-4 py-3 text-[var(--text-secondary)]">{item.locationCode}</td>
+                    <td className="px-4 py-3 text-[var(--text-secondary)]">{AD_TYPE_LABELS[item.adType] || item.adType}</td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <Train className="w-4 h-4 text-slate-400" />
-                        <span className="font-medium text-slate-800">
-                          {item.stationName}
-                        </span>
-                      </div>
+                      <select
+                        value={item.availabilityStatus}
+                        onChange={(e) => handleStatusChange(item.id, e.target.value as AvailabilityStatus)}
+                        className={`text-xs px-2 py-1 rounded outline-none font-medium ${AVAILABILITY_COLORS[item.availabilityStatus].bg} ${AVAILABILITY_COLORS[item.availabilityStatus].text} border ${AVAILABILITY_COLORS[item.availabilityStatus].border}`}
+                      >
+                        {(Object.keys(AVAILABILITY_LABELS) as AvailabilityStatus[]).map((status) => (
+                          <option key={status} value={status}>
+                            {AVAILABILITY_LABELS[status]}
+                          </option>
+                        ))}
+                      </select>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {item.locationCode}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {AD_TYPE_LABELS[item.adType] || item.adType}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
-                      {item.adSize || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-800 text-right font-medium">
-                      {item.priceMonthly
-                        ? `${item.priceMonthly.toLocaleString()}원`
-                        : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center">
-                        <select
-                          id={`status-select-${item.id}`}
-                          value={item.availabilityStatus}
-                          onChange={(e) =>
-                            handleStatusChange(item.id, e.target.value as AvailabilityStatus)
-                          }
-                          className={`text-xs font-medium px-2 py-1 rounded-full border ${statusColor.bg} ${statusColor.text} ${statusColor.border}`}
-                          title="상태 변경"
-                          aria-label={`${item.stationName} ${item.locationCode} 상태 변경`}
-                        >
-                          <option value="AVAILABLE">사용 가능</option>
-                          <option value="RESERVED">예약됨</option>
-                          <option value="OCCUPIED">사용 중</option>
-                        </select>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="p-1.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
-                );
-              })}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-[var(--text-muted)]">
+                    조건에 맞는 광고매체가 없습니다.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* 통계 요약 */}
-      <div className="grid grid-cols-3 gap-4">
-        {(['AVAILABLE', 'RESERVED', 'OCCUPIED'] as AvailabilityStatus[]).map(status => {
-          const count = inventory.filter(i => i.availabilityStatus === status).length;
-          const color = AVAILABILITY_COLORS[status];
-          return (
-            <div
-              key={status}
-              className={`p-4 rounded-lg border ${color.bg} ${color.border}`}
-            >
-              <div className={`text-2xl font-bold ${color.text}`}>{count}</div>
-              <div className="text-sm text-slate-600">
-                {AVAILABILITY_LABELS[status]}
-              </div>
-            </div>
-          );
-        })}
       </div>
     </>
   );

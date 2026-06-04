@@ -762,37 +762,38 @@ function LeadManagerContent() {
               </button>
             </div>
             <InventoryTable key={inventoryRefreshKey} onRefresh={() => setInventoryRefreshKey(k => k + 1)} />
-            <div key={scheduleRefreshKey}>
-              {scheduleView === 'calendar' ? (
-                <ScheduleCalendar
-                  onDateSelect={setTaskFormDefaultDate}
-                  onEventClick={(e) => {
-                    if (e.type === 'task') {
-                      setSelectedTask({
-                        id: e.id.replace('task-', ''),
-                        taskType: e.taskType || 'OTHER',
-                        title: e.title,
-                        dueDate: e.date,
-                        dueTime: e.time,
-                        status: e.status || 'PENDING',
-                        priority: e.priority || 'MEDIUM',
-                        leadId: e.leadId,
-                      } as TaskWithLead);
-                      setShowTaskForm(true);
-                    }
-                  }}
-                  onAddTask={(d) => {
-                    setSelectedTask(null);
-                    setTaskFormDefaultDate(d);
-                    setShowTaskForm(true);
-                  }}
-                />
-              ) : (
-                <TaskBoard onTaskClick={(t) => { setSelectedTask(t); setShowTaskForm(true); }} />
-              )}
-            </div>
           </>
-                ) : mainTab === 'proposals' ? (
+        ) : mainTab === 'schedule' ? (
+          <div key={scheduleRefreshKey}>
+            {scheduleView === 'calendar' ? (
+              <ScheduleCalendar
+                onDateSelect={setTaskFormDefaultDate}
+                onEventClick={(e) => {
+                  if (e.type === 'task') {
+                    setSelectedTask({
+                      id: e.id.replace('task-', ''),
+                      taskType: e.taskType || 'OTHER',
+                      title: e.title,
+                      dueDate: e.date,
+                      dueTime: e.time,
+                      status: e.status || 'PENDING',
+                      priority: e.priority || 'MEDIUM',
+                      leadId: e.leadId,
+                    } as TaskWithLead);
+                    setShowTaskForm(true);
+                  }
+                }}
+                onAddTask={(d) => {
+                  setSelectedTask(null);
+                  setTaskFormDefaultDate(d);
+                  setShowTaskForm(true);
+                }}
+              />
+            ) : (
+              <TaskBoard onTaskClick={(t) => { setSelectedTask(t); setShowTaskForm(true); }} />
+            )}
+          </div>
+        ) : mainTab === 'proposals' ? (
           <ProposalsView defaultOpenUpload={initialTab === 'proposals' && initialAction === 'upload'} />
         ) : mainTab === 'floor-plans' ? (
           <div className="-mx-6 -my-8 h-[calc(100vh-140px)]"><FloorPlansView /></div>
