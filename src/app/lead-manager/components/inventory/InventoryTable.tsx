@@ -16,6 +16,7 @@ import {
   AD_TYPE_LABELS,
 } from '../../types';
 import { getInventory, deleteInventory, updateInventoryStatus } from '../../inventory-service';
+import { SUBWAY_STATIONS, METRO_LINES, METRO_LINE_NAMES, METRO_LINE_COLORS, MetroLine } from '@/lib/constants';
 
 interface InventoryTableProps {
   onRefresh?: () => void;
@@ -29,6 +30,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [statusFilters, setStatusFilters] = useState<AvailabilityStatus[]>([]);
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
+  const [lineFilters, setLineFilters] = useState<string[]>([]);
 
   // Load all inventory on mount
   const loadInventory = useCallback(async () => {
@@ -44,21 +46,42 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
     loadInventory();
   }, [loadInventory]);
 
-  // Apply client‑side filtering based on search, status, and type
+  // Apply client‑side filtering based on search, status, type, and line
   const filteredInventory = inventory.filter(item => {
     const matchesSearch =
       searchTerm === '' ||
       item.stationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.locationCode.toLowerCase().includes(searchTerm.toLowerCase());
+    
     const matchesStatus =
       statusFilters.length === 0 || statusFilters.includes(item.availabilityStatus);
+      
     const matchesType =
       typeFilters.length === 0 || typeFilters.includes(item.adType);
-    return matchesSearch && matchesStatus && matchesType;
+      
+    const matchesLine = lineFilters.length === 0 || (() => {
+      // Find the station in the predefined list
+      const cleanStationName = item.stationName.replace(/역$/, '');
+      const station = SUBWAY_STATIONS.find(s => s.name === cleanStationName);
+      if (station) {
+        return station.lines.some(line => lineFilters.includes(line));
+      }
+      return false; // Exclude if we can't determine the line and filters are active
+    })();
+
+    return matchesSearch && matchesStatus && matchesType && matchesLine;
   });
 
   // 광고 유형 목록 (필터 UI 용)
   const adTypes = Array.from(new Set(inventory.map(i => i.adType)));
+
+  // 노선 목록 (필터 UI 용)
+  const availableLinesSet = new Set(inventory.flatMap(item => {
+    const cleanStationName = item.stationName.replace(/역$/, '');
+    const station = SUBWAY_STATIONS.find(s => s.name === cleanStationName);
+    return station ? station.lines : [];
+  }));
+  const orderedAvailableLines = METRO_LINES.filter(line => availableLinesSet.has(line));
 
   // Optimistic status update
   const handleStatusChange = async (id: string, newStatus: AvailabilityStatus) => {
@@ -212,6 +235,33 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
                       className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium border ${isSelected ? 'bg-[var(--metro-line9)] text-white shadow-sm border-transparent' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'}`}
                     >
                       {AD_TYPE_LABELS[type] || type}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {/* 노선 필터 */}
+          {orderedAvailableLines.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:block w-px h-6 bg-[var(--border-subtle)] mr-2" />
+              <span className="text-xs font-semibold text-[var(--text-muted)] w-10">노선</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {orderedAvailableLines.map(line => {
+                  const isSelected = lineFilters.includes(line);
+                  return (
+                    <button
+                      key={line}
+                      type="button"
+                      onClick={() => {
+                        setLineFilters(prev =>
+                          prev.includes(line) ? prev.filter(l => l !== line) : [...prev, line]
+                        );
+                      }}
+                      className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium border ${isSelected ? 'text-white shadow-sm border-transparent' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'}`}
+                      style={isSelected ? { backgroundColor: METRO_LINE_COLORS[line] } : undefined}
+                    >
+                      {METRO_LINE_NAMES[line]}
                     </button>
                   );
                 })}

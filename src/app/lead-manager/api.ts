@@ -331,7 +331,28 @@ function getSeoulKey(settings?: Settings): string {
 
 function delay(ms: number): Promise<void> { return new Promise(res => setTimeout(res, ms)); }
 
-  
+  // [수정] saveLeads 경합 방지(Race Condition)를 위한 Mutex Lock
+  const saveMutex = {
+    locked: false,
+    queue: [] as (() => void)[],
+  };
+  const lockSave = () => new Promise<void>(resolve => {
+    if (!saveMutex.locked) {
+      saveMutex.locked = true;
+      resolve();
+    } else {
+      saveMutex.queue.push(resolve);
+    }
+  });
+  const unlockSave = () => {
+    if (saveMutex.queue.length > 0) {
+      const next = saveMutex.queue.shift();
+      if (next) next();
+    } else {
+      saveMutex.locked = false;
+    }
+  };
+
   const executeTask = async (task: { regionCode: string; serviceInfo: ServiceIdInfo }) => {
     const { regionCode, serviceInfo } = task;
     const regionName = regionNames[regionCode] || regionCode;
@@ -371,17 +392,21 @@ function delay(ms: number): Promise<void> { return new Promise(res => setTimeout
         if (resCount.success && resCount.totalCount > 0) {
            const total = resCount.totalCount;
            let currentEnd = total;
-           let allNewLeads: Lead[] = [];
            
-           const maxPagesToFetch = Math.min(Math.ceil(total / pageSize), 100); // dynamic up to 100 pages (~10k records)
+           // [고도화] 페이지 크기를 1000으로 늘리고, 메모리 누수를 방지하기 위해 배치별로 즉시 DB에 저장
+           const SEOUL_PAGE_SIZE = 1000;
+           // 최대 조회 건수: 최근 10000건 스캔
+           const maxPagesToFetch = Math.min(Math.ceil(total / SEOUL_PAGE_SIZE), 10); 
            let pagesFetched = 0;
-           let reachedOlderData = false;
            
            const startStr = formatDateToAPI(startDate); // YYYYMMDD
            const endStr = formatDateToAPI(endDate);
            
-           while (currentEnd > 0 && pagesFetched < maxPagesToFetch && !reachedOlderData) {
-               const currentStart = Math.max(1, currentEnd - pageSize + 1);
+           // API 처리를 위한 동적 임포트
+           const { saveLeads } = await import('./supabase-service');
+
+           while (currentEnd > 0 && pagesFetched < maxPagesToFetch) {
+               const currentStart = Math.max(1, currentEnd - SEOUL_PAGE_SIZE + 1);
                const tmpRes = await safeFetch(`/api/seoul-data?service=${svc}&start=${currentStart}&end=${currentEnd}`, { headers: seoulHeaders });
                
                if (tmpRes.success && tmpRes.leads && tmpRes.leads.length > 0) {
@@ -401,36 +426,35 @@ function delay(ms: number): Promise<void> { return new Promise(res => setTimeout
                    }));
                    const processed = await processRawLeads(rawLeadsForProcess, serviceInfo);
                    
-                   // 날짜 필터링 (인허가일자 없는 데이터는 포함)
+                   // 날짜 필터링
                    const validLeads = processed.filter((l: Lead) => {
                      if (!l.licenseDate) return true;
                      const d = l.licenseDate.replace(/-/g, '');
                      return d >= startStr && d <= endStr;
                    });
                    
-                   allNewLeads.push(...validLeads);
-                   
-                   // 가장 오래된 날짜 확인 (데이터가 최신순이 아닐 수 있으나, 일반적으로 인덱스 끝이 최신임)
-                   const oldestInBatch = tmpRes.leads.reduce((min: string, r: any) => {
-                       const d = (r.APVPERMYMD || '').replace(/-/g, '');
-                       return (d < min && d !== '') ? d : min;
-                   }, '99999999');
-                   
-                   if (oldestInBatch !== '99999999' && oldestInBatch < startStr) {
-                       reachedOlderData = true;
+                   // [고도화] 배치별 즉시 저장 (Mutex 적용)
+                   if (validLeads.length > 0) {
+                     await lockSave();
+                     try {
+                       const psr = await saveLeads(validLeads, undefined);
+                       totalNewLeadsCount += psr.newCount;
+                       results.push(...psr.newLeads);
+                     } finally {
+                       unlockSave();
+                     }
                    }
                }
                
                currentEnd = currentStart - 1;
                pagesFetched++;
-        await delay(100); // API Rate Limit 방지
+               await delay(200); // API Rate Limit 방지
            }
            
-           firstResult = {
-               success: true,
-               leads: allNewLeads,
-               totalCount: allNewLeads.length
-           };
+           // 서울 데이터는 반복문 내에서 바로 저장했으므로 완료 처리 후 반환
+           completedTasks++;
+           onProgress?.(completedTasks, totalTasks, `[${regionName}] ${serviceInfo.name}: 완료`);
+           return;
         } else {
            firstResult = { success: true, leads: [], totalCount: 0 };
         }
@@ -444,27 +468,33 @@ function delay(ms: number): Promise<void> { return new Promise(res => setTimeout
         return;
       }
 
-      // 첫 페이지 즉시 저장 및 신규 확인
       const { saveLeads } = await import('./supabase-service');
-      const saveResult = await saveLeads(firstResult.leads, undefined);
       
-      totalNewLeadsCount += saveResult.newCount;
-      results.push(...saveResult.newLeads);
+      // 첫 페이지 즉시 저장 및 신규 확인 (Mutex 적용)
+      await lockSave();
+      try {
+        const saveResult = await saveLeads(firstResult.leads, undefined);
+        totalNewLeadsCount += saveResult.newCount;
+        results.push(...saveResult.newLeads);
+      } finally {
+        unlockSave();
+      }
 
       // 추가 페이지 처리 (필요한 경우)
-      // 서울 데이터는 위에서 지정된 기간 내의 최신 데이터를 모두 조회했으므로 추가 페이지 처리를 건너뜁니다.
-      const totalPages = isSeoulSpecialty ? 1 : Math.ceil(firstResult.totalCount / pageSize);
+      const totalPages = Math.ceil(firstResult.totalCount / pageSize);
       if (totalPages > 1) {
         for (let p = 2; p <= totalPages; p++) {
-          let pageResult: FetchResult | undefined;
-          if (!isSeoulSpecialty) {
-            pageResult = await fetchLocalDataAPI(settings, startDate, endDate, p, pageSize, serviceInfo, regionCode);
-          }
+          const pageResult = await fetchLocalDataAPI(settings, startDate, endDate, p, pageSize, serviceInfo, regionCode);
 
           if (pageResult?.success && pageResult.leads.length > 0) {
-            const psr = await saveLeads(pageResult.leads, undefined);
-            totalNewLeadsCount += psr.newCount;
-            results.push(...psr.newLeads);
+            await lockSave();
+            try {
+              const psr = await saveLeads(pageResult.leads, undefined);
+              totalNewLeadsCount += psr.newCount;
+              results.push(...psr.newLeads);
+            } finally {
+              unlockSave();
+            }
           }
           
           // 각 페이지 호출 사이에 500ms 딜레이를 주어 Rate Limit 및 과부하 방지
