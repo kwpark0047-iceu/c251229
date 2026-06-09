@@ -1,0 +1,8 @@
+tmpclaude-*
+*.bak
+*.log
+node_modules/
+.next/
+.env.local
+.env.local.backup
+build_log*.txt
