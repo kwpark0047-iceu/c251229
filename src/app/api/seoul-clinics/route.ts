@@ -1,66 +1,23 @@
-/** API Route */
+/** API Route - 서울 의원 인허가 데이터 동기화 */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { findNearestStation, convertGRS80ToWGS84 } from '@/app/lead-manager/utils';
 import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
-const SEOUL_DATA_API_KEY = process.env.SEOUL_DATA_CLINIC_API_KEY || process.env.SEOUL_DATA_API_KEY || '6d7a6b6c766b777033346b53716455';
 const API_ENDPOINT = 'http://openapi.seoul.go.kr:8088';
+const PAGE_SIZE = 1000;
+const MAX_PAGES = 20; // 최대 20,000건
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const pIndex = parseInt(searchParams.get('pIndex') || '1');
-  const pSize = parseInt(searchParams.get('pSize') || '100');
-  const sync = searchParams.get('sync') === 'true';
-
-  try {
-    if (!SEOUL_DATA_API_KEY) {
-      return NextResponse.json(
-        { success: false, error: '?쒖슱 ?곗씠??API ?ㅺ? ?ㅼ젙?섏? ?딆븯?듬땲??' },
-        { status: 500 }
-      );
-    }
-
-    // ?쒖슱??API???쒖옉?몃뜳?ㅼ? 醫낅즺?몃뜳?ㅻ? 紐낆떆?댁빞 ??(1-based)
-    const startIndex = (pIndex - 1) * pSize + 1;
-    const endIndex = pIndex * pSize;
-
-    const apiUrl = `${API_ENDPOINT}/${SEOUL_DATA_API_KEY}/json/LOCALDATA_010102/${startIndex}/${endIndex}`;
-
-    console.log(`[Seoul Clinic API] ?붿껌: pIndex=${pIndex}, pSize=${pSize}, range=${startIndex}~${endIndex}, sync=${sync}`);
-
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      cache: 'no-store'
-    });
-
-    if (!response.ok) {
-      throw new Error(`API ?묐떟 ?ㅻ쪟: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.LOCALDATA_010102) {
-      const errorCode = data.RESULT?.CODE || 'UNKNOWN';
-      const errorMsg = data.RESULT?.MESSAGE || '?곗씠?곕? 李얠쓣 ???놁뒿?덈떎.';
-      
-      return NextResponse.json({
-        success: false,
-        error: `[${errorCode}] ${errorMsg}`,
-      });
-    }
-
-    const totalCount = parseInt(data.LOCALDATA_010102.list_total_count) || 0;
-    const rows = data.LOCALDATA_010102.row || [];
-
-    // 由щ뱶 ?뺤떇?쇰줈 留ㅽ븨
-    const leads = rows.map((row: any) => {
+function parseRows(rows: any[]) {
+  return rows
+    .filter((row: any) => row.BPLCNM && !(row.DTLSTATENM || '').includes('폐업'))
+    .map((row: any) => {
       const rawX = parseFloat(row.X);
       const rawY = parseFloat(row.Y);
-      
+
       let lat = null;
       let lng = null;
       let nearest = null;
@@ -79,52 +36,138 @@ export async function GET(request: NextRequest) {
         road_address: row.RDNWHLADDR || row.SITEWHLADDR || '',
         lot_address: row.SITEWHLADDR || '',
         phone: row.SITETEL || '',
-        medical_subject: '의원',
+        medical_subject: row.UPTAENM || '의원',
         service_name: '의원',
+        service_id: '01_01_02_P',
         category: 'HEALTH',
         latitude: lat,
         longitude: lng,
         nearest_station: nearest ? nearest.station.name : null,
         station_lines: nearest ? nearest.station.lines : null,
-        station_distance: nearest ? nearest.distance : null,
+        station_distance: nearest ? Math.round(nearest.distance) : null,
         status: 'NEW',
-        operating_status: '영업중',
-        mgt_no: row.MGTNO || `SEOUL_CLINIC_${row.BPLCNM}_${row.RDNWHLADDR}`.replace(/\s+/g, ''),
-        region_code: '1100000',
+        operating_status: row.TRDSTATENM || '영업중',
+        detailed_status: row.DTLSTATENM || null,
+        mgt_no: row.MGTNO || null,
+        biz_id: row.BRNO || null,
+        license_date: row.APVPERMYMD || null,
       };
     });
+}
 
-    // DB
-    if (sync && leads.length > 0) {
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const sync = searchParams.get('sync') === 'true';
+
+  // [수정 1] 대시보드에서 주입한 apiKey 쿼리 파라미터 읽기 (기존에는 무시됨)
+  const apiKey =
+    searchParams.get('apiKey') ||
+    process.env.SEOUL_DATA_CLINIC_API_KEY ||
+    process.env.SEOUL_DATA_API_KEY ||
+    '';
+
+  if (!apiKey) {
+    return NextResponse.json(
+      { success: false, error: '서울 데이터 API 키가 설정되지 않았습니다. .env.local을 확인하세요.' },
+      { status: 500 }
+    );
+  }
+
+  try {
+    // [수정 2] 전체 페이지 순회 (기존에는 1페이지 100건만 가져옴)
+    let allLeads: any[] = [];
+    let totalCount = 0;
+
+    // 첫 1건으로 총 건수 파악
+    const firstUrl = `${API_ENDPOINT}/${apiKey}/json/LOCALDATA_010102/1/1`;
+    console.log(`[Seoul Clinic API] 총 건수 확인 중...`);
+
+    const firstRes = await fetch(firstUrl, { cache: 'no-store' });
+    if (!firstRes.ok) throw new Error(`API 응답 오류: ${firstRes.status}`);
+    const firstData = await firstRes.json();
+
+    if (!firstData.LOCALDATA_010102) {
+      const code = firstData.RESULT?.CODE || 'UNKNOWN';
+      const msg = firstData.RESULT?.MESSAGE || '데이터를 가져올 수 없습니다.';
+      console.error(`[Seoul Clinic API] API 오류: [${code}] ${msg}`);
+      return NextResponse.json({ success: false, error: `[${code}] ${msg}` });
+    }
+
+    totalCount = parseInt(firstData.LOCALDATA_010102.list_total_count) || 0;
+    const totalPages = Math.min(Math.ceil(totalCount / PAGE_SIZE), MAX_PAGES);
+
+    console.log(`[Seoul Clinic API] 총 ${totalCount}건, ${totalPages}페이지 동기화 시작`);
+
+    // 전체 페이지 순회
+    for (let page = 1; page <= totalPages; page++) {
+      const startIndex = (page - 1) * PAGE_SIZE + 1;
+      const endIndex = page * PAGE_SIZE;
+      const url = `${API_ENDPOINT}/${apiKey}/json/LOCALDATA_010102/${startIndex}/${endIndex}`;
+
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) {
+        console.error(`[Seoul Clinic API] 페이지 ${page} 실패: ${res.status}`);
+        continue;
+      }
+
+      const data = await res.json();
+      const rows = data.LOCALDATA_010102?.row || [];
+      const parsed = parseRows(rows);
+      allLeads = allLeads.concat(parsed);
+
+      console.log(`[Seoul Clinic API] 페이지 ${page}/${totalPages} 완료 (${parsed.length}건 유효)`);
+    }
+
+    // [수정 3] organization_id 포함하여 Supabase에 저장 (기존에는 누락되어 RLS로 안 보임)
+    let savedCount = 0;
+    let errorMsg: string | null = null;
+
+    if (sync && allLeads.length > 0) {
       const supabase = await createClient();
-      // DB ?ㅽ궎留덉뿉 region_code 而щ읆???놁쑝誘�濡??쒖쇅
-      const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
-      
+
+      // 현재 로그인 사용자의 organization_id 조회
+      const { data: { user } } = await supabase.auth.getUser();
+      let orgId: string | null = null;
+
+      if (user?.id) {
+        const { data: member } = await supabase
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .single();
+        orgId = member?.organization_id || null;
+      }
+
+      console.log(`[Seoul Clinic API] organization_id: ${orgId}, 저장 시작 (${allLeads.length}건)`);
+
+      // organization_id 주입
+      const dbLeads = allLeads.map((lead) => ({
+        ...lead,
+        ...(orgId ? { organization_id: orgId } : {}),
+      }));
+
       const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
 
       if (dbError) {
-        console.error('[Seoul Clinic API] DB ?�???ㅻ쪟:', dbError);
-        return NextResponse.json({
-          success: false,
-          error: `DB ?�???ㅽ뙣: ${dbError.message}`,
-        });
+        console.error('[Seoul Clinic API] DB 저장 오류:', dbError);
+        errorMsg = dbError.message;
+      } else {
+        savedCount = dbLeads.length;
+        console.log(`[Seoul Clinic API] DB 저장 완료: ${savedCount}건`);
       }
     }
 
     return NextResponse.json({
-      success: true,
+      success: !errorMsg,
       totalCount,
-      leads: leads.map((l: any) => ({
-        ...l,
-        bizName: l.biz_name,
-        roadAddress: l.road_address,
-        nearestStation: l.nearest_station,
-        stationDistance: l.station_distance,
-      })),
+      fetchedCount: allLeads.length,
+      savedCount: sync ? savedCount : 0,
+      error: errorMsg || undefined,
+      leads: allLeads,
     });
 
   } catch (error) {
-    console.error('[Seoul Clinic API] ?ㅻ쪟:', error);
+    console.error('[Seoul Clinic API] 오류:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }
