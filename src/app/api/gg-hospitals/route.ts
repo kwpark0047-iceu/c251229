@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { findNearestStation } from '@/app/lead-manager/utils';
 import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
-const GG_HOSPITAL_API_KEY = process.env.GG_HOSPITAL_API_KEY || '6e968a5fcec449f683c5c0fcd075802d';
+const GG_HOSPITAL_API_KEY = process.env.GG_HOSPITAL_API_KEY || '';
 const API_ENDPOINT = 'https://openapi.gg.go.kr/GgHosptlM';
 
 export const dynamic = 'force-dynamic';

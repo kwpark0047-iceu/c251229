@@ -10,7 +10,7 @@ export const maxDuration = 60;
 
 // 환경변수에서 API 키 로드 (서버에서만 접근 가능)
 // 환경변수에서 API 키 로드 (서버에서만 접근 가능)
-const LOCALDATA_API_KEY = process.env.LOCALDATA_API_KEY || 'ZDYYNAzHrNEn=IvlfUsvSF0mPGcXK463jxO3en762Us=';
+const LOCALDATA_API_KEY = process.env.LOCALDATA_API_KEY || '';
 const API_ENDPOINT = 'https://www.localdata.go.kr/platform/rest/TO0/openDataApi';
 
 interface LocalDataParams {

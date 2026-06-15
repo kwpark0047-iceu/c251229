@@ -13,6 +13,7 @@ import {
 } from '../auth-service';
 import RoleGuard from '@/components/RoleGuard';
 import { applyThemeVariables, ThemeType } from '../utils/design-tokens';
+import { toast } from 'sonner';
 import SuperAdminDashboard from '../components/admin/SuperAdminDashboard';
 
 interface ActivityLog {
@@ -117,10 +118,10 @@ export default function AdminDashboardPage() {
                         : m
                 ));
             } else {
-                alert('권한 수정 실패: ' + result.message);
+                toast.error('권한 수정 실패: ' + result.message);
             }
         } catch (e) {
-            alert('오류 발생');
+            toast.error('오류가 발생했습니다.');
         }
     };
 
@@ -132,7 +133,7 @@ export default function AdminDashboardPage() {
         if (result.success) {
             setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m));
         } else {
-            alert('역할 변경 실패: ' + result.message);
+            toast.error('역할 변경 실패: ' + result.message);
         }
     };
 

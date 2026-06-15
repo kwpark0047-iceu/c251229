@@ -20,11 +20,11 @@ interface ListViewProps {
   searchQuery?: string;
   onMapView?: (lead: Lead) => void;
   salesProgressMap?: Map<string, SalesProgress[]>;
-  // 페이지네이션 관련 추가
   currentPage: number;
   totalCount: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  onRefresh?: () => void;
 }
 
 type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status' | 'createdAt';
@@ -73,7 +73,8 @@ export default function ListView({
   currentPage,
   totalCount,
   pageSize,
-  onPageChange
+  onPageChange,
+  onRefresh,
 }: ListViewProps) {
   const [sortField, setSortField] = useState<SortField>('licenseDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -236,6 +237,7 @@ export default function ListView({
                       <HighlightText text={lead.medicalSubject || ''} searchQuery={searchQuery} />
                     </p>
                   </div>
+        {/* noinspection CssInlineStyle */}
                   <div
                     className="px-2 py-1 rounded text-[10px] font-bold bg-[--status-bg] text-[--status-text] border border-[--status-border]"
                      
@@ -366,7 +368,7 @@ export default function ListView({
           leadName={callModalLead.bizName}
           phone={callModalLead.phone}
           onClose={() => setCallModalLeadId(null)}
-          onSuccess={() => { }}
+          onSuccess={() => onRefresh?.()}
         />
       )}
     </div>
@@ -480,6 +482,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
 
       {/* 상태 */}
       <td className="px-5 py-4">
+        {/* noinspection CssInlineStyle */}
         <select
           id={`status-select-${lead.id}`}
           name="status"

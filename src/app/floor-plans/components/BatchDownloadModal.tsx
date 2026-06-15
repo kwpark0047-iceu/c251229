@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { X, Download, Archive, FileImage, Check, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { FloorPlan, METRO_LINE_COLORS, METRO_LINE_NAMES } from '../types';
 import { downloadFloorPlansAsZip, downloadFloorPlanImage } from '../storage-service';
 
@@ -78,7 +79,7 @@ export default function BatchDownloadModal({
       onClose();
     } catch (error) {
       console.error('다운로드 오류:', error);
-      alert('다운로드 중 오류가 발생했습니다.');
+      toast.error('다운로드 중 오류가 발생했습니다.');
     } finally {
       setIsDownloading(false);
       setProgress({ current: 0, total: 0, status: '' });

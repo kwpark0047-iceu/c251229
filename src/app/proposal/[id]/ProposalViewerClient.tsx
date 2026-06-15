@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Proposal, AdInventory } from '@/app/lead-manager/types';
 import { FileText, Download, Calendar, MapPin, Loader2, ArrowRight } from 'lucide-react';
+import { toast } from 'sonner';
 import { formatDistance } from '@/app/lead-manager/utils';
 
 interface ProposalViewerProps {
@@ -57,7 +58,7 @@ export default function ProposalViewerClient({ proposal, inventory, bizName }: P
       document.body.removeChild(a);
     } catch (error) {
       console.error('Download error:', error);
-      alert('파일 다운로드 중 오류가 발생했습니다.');
+      toast.error('파일 다운로드 중 오류가 발생했습니다.');
     } finally {
       setDownloading(false);
     }

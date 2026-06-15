@@ -24,6 +24,7 @@ import {
 } from '../../auth-service';
 import { Bell, Check, Info } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
 
 interface Profile {
   id: string;
@@ -235,7 +236,7 @@ export default function SuperAdminDashboard({ user }: Props) {
     const isActive = formData.get('isActive') === 'true';
 
     if (!name || !type || !apiKey) {
-      alert('필수 항목을 모두 작성해주세요.');
+      toast.warning('필수 항목을 모두 작성해주세요.');
       return;
     }
 
@@ -367,12 +368,12 @@ export default function SuperAdminDashboard({ user }: Props) {
       const response = await fetch(finalPath, { cache: 'no-store' });
       const result = await response.json();
       if (result.success) {
-        alert(`동기화 성공: ${result.leads?.length || 0}건의 데이터를 처리했습니다.`);
+        toast.success(`동기화 성공: ${result.leads?.length || 0}건의 데이터를 처리했습니다.`);
       } else {
-        alert(`오류 발생: ${result.message || result.error}`);
+        toast.error(`오류 발생: ${result.message || result.error}`);
       }
     } catch (err) {
-      alert('동기화 중 통신 오류가 발생했습니다.');
+      toast.error('동기화 중 통신 오류가 발생했습니다.');
     } finally {
       setSyncingSector(null);
     }
@@ -490,10 +491,9 @@ export default function SuperAdminDashboard({ user }: Props) {
     if (!confirm(isApproved ? '이 사용자를 승인하시겠습니까?' : '승인을 취소하시겠습니까?')) return;
     const result = await updateProfileStatus(userId, { isApproved });
     if (result.success) {
-      // Realtime에서 처리되지만 즉시 반영을 위해 호출 가능
       loadData();
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 
@@ -503,7 +503,7 @@ export default function SuperAdminDashboard({ user }: Props) {
       setShowOrgModal(false);
       loadData();
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 
@@ -528,7 +528,7 @@ export default function SuperAdminDashboard({ user }: Props) {
     if (result.success) {
       loadData();
     } else {
-      alert(result.message);
+      toast.error(result.message);
       setLoading(false);
     }
   };
@@ -556,7 +556,7 @@ export default function SuperAdminDashboard({ user }: Props) {
       loadData();
       setTimeout(() => setIsLive(false), 2000);
     } else {
-      alert(`Tier update failed: ${result.error}`);
+      toast.error(`Tier 변경 실패: ${result.error}`);
     }
   };
 

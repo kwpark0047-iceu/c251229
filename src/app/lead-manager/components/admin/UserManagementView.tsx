@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, Shield, CheckCircle, XCircle, Building, 
+import {
+  Users, Shield, CheckCircle, XCircle, Building,
   ChevronRight, Search, Filter, MoreHorizontal,
   Mail, Settings, UserPlus, Trash2, RefreshCw
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { 
   getAllProfiles, 
   updateProfileStatus, 
@@ -60,7 +61,7 @@ export default function UserManagementView() {
     if (result.success) {
       loadData();
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 
@@ -69,7 +70,7 @@ export default function UserManagementView() {
     if (result.success) {
       loadData();
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 
@@ -79,7 +80,7 @@ export default function UserManagementView() {
       setShowOrgModal(false);
       loadData();
     } else {
-      alert(result.message);
+      toast.error(result.message);
     }
   };
 

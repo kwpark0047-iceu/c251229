@@ -52,6 +52,7 @@ import { getCardClass } from '../../utils/design-tokens';
 import StationFloorPlans from './StationFloorPlans';
 import SendEmailModal from './SendEmailModal';
 import { sendProposalEmail } from '../../proposal-service';
+import { toast } from 'sonner';
 
 interface LeadDetailPanelProps {
   leadId: string;
@@ -417,11 +418,11 @@ export default function LeadDetailPanel({
           if (!selectedProposal) return;
           const result = await sendProposalEmail(selectedProposal.id, data);
           if (result.success) {
-            alert('이메일이 발송되었습니다.'); // 또는 toast 사용
+            toast.success('이메일이 발송되었습니다.');
             loadLead();
             onStatusChange?.();
           } else {
-            alert(`발송 실패: ${result.message}`);
+            toast.error(`발송 실패: ${result.message}`);
           }
         }}
       />

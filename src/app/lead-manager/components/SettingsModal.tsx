@@ -6,10 +6,11 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  X, Globe, Search, MapPin, Settings, Shield, Trash2, 
-  Loader2, Eye, EyeOff, CheckCircle2, XCircle, Key, Sparkles 
+import {
+  X, Globe, Search, MapPin, Settings, Shield, Trash2,
+  Loader2, Eye, EyeOff, CheckCircle2, XCircle, Key, Sparkles
 } from 'lucide-react';
+import { toast } from 'sonner';
 import RoleGuard from '@/components/RoleGuard';
 
 import { Settings as SettingsType, SearchType, REGION_CODES } from '../types';
@@ -136,7 +137,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
   const handleVerifyKey = async (type: keyof typeof apiKeys) => {
     const key = apiKeys[type];
     if (!key) {
-      alert('연결을 확인하려면 먼저 API 키를 입력해 주세요.');
+      toast.warning('연결을 확인하려면 먼저 API 키를 입력해 주세요.');
       return;
     }
 

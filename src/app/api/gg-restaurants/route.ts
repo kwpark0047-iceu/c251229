@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { findNearestStation } from '@/app/lead-manager/utils';
 import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
-const GG_REST_API_KEY = process.env.GG_REST_API_KEY || 'bb160ecd612540d38e55c6d3d5da7675';
+const GG_REST_API_KEY = process.env.GG_REST_API_KEY || '';
 const API_ENDPOINT = 'https://openapi.gg.go.kr/Genrestrtjpnfood';
 
 export const dynamic = 'force-dynamic';

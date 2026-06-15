@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react';
 import { X, Phone, Clock, User, FileText, Calendar } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   CallOutcome,
   CALL_OUTCOME_LABELS,
@@ -51,10 +52,11 @@ export default function CallLogModal({
     setIsSubmitting(false);
 
     if (result.success) {
+      toast.success('통화 기록이 저장되었습니다.');
       onSuccess();
       onClose();
     } else {
-      alert(result.message);
+      toast.error(result.message || '통화 기록 저장에 실패했습니다.');
     }
   };
 

@@ -6,6 +6,7 @@
 
 import React, { useState, useRef } from 'react';
 import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { ExcelUploadResult } from '../../types';
 import { uploadInventoryExcel } from '../../inventory-service';
 
@@ -45,7 +46,7 @@ export default function InventoryUploadModal({
       const isValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
 
       if (!isValidExtension) {
-        alert('지원되지 않는 파일 형식입니다. .xlsx, .xls, .csv 파일만 업로드 가능합니다.');
+        toast.error('지원되지 않는 파일 형식입니다. .xlsx, .xls, .csv 파일만 업로드 가능합니다.');
         return;
       }
       setFile(selectedFile);
@@ -65,7 +66,7 @@ export default function InventoryUploadModal({
         setFile(droppedFile);
         setResult(null);
       } else {
-        alert('.xlsx, .xls, .csv 형식의 파일만 업로드 가능합니다.');
+        toast.error('.xlsx, .xls, .csv 형식의 파일만 업로드 가능합니다.');
       }
     }
   };

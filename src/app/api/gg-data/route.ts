@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { findNearestStation } from '@/app/lead-manager/utils';
 import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
-const GG_DATA_API_KEY = process.env.GG_DATA_API_KEY || 'e9efa0682eef460cb25cefcc42c52484';
+const GG_DATA_API_KEY = process.env.GG_DATA_API_KEY || '';
 const API_ENDPOINT = 'https://openapi.gg.go.kr/TninsttInstutM';
 
 export const dynamic = 'force-dynamic';

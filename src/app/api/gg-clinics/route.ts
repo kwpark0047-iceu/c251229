@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { findNearestStation } from '@/app/lead-manager/utils';
 import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
-const GG_CLINIC_API_KEY = process.env.GG_CLINIC_API_KEY || 'c9c5e32c0aff406bbe3de0f7af75f6f8';
+const GG_CLINIC_API_KEY = process.env.GG_CLINIC_API_KEY || '';
 const API_ENDPOINT = 'https://openapi.gg.go.kr/AsembyStus';
 
 export const dynamic = 'force-dynamic';

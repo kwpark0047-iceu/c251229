@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { findNearestStation } from '@/app/lead-manager/utils';
 import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
-const GG_JNCL_UNIV_API_KEY = process.env.GG_JNCL_UNIV_API_KEY || '0f12a235134748c0a4b9dbce97405083';
+const GG_JNCL_UNIV_API_KEY = process.env.GG_JNCL_UNIV_API_KEY || '';
 const API_ENDPOINT = 'https://openapi.gg.go.kr/Jnclluniv';
 
 export const dynamic = 'force-dynamic';

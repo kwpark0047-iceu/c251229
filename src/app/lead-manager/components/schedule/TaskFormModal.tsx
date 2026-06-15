@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, MapPin, FileText, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import './TaskFormModal.css';
 import {
   Task,
@@ -83,7 +84,7 @@ export default function TaskFormModal({
     e.preventDefault();
 
     if (!formData.title.trim()) {
-      alert('제목을 입력해주세요.');
+      toast.warning('제목을 입력해주세요.');
       return;
     }
 
@@ -112,7 +113,7 @@ export default function TaskFormModal({
       onSave();
     } catch (error) {
       console.error('Error saving task:', error);
-      alert('저장 중 오류가 발생했습니다.');
+      toast.error('저장 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }

@@ -34,6 +34,7 @@ interface GridViewProps {
   totalCount: number;
   pageSize: number;
   onPageChange: (page: number) => void;
+  onRefresh?: () => void;
 }
 
 export default function GridView({
@@ -46,7 +47,8 @@ export default function GridView({
   currentPage,
   totalCount,
   pageSize,
-  onPageChange
+  onPageChange,
+  onRefresh,
 }: GridViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const sortedLeads = useMemo(() => leads.slice().sort((a, b) => {
@@ -69,6 +71,7 @@ export default function GridView({
             onMapView={() => onMapView(lead)}
             progress={salesProgressMap?.get(lead.id)}
             isFieldMode={isFieldMode}
+            onRefresh={onRefresh}
           />
         ))}
       </div>
@@ -159,15 +162,17 @@ interface LeadCardProps {
   onMapView?: () => void;
   progress?: SalesProgress[];
   isFieldMode?: boolean;
+  onRefresh?: () => void;
 }
 
-function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onMapView, progress, isFieldMode = false }: LeadCardProps) {
+function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onMapView, progress, isFieldMode = false, onRefresh }: LeadCardProps) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const statusColor = STATUS_METRO_COLORS[lead.status];
 
   return (
     <>
+        {/* noinspection CssInlineStyle */}
       <div
         className={`group relative rounded-pro border overflow-hidden cursor-pointer bg-[var(--glass-bg)] border-[var(--glass-border)] ${getCardClass()}`}
         style={{
@@ -178,6 +183,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
           onSelect();
         }}
       >
+        {/* noinspection CssInlineStyle */}
         <div
           style={{
             '--glow-gradient': `radial-gradient(circle at 50% 0%, ${statusColor.glow} 0%, transparent 70%)`,
@@ -185,6 +191,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-[image:var(--glow-gradient)]"
         />
 
+        {/* noinspection CssInlineStyle */}
         <div
           className="relative px-4 py-3 border-b bg-[--status-bg] border-[--status-border]"
           style={{
@@ -194,6 +201,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
+        {/* noinspection CssInlineStyle */}
               <span
                 className="text-sm font-semibold text-[--status-text]"
                 style={{ '--status-text': statusColor.text } as React.CSSProperties}
@@ -203,6 +211,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               <ProgressDots leadId={lead.id} progress={progress} />
             </div>
             <div className="relative">
+        {/* noinspection CssInlineStyle */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -289,6 +298,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
                       {displayLines && displayLines.length > 0 && (
                         <div className="flex gap-1 ml-1">
                           {displayLines.slice(0, 3).map(line => (
+        {/* noinspection CssInlineStyle */}
                             <span
                               key={line}
                               className="w-5 h-5 rounded-full text-white text-xs flex items-center justify-center font-bold shadow-sm bg-[--line-color]"
@@ -355,7 +365,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
           leadName={lead.bizName}
           phone={lead.phone}
           onClose={() => setShowCallModal(false)}
-          onSuccess={() => { }}
+          onSuccess={() => onRefresh?.()}
         />
       )}
     </>
@@ -379,10 +389,12 @@ function StatusDropdown({ currentStatus, onSelect, onClose }: { currentStatus: L
               onClick={() => onSelect(status)}
               className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors ${status === currentStatus ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}`}
             >
+        {/* noinspection CssInlineStyle */}
               <div
                 className="w-3 h-3 rounded-full border-2 bg-[--dot-bg] border-[--dot-border]"
                 style={{ '--dot-bg': color.bg, '--dot-border': color.border } as React.CSSProperties}
               />
+        {/* noinspection CssInlineStyle */}
               <span
                 className="font-medium text-[--status-text]"
                 style={{ '--status-text': color.text } as React.CSSProperties}
