@@ -525,7 +525,6 @@ function LeadManagerContent() {
                 { key: 'floor-plans' as MainTab, icon: FileImage, label: '도면' },
                 ...(userInfo?.isSuperAdmin ? [{ key: 'admin' as MainTab, icon: Shield, label: '관리' }] : []),
               ].map(({ key, icon: Icon, label }) => (
-        {/* noinspection CssInlineStyle */}
                 <button
                   key={key}
                   onClick={() => setMainTab(key)}
@@ -554,13 +553,11 @@ function LeadManagerContent() {
               </button>
               <div className="relative">
                 <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
-        {/* noinspection CssInlineStyle */}
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[--avatar-bg]" style={{ '--avatar-bg': 'linear-gradient(135deg, var(--metro-line7) 0%, var(--metro-line5) 100%)' } as React.CSSProperties}>
                     <span className="text-white text-sm font-bold">{userInfo?.email?.charAt(0).toUpperCase() || 'U'}</span>
                   </div>
                 </button>
                 {showUserMenu && (
-        {/* noinspection CssInlineStyle */}
                   <div className="absolute right-0 top-full mt-2 w-72 rounded-xl border border-[var(--glass-border)] py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 bg-[--glass-bg] shadow-[--glass-shadow] backdrop-blur-[20px]" style={{ '--glass-bg': 'var(--glass-bg)', '--glass-shadow': '0 20px 40px rgba(0,0,0,0.4)' } as React.CSSProperties}>
                     <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
                       <p className="text-sm font-semibold text-[var(--text-primary)]">{userInfo?.email}</p>
@@ -639,7 +636,6 @@ function LeadManagerContent() {
                   </div>
                   <div className="flex items-center gap-1.5">
                     {REGION_OPTIONS.map(region => (
-        {/* noinspection CssInlineStyle */}
                       <button key={region.code} onClick={() => setSelectedRegions(prev => prev.includes(region.code) ? (prev.length === 1 ? prev : prev.filter(c => c !== region.code)) : [...prev, region.code])} className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${selectedRegions.includes(region.code) ? 'text-white bg-[--region-color]' : 'text-[var(--text-muted)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'}`} style={{ '--region-color': region.color } as React.CSSProperties}>{region.name}</button>
                     ))}
                   </div>
@@ -652,7 +648,6 @@ function LeadManagerContent() {
                     { mode: 'list' as ViewMode, icon: List, color: 'var(--metro-line4)', name: '목록 보기' },
                     { mode: 'map' as ViewMode, icon: MapIcon, color: 'var(--metro-line3)', name: '지도 보기' },
                   ].map(({ mode, icon: Icon, color, name }) => (
-        {/* noinspection CssInlineStyle */}
                     <button key={mode} onClick={() => setViewMode(mode)} title={name} aria-label={name} className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow bg-[--btn-color]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`} style={{ '--btn-color': color } as React.CSSProperties}><Icon className="w-4 h-4" /></button>
                   ))}
                 </div>
@@ -731,20 +726,17 @@ function LeadManagerContent() {
           <>
             {initialLoading ? (
               <div className="flex flex-col items-center justify-center py-24">
-        {/* noinspection CssInlineStyle */}
                 <div id="loading-spinner" className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 animate-float bg-[--loading-bg] shadow-[--loading-glow]" style={{ '--loading-bg': 'linear-gradient(135deg, var(--metro-line2) 0%, var(--metro-line4) 100%)', '--loading-glow': '0 0 20px rgba(60, 181, 74, 0.4)' } as React.CSSProperties}><RefreshCw className="w-8 h-8 text-white" /></div>
                 <p className="text-[var(--text-secondary)] font-medium">데이터 로딩 중...</p>
               </div>
             ) : isLoading ? (
               <div className="flex flex-col items-center justify-center py-24">
-        {/* noinspection CssInlineStyle */}
                 <div id="loading-spinner" className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-[--loading-bg] shadow-[--loading-glow]" style={{ '--loading-bg': 'linear-gradient(135deg, var(--metro-line4) 0%, var(--metro-line2) 100%)', '--loading-glow': '0 8px 30px rgba(50, 164, 206, 0.3)' } as React.CSSProperties}><RefreshCw className="w-8 h-8 text-white" /></div>
                 <p className="text-[var(--text-secondary)] font-medium mb-2">{loadingStatus ? '공공데이터 동기화 중...' : '데이터를 불러오는 중...'}</p>
                 {loadingStatus && <p className="text-sm text-[var(--metro-line2)] font-semibold">{loadingStatus}</p>}
                 {loadingProgress.total > 0 && (
                   <div className="mt-4 w-64">
                     <div className="h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-        {/* noinspection CssInlineStyle */}
                       <div className="h-full bg-[var(--metro-line2)] transition-all duration-300" style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }} />
                     </div>
                   </div>
