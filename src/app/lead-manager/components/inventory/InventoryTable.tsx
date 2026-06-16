@@ -290,7 +290,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
                     <td className="px-4 py-3 text-[var(--text-secondary)]">{item.locationCode}</td>
                     <td className="px-4 py-3 text-[var(--text-secondary)]">{AD_TYPE_LABELS[item.adType] || item.adType}</td>
                     <td className="px-4 py-3">
-                      <select
+                      <select title="상태 변경" aria-label="상태 변경"
                         value={item.availabilityStatus}
                         onChange={(e) => handleStatusChange(item.id, e.target.value as AvailabilityStatus)}
                         className={`text-xs px-2 py-1 rounded outline-none font-medium ${AVAILABILITY_COLORS[item.availabilityStatus].bg} ${AVAILABILITY_COLORS[item.availabilityStatus].text} border ${AVAILABILITY_COLORS[item.availabilityStatus].border}`}

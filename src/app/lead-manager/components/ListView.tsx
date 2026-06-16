@@ -237,7 +237,6 @@ export default function ListView({
                       <HighlightText text={lead.medicalSubject || ''} searchQuery={searchQuery} />
                     </p>
                   </div>
-        {/* noinspection CssInlineStyle */}
                   <div
                     className="px-2 py-1 rounded text-[10px] font-bold bg-[--status-bg] text-[--status-text] border border-[--status-border]"
                      
@@ -482,7 +481,6 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
 
       {/* 상태 */}
       <td className="px-5 py-4">
-        {/* noinspection CssInlineStyle */}
         <select
           id={`status-select-${lead.id}`}
           name="status"
