@@ -123,8 +123,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const err = error as Error & { cause?: unknown };
+    const cause = err.cause ? String(err.cause) : undefined;
+    console.error('[LocalData API] 상세 오류:', { message: err.message, cause });
     return NextResponse.json(
-      { success: false, error: (error as Error).message },
+      { success: false, error: err.message, cause },
       { status: 500 }
     );
   }
