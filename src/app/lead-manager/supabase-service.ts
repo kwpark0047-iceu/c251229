@@ -334,11 +334,36 @@ export async function getLeads(filters?: {
       query = query.lte('license_date', filters.endDate);
     }
 
-    // 검색어 필터링 (PostgREST 콤마 오류 방지)
+    // 검색어 필터링
     if (filters?.searchQuery) {
       const q = filters.searchQuery.trim().replace(/,/g, ' ');
       if (q) {
-        query = query.or(`biz_name.ilike.%${q}%,road_address.ilike.%${q}%,lot_address.ilike.%${q}%,nearest_station.ilike.%${q}%`);
+        // DB nearest_station은 "역" 없이 저장됨 ("강남역" → "강남" 기준 검색)
+        const stationQ = q.endsWith('역') ? q.slice(0, -1) : q;
+
+        // 노선명 → 노선 키 변환 ("2호선" → "2", "신분당선" → "S")
+        const REVERSE_LINE: Record<string, string> = {
+          '1호선': '1', '2호선': '2', '3호선': '3', '4호선': '4',
+          '5호선': '5', '6호선': '6', '7호선': '7', '8호선': '8', '9호선': '9',
+          '신분당선': 'S', '경의중앙선': 'K', '공항철도': 'A', '수인분당선': 'B',
+          '경춘선': 'G', '인천1호선': 'I', '우이신설선': 'U', '서해선': 'W',
+        };
+        const lineKey = REVERSE_LINE[q] ?? null;
+
+        const orParts = [
+          `biz_name.ilike.%${q}%`,
+          `road_address.ilike.%${q}%`,
+          `lot_address.ilike.%${q}%`,
+          `nearest_station.ilike.%${stationQ}%`,
+          `phone.ilike.%${q}%`,
+          `medical_subject.ilike.%${q}%`,
+          `service_name.ilike.%${q}%`,
+        ];
+        if (lineKey) {
+          // station_lines는 text[] 배열 — cs(contains) 연산자로 검색
+          orParts.push(`station_lines.cs.{${lineKey}}`);
+        }
+        query = query.or(orParts.join(','));
       }
     }
 

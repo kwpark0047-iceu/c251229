@@ -33,10 +33,12 @@ import {
   Search,
   X,
   Shield,
+  Database,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS, MainTab } from './types';
-import { DEFAULT_SETTINGS, METRO_TAB_COLORS } from './constants';
+import { DEFAULT_SETTINGS, METRO_TAB_COLORS, SUBWAY_STATIONS } from './constants';
+import { METRO_LINE_NAMES } from '@/lib/constants';
 import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
 import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings } from './supabase-service';
@@ -76,6 +78,7 @@ import SuperAdminDashboard from './components/admin/SuperAdminDashboard';
 import { TaskWithLead } from './types';
 import CallbackNotification from './components/CallbackNotification';
 import RoleGuard from '@/components/RoleGuard';
+import DataSyncModal from './components/DataSyncModal';
 import MobileNavBar from './components/MobileNavBar';
 import BackgroundEffect from './components/BackgroundEffect';
 import NotificationCenter from '@/components/NotificationCenter';
@@ -128,7 +131,10 @@ function LeadManagerContent() {
   const [mapFocusLead, setMapFocusLead] = useState<Lead | null>(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0, status: '' });
+  const [showDataSync, setShowDataSync] = useState(false);
   const [salesProgressMap, setSalesProgressMap] = useState<Map<string, SalesProgress[]>>(new Map());
+  const [stationSuggestions, setStationSuggestions] = useState<typeof SUBWAY_STATIONS>([]);
+  const [showStationSuggestions, setShowStationSuggestions] = useState(false);
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);
 
   // 스케줄 관련 상태
@@ -436,31 +442,41 @@ function LeadManagerContent() {
   };
 
   const filteredLeads = useMemo(() => {
-  if (!leads.length) return [];
-  const query = searchQuery.trim().toLowerCase();
-  const filtered = leads.filter(lead => {
-    if (categoryFilter !== 'ALL' && lead.category !== categoryFilter) return false;
-    if (statusFilter !== 'ALL' && lead.status !== statusFilter) return false;
-    if (selectedServiceIds.length > 0 && !selectedServiceIds.includes(lead.serviceId || '')) return false;
-    if (query) {
-      if (
-        !lead.bizName?.toLowerCase().includes(query) &&
-        !(lead.roadAddress || '').toLowerCase().includes(query) &&
-        !(lead.nearestStation || '').toLowerCase().includes(query)
-      ) {
-        return false;
+    if (!leads.length) return [];
+    const q = searchQuery.trim().toLowerCase();
+    // DB와 동일한 로직: "역" 접미사 제거 후 역명 비교
+    const stationQ = q.endsWith('역') ? q.slice(0, -1) : q;
+
+    const filtered = leads.filter(lead => {
+      if (categoryFilter !== 'ALL' && lead.category !== categoryFilter) return false;
+      if (statusFilter !== 'ALL' && lead.status !== statusFilter) return false;
+      if (selectedServiceIds.length > 0 && !selectedServiceIds.includes(lead.serviceId || '')) return false;
+      if (q) {
+        const matchStation = (lead.nearestStation || '').toLowerCase().includes(stationQ);
+        const matchLine = Array.isArray(lead.stationLines) && lead.stationLines.some(line => {
+          const lineName = (METRO_LINE_NAMES[line] || '').toLowerCase();
+          return lineName.includes(q) || q.includes(line.toLowerCase());
+        });
+        if (
+          !lead.bizName?.toLowerCase().includes(q) &&
+          !(lead.roadAddress || '').toLowerCase().includes(q) &&
+          !(lead.phone || '').toLowerCase().includes(q) &&
+          !(lead.medicalSubject || '').toLowerCase().includes(q) &&
+          !(lead.serviceName || '').toLowerCase().includes(q) &&
+          !matchStation &&
+          !matchLine
+        ) {
+          return false;
+        }
       }
-    }
-    return true;
-  });
-  // Sort by licenseDate descending (newest first)
-  const sorted = filtered.sort((a, b) => {
-    const dateA = a.licenseDate ? new Date(a.licenseDate).getTime() : 0;
-    const dateB = b.licenseDate ? new Date(b.licenseDate).getTime() : 0;
-    return dateB - dateA;
-  });
-  return sorted;
-}, [leads, categoryFilter, statusFilter, selectedServiceIds, searchQuery]);
+      return true;
+    });
+    return filtered.sort((a, b) => {
+      const dateA = a.licenseDate ? new Date(a.licenseDate).getTime() : 0;
+      const dateB = b.licenseDate ? new Date(b.licenseDate).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [leads, categoryFilter, statusFilter, selectedServiceIds, searchQuery]);
 
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     const result = await updateLeadStatus(leadId, newStatus);
@@ -656,6 +672,14 @@ function LeadManagerContent() {
                   <button onClick={refreshData} disabled={isLoading} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 bg-[var(--metro-line2)]">
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} /> {isLoading ? `${loadingProgress.current}/${loadingProgress.total}` : '새로고침'}
                   </button>
+                  <button
+                    onClick={() => setShowDataSync(true)}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 bg-gradient-to-r from-[var(--metro-line3)] to-[var(--metro-line4)]"
+                    title="경기도·서울 공공데이터 동기화"
+                  >
+                    <Database className="w-3.5 h-3.5" /> 공공데이터
+                  </button>
                   <button onClick={exportToCSV} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--metro-line5)] hover:bg-[var(--bg-secondary)] transition-colors" title="CSV 내보내기"><Download className="w-4 h-4" /></button>
                   <RoleGuard allowedRoles={['owner', 'admin']}><BackupButton /></RoleGuard>
                 </div>
@@ -678,7 +702,61 @@ function LeadManagerContent() {
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="relative hidden sm:block">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-                    <input ref={searchInputRef} type="text" placeholder="병원명, 주소, 역이름 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent w-64 transition-all" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="상호명, 주소, 강남역, 2호선, 전화번호..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSearchQuery(val);
+                        const trimmed = val.trim();
+                        if (trimmed.length >= 1) {
+                          const stationQ = trimmed.endsWith('역') ? trimmed.slice(0, -1) : trimmed;
+                          const matched = SUBWAY_STATIONS.filter(s =>
+                            s.name.toLowerCase().includes(stationQ.toLowerCase()) ||
+                            s.lines.some(l => (METRO_LINE_NAMES[l] || '').includes(trimmed))
+                          ).slice(0, 8);
+                          setStationSuggestions(matched);
+                          setShowStationSuggestions(matched.length > 0);
+                        } else {
+                          setShowStationSuggestions(false);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (stationSuggestions.length > 0) setShowStationSuggestions(true);
+                      }}
+                      onBlur={() => setTimeout(() => setShowStationSuggestions(false), 150)}
+                      className="pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent w-72 transition-all"
+                    />
+                    {showStationSuggestions && (
+                      <div className="absolute top-full left-0 mt-1 w-72 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl shadow-xl z-50 overflow-hidden">
+                        <div className="px-3 py-1.5 text-[10px] text-[var(--text-muted)] border-b border-[var(--border-subtle)] font-medium">인근역 빠른 검색</div>
+                        {stationSuggestions.map(station => (
+                          <button
+                            key={station.name}
+                            onMouseDown={() => {
+                              setSearchQuery(`${station.name}역`);
+                              setShowStationSuggestions(false);
+                            }}
+                            className="w-full flex items-center justify-between px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors text-left"
+                          >
+                            <span>{station.name}역</span>
+                            <span className="flex gap-1">
+                              {station.lines.map(line => (
+                                <span
+                                  key={line}
+                                  className="text-[10px] px-1.5 py-0.5 rounded text-white font-bold"
+                                  style={{ backgroundColor: `var(--metro-line${line.match(/^\d$/) ? line : ''})` || '#888' }}
+                                >
+                                  {METRO_LINE_NAMES[line] || line}
+                                </span>
+                              ))}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {(Object.keys(CATEGORY_LABELS) as BusinessCategory[]).map(category => {
@@ -808,6 +886,15 @@ function LeadManagerContent() {
       {showInventoryUpload && <InventoryUploadModal onClose={() => setShowInventoryUpload(false)} onSuccess={() => { setInventoryRefreshKey(k => k + 1); showNotification('success', '업로드되었습니다.'); }} />}
       {isSettingsOpen && <SettingsModal settings={settings} onSave={handleSaveSettings} onClose={() => setIsSettingsOpen(false)} onDataChanged={() => loadLeadsFromDB()} />}
       {showTaskForm && <TaskFormModal task={selectedTask} defaultDate={taskFormDefaultDate} onSave={() => { setShowTaskForm(false); setSelectedTask(null); setScheduleRefreshKey(k => k + 1); showNotification('success', '업무가 저장되었습니다.'); }} onClose={() => { setShowTaskForm(false); setSelectedTask(null); }} />}
+      {showDataSync && (
+        <DataSyncModal
+          onClose={() => setShowDataSync(false)}
+          onSyncComplete={(saved) => {
+            showNotification('success', `공공데이터 동기화 완료: ${saved.toLocaleString()}건이 저장되었습니다.`);
+            loadLeadsFromDB(categoryFilter, selectedRegions, 1, searchQuery);
+          }}
+        />
+      )}
       <MobileNavBar activeTab={mainTab} onTabChange={(t) => { setMainTab(t); if (viewMode === 'map') setViewMode('grid'); }} onViewModeChange={setViewMode} onSettingsClick={() => setIsSettingsOpen(true)} className="anchored-bottom" />
     </div>
   );
