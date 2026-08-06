@@ -10,8 +10,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireSyncAuth } from '@/app/api/sync-utils';
+import { buildTemplateAnalysis } from '@/lib/ai-analysis-templates';
 
-// AI 분석 결과 JSON 스키마
+// AI 분석 결과 JSON 스키마 (lib/ai-analysis-templates.ts와 동일)
 export interface AIAnalysis {
   businessOverview: {
     name: string;
@@ -44,6 +45,33 @@ export interface AIAnalysis {
   };
   expectedEffects: string[];
   summary: string;
+}
+
+// OpenAI 실패(billing 미등록 등) 시 업종 템플릿 기반 폴백, provider로 출처 구분
+function fallbackAnalysis(lead: {
+  bizName?: string;
+  medicalSubject?: string;
+  category?: string;
+  roadAddress?: string;
+  lotAddress?: string;
+  phone?: string;
+  nearestStation?: string;
+  stationLines?: string[];
+  stationDistance?: number;
+  nearestExitNo?: string;
+}): AIAnalysis {
+  return buildTemplateAnalysis({
+    bizName: lead.bizName,
+    medicalSubject: lead.medicalSubject,
+    category: lead.category,
+    roadAddress: lead.roadAddress,
+    lotAddress: lead.lotAddress,
+    phone: lead.phone,
+    nearestStation: lead.nearestStation,
+    stationLines: lead.stationLines,
+    stationDistance: lead.stationDistance,
+    nearestExitNo: lead.nearestExitNo,
+  });
 }
 
 function buildPrompt(lead: {
@@ -171,10 +199,13 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.OPENAI_API_KEY;
     const baseUrl = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
     if (!apiKey) {
-      return NextResponse.json(
-        { success: false, error: 'OPENAI_API_KEY가 설정되지 않았습니다.' },
-        { status: 500 }
-      );
+      console.error('[ai-proposal/generate] OPENAI_API_KEY 미설정 — 템플릿 폴백 사용');
+      return NextResponse.json({
+        success: true,
+        analysis: fallbackAnalysis(lead),
+        leadId,
+        provider: 'template',
+      });
     }
 
     // AI 분석 요청 (JSON 모드)
@@ -216,24 +247,26 @@ export async function POST(request: NextRequest) {
     if (!aiRes.ok) {
       const errText = await aiRes.text().catch(() => '');
       console.error(
-        `[ai-proposal/generate] OpenAI 오류 ${aiRes.status}: ${errText.slice(0, 300)}`
+        `[ai-proposal/generate] OpenAI 오류 ${aiRes.status}: ${errText.slice(0, 300)} — 템플릿 폴백 사용`
       );
-      return NextResponse.json(
-        {
-          success: false,
-          error: `AI 분석 생성에 실패했습니다. (HTTP ${aiRes.status})`,
-        },
-        { status: 502 }
-      );
+      return NextResponse.json({
+        success: true,
+        analysis: fallbackAnalysis(lead),
+        leadId,
+        provider: 'template',
+      });
     }
 
     const aiData = await aiRes.json();
     const content = aiData.choices?.[0]?.message?.content;
     if (!content) {
-      return NextResponse.json(
-        { success: false, error: 'AI 응답이 비어 있습니다.' },
-        { status: 502 }
-      );
+      console.error('[ai-proposal/generate] AI 응답이 비어 있음 — 템플릿 폴백 사용');
+      return NextResponse.json({
+        success: true,
+        analysis: fallbackAnalysis(lead),
+        leadId,
+        provider: 'template',
+      });
     }
 
     // JSON 파싱 + 스키마 검증
@@ -241,14 +274,16 @@ export async function POST(request: NextRequest) {
     try {
       analysis = JSON.parse(content);
     } catch {
-      console.error('[ai-proposal/generate] AI 응답 JSON 파싱 실패:', content.slice(0, 300));
-      return NextResponse.json(
-        { success: false, error: 'AI 응답을 해석하지 못했습니다. 다시 시도해 주세요.' },
-        { status: 502 }
-      );
+      console.error('[ai-proposal/generate] AI 응답 JSON 파싱 실패 — 템플릿 폴백 사용:', content.slice(0, 300));
+      return NextResponse.json({
+        success: true,
+        analysis: fallbackAnalysis(lead),
+        leadId,
+        provider: 'template',
+      });
     }
 
-    return NextResponse.json({ success: true, analysis, leadId });
+    return NextResponse.json({ success: true, analysis, leadId, provider: 'openai' });
   } catch (error) {
     console.error('[ai-proposal/generate] 오류:', error);
     return NextResponse.json(

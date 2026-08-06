@@ -95,6 +95,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
   // AI 상권분석 상태
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [aiProvider, setAiProvider] = useState<'openai' | 'template'>('openai');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -249,7 +250,13 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
         return;
       }
       setAiAnalysis(data.analysis);
-      showNotification('success', 'AI 상권분석이 생성되었습니다.');
+      setAiProvider(data.provider === 'template' ? 'template' : 'openai');
+      showNotification(
+        'success',
+        data.provider === 'template'
+          ? '템플릿 기반 상권분석이 생성되었습니다.'
+          : 'AI 상권분석이 생성되었습니다.'
+      );
     } catch (error) {
       console.error('AI analysis generation failed:', error);
       setAiError('AI 분석 생성 중 오류가 발생했습니다.');
@@ -807,6 +814,15 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               {/* 분석 결과 */}
               {aiAnalysis && (
                 <div className="space-y-5">
+                  {aiProvider === 'template' && (
+                    <div className="flex items-start gap-2 p-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-amber-300">
+                      <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
+                      <p className="text-xs leading-relaxed">
+                        AI 서비스가 현재 이용 불가하여 <b>업종 템플릿 기반 분석</b>으로 생성되었습니다.
+                        OpenAI 결제 활성화 후 재생성하면 더 상세한 맞춤 분석이 제공됩니다.
+                      </p>
+                    </div>
+                  )}
                   <div className="flex gap-3">
                     <button
                       onClick={handleDownloadAI}
