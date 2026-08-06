@@ -49,28 +49,28 @@ export interface AIAnalysis {
 
 // OpenAI 실패(billing 미등록 등) 시 업종 템플릿 기반 폴백, provider로 출처 구분
 function fallbackAnalysis(lead: {
-  bizName?: string;
-  medicalSubject?: string;
+  biz_name?: string;
+  medical_subject?: string;
   category?: string;
-  roadAddress?: string;
-  lotAddress?: string;
+  road_address?: string;
+  lot_address?: string;
   phone?: string;
-  nearestStation?: string;
-  stationLines?: string[];
-  stationDistance?: number;
-  nearestExitNo?: string;
+  nearest_station?: string;
+  station_lines?: string[];
+  station_distance?: number;
+  nearest_exit_no?: string;
 }): AIAnalysis {
   return buildTemplateAnalysis({
-    bizName: lead.bizName,
-    medicalSubject: lead.medicalSubject,
+    bizName: lead.biz_name,
+    medicalSubject: lead.medical_subject,
     category: lead.category,
-    roadAddress: lead.roadAddress,
-    lotAddress: lead.lotAddress,
+    roadAddress: lead.road_address,
+    lotAddress: lead.lot_address,
     phone: lead.phone,
-    nearestStation: lead.nearestStation,
-    stationLines: lead.stationLines,
-    stationDistance: lead.stationDistance,
-    nearestExitNo: lead.nearestExitNo,
+    nearestStation: lead.nearest_station,
+    stationLines: lead.station_lines,
+    stationDistance: lead.station_distance,
+    nearestExitNo: lead.nearest_exit_no,
   });
 }
 
