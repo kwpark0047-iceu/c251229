@@ -13,6 +13,7 @@ import {
   updateProfileStatus, 
   updateUserOrganization, 
   getAllOrganizations,
+  createOrganization,
   getAllUserLogs,
   getUserLogs,
   deleteUserProfile,
@@ -161,6 +162,9 @@ export default function SuperAdminDashboard({ user }: Props) {
   // Modal States
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
+  const [newOrgName, setNewOrgName] = useState('');
+  const [creatingOrg, setCreatingOrg] = useState(false);
   const [showUserLogsModal, setShowUserLogsModal] = useState(false);
   const [selectedUserLogs, setSelectedUserLogs] = useState<any[]>([]);
   const [userLogsLoading, setUserLogsLoading] = useState(false);
@@ -501,6 +505,22 @@ export default function SuperAdminDashboard({ user }: Props) {
     const result = await updateUserOrganization(userId, orgId, role);
     if (result.success) {
       setShowOrgModal(false);
+      loadData();
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  const handleCreateOrg = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newOrgName.trim()) return;
+    setCreatingOrg(true);
+    const result = await createOrganization(newOrgName);
+    setCreatingOrg(false);
+    if (result.success) {
+      toast.success(result.message);
+      setShowCreateOrgModal(false);
+      setNewOrgName('');
       loadData();
     } else {
       toast.error(result.message);
@@ -898,6 +918,13 @@ export default function SuperAdminDashboard({ user }: Props) {
               </div>
               <div className="flex items-center gap-3">
                 <div className="h-8 w-px bg-white/5 mx-2 hidden lg:block"></div>
+                <button 
+                  onClick={() => setShowCreateOrgModal(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Organization
+                </button>
                 <button 
                   onClick={loadAllLogs}
                   className="flex items-center gap-2 px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
@@ -1519,6 +1546,47 @@ export default function SuperAdminDashboard({ user }: Props) {
                   className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl uppercase tracking-wider transition-colors shadow-lg shadow-indigo-500/20"
                 >
                   저장하기
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 조직 생성 모달 */}
+      {showCreateOrgModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Building className="w-5 h-5 text-emerald-600" />
+                  조직 생성
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">새 소속 조직을 만들면 즉시 목록에 추가됩니다.</p>
+              </div>
+              <button onClick={() => setShowCreateOrgModal(false)} className="text-slate-400 hover:text-slate-600" aria-label="모달 닫기">
+                <X className="w-5 h-5"/>
+              </button>
+            </div>
+            <form onSubmit={handleCreateOrg}>
+              <div className="p-6 space-y-4 text-sm">
+                <div className="space-y-1.5">
+                  <label className="font-semibold block text-slate-700">조직 이름</label>
+                  <input
+                    type="text"
+                    value={newOrgName}
+                    onChange={(e) => setNewOrgName(e.target.value)}
+                    placeholder="예: 강남지점 영업팀"
+                    maxLength={50}
+                    className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+              <div className="p-6 bg-slate-50 flex gap-3">
+                <button type="button" onClick={() => setShowCreateOrgModal(false)} className="flex-1 py-2 border rounded-xl font-medium hover:bg-slate-100 transition-colors">취소</button>
+                <button type="submit" disabled={creatingOrg || !newOrgName.trim()} className="flex-1 py-2 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                  {creatingOrg ? '생성 중...' : '조직 생성'}
                 </button>
               </div>
             </form>

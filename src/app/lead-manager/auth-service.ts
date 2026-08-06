@@ -508,6 +508,60 @@ export async function updateUserOrganization(
 }
 
 /**
+ * [슈퍼 어드민 전용] 조직 생성
+ */
+export async function createOrganization(name: string): Promise<{
+  success: boolean;
+  message: string;
+  organizationId?: string;
+}> {
+  const supabase = createClient();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser?.isSuperAdmin) {
+    return { success: false, message: '권한이 없습니다.' };
+  }
+
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    return { success: false, message: '조직 이름을 입력해 주세요.' };
+  }
+  if (trimmedName.length > 50) {
+    return { success: false, message: '조직 이름은 50자 이하여야 합니다.' };
+  }
+
+  // 1. 조직 생성 (invite_code는 DB 기본값으로 자동 생성)
+  const { data: org, error: orgError } = await supabase
+    .from('organizations')
+    .insert({ name: trimmedName })
+    .select('id, name, invite_code')
+    .single();
+
+  if (orgError || !org) {
+    console.error('[auth-service] createOrganization 조직 생성 실패:', orgError);
+    return { success: false, message: orgError?.message || '조직 생성에 실패했습니다.' };
+  }
+
+  // 2. 생성자를 owner 멤버십으로 추가 (RLS: 본인 멤버십 INSERT 허용)
+  const { error: memberError } = await supabase
+    .from('organization_members')
+    .insert({
+      organization_id: org.id,
+      user_id: currentUser.id,
+      role: 'owner'
+    });
+
+  if (memberError) {
+    console.error('[auth-service] createOrganization 멤버십 추가 실패:', memberError);
+    // 멤버십 추가 실패 시 생성된 조직 정리 시도 (실패해도 무방)
+    await supabase.from('organizations').delete().eq('id', org.id);
+    return { success: false, message: memberError.message };
+  }
+
+  return { success: true, message: '조직이 생성되었습니다.', organizationId: org.id };
+}
+
+/**
  * 전체 조직 목록 조회
  */
 export async function getAllOrganizations(): Promise<any[]> {
