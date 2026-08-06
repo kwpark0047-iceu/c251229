@@ -63,6 +63,11 @@ const MapFocusController = dynamic(
   { ssr: false }
 );
 
+const StationDetailPanel = dynamic(
+  () => import('./StationDetailPanel'),
+  { ssr: false }
+);
+
 // 서울 지하철 노선 좌표 (공공데이터포털 서울교통공사 역 좌표 기준)
 // 이제 generateSubwayRoutes()를 통해 동적으로 생성됩니다.
 const SUBWAY_LINE_ROUTES = {}; // 하드코딩 제거됨
@@ -80,6 +85,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   const [subwayData, setSubwayData] = useState<any>(null);
   const [isLoadingSubwayData, setIsLoadingSubwayData] = useState(false);
   const [searchTarget, setSearchTarget] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
+  const [selectedStation, setSelectedStation] = useState<any>(null); // 클릭된 역 상태
 
   useEffect(() => {
     setIsClient(true);
@@ -221,6 +227,11 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
               showLabels={currentZoom >= 14}
               size={currentZoom >= 16 ? 'medium' : 'small'}
               maxVisible={currentZoom >= 15 ? 400 : 150}
+              onStationClick={(station) => {
+                setSelectedStation(station);
+                setSearchTarget({ lat: station.lat, lng: station.lng, zoom: 16 });
+                setSelectedLead(null);
+              }}
             />
           )}
 
@@ -435,6 +446,15 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
           </div>
         </div>
       </div>
+
+      {/* 역 상세 정보 사이드 패널 */}
+      {selectedStation && (
+        <StationDetailPanel 
+          station={selectedStation} 
+          leads={validLeads} 
+          onClose={() => setSelectedStation(null)} 
+        />
+      )}
     </div>
   );
 }

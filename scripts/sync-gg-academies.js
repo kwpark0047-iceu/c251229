@@ -188,7 +188,6 @@ async function syncGyeonggiAcademies() {
           station_distance: nearest ? nearest.distance : null,
           status: 'NEW',
           operating_status: row.FACLT_STAT_NM === '운영' ? '영업중' : '폐업/휴업',
-          region_code: '6410000', // 경기도 코드
           mgt_no: `GG_${row.FACLT_NM}_${row.REFINE_ROADNM_ADDR || row.REFINE_LOTNO_ADDR}`.replace(/\s+/g, '')
         };
       }).filter(lead => lead.operating_status === '영업중');

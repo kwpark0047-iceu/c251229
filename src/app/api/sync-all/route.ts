@@ -225,7 +225,7 @@ const SEOUL_SOURCES: Record<SeoulSourceKey, SeoulSourceConfig> = {
 // API 키가 URL 경로에 포함되는 구조이므로 내부 서버→외부 API 통신에만 사용됨 (클라이언트 미노출)
 const SEOUL_BASE = 'http://openapi.seoul.go.kr:8088';
 const SEOUL_PAGE_SIZE = 1000;
-const SEOUL_MAX_PAGES = 20;
+const SEOUL_MAX_PAGES = 100; // 10만 건까지 수용 가능하도록 확대
 
 async function fetchSeoulAllPages(
   config: SeoulSourceConfig,
@@ -248,25 +248,42 @@ async function fetchSeoulAllPages(
 
   let allRows: any[] = [];
 
-  for (let page = 1; page <= totalPages; page++) {
-    const start = (page - 1) * SEOUL_PAGE_SIZE + 1;
-    const end = page * SEOUL_PAGE_SIZE;
-    const url = `${SEOUL_BASE}/${apiKey}/json/${config.serviceCode}/${start}/${end}`;
-    try {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) {
-        console.warn(`[${config.label}] 페이지 ${page} 실패: ${res.status}`);
-        continue;
-      }
-      const data = await res.json();
-      const rows = data[config.serviceCode]?.row || [];
-      // 폐업 제외
-      const valid = rows.filter((r: any) => !(r.DTLSTATENM || '').includes('폐업'));
-      allRows = allRows.concat(valid);
-      console.log(`[${config.label}] 페이지 ${page}/${totalPages}: ${valid.length}건`);
-    } catch (e) {
-      console.warn(`[${config.label}] 페이지 ${page} 예외:`, e);
+  // 병렬 처리를 위해 chunk 사이즈 정의 (예: 5개 페이지씩 동시에 요청하여 대기 시간 단축)
+  const CHUNK_SIZE = 5;
+
+  for (let i = 1; i <= totalPages; i += CHUNK_SIZE) {
+    const pagePromises = [];
+    for (let j = 0; j < CHUNK_SIZE && i + j <= totalPages; j++) {
+      const page = i + j;
+      const start = (page - 1) * SEOUL_PAGE_SIZE + 1;
+      const end = page * SEOUL_PAGE_SIZE;
+      const url = `${SEOUL_BASE}/${apiKey}/json/${config.serviceCode}/${start}/${end}`;
+      
+      const fetchPromise = fetch(url, { cache: 'no-store' })
+        .then(async res => {
+          if (!res.ok) {
+            console.warn(`[${config.label}] 페이지 ${page} 실패: ${res.status}`);
+            return [];
+          }
+          const data = await res.json();
+          const rows = data[config.serviceCode]?.row || [];
+          // 폐업 제외
+          return rows.filter((r: any) => !(r.DTLSTATENM || '').includes('폐업'));
+        })
+        .catch(e => {
+          console.warn(`[${config.label}] 페이지 ${page} 예외:`, e);
+          return [];
+        });
+        
+      pagePromises.push(fetchPromise);
     }
+    
+    // 5페이지씩 병렬 완료 대기
+    const results = await Promise.all(pagePromises);
+    results.forEach((rows, index) => {
+      allRows = allRows.concat(rows);
+      console.log(`[${config.label}] 페이지 ${i + index}/${totalPages}: ${rows.length}건 유효`);
+    });
   }
 
   return { total, rows: allRows };

@@ -94,7 +94,7 @@ async function syncClinics() {
 
     // Build leads with enrichment async
     const leadPromises = rows
-      .filter(row => row.BSN_STATE_NM === '정상') // 영업 중인 곳만
+      .filter(row => row.BSN_STATE_NM === '영업중') // 영업 중인 곳만
       .map(async row => {
         const lat = parseFloat(row.REFINE_WGS84_LAT);
         const lng = parseFloat(row.REFINE_WGS84_LOGT);
@@ -115,18 +115,17 @@ async function syncClinics() {
           status: 'NEW',
           operating_status: '영업중',
           mgt_no: `GG_CLINIC_${row.BIZPLC_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
-          region_code: '6410000', // 경기도
           assigned_to: null
         };
-        // Enrich with Naver data
-        const { enrichBusiness } = require('../src/app/lead-manager/naver-enrich-service');
-        const enrichment = await enrichBusiness(baseLead.biz_name, process.env.NAVER_CLIENT_ID, process.env.NAVER_CLIENT_SECRET);
+        // Enrich with Naver data (현재 네이버 API Rate Limit 초과 및 blog_url 등 스키마 누락으로 인해 제외)
+        // const { enrichBusiness } = require('../src/app/lead-manager/naver-enrich-service');
+        // const enrichment = await enrichBusiness(baseLead.biz_name, process.env.NAVER_CLIENT_ID, process.env.NAVER_CLIENT_SECRET);
         return {
           ...baseLead,
-          homepage_url: enrichment.website,
-          blog_url: enrichment.blog,
-          phone: enrichment.phone || baseLead.phone,
-          email: enrichment.email
+          // homepage_url: enrichment.website,
+          // blog_url: enrichment.blog,
+          // phone: enrichment.phone || baseLead.phone,
+          // email: enrichment.email
         };
       });
     const leads = await Promise.all(leadPromises);

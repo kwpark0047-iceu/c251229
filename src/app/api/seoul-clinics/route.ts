@@ -7,9 +7,11 @@ import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
 const API_ENDPOINT = 'http://openapi.seoul.go.kr:8088';
 const PAGE_SIZE = 1000;
-const MAX_PAGES = 20; // 최대 20,000건
+const MAX_PAGES = 100; // 최대 100,000건으로 상향
 
 export const dynamic = 'force-dynamic';
+// 대량 데이터 처리를 위해 타임아웃 연장 (Vercel 기본 10초 → 60초)
+export const maxDuration = 60;
 
 function parseRows(rows: any[]) {
   return rows
@@ -98,24 +100,38 @@ export async function GET(request: NextRequest) {
 
     console.log(`[Seoul Clinic API] 총 ${totalCount}건, ${totalPages}페이지 동기화 시작`);
 
-    // 전체 페이지 순회
-    for (let page = 1; page <= totalPages; page++) {
-      const startIndex = (page - 1) * PAGE_SIZE + 1;
-      const endIndex = page * PAGE_SIZE;
-      const url = `${API_ENDPOINT}/${apiKey}/json/LOCALDATA_010102/${startIndex}/${endIndex}`;
+    // 병렬 페이지 순회 (5페이지씩 묶어서 처리)
+    const CHUNK_SIZE = 5;
+    for (let i = 1; i <= totalPages; i += CHUNK_SIZE) {
+      const pagePromises = [];
+      for (let j = 0; j < CHUNK_SIZE && i + j <= totalPages; j++) {
+        const page = i + j;
+        const startIndex = (page - 1) * PAGE_SIZE + 1;
+        const endIndex = page * PAGE_SIZE;
+        const url = `${API_ENDPOINT}/${apiKey}/json/LOCALDATA_010102/${startIndex}/${endIndex}`;
 
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) {
-        console.error(`[Seoul Clinic API] 페이지 ${page} 실패: ${res.status}`);
-        continue;
+        const fetchPromise = fetch(url, { cache: 'no-store' })
+          .then(async res => {
+            if (!res.ok) {
+              console.error(`[Seoul Clinic API] 페이지 ${page} 실패: ${res.status}`);
+              return [];
+            }
+            const data = await res.json();
+            const rows = data.LOCALDATA_010102?.row || [];
+            return parseRows(rows);
+          })
+          .catch(err => {
+            console.error(`[Seoul Clinic API] 페이지 ${page} 오류:`, err);
+            return [];
+          });
+        pagePromises.push(fetchPromise);
       }
-
-      const data = await res.json();
-      const rows = data.LOCALDATA_010102?.row || [];
-      const parsed = parseRows(rows);
-      allLeads = allLeads.concat(parsed);
-
-      console.log(`[Seoul Clinic API] 페이지 ${page}/${totalPages} 완료 (${parsed.length}건 유효)`);
+      
+      const results = await Promise.all(pagePromises);
+      results.forEach((parsed, index) => {
+        allLeads = allLeads.concat(parsed);
+        console.log(`[Seoul Clinic API] 페이지 ${i + index}/${totalPages} 완료 (${parsed.length}건 유효)`);
+      });
     }
 
     // [수정 3] organization_id 포함하여 Supabase에 저장 (기존에는 누락되어 RLS로 안 보임)

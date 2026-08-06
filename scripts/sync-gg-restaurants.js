@@ -109,7 +109,6 @@ async function syncRestaurants() {
             status: 'NEW',
             operating_status: '영업중',
             mgt_no: `GG_REST_${row.BIZPLC_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
-            region_code: '6410000',
             assigned_to: null
           };
         });

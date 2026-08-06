@@ -1,114 +1,200 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import iconv from 'iconv-lite';
 import { parse } from 'csv-parse/sync';
-import { saveLeads, checkExistingLeadsByMgtNo } from '../../lead-manager/supabase-service';
-import { Lead } from '../../lead-manager/types';
-import { convertGRS80ToWGS84 } from '../../lead-manager/utils';
-import { findNearestStation } from '../../lead-manager/utils';
+import proj4 from 'proj4';
+import { createClient } from '@supabase/supabase-js';
+import { SUBWAY_STATIONS } from '../../lead-manager/constants';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes for Vercel
 
-export async function GET(request: Request) {
+// Proj4 definitions (LocalData usually uses EPSG:5174 or EPSG:5181)
+const PROJ4_DEFS = {
+  EPSG5174: '+proj=tmerc +lat_0=38 +lon_0=127.0028902777778 +k=1 +x_0=200000 +y_0=500000 +ellps=bessel +units=m +no_defs +towgs84=-115.80,474.99,674.11,1.16,-2.31,-1.63,6.43',
+  EPSG5181: '+proj=tmerc +lat_0=38 +lon_0=127 +k=1 +x_0=200000 +y_0=500000 +ellps=GRS80 +units=m +no_defs',
+  WGS84: '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs',
+};
+
+function convertToWGS84(x: number, y: number): { lat: number, lng: number } | null {
   try {
-    const csvPath = path.join(process.cwd(), 'seoul_clinic_data.csv');
-    if (!fs.existsSync(csvPath)) {
-      return NextResponse.json({ success: false, message: 'CSV file not found at ' + csvPath }, { status: 404 });
+    if (x > 100000 && x < 400000 && y > 300000 && y < 600000) {
+      const result = proj4(PROJ4_DEFS.EPSG5181, PROJ4_DEFS.WGS84, [x, y]);
+      return { lat: result[1], lng: result[0] };
+    }
+  } catch (e) {
+    try {
+      const result = proj4(PROJ4_DEFS.EPSG5174, PROJ4_DEFS.WGS84, [x, y]);
+      return { lat: result[1], lng: result[0] };
+    } catch (err) {
+      return null;
+    }
+  }
+  return null;
+}
+
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c * 1000; // in meters
+}
+
+function findNearestStation(lat: number, lng: number) {
+  let nearest = null;
+  let minDistance = Infinity;
+
+  for (const station of SUBWAY_STATIONS) {
+    const distance = getDistance(lat, lng, station.lat, station.lng);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearest = station;
+    }
+  }
+
+  return nearest ? {
+    station: nearest,
+    distance: Math.round(minDistance)
+  } : null;
+}
+
+export async function POST(request: Request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+
+    if (!file) {
+      return NextResponse.json({ success: false, message: 'No file provided' }, { status: 400 });
     }
 
-    const buffer = fs.readFileSync(csvPath);
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    // Attempt decoding as EUC-KR
     const decoded = iconv.decode(buffer, 'euc-kr');
     
     // Parse CSV
     const records: any[] = parse(decoded, { columns: true, skip_empty_lines: true, trim: true });
 
-    console.log(`Parsed ${records.length} records from CSV.`);
+    console.log(`Parsed ${records.length} records from uploaded CSV.`);
     
-    const leads: Lead[] = [];
+    const leads: any[] = [];
     
     for (const record of records) {
-      // Filter logic: Only active ones (영업/정상 or 영업중)
-      if (record['영업상태명'] !== '영업/정상' && record['상세영업상태명'] !== '영업중') {
+      // Filter logic: Only active clinics
+      if (record['영업상태명'] !== '영업/정상' && record['영업상태명'] !== '영업중') {
         continue;
       }
       
-      const mgtNo = record['관리번호'];
-      if (!mgtNo) continue;
-      
-      const x = parseFloat(record['좌표정보(X)']);
-      const y = parseFloat(record['좌표정보(Y)']);
-      
-      let lat = 0, lng = 0;
-      let nearestStation = '', nearestExitNo = '', distance = 0;
-      let stationLines: string[] = [];
-      
+      const x = parseFloat(record['좌표정보(x)'] || record['좌표정보(X)']);
+      const y = parseFloat(record['좌표정보(y)'] || record['좌표정보(Y)']);
+      let lat = null, lng = null;
+
       if (!isNaN(x) && !isNaN(y) && x > 0 && y > 0) {
-        const coords = convertGRS80ToWGS84(x, y);
+        const coords = convertToWGS84(x, y);
         if (coords) {
           lat = coords.lat;
           lng = coords.lng;
-          
-          const address = record['도로명주소'] || record['지번주소'];
-          const stationInfo = findNearestStation(lat, lng, address);
-          if (stationInfo) {
-            nearestStation = stationInfo.station.name;
-            stationLines = stationInfo.station.lines || [];
-            nearestExitNo = ''; // SubWayStation에 nearestExit 속성이 없으므로 임시로 빈 문자열 처리
-            distance = stationInfo.distance;
-          }
         }
       }
-      
-      const lead: Lead = {
-        id: crypto.randomUUID(),
-        bizName: record['사업장명'] || '',
-        licenseDate: record['인허가일자'] || '',
-        roadAddress: record['도로명주소'] || '',
-        lotAddress: record['지번주소'] || '',
-        phone: record['전화번호'] || '',
-        medicalSubject: record['진료과목내용명'] || record['업태구분명'] || '',
-        coordX: !isNaN(x) ? x : undefined,
-        coordY: !isNaN(y) ? y : undefined,
-        latitude: lat || undefined,
-        longitude: lng || undefined,
-        nearestStation: nearestStation || undefined,
-        stationLines: stationLines.length > 0 ? stationLines : undefined,
-        nearestExitNo: nearestExitNo || undefined,
-        stationDistance: distance || undefined,
-        category: 'HEALTH', // Fixed for clinics
-        mgtNo: mgtNo,
-        operatingStatus: record['영업상태명'] || '',
-        detailedStatus: record['상세영업상태명'] || '',
-        status: 'NEW'
+
+      let nearestStation = null;
+      let stationDistance = null;
+      let stationLines = null;
+
+      if (lat && lng) {
+        const nearest = findNearestStation(lat, lng);
+        if (nearest) {
+          nearestStation = nearest.station.name;
+          stationDistance = nearest.distance;
+          stationLines = nearest.station.lines;
+        }
+      }
+
+      const mgtNo = record['관리번호'] || `SEOUL_CLINIC_${record['사업장명']}_${record['도로명주소'] || record['지번주소']}`.replace(/\s+/g, '');
+
+      const lead = {
+        biz_name: record['사업장명'],
+        biz_id: record['개방서비스아이디'] || null,
+        license_date: record['인허가일자'] || null,
+        road_address: record['도로명전체주소'] || record['도로명주소'] || '',
+        lot_address: record['소재지전체주소'] || record['지번주소'] || '',
+        coord_x: isNaN(x) ? null : x,
+        coord_y: isNaN(y) ? null : y,
+        latitude: lat,
+        longitude: lng,
+        phone: record['소재지전화'] || record['전화번호'] || '',
+        medical_subject: record['진료과목내용명'] || record['업태구분명'] || record['의료기관종별명'] || '의원',
+        service_name: record['업태구분명'] || record['의료기관종별명'] || '의원',
+        category: 'HEALTH',
+        operating_status: '영업중',
+        nearest_station: nearestStation,
+        station_distance: stationDistance,
+        station_lines: stationLines,
+        status: 'NEW',
+        mgt_no: mgtNo,
       };
       
       leads.push(lead);
     }
     
-    console.log(`Filtered to ${leads.length} active leads. Starting save...`);
+    console.log(`Filtered to ${leads.length} active leads. Starting DB upsert...`);
     
-    // Process in smaller batches to avoid overwhelming the system
-    const batchSize = 1000;
-    let totalSaved = 0;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    let insertedOrUpdatedCount = 0;
     
-    // get an organization_id if needed? We will just use null to let saveLeads determine it,
-    // or we fetch the first user's org. Since it's a server endpoint without auth context, saveLeads might fail if orgId is required.
-    // Wait, saveLeads uses `getOrganizationId()` which relies on supabase auth.
-    // If we call this from browser while logged in, maybe we should pass it.
-    // For GET request without cookies in curl, it will fail.
-    // But we will fetch from browser window!
-    
-    // We will return the payload and let the client process it, OR we just do it here if we can bypass org.
-    // Let's do it here, but pass a specific orgId if provided, or bypass.
-    // Wait, actually, let's just make it a client component button or something.
-    // No, doing it here is fine.
+    // Batch Upsert Logic
+    const upsertLeadsByMgtNo = async (batch: any[]) => {
+      if (!batch || batch.length === 0) return;
+      const mgtNos = batch.map(l => l.mgt_no).filter(Boolean);
+      
+      const { data: existingLeads, error: fetchError } = await supabase
+        .from('leads')
+        .select('id, mgt_no')
+        .in('mgt_no', mgtNos);
+        
+      if (fetchError) throw fetchError;
+      
+      const existingMap = new Map(existingLeads?.map(e => [e.mgt_no, e.id]) || []);
+      
+      const toInsert = [];
+      const updatePromises = [];
+      
+      for (const lead of batch) {
+        const existingId = existingMap.get(lead.mgt_no);
+        if (existingId) {
+          updatePromises.push(supabase.from('leads').update(lead).eq('id', existingId));
+        } else {
+          toInsert.push(lead);
+        }
+      }
+      
+      if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
+      }
+      
+      if (toInsert.length > 0) {
+        const { error } = await supabase.from('leads').insert(toInsert);
+        if (error) throw error;
+      }
+    };
+
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < leads.length; i += BATCH_SIZE) {
+      const batch = leads.slice(i, i + BATCH_SIZE);
+      await upsertLeadsByMgtNo(batch);
+      insertedOrUpdatedCount += batch.length;
+    }
     
     return NextResponse.json({ 
       success: true, 
-      count: leads.length,
-      data: leads
+      count: insertedOrUpdatedCount
     });
     
   } catch (error: any) {

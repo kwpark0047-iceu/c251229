@@ -1,101 +1,23 @@
-/** API Route */
+/** 경기도 의원 인허가 데이터 동기화 API */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { findNearestStation } from '@/app/lead-manager/utils';
-import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
-
-const GG_CLINIC_API_KEY = process.env.GG_CLINIC_API_KEY || '';
-const API_ENDPOINT = 'https://openapi.gg.go.kr/AsembyStus';
+import { createGGSyncHandlers } from '@/app/api/gg-common';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const pIndex = searchParams.get('pIndex') || '1';
-  const pSize = searchParams.get('pSize') || '100';
-  const sigunNm = searchParams.get('sigunNm');
-  const sync = searchParams.get('sync') === 'true';
-  const customApiKey = searchParams.get('apiKey');
+const handlers = createGGSyncHandlers({
+  endpoint: 'https://openapi.gg.go.kr/AsembyStus',
+  dataKey: 'AsembyStus',
+  envKey: 'GG_CLINIC_API_KEY',
+  label: 'GG Clinic',
+  mgtPrefix: 'GG_CLINIC',
+  serviceName: '의원',
+  category: 'HEALTH',
+  nameFields: ['BIZPLC_NM'],
+  phoneField: 'LOCPLC_FACLT_TELNO',
+  operatingStatus: '영업중',
+  maxPages: 20,
+  supportsSigun: true,
+});
 
-  try {
-    const activeApiKey = customApiKey || GG_CLINIC_API_KEY;
-    if (!activeApiKey) {
-      return NextResponse.json({ success: false, error: 'Missing API key' }, { status: 500 });
-    }
-
-    const apiUrl = new URL(API_ENDPOINT);
-    apiUrl.searchParams.set('KEY', activeApiKey);
-    apiUrl.searchParams.set('Type', 'json');
-    apiUrl.searchParams.set('pIndex', pIndex);
-    apiUrl.searchParams.set('pSize', pSize);
-    if (sigunNm) apiUrl.searchParams.set('SIGUN_NM', sigunNm);
-
-    console.log(`[GG Clinic API] Request: pIndex=${pIndex}, pSize=${pSize}, sigunNm=${sigunNm || '-'}, sync=${sync}`);
-
-    const response = await fetch(apiUrl.toString());
-    if (!response.ok) {
-      throw new Error(`External API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data.AsembyStus) {
-      const errorCode = data.RESULT?.CODE ?? 'UNKNOWN';
-      const errorMsg = data.RESULT?.MESSAGE ?? 'Unexpected response format';
-      return NextResponse.json({ success: false, error: `[${errorCode}] ${errorMsg}` }, { status: 500 });
-    }
-
-    const head = data.AsembyStus[0].head;
-    const totalCount = head.find((h: any) => h.list_total_count)?.list_total_count || 0;
-    const rows = data.AsembyStus[1].row || [];
-
-    const leads = rows.map((row: any) => {
-      const lat = parseFloat(row.REFINE_WGS84_LAT);
-      const lng = parseFloat(row.REFINE_WGS84_LOGT);
-      const nearest = findNearestStation(lat, lng);
-      return {
-        biz_name: row.BIZPLC_NM,
-        road_address: row.REFINE_ROADNM_ADDR || '',
-        lot_address: row.REFINE_LOTNO_ADDR || '',
-        phone: row.LOCPLC_FACLT_TELNO || '',
-        medical_subject: '의원',
-        service_name: '의원',
-        category: 'HEALTH',
-        latitude: lat || null,
-        longitude: lng || null,
-        nearest_station: nearest?.station.name ?? null,
-        station_lines: nearest?.station.lines ?? null,
-        station_distance: nearest?.distance ?? null,
-        status: 'NEW',
-        operating_status: '영업중',
-        mgt_no: `GG_CLINIC_${row.BIZPLC_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
-        region_code: '6410000',
-      };
-    });
-
-    if (sync && leads.length > 0) {
-      const supabase = await createClient();
-      const dbLeads = leads.map(({ region_code, ...rest }: any) => rest);
-      const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
-      if (dbError) {
-        console.error('[GG Clinic API] DB error:', dbError);
-        return NextResponse.json({ success: false, error: `DB error: ${dbError.message}` }, { status: 500 });
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      totalCount,
-      leads: leads.map((l: any) => ({
-        ...l,
-        bizName: l.biz_name,
-        roadAddress: l.road_address,
-        nearestStation: l.nearest_station,
-        stationDistance: l.station_distance,
-      })),
-    });
-  } catch (error) {
-    console.error('[GG Clinic API] Error:', error);
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
-  }
-}
+export const GET = handlers.GET;
+export const POST = handlers.POST;

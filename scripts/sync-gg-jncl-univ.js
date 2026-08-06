@@ -65,7 +65,6 @@ async function syncJnclUniversities() {
           status: 'NEW',
           operating_status: '영업중',
           mgt_no: `GG_JNCL_${row.FACLT_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
-          region_code: '6410000',
         };
       });
 

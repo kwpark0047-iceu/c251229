@@ -16,11 +16,13 @@ function getSupabase() {
 
 export async function GET(request: NextRequest) {
     try {
-        // 1. 보안 검증 (CRON_SECRET)
+        // 1. 보안 검증 (CRON_SECRET) — 테스트 모드에서도 인증은 필수
+        // (SERVICE_ROLE_KEY로 RLS를 우회하는 라우트이므로 절대 비인증 실행 불가)
         const authHeader = request.headers.get('authorization');
         const isTest = request.nextUrl.searchParams.get('test') === 'true';
+        const cronSecret = process.env.CRON_SECRET;
 
-        if (!isTest && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
 

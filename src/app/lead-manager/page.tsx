@@ -516,6 +516,38 @@ function LeadManagerContent() {
     link.click();
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    setLoadingStatus('파일 업로드 및 처리 중...');
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/import-csv', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        showNotification('success', `성공적으로 ${result.count}건의 활성 리드가 추가되었습니다.`);
+        await loadLeadsFromDB(categoryFilter, selectedRegions, 1, searchQuery);
+      } else {
+        showNotification('error', `업로드 실패: ${result.message}`);
+      }
+    } catch (err: any) {
+      showNotification('error', `업로드 오류: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+      setLoadingStatus('');
+      if (e.target) e.target.value = ''; // 폼 초기화
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] relative overflow-x-hidden">
       <BackgroundEffect />
@@ -681,6 +713,10 @@ function LeadManagerContent() {
                     <Database className="w-3.5 h-3.5" /> 공공데이터
                   </button>
                   <button onClick={exportToCSV} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--metro-line5)] hover:bg-[var(--bg-secondary)] transition-colors" title="CSV 내보내기"><Download className="w-4 h-4" /></button>
+                  <label className="cursor-pointer p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--metro-line2)] hover:bg-[var(--bg-secondary)] transition-colors" title="CSV 데이터 업로드">
+                    <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
+                    <Upload className="w-4 h-4" />
+                  </label>
                   <RoleGuard allowedRoles={['owner', 'admin']}><BackupButton /></RoleGuard>
                 </div>
               </div>

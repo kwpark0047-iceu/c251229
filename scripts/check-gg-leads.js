@@ -15,8 +15,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 (async () => {
   const { data, error, count } = await supabase
     .from('leads')
-    .select('biz_name, nearest_station, region_code', { count: 'exact' })
-    .eq('region_code', '6410000')
+    .select('biz_name, nearest_station', { count: 'exact' })
     .limit(10);
 
   if (error) {

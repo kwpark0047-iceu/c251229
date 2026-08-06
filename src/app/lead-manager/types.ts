@@ -85,6 +85,8 @@ export interface Lead {
   detailedStatus?: string;    // 상세영업상태
   createdAt?: string;        // 생성일
   updatedAt?: string;        // 수정일
+  leadScore?: number;        // 리드 점수 (0~100)
+  leadGrade?: 'A' | 'B' | 'C' | 'D'; // 리드 등급
 
   // 타입 안정성을 위한 별칭 프로퍼티
   lat?: number;              // latitude의 별칭

@@ -115,7 +115,6 @@ async function syncHospitals() {
             status: 'NEW',
             operating_status: '영업중',
             mgt_no: `GG_HOSPITAL_${row.BIZPLC_NM}_${row.REFINE_ZIP_CD || row.REFINE_ROADNM_ADDR}`.replace(/\s+/g, ''),
-            region_code: '6410000', // 경기도
             assigned_to: null
           };
           // Enrich with Naver data

@@ -36,6 +36,7 @@ interface StationLabelProps {
   showLabel?: boolean;
   size?: 'small' | 'medium' | 'large';
   color?: string;
+  onClick?: (station: any) => void;
 }
 
 // 동적 임포트
@@ -53,7 +54,8 @@ export default function StationLabel({
   station,
   showLabel = true,
   size = 'medium',
-  color = '#333'
+  color = '#333',
+  onClick
 }: StationLabelProps) {
   const [icon, setIcon] = useState<any>(null);
 
@@ -87,6 +89,11 @@ export default function StationLabel({
     <Marker
       position={[station.lat, station.lng]}
       icon={icon}
+      eventHandlers={{
+        click: () => {
+          if (onClick) onClick(station);
+        }
+      }}
     >
       <Tooltip
         permanent={false}
@@ -135,6 +142,7 @@ interface StationLayerProps {
   size?: 'small' | 'medium' | 'large';
   maxVisible?: number;
   clusterThreshold?: number;
+  onStationClick?: (station: any) => void;
 }
 
 export function StationLayer({
@@ -144,7 +152,8 @@ export function StationLayer({
   showLabels = true,
   size = 'medium',
   maxVisible = 50,
-  clusterThreshold = 5
+  clusterThreshold = 5,
+  onStationClick
 }: StationLayerProps) {
   // 표시할 역 필터링
   const visibleStations = stations.filter(station => {
@@ -190,6 +199,7 @@ export function StationLayer({
           showLabel={showLabels}
           size={size}
           color={getLineColor(station.lines)}
+          onClick={onStationClick}
         />
       ))}
     </>
