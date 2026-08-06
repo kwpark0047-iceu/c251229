@@ -9,8 +9,8 @@ import { findNearestStation, convertGRS80ToWGS84 } from '@/app/lead-manager/util
 import { upsertLeadsByMgtNo, getOrgId, requireSyncAuth } from '@/app/api/sync-utils';
 
 export const dynamic = 'force-dynamic';
-// 대량 데이터 처리를 위해 타임아웃 연장 (Vercel 기본 10초 → 60초)
-export const maxDuration = 60;
+// 대량 데이터 처리를 위해 타임아웃 연장 (import-csv 선례: Vercel Hobby 최대 300초)
+export const maxDuration = 300;
 
 // ============================================================
 // 경기도 API 소스 설정 정의
@@ -28,6 +28,8 @@ interface GGSourceConfig {
   envKey: string;           // 환경변수 키 이름
   label: string;            // UI 표시명
   mgtPrefix: string;        // mgt_no 접두사
+  disabled?: boolean;       // 공공 API 서비스 중지 등으로 사용 불가
+  disabledReason?: string;  // 비활성 사유
 }
 
 const GG_SOURCES: Record<GGSourceKey, GGSourceConfig> = {
@@ -74,6 +76,8 @@ const GG_SOURCES: Record<GGSourceKey, GGSourceConfig> = {
     envKey: 'GG_UNIV_API_KEY',
     label: '경기도 대학교',
     mgtPrefix: 'GG_UNIV',
+    disabled: true,
+    disabledReason: '경기도 Univ 오픈API 서비스 중지 (ERROR-310)',
   },
   'gg-jncl-univ': {
     endpoint: 'https://openapi.gg.go.kr/Jnclluniv',
@@ -101,9 +105,16 @@ async function fetchGGAllPages(
   // 1페이지로 총 건수 파악
   const firstUrl = buildGGUrl(config.endpoint, apiKey, 1, pageSize, sigunNm);
   const firstRes = await fetch(firstUrl, { cache: 'no-store' });
-  if (!firstRes.ok) throw new Error(`[${config.label}] API 응답 오류: ${firstRes.status}`);
+  if (!firstRes.ok) throw new Error(`[${config.label}] API 응답 오류: HTTP ${firstRes.status}`);
 
-  const firstData = await firstRes.json();
+  const firstText = await firstRes.text();
+  let firstData: any;
+  try {
+    firstData = JSON.parse(firstText);
+  } catch {
+    // EUC-KR HTML 등 비JSON 응답 (서비스 중지/차단 시 발생)
+    throw new Error(`[${config.label}] API 응답 파싱 실패 - 서비스 중지 또는 잘못된 엔드포인트일 수 있음 (응답: ${firstText.slice(0, 120).replace(/\s+/g, ' ')})`);
+  }
   if (!firstData[config.dataKey]) {
     const code = firstData.RESULT?.CODE || 'UNKNOWN';
     const msg = firstData.RESULT?.MESSAGE || '데이터 없음';
@@ -373,16 +384,17 @@ export async function POST(request: NextRequest) {
 
   const targetSources: string[] = sources.includes('all') ? allSources : sources;
 
-  const results: SyncSourceResult[] = [];
-
-  for (const sourceKey of targetSources) {
+  // ── 소스별 동기화 작업 정의 (병렬 실행) ─────────────────────
+  const tasks: Promise<SyncSourceResult>[] = targetSources.map(sourceKey => (async () => {
     // ── 경기도 소스 처리 ──
     if (sourceKey in GG_SOURCES) {
       const config = GG_SOURCES[sourceKey as GGSourceKey];
+      if (config.disabled) {
+        return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `비활성: ${config.disabledReason}` };
+      }
       const apiKey = apiKeys[config.envKey] || process.env[config.envKey] || '';
       if (!apiKey) {
-        results.push({ source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` });
-        continue;
+        return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` };
       }
       try {
         console.log(`[sync-all] ${config.label} 시작...`);
@@ -395,12 +407,11 @@ export async function POST(request: NextRequest) {
           saved = leads.length;
         }
         console.log(`[sync-all] ${config.label} 완료: ${leads.length}/${total}건 (저장: ${saved}건)`);
-        results.push({ source: sourceKey, label: config.label, total, fetched: leads.length, saved });
+        return { source: sourceKey, label: config.label, total, fetched: leads.length, saved };
       } catch (e: any) {
         console.error(`[sync-all] ${config.label} 오류:`, e);
-        results.push({ source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message });
+        return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message };
       }
-      continue;
     }
 
     // ── 서울 소스 처리 ──
@@ -411,8 +422,7 @@ export async function POST(request: NextRequest) {
         process.env.SEOUL_DATA_API_KEY ||
         '';
       if (!apiKey) {
-        results.push({ source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` });
-        continue;
+        return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` };
       }
       try {
         console.log(`[sync-all] ${config.label} 시작...`);
@@ -425,16 +435,23 @@ export async function POST(request: NextRequest) {
           saved = leads.length;
         }
         console.log(`[sync-all] ${config.label} 완료: ${leads.length}/${total}건 (저장: ${saved}건)`);
-        results.push({ source: sourceKey, label: config.label, total, fetched: leads.length, saved });
+        return { source: sourceKey, label: config.label, total, fetched: leads.length, saved };
       } catch (e: any) {
         console.error(`[sync-all] ${config.label} 오류:`, e);
-        results.push({ source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message });
+        return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message };
       }
-      continue;
     }
 
-    results.push({ source: sourceKey, label: sourceKey, total: 0, fetched: 0, saved: 0, error: '알 수 없는 소스' });
-  }
+    return { source: sourceKey, label: sourceKey, total: 0, fetched: 0, saved: 0, error: '알 수 없는 소스' };
+  })());
+
+  const settled = await Promise.allSettled(tasks);
+  const results: SyncSourceResult[] = settled.map((r, i) => {
+    if (r.status === 'fulfilled') return r.value;
+    const key = targetSources[i];
+    const cfg = GG_SOURCES[key as GGSourceKey] || SEOUL_SOURCES[key as SeoulSourceKey];
+    return { source: key, label: cfg?.label || key, total: 0, fetched: 0, saved: 0, error: '예기치 못한 오류' };
+  });
 
   const totalSaved = results.reduce((sum, r) => sum + r.saved, 0);
   const hasError = results.some(r => r.error);
@@ -455,6 +472,7 @@ export async function GET() {
       region: '경기도',
       category: cfg.category,
       hasKey: !!process.env[cfg.envKey],
+      ...(cfg.disabled ? { disabled: true, disabledReason: cfg.disabledReason } : {}),
     })),
     ...Object.entries(SEOUL_SOURCES).map(([key, cfg]) => ({
       key,
