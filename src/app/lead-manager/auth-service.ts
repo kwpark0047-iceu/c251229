@@ -443,15 +443,54 @@ export async function updateUserOrganization(
     return { success: false, message: '권한이 없습니다.' };
   }
 
-  // 1. 기존 멤버십 삭제
-  await supabase
-    .from('organization_members')
-    .delete()
-    .eq('user_id', userId);
+  // 1. 역할 값 검증
+  if (!['owner', 'admin', 'member'].includes(role)) {
+    return { success: false, message: '올바르지 않은 역할입니다.' };
+  }
 
-  // 2. 새 조직이 지정된 경우 추가
-  if (organizationId) {
-    const { error } = await supabase
+  // 2. 기존 멤버십 조회
+  const { data: existingMembership, error: selectError } = await supabase
+    .from('organization_members')
+    .select('id, organization_id')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (selectError) {
+    console.error('[auth-service] updateUserOrganization 멤버십 조회 실패:', selectError);
+    return { success: false, message: selectError.message };
+  }
+
+  // 3. 소속 해제: 기존 멤버십 삭제만 수행
+  if (!organizationId) {
+    if (existingMembership) {
+      const { error: deleteError } = await supabase
+        .from('organization_members')
+        .delete()
+        .eq('user_id', userId);
+
+      if (deleteError) {
+        console.error('[auth-service] updateUserOrganization 멤버십 삭제 실패:', deleteError);
+        return { success: false, message: deleteError.message };
+      }
+    }
+    return { success: true, message: '조직 정보가 업데이트되었습니다.' };
+  }
+
+  // 4. 조직 지정: 기존 멤버십 UPDATE, 신규는 INSERT
+  if (existingMembership) {
+    const { error: updateError } = await supabase
+      .from('organization_members')
+      .update({ organization_id: organizationId, role })
+      .eq('user_id', userId);
+
+    if (updateError) {
+      console.error('[auth-service] updateUserOrganization 멤버십 변경 실패:', updateError);
+      return { success: false, message: updateError.message };
+    }
+  } else {
+    const { error: insertError } = await supabase
       .from('organization_members')
       .insert({
         user_id: userId,
@@ -459,7 +498,10 @@ export async function updateUserOrganization(
         role: role
       });
 
-    if (error) return { success: false, message: error.message };
+    if (insertError) {
+      console.error('[auth-service] updateUserOrganization 멤버십 추가 실패:', insertError);
+      return { success: false, message: insertError.message };
+    }
   }
 
   return { success: true, message: '조직 정보가 업데이트되었습니다.' };
