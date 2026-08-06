@@ -21,7 +21,10 @@ import {
   FileUp,
   FilePlus,
   ArrowRight,
-  FileText
+  FileText,
+  Sparkles,
+  Download,
+  RefreshCw
 } from 'lucide-react';
 
 import { useNotification } from '@/context/NotificationContext';
@@ -30,7 +33,7 @@ import { SUBWAY_STATIONS, METRO_LINE_COLORS as LINE_COLORS, STATION_MARKETING_IN
 import { createClient } from '@/lib/supabase/client';
 import { getCurrentUser, UserInfo } from '../auth-service';
 import { Proposal } from '../types';
-import { getDefaultGreeting, uploadProposalFile, getProposals, sendProposalEmail, createProposal } from '../proposal-service';
+import { getDefaultGreeting, uploadProposalFile, getProposals, sendProposalEmail, createProposal, downloadAIProposalPDF, AIAnalysis } from '../proposal-service';
 
 // 매체 유형 한글 라벨
 const AD_TYPE_LABELS: Record<string, string> = {
@@ -83,12 +86,18 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
   const [showConfirmSend, setShowConfirmSend] = useState(false);
 
   // ?쒖븞???좏삎 諛??낅줈???곹깭
-  const [proposalType, setProposalType] = useState<'AUTO' | 'UPLOAD'>(lead ? 'AUTO' : 'UPLOAD');
+  const [proposalType, setProposalType] = useState<'AUTO' | 'UPLOAD' | 'AI'>(lead ? 'AUTO' : 'UPLOAD');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadStatus, setUploadStatus] = useState<'SENT' | 'DRAFT'>('SENT');
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+
+  // AI 상권분석 상태
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   // 怨좊룄?? ?ㅼ쨷 泥⑤? 愿???곹깭
   const [externalProposals, setExternalProposals] = useState<Proposal[]>([]);
@@ -216,6 +225,51 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
         characteristics: extraInfo.characteristics,
       });
       setSelectedInventory([]);
+    }
+  };
+
+  const handleGenerateAI = async () => {
+    if (!lead) {
+      showNotification('error', '업체를 선택해 주세요.');
+      return;
+    }
+    setAiGenerating(true);
+    setAiError(null);
+    setAiAnalysis(null);
+    try {
+      const res = await fetch('/api/ai-proposal/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: lead.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAiError(data.error || 'AI 분석 생성에 실패했습니다.');
+        showNotification('error', data.error || 'AI 분석 생성에 실패했습니다.');
+        return;
+      }
+      setAiAnalysis(data.analysis);
+      showNotification('success', 'AI 상권분석이 생성되었습니다.');
+    } catch (error) {
+      console.error('AI analysis generation failed:', error);
+      setAiError('AI 분석 생성 중 오류가 발생했습니다.');
+      showNotification('error', 'AI 분석 생성 중 오류가 발생했습니다.');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
+  const handleDownloadAI = async () => {
+    if (!lead || !aiAnalysis) return;
+    setAiLoading(true);
+    try {
+      await downloadAIProposalPDF(lead, aiAnalysis);
+      showNotification('success', 'PDF 다운로드가 시작되었습니다.');
+    } catch (error) {
+      console.error('AI PDF download failed:', error);
+      showNotification('error', 'PDF 다운로드에 실패했습니다.');
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -419,6 +473,25 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             <div className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] opacity-50 border-2 border-transparent">
               <Info className="w-5 h-5" />
               <span className="font-medium text-sm">업체 선택 시 자동생성 가능</span>
+            </div>
+          )}
+
+          {lead ? (
+            <button
+              onClick={() => setProposalType('AI')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
+                proposalType === 'AI'
+                  ? 'border-[var(--metro-line3)] bg-[var(--metro-line3)]/5 text-[var(--metro-line3)]'
+                  : 'border-transparent bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:bg-[var(--bg-tertiary)]'
+              }`}
+            >
+              <Sparkles className="w-5 h-5" />
+              <span className="font-bold">AI 상권분석</span>
+            </button>
+          ) : (
+            <div className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] opacity-50 border-2 border-transparent">
+              <Sparkles className="w-5 h-5" />
+              <span className="font-medium text-sm">업체 선택 시 AI 분석 가능</span>
             </div>
           )}
           
@@ -656,6 +729,192 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                 />
               </div>
             </>
+          ) : proposalType === 'AI' ? (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              {/* AI 분석 소개 + 생성 버튼 */}
+              <div className="p-5 rounded-2xl border border-[var(--metro-line3)]/30 bg-[var(--metro-line3)]/5">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[var(--metro-line3)]/15 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5 text-[var(--metro-line3)]" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-[var(--text-primary)] mb-1">AI 상권분석 자료 생성</h3>
+                    <p className="text-sm text-[var(--text-muted)] leading-relaxed">
+                      업체 정보(업종, 주소, 인근 지하철역)를 기반으로 AI가 맞춤형 지하철 광고 상권분석을 생성합니다.
+                      생성된 분석은 PDF 자료(5~7페이지)로 다운로드할 수 있습니다.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 업체 정보 요약 */}
+              {lead && (
+                <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-[var(--text-muted)] mb-1">업체명</p>
+                      <p className="font-semibold text-[var(--text-primary)] truncate">{lead.bizName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[var(--text-muted)] mb-1">업종</p>
+                      <p className="font-semibold text-[var(--text-primary)] truncate">{lead.medicalSubject || lead.category || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[var(--text-muted)] mb-1">인근 역</p>
+                      <p className="font-semibold text-[var(--text-primary)] truncate">
+                        {lead.nearestStation ? `${lead.nearestStation}역` : '-'}
+                        {lead.stationLines && lead.stationLines.length > 0 ? ` (${lead.stationLines.join(', ')})` : ''}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[var(--text-muted)] mb-1">주소</p>
+                      <p className="font-semibold text-[var(--text-primary)] truncate">{lead.roadAddress || lead.lotAddress || '-'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 생성 버튼 / 로딩 */}
+              {!aiAnalysis && !aiGenerating && (
+                <button
+                  onClick={handleGenerateAI}
+                  disabled={aiGenerating}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white transition-all hover:scale-[1.01] active:scale-[0.99] bg-gradient-to-r from-[var(--metro-line3)] to-[var(--metro-line2)] disabled:opacity-50"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  AI 상권분석 생성
+                </button>
+              )}
+
+              {aiGenerating && (
+                <div className="flex flex-col items-center gap-3 py-10">
+                  <div className="w-12 h-12 rounded-full border-4 border-[var(--metro-line3)]/20 border-t-[var(--metro-line3)] animate-spin" />
+                  <p className="text-sm font-medium text-[var(--text-secondary)]">AI가 업체 정보를 분석하는 중입니다...</p>
+                  <p className="text-xs text-[var(--text-muted)]">약 10~30초 소요됩니다</p>
+                </div>
+              )}
+
+              {aiError && (
+                <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/5 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-400 mb-1">분석 생성 실패</p>
+                    <p className="text-sm text-[var(--text-muted)]">{aiError}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 분석 결과 */}
+              {aiAnalysis && (
+                <div className="space-y-5">
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleDownloadAI}
+                      disabled={aiLoading}
+                      className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white transition-all hover:scale-[1.01] active:scale-[0.99] bg-[var(--metro-line4)] disabled:opacity-50"
+                    >
+                      {aiLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                      PDF 자료 다운로드
+                    </button>
+                    <button
+                      onClick={() => { setAiAnalysis(null); setAiError(null); }}
+                      className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors"
+                      title="다시 생성"
+                    >
+                      <RefreshCw className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* 개요 */}
+                  <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                    <h4 className="font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                      <span className="w-1.5 h-4 rounded-full bg-[var(--metro-line3)] inline-block" />
+                      사업장 개요
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-[var(--text-muted)] leading-relaxed">{aiAnalysis.businessOverview?.summary}</p>
+                    </div>
+                  </div>
+
+                  {/* 역 분석 */}
+                  <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                    <h4 className="font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                      <span className="w-1.5 h-4 rounded-full bg-[var(--metro-line3)] inline-block" />
+                      인근 역 및 유동인구 분석
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-[var(--text-muted)]">
+                        <span className="font-semibold text-[var(--text-primary)]">추천 역: </span>
+                        {aiAnalysis.stationAnalysis?.station}
+                      </p>
+                      <p className="text-[var(--text-muted)]">
+                        <span className="font-semibold text-[var(--text-primary)]">유동인구: </span>
+                        {aiAnalysis.stationAnalysis?.trafficEstimate}
+                      </p>
+                      <p className="text-[var(--text-muted)] leading-relaxed">
+                        {aiAnalysis.stationAnalysis?.characteristics}
+                      </p>
+                      <p className="text-[var(--text-muted)] leading-relaxed text-xs italic border-l-2 border-[var(--metro-line3)] pl-3">
+                        {aiAnalysis.stationAnalysis?.recommendation}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 상권 분석 */}
+                  <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                    <h4 className="font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                      <span className="w-1.5 h-4 rounded-full bg-[var(--metro-line3)] inline-block" />
+                      상권 및 시장 분석
+                    </h4>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <p className="font-semibold text-[var(--text-primary)] mb-1">수요 수준</p>
+                        <p className="text-[var(--text-muted)]">{aiAnalysis.marketAnalysis?.demandLevel}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-[var(--text-primary)] mb-1">타겟 고객</p>
+                        <p className="text-[var(--text-muted)]">{aiAnalysis.marketAnalysis?.targetCustomers}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-[var(--text-primary)] mb-2">추천 광고 매체</p>
+                        <div className="flex flex-wrap gap-2">
+                          {(aiAnalysis.recommendation?.mediaTypes || []).map((m: string, i: number) => (
+                            <span key={i} className="px-3 py-1.5 rounded-full text-xs font-semibold bg-[var(--metro-line3)]/10 text-[var(--metro-line3)] border border-[var(--metro-line3)]/20">
+                              {m}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 기대 효과 */}
+                  <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+                    <h4 className="font-bold text-[var(--text-primary)] mb-3 flex items-center gap-2">
+                      <span className="w-1.5 h-4 rounded-full bg-[var(--metro-line3)] inline-block" />
+                      기대 효과
+                    </h4>
+                    <ul className="space-y-2 text-sm">
+                      {(aiAnalysis.expectedEffects || []).map((e: string, i: number) => (
+                        <li key={i} className="flex items-start gap-2 text-[var(--text-muted)]">
+                          <Check className="w-4 h-4 text-[var(--metro-line2)] shrink-0 mt-0.5" />
+                          <span>{e}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* 요약 */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-[var(--metro-line3)]/10 to-[var(--metro-line2)]/5 border border-[var(--metro-line3)]/20">
+                    <h4 className="font-bold text-[var(--text-primary)] mb-2 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[var(--metro-line3)]" />
+                      전체 요약
+                    </h4>
+                    <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{aiAnalysis.summary}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
               {/* ?쒕ぉ ?낅젰 ?꾨뱶 異붽? */}
@@ -802,6 +1061,17 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                 ?대찓??諛쒖넚
               </button>
             </>
+          ) : proposalType === 'AI' ? (
+            aiAnalysis && !aiGenerating ? (
+              <button
+                onClick={handleDownloadAI}
+                disabled={aiLoading}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50 hover:scale-105 bg-[var(--metro-line4)]"
+              >
+                {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                PDF 자료 다운로드
+              </button>
+            ) : null
           ) : (
             <button
               onClick={handleUpload}
