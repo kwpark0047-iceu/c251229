@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { findNearestStation, convertGRS80ToWGS84 } from '@/app/lead-manager/utils';
-import { upsertLeadsByMgtNo, getOrgId } from '@/app/api/sync-utils';
+import { upsertLeadsByMgtNo, getOrgId, requireSyncAuth } from '@/app/api/sync-utils';
 
 export const dynamic = 'force-dynamic';
 // 대량 데이터 처리를 위해 타임아웃 연장 (Vercel 기본 10초 → 60초)
@@ -345,28 +345,18 @@ export interface SyncSourceResult {
 }
 
 export async function POST(request: NextRequest) {
-  // ── 인증 확인 ──────────────────────────────────────────────
+  // ── 인증 + 소속 조직 확인 (공통 가드) ───────────────────────
   const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) {
-    return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
+  const auth = await requireSyncAuth(supabase);
+  if (auth.errorResponse) {
+    return auth.errorResponse;
   }
 
   // ── 권한 확인: owner 또는 admin만 동기화 가능 ──────────────
-  const { data: member } = await supabase
-    .from('organization_members')
-    .select('role, organization_id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!member?.organization_id) {
-    return NextResponse.json({ error: '소속 조직이 없습니다.' }, { status: 403 });
-  }
-  if (!['owner', 'admin'].includes(member.role)) {
+  const orgId = auth.orgId;
+  if (!['owner', 'admin'].includes(auth.role ?? '')) {
     return NextResponse.json({ error: '동기화 권한이 없습니다. owner 또는 admin만 가능합니다.' }, { status: 403 });
   }
-
-  const orgId = member.organization_id;
 
   const body = await request.json();
   const {

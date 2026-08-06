@@ -6,15 +6,20 @@ import { calculateLeadScore } from '@/lib/lead-scoring';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** 현재 로그인 사용자의 organization_id를 조회 */
+/** 현재 로그인 사용자의 organization_id를 조회 (실패 원인은 콘솔 로그로 기록) */
 export async function getOrgId(supabase: SupabaseClient): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.id) return null;
-  const { data: member } = await supabase
+  const { data: member, error } = await supabase
     .from('organization_members')
     .select('organization_id')
     .eq('user_id', user.id)
     .single();
+  if (error) {
+    // PGRST116: 행 없음 / PGRST116 외: 중복 행, RLS 차단 등 — '조직 없음'과 구분해 기록
+    console.error(`[sync-utils] getOrgId member 조회 실패 (user=${user.id}): ${error.code || ''} ${error.message}`);
+    return null;
+  }
   return member?.organization_id || null;
 }
 
@@ -32,33 +37,62 @@ export async function requireUser(supabase: SupabaseClient): Promise<NextRespons
 
 /**
  * 동기화(쓰기) 라우트 공통 가드: 로그인 + 소속 조직 필수
- * 실패 시 errorResponse에 401/403 응답이 담깁니다.
+ * 실패 시 errorResponse에 401/403/500 응답이 담깁니다.
  */
 export async function requireSyncAuth(
   supabase: SupabaseClient
-): Promise<{ orgId: string; errorResponse: null } | { orgId: null; errorResponse: NextResponse }> {
+): Promise<
+  | { orgId: string; role: string | null; errorResponse: null }
+  | { orgId: null; role: null; errorResponse: NextResponse }
+> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.id) {
     return {
       orgId: null,
+      role: null,
       errorResponse: NextResponse.json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 }),
     };
   }
-  const { data: member } = await supabase
+  const { data: member, error: memberError } = await supabase
     .from('organization_members')
-    .select('organization_id')
+    .select('organization_id, role')
     .eq('user_id', user.id)
     .single();
+  if (memberError) {
+    // PGRST116: 행 없음(조직 미가입) / 그 외: 중복 행, RLS 차단 등 — 구분해서 기록
+    console.error(
+      `[sync-utils] requireSyncAuth member 조회 실패 (user=${user.id}): ${memberError.code || ''} ${memberError.message}`
+    );
+    if (memberError.code === 'PGRST116') {
+      return {
+        orgId: null,
+        role: null,
+        errorResponse: NextResponse.json(
+          { success: false, error: '소속 조직이 없습니다. 관리자에게 문의하세요.' },
+          { status: 403 }
+        ),
+      };
+    }
+    return {
+      orgId: null,
+      role: null,
+      errorResponse: NextResponse.json(
+        { success: false, error: '소속 조직 정보를 확인하는 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' },
+        { status: 500 }
+      ),
+    };
+  }
   if (!member?.organization_id) {
     return {
       orgId: null,
+      role: null,
       errorResponse: NextResponse.json(
         { success: false, error: '소속 조직이 없습니다. 관리자에게 문의하세요.' },
         { status: 403 }
       ),
     };
   }
-  return { orgId: member.organization_id, errorResponse: null };
+  return { orgId: member.organization_id, role: member.role ?? null, errorResponse: null };
 }
 
 /** upsertLeadsByMgtNo 실행 결과 집계 */
