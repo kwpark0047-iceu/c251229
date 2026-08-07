@@ -293,8 +293,18 @@ export default function SuperAdminDashboard({ user }: Props) {
     }));
 
     try {
-      const url = `/api/api-test?type=${type}&apiKey=${encodeURIComponent(apiKey)}&sigunNm=${encodeURIComponent(sigunNm || '')}`;
-      const res = await fetch(url);
+      // API 키가 URL에 노출되지 않도록 POST body로 전송
+      const res = await fetch('/api/api-test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type,
+          apiKey,
+          sigunNm: sigunNm || '',
+        }),
+      });
       const data = await res.json();
 
       if (data.success) {

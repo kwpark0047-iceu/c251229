@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { requireUser } from '../../sync-utils';
 import {
   MetroLine,
   PlanType,
@@ -19,6 +20,11 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    // 로그인 인증 필수
+    const supabase = await createClient();
+    const authError = await requireUser(supabase);
+    if (authError) return authError;
+
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];
     const folderName = formData.get('folderName') as string;
@@ -40,7 +46,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
     const results: {
       fileName: string;
       success: boolean;

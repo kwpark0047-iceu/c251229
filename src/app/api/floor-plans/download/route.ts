@@ -6,9 +6,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
 import { createClient } from '@/lib/supabase/server';
+import { requireUser } from '../../sync-utils';
 
 export async function POST(request: NextRequest) {
   try {
+    // 로그인 인증 필수
+    const supabase = await createClient();
+    const authError = await requireUser(supabase);
+    if (authError) return authError;
+
     const { planIds, zipFileName = 'floor-plans.zip' } = await request.json();
 
     if (!planIds || !Array.isArray(planIds) || planIds.length === 0) {
@@ -17,8 +23,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = await createClient();
 
     // 도면 정보 조회
     const { data: plans, error: queryError } = await supabase

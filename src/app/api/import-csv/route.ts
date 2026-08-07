@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import iconv from 'iconv-lite';
 import { parse } from 'csv-parse/sync';
 import proj4 from 'proj4';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
+import { requireSyncAuth } from '../sync-utils';
 import { SUBWAY_STATIONS } from '../../lead-manager/constants';
 
 export const dynamic = 'force-dynamic';
@@ -63,6 +64,11 @@ function findNearestStation(lat: number, lng: number) {
 
 export async function POST(request: Request) {
   try {
+    // 로그인 + 조직 필수 (RLS 컨텍스트 보장)
+    const supabase = await createClient();
+    const { orgId, errorResponse } = await requireSyncAuth(supabase);
+    if (errorResponse) return errorResponse;
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
 
@@ -136,16 +142,13 @@ export async function POST(request: Request) {
         station_lines: stationLines,
         status: 'NEW',
         mgt_no: mgtNo,
+        ...(orgId ? { organization_id: orgId } : {}),
       };
       
       leads.push(lead);
     }
     
     console.log(`Filtered to ${leads.length} active leads. Starting DB upsert...`);
-    
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     let insertedOrUpdatedCount = 0;
     
