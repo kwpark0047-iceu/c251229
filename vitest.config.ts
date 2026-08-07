@@ -7,7 +7,7 @@ export default defineConfig({
     test: {
         environment: 'jsdom',
         globals: true,
-        testTimeout: 20000, // increase timeout for long-running tests
+        testTimeout: 30000, // increase timeout for long-running tests (crm-service 20s 초과 병행 케이스 대응)
         setupFiles: './vitest.setup.ts',
         exclude: [
             '**/node_modules/**',

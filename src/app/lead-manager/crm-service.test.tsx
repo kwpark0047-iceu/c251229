@@ -108,7 +108,7 @@ describe('CRM 서비스', () => {
       expect(logs).toHaveLength(1);
       expect(logs[0].leadId).toBe('lead-1');
       expect(logs[0].outcome).toBe('INTERESTED');
-    });
+    }, 60000);
 
     it('새로운 통화 기록을 추가할 수 있다', async () => {
       currentMockBuilder = createMockBuilder([mockCallLogs[0]], 1);

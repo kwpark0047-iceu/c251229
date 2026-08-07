@@ -163,7 +163,7 @@ export async function upsertLeadsByMgtNo(supabase: SupabaseClient, leads: any[])
         }
       }
 
-      // 2-2. 리드 스코어링 산출
+      // 2-2. 리드 스코어링 산출 (lead_score/lead_grade 컬럼은 20260721 마이그레이션으로 존재)
       const scoringResult = calculateLeadScore({
         distance: lead.station_distance,
         category: lead.category,
@@ -171,9 +171,8 @@ export async function upsertLeadsByMgtNo(supabase: SupabaseClient, leads: any[])
         address: lead.road_address || lead.lot_address,
         bizName: lead.biz_name,
       });
-      // DB에 lead_score, lead_grade 컬럼이 존재하지 않아 에러 방지(경기도 동기화 이슈와 동일)
-      // lead.lead_score = scoringResult.score;
-      // lead.lead_grade = scoringResult.grade;
+      lead.lead_score = scoringResult.score;
+      lead.lead_grade = scoringResult.grade;
 
       const existingId = lead.mgt_no ? existingMap.get(lead.mgt_no) : undefined;
       if (existingId) {
