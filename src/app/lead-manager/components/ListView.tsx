@@ -27,7 +27,7 @@ interface ListViewProps {
   onRefresh?: () => void;
 }
 
-type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status' | 'createdAt';
+type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status' | 'createdAt' | 'leadScore';
 type SortOrder = 'asc' | 'desc';
 
 // 정렬 아이콘 컴포넌트 (렌더 밖에서 정의)
@@ -98,6 +98,9 @@ export default function ListView({
     } else if (sortField === 'createdAt') {
       aValue = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       bValue = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    } else if (sortField === 'leadScore') {
+      aValue = a.leadScore ?? -1;
+      bValue = b.leadScore ?? -1;
     } else {
       aValue = aValue || '';
       bValue = bValue || '';
@@ -163,6 +166,15 @@ export default function ListView({
                 </th>
                 <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
                   전화번호
+                </th>
+                <th
+                  className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                  onClick={() => handleSort('leadScore')}
+                >
+                  <div className="flex items-center gap-1.5">
+                    등급
+                    <SortIcon field="leadScore" sortField={sortField} sortOrder={sortOrder} />
+                  </div>
                 </th>
                 <th
                   className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
@@ -254,6 +266,22 @@ export default function ListView({
                   >
                     {STATUS_LABELS[lead.status]}
                   </div>
+                  {lead.leadGrade && (
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-1 rounded leading-none ${
+                        lead.leadGrade === 'A'
+                          ? 'bg-red-500/20 text-red-500'
+                          : lead.leadGrade === 'B'
+                            ? 'bg-blue-500/20 text-blue-500'
+                            : lead.leadGrade === 'C'
+                              ? 'bg-yellow-500/20 text-yellow-500'
+                              : 'bg-gray-500/20 text-gray-400'
+                      }`}
+                      title={`리드 점수: ${lead.leadScore ?? '-'}`}
+                    >
+                      {lead.leadGrade}등급
+                    </span>
+                  )}
                 </div>
 
                 <div className="space-y-1.5 text-xs text-[var(--text-secondary)]">
@@ -450,6 +478,28 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
           <a href={`tel:${lead.phone}`} className="text-sm font-medium hover:underline transition-colors text-[var(--metro-line4)]" onClick={(e) => e.stopPropagation()} title="전화 걸기">
             <HighlightText text={formatPhoneNumber(lead.phone)} searchQuery={searchQuery} />
           </a>
+        ) : (
+          <span className="text-[var(--text-muted)]">-</span>
+        )}
+      </td>
+
+      {/* 등급 */}
+      <td className="px-5 py-4 hidden md:table-cell">
+        {lead.leadGrade ? (
+          <span
+            className={`inline-block text-[11px] font-bold px-1.5 py-0.5 rounded-md leading-none ${
+              lead.leadGrade === 'A'
+                ? 'bg-red-500/20 text-red-500'
+                : lead.leadGrade === 'B'
+                  ? 'bg-blue-500/20 text-blue-500'
+                  : lead.leadGrade === 'C'
+                    ? 'bg-yellow-500/20 text-yellow-500'
+                    : 'bg-gray-500/20 text-gray-400'
+            }`}
+            title={`리드 점수: ${lead.leadScore ?? '-'}`}
+          >
+            {lead.leadGrade}등급
+          </span>
         ) : (
           <span className="text-[var(--text-muted)]">-</span>
         )}

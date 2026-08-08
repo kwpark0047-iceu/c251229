@@ -418,6 +418,8 @@ export async function getLeads(filters?: {
       operatingStatus: row.operating_status,
       detailedStatus: row.detailed_status,
       status: row.status as LeadStatus,
+      leadScore: row.lead_score,
+      leadGrade: row.lead_grade as Lead['leadGrade'],
       notes: row.notes,
       assignedTo: row.assigned_to,
       assignedToName: row.assigned_to_name,

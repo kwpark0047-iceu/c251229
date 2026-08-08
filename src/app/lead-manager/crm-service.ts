@@ -618,6 +618,11 @@ export async function getExtendedCRMStats(): Promise<{
     proposalViewRate: number;
     closingRate: number;
   };
+  revenueMetrics: {
+    totalProposalAmount: number;
+    contractedAmount: number;
+    monthlyRevenue: { month: string; amount: number }[];
+  };
 }> {
   const supabase = getSupabase();
 
@@ -625,8 +630,10 @@ export async function getExtendedCRMStats(): Promise<{
   const { data: leads } = await supabase.from('leads').select('id, category, status');
   const totalLeads = leads?.length || 0;
 
-  // 2. 제안서 정보 (열람률 계산용)
-  const { data: proposals } = await supabase.from('proposals').select('status');
+  // 2. 제안서 정보 (열람률 계산용 + 매출 집계용)
+  const { data: proposals } = await supabase
+    .from('proposals')
+    .select('status, final_price, created_at');
   const totalProposals = proposals?.length || 0;
   const viewedProposals = proposals?.filter((p: any) => p.status === 'VIEWED' || p.status === 'ACCEPTED').length || 0;
   const proposalViewRate = totalProposals > 0 ? (viewedProposals / totalProposals) * 100 : 0;
@@ -670,6 +677,32 @@ export async function getExtendedCRMStats(): Promise<{
     { date: '이번주', viewRate: proposalViewRate, conversionRate: totalLeads > 0 ? (contracted / totalLeads) * 100 : 0 },
   ];
 
+  // 6. 매출 집계 (final_price 기준)
+  const totalProposalAmount = (proposals || []).reduce(
+    (sum: number, p: any) => sum + (Number(p.final_price) || 0), 0
+  );
+  const contractedAmount = (proposals || [])
+    .filter((p: any) => p.status === 'ACCEPTED')
+    .reduce((sum: number, p: any) => sum + (Number(p.final_price) || 0), 0);
+
+  const monthMap: Record<string, number> = {};
+  (proposals || []).forEach((p: any) => {
+    if (p.status !== 'ACCEPTED' || !p.created_at) return;
+    const monthKey = p.created_at.slice(0, 7);
+    monthMap[monthKey] = (monthMap[monthKey] || 0) + (Number(p.final_price) || 0);
+  });
+
+  const now = new Date();
+  const last6Months: string[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    last6Months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  const monthlyRevenue = last6Months.map(monthKey => ({
+    month: `${parseInt(monthKey.slice(5), 10)}월`,
+    amount: monthMap[monthKey] || 0,
+  }));
+
   return {
     funnelData,
     categoryPerformance,
@@ -678,6 +711,11 @@ export async function getExtendedCRMStats(): Promise<{
       totalLeads,
       proposalViewRate,
       closingRate: totalLeads > 0 ? (contracted / totalLeads) * 100 : 0
+    },
+    revenueMetrics: {
+      totalProposalAmount,
+      contractedAmount,
+      monthlyRevenue,
     }
   };
 }

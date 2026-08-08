@@ -204,6 +204,22 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
               >
                 {STATUS_LABELS[lead.status]}
               </span>
+              {lead.leadGrade && (
+                <span
+                  className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md leading-none ${
+                    lead.leadGrade === 'A'
+                      ? 'bg-red-500/20 text-red-500'
+                      : lead.leadGrade === 'B'
+                        ? 'bg-blue-500/20 text-blue-500'
+                        : lead.leadGrade === 'C'
+                          ? 'bg-yellow-500/20 text-yellow-500'
+                          : 'bg-gray-500/20 text-gray-400'
+                  }`}
+                  title={`리드 점수: ${lead.leadScore ?? '-'}`}
+                >
+                  {lead.leadGrade}등급
+                </span>
+              )}
               <ProgressDots leadId={lead.id} progress={progress} />
             </div>
             <div className="relative">

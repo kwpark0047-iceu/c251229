@@ -18,6 +18,7 @@ import {
   Train,
   ChevronDown,
   ChevronUp,
+  Wallet,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS } from '../types';
@@ -75,6 +76,14 @@ const METRO_CHART_COLORS: Record<string, string> = {
 };
 
 // 커스텀 툴팁 컴포넌트
+// 금액 포맷 헬퍼
+function formatWon(value: number): string {
+  if (!value || value <= 0) return '-';
+  if (value >= 100000000) return `${(value / 100000000).toFixed(1)}억`;
+  if (value >= 10000) return `${(value / 10000).toFixed(1)}만`;
+  return `${value.toLocaleString()}원`;
+}
+
 function CustomTooltip({ active, payload, label }: any) {
   if (active && payload && payload.length) {
     return (
@@ -110,7 +119,9 @@ function CustomTooltip({ active, payload, label }: any) {
               {entry.name}: <span className="font-bold text-[var(--text-primary)]">
                 {typeof entry.value === 'number' && entry.name.includes('율')
                   ? `${entry.value.toFixed(1)}%`
-                  : `${entry.value}${entry.name.includes('수') || entry.name.includes('리드') ? '건' : ''}`}
+                  : entry.name.includes('매출')
+                    ? formatWon(entry.value || 0)
+                    : `${entry.value}${entry.name.includes('수') || entry.name.includes('리드') ? '건' : ''}`}
               </span>
             </p>
           </div>
@@ -122,15 +133,13 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function StatsDashboard({ leads, isExpanded = false, onToggle, onStatusFilter, currentStatusFilter }: StatsDashboardProps) {
-  const [activeChart, setActiveChart] = useState<'status' | 'trend' | 'line' | 'funnel' | 'category'>('status');
+  const [activeChart, setActiveChart] = useState<'status' | 'trend' | 'line' | 'funnel' | 'category' | 'revenue'>('status');
   const [extendedStats, setExtendedStats] = useState<any>(null);
 
   // 고도화된 통계 데이터 로드
   React.useEffect(() => {
-    if (isExpanded) {
-      getExtendedCRMStats().then(setExtendedStats);
-    }
-  }, [isExpanded, leads]);
+    getExtendedCRMStats().then(setExtendedStats);
+  }, [leads]);
 
   // 상태별 통계
   const statusStats = useMemo(() => {
@@ -241,6 +250,20 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                   <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Closing Rate</p>
                 </div>
               </div>
+              <div className="w-px h-6 bg-[var(--border-subtle)]" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-[var(--metro-line1)]/10">
+                  <Wallet className="w-4 h-4 text-[var(--metro-line1)]" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-[var(--text-primary)] leading-none mb-1">
+                    {extendedStats?.revenueMetrics?.contractedAmount
+                      ? formatWon(extendedStats.revenueMetrics.contractedAmount)
+                      : '-'}
+                  </p>
+                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">계약 매출</p>
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-2 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors">
               <span className="text-xs font-medium">상세 대시보드</span>
@@ -296,6 +319,20 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
             isActive={currentStatusFilter === 'CONTRACTED'}
           />
           <MetricCard icon={Calendar} label="이번 주 신규" value={metrics.thisWeekLeads} change={metrics.weeklyChange} color="var(--metro-line5)" />
+          <MetricCard
+            icon={Wallet}
+            label="총 제안 금액"
+            value={extendedStats?.revenueMetrics?.totalProposalAmount ? formatWon(extendedStats.revenueMetrics.totalProposalAmount) : '-'}
+            color="var(--metro-line1)"
+          />
+          <MetricCard
+            icon={Wallet}
+            label="계약 매출"
+            value={extendedStats?.revenueMetrics?.contractedAmount ? formatWon(extendedStats.revenueMetrics.contractedAmount) : '-'}
+            color="var(--metro-line3)"
+            onClick={() => onStatusFilter?.('CONTRACTED')}
+            isActive={currentStatusFilter === 'CONTRACTED'}
+          />
         </div>
 
         {/* Chart Section */}
@@ -308,6 +345,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                 { id: 'funnel', label: '전환 퍼널', icon: Target },
                 { id: 'category', label: '업종 성과', icon: Users },
                 { id: 'trend', label: '성과 트렌드', icon: TrendingUp },
+                { id: 'revenue', label: '매출 추이', icon: Wallet },
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -364,6 +402,17 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="leads" name="리드 수" fill="var(--metro-line2)" radius={[4, 4, 0, 0]} barSize={40} />
                     <Bar dataKey="conversionRate" name="전환율(%)" fill="var(--metro-line3)" radius={[4, 4, 0, 0]} barSize={40} />
+                  </BarChart>
+                ) : activeChart === 'revenue' ? (
+                  <BarChart data={extendedStats?.revenueMetrics?.monthlyRevenue || []} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-subtle)" />
+                    <XAxis dataKey="month" fontSize={12} />
+                    <YAxis fontSize={10} tickFormatter={(v) => formatWon(v)} width={70} />
+                    <Tooltip
+                      content={<CustomTooltip />}
+                    />
+                    <Legend fontSize={10} />
+                    <Bar dataKey="amount" name="계약 매출" fill="var(--metro-line3)" radius={[4, 4, 0, 0]} barSize={36} />
                   </BarChart>
                 ) : (
                   <AreaChart data={extendedStats?.weeklyTrends || []}>
