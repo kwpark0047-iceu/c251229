@@ -148,6 +148,15 @@ export default function SuperAdminDashboard({ user }: Props) {
   const [orgs, setOrgs] = useState<any[]>([]);
   const [allLogs, setAllLogs] = useState<any[]>([]);
   
+  // Scoring Config States
+  const [selectedScoreOrg, setSelectedScoreOrg] = useState('');
+  const [scoreConfig, setScoreConfig] = useState<{
+    distance: { max: number; within300: number; within700: number; within1500: number; over1500: number };
+    category: { max: number; health: number; animalCulture: number; foodLiving: number; other: number };
+    completeness: { max: number; phone: number; address: number; businessName: number };
+  } | null>(null);
+  const [savingScoreConfig, setSavingScoreConfig] = useState(false);
+  
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(false);
   const [isLive, setIsLive] = useState(false);
@@ -347,6 +356,47 @@ export default function SuperAdminDashboard({ user }: Props) {
     
     setLoading(false);
   }, [profiles.length]);
+
+  const loadScoringConfig = useCallback(async (orgId: string) => {
+    if (!orgId) return;
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('organizations')
+      .select('scoring_config')
+      .eq('id', orgId)
+      .maybeSingle();
+    const existing = data?.scoring_config as any;
+    setScoreConfig({
+      distance: { max: 40, within300: 40, within700: 30, within1500: 20, over1500: 10, ...(existing?.distance || {}) },
+      category: { max: 30, health: 30, animalCulture: 20, foodLiving: 10, other: 5, ...(existing?.category || {}) },
+      completeness: { max: 30, phone: 15, address: 10, businessName: 5, ...(existing?.completeness || {}) },
+    });
+  }, []);
+
+  const saveScoringConfig = async () => {
+    if (!selectedScoreOrg || !scoreConfig) return;
+    setSavingScoreConfig(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('organizations')
+        .update({ scoring_config: scoreConfig })
+        .eq('id', selectedScoreOrg);
+      if (error) {
+        alert(`저장 실패: ${error.message}`);
+      } else {
+        alert('스코어링 가중치가 저장되었습니다. 다음 동기화부터 적용됩니다.');
+      }
+    } catch (err) {
+      alert('네트워크 오류로 저장하지 못했습니다.');
+    } finally {
+      setSavingScoreConfig(false);
+    }
+  };
+
+  const updateScoreField = (group: 'distance' | 'category' | 'completeness', field: string, value: number) => {
+    setScoreConfig(prev => prev ? ({ ...prev, [group]: { ...prev[group], [field]: value } }) : prev);
+  };
 
   const handleSync = async (sector: string, apiPath: string, title: string) => {
     if (!confirm(`${title} 동기화를 시작하시겠습니까?\n이 작업은 수 분이 소요될 수 있습니다.`)) return;
@@ -1329,6 +1379,98 @@ export default function SuperAdminDashboard({ user }: Props) {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+
+            {/* 리드 스코어링 가중치 설정 */}
+            <div className="bg-white/[0.02] backdrop-blur-xl rounded-3xl p-8 border border-white/10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg">
+                  <BarChart3 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-100">리드 스코어링 가중치</h3>
+                  <p className="text-sm text-gray-400">조직별 리드 점수 산출 기준을 조정합니다. 저장된 값은 다음 데이터 동기화부터 적용됩니다.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">조직 선택</label>
+                  <select
+                    value={selectedScoreOrg}
+                    onChange={async (e) => {
+                      const orgId = e.target.value;
+                      setSelectedScoreOrg(orgId);
+                      await loadScoringConfig(orgId);
+                    }}
+                    className="w-full max-w-sm px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-100 text-sm focus:outline-none focus:border-amber-400/50"
+                  >
+                    <option value="">스코어링 설정을 적용할 조직을 선택하세요</option>
+                    {orgs.map((org: any) => (
+                      <option key={org.id} value={org.id}>{org.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedScoreOrg && scoreConfig && (
+                  <div className="space-y-5 pt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white/[0.03] rounded-2xl p-5 border border-white/5">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium text-gray-300">역세권 거리</span>
+                          <span className="text-sm font-bold text-amber-400">{scoreConfig.distance.max}점</span>
+                        </div>
+                        <input
+                          type="range" min={0} max={60} step={5}
+                          value={scoreConfig.distance.max}
+                          onChange={(e) => updateScoreField('distance', 'max', Number(e.target.value))}
+                          className="w-full accent-amber-400"
+                        />
+                        <p className="mt-2 text-xs text-gray-500">강남역·역세권 300m 이내 리드의 만점 배점</p>
+                      </div>
+
+                      <div className="bg-white/[0.03] rounded-2xl p-5 border border-white/5">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium text-gray-300">업종 가중치</span>
+                          <span className="text-sm font-bold text-amber-400">{scoreConfig.category.max}점</span>
+                        </div>
+                        <input
+                          type="range" min={0} max={60} step={5}
+                          value={scoreConfig.category.max}
+                          onChange={(e) => updateScoreField('category', 'max', Number(e.target.value))}
+                          className="w-full accent-amber-400"
+                        />
+                        <p className="mt-2 text-xs text-gray-500">의원(HEALTH) 업종 리드의 만점 배점</p>
+                      </div>
+
+                      <div className="bg-white/[0.03] rounded-2xl p-5 border border-white/5">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium text-gray-300">데이터 완전성</span>
+                          <span className="text-sm font-bold text-amber-400">{scoreConfig.completeness.max}점</span>
+                        </div>
+                        <input
+                          type="range" min={0} max={60} step={5}
+                          value={scoreConfig.completeness.max}
+                          onChange={(e) => updateScoreField('completeness', 'max', Number(e.target.value))}
+                          className="w-full accent-amber-400"
+                        />
+                        <p className="mt-2 text-xs text-gray-500">전화번호·주소·업체명 정보 충실도 만점 배점</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 pt-2">
+                      <button
+                        onClick={saveScoringConfig}
+                        disabled={savingScoreConfig}
+                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-all"
+                      >
+                        {savingScoreConfig ? '저장 중...' : '가중치 저장'}
+                      </button>
+                      <p className="text-xs text-gray-500">상세 세부 배점은 저장 시 자동으로 비율 스케일링됩니다.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

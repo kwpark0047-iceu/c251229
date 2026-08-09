@@ -3,7 +3,8 @@ import iconv from 'iconv-lite';
 import { parse } from 'csv-parse/sync';
 import proj4 from 'proj4';
 import { createClient } from '@/lib/supabase/server';
-import { requireSyncAuth } from '../sync-utils';
+import { requireSyncAuth, getOrgScoringConfig } from '../sync-utils';
+import { calculateLeadScore } from '@/lib/lead-scoring';
 import { SUBWAY_STATIONS } from '../../lead-manager/constants';
 
 export const dynamic = 'force-dynamic';
@@ -76,6 +77,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: 'No file provided' }, { status: 400 });
     }
 
+    // 조직별 리드 스코어링 가중치 (없으면 기본값)
+    const scoringConfig = orgId ? await getOrgScoringConfig(supabase, orgId) : null;
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     
@@ -122,6 +126,14 @@ export async function POST(request: Request) {
 
       const mgtNo = record['관리번호'] || `SEOUL_CLINIC_${record['사업장명']}_${record['도로명주소'] || record['지번주소']}`.replace(/\s+/g, '');
 
+const scoringResult = calculateLeadScore({
+        distance: stationDistance ?? undefined,
+        category: 'HEALTH' as const,
+        phone: record['소재지전화'] || record['전화번호'] || '',
+        address: record['도로명전체주소'] || record['도로명주소'] || record['지번주소'] || '',
+        bizName: record['사업장명'],
+      }, scoringConfig);
+
       const lead = {
         biz_name: record['사업장명'],
         biz_id: record['개방서비스아이디'] || null,
@@ -142,9 +154,11 @@ export async function POST(request: Request) {
         station_lines: stationLines,
         status: 'NEW',
         mgt_no: mgtNo,
+        lead_score: scoringResult.score,
+        lead_grade: scoringResult.grade,
         ...(orgId ? { organization_id: orgId } : {}),
       };
-      
+
       leads.push(lead);
     }
     

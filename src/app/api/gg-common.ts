@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { findNearestStation } from '@/app/lead-manager/utils';
-import { upsertLeadsByMgtNo, requireSyncAuth, requireUser } from './sync-utils';
+import { upsertLeadsByMgtNo, requireSyncAuth, requireUser, getOrgScoringConfig } from './sync-utils';
 
 const PAGE_SIZE = 1000;
 
@@ -160,8 +160,9 @@ export function createGGSyncHandlers(config: GGRouteConfig) {
       if ('errorResponse' in fetched) return fetched.errorResponse;
 
       const { total, leads } = fetched;
+      const scoringConfig = await getOrgScoringConfig(supabase, auth.orgId);
       const upsert = leads.length > 0
-        ? await upsertLeadsByMgtNo(supabase, leads)
+        ? await upsertLeadsByMgtNo(supabase, leads, scoringConfig)
         : { savedCount: 0, insertedCount: 0, updatedCount: 0, skippedCount: 0, failedCount: 0, error: null };
 
       console.log(

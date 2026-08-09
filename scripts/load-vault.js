@@ -7,9 +7,10 @@ if (fs.existsSync(vaultPath)) {
   try {
     const raw = fs.readFileSync(vaultPath, 'utf8');
     const vault = JSON.parse(raw);
-    // Inject all keys into process.env (overwrites if already set)
     Object.entries(vault).forEach(([key, value]) => {
-      process.env[key] = value;
+      if (process.env[key] === undefined) {
+        process.env[key] = value;
+      }
     });
     console.log('🔐 API vault loaded');
   } catch (e) {

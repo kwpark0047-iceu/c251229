@@ -31,6 +31,7 @@ import {
 } from '../kric-data-manager';
 import { generateSubwayRoutes, SUBWAY_LINE_COLORS } from '../utils/subway-utils';
 import MapSearchBar from './MapSearchBar';
+import { getProposals } from '../proposal-service';
 import './MapView.css';
 
 interface MapViewProps {
@@ -86,6 +87,9 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   const [isLoadingSubwayData, setIsLoadingSubwayData] = useState(false);
   const [searchTarget, setSearchTarget] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
   const [selectedStation, setSelectedStation] = useState<any>(null); // 클릭된 역 상태
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [stationRevenue, setStationRevenue] = useState<{ name: string; amount: number; lat: number; lng: number; count: number }[]>([]);
+  const [loadingHeatmap, setLoadingHeatmap] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -148,6 +152,58 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
 
     loadSubwayData();
   }, [isClient]);
+
+  // 역별 매출 히트맵 데이터 로드 (ACCEPTED 제안 기반)
+  useEffect(() => {
+    if (!showHeatmap || !isClient || !subwayData?.stations) return;
+    let cancelled = false;
+    setLoadingHeatmap(true);
+    setStationRevenue([]);
+
+    const loadHeatmap = async () => {
+      try {
+        const result = await getProposals({ status: 'ACCEPTED' });
+        if (cancelled) return;
+        if (!result.success) return;
+
+        const leadMap = new Map<string, Lead>();
+        leads.forEach(l => { if (l.id) leadMap.set(l.id, l); });
+
+        const stationMap = new Map<string, { amount: number; count: number }>();
+        result.proposals.forEach(p => {
+          if (!p.leadId || !p.finalPrice) return;
+          const lead = leadMap.get(p.leadId);
+          if (!lead?.nearestStation) return;
+          const entry = stationMap.get(lead.nearestStation) || { amount: 0, count: 0 };
+          entry.amount += Number(p.finalPrice) || 0;
+          entry.count += 1;
+          stationMap.set(lead.nearestStation, entry);
+        });
+
+        const coords = new Map<string, { lat: number; lng: number }>();
+        (subwayData.stations as any[]).forEach((s: any) => {
+          if (s.name && s.lat && s.lng) coords.set(s.name, { lat: s.lat, lng: s.lng });
+        });
+
+        const rows = Array.from(stationMap.entries())
+          .map(([name, v]) => {
+            const c = coords.get(name);
+            return c ? { name, amount: v.amount, lat: c.lat, lng: c.lng, count: v.count } : null;
+          })
+          .filter((r): r is { name: string; amount: number; lat: number; lng: number; count: number } => r !== null)
+          .sort((a, b) => b.amount - a.amount);
+
+        if (!cancelled) setStationRevenue(rows);
+      } catch (err) {
+        console.error('❌ 히트맵 데이터 로드 실패:', err);
+      } finally {
+        if (!cancelled) setLoadingHeatmap(false);
+      }
+    };
+
+    loadHeatmap();
+    return () => { cancelled = true; };
+  }, [showHeatmap, isClient, subwayData, leads]);
 
   // 유효한 좌표가 있는 리드만 필터링
   const validLeads = leads.filter(lead => lead.latitude && lead.longitude);
@@ -303,6 +359,35 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
               </CircleMarker>
             );
           })}
+
+          {/* 역별 매출 히트맵 레이어 */}
+          {showHeatmap && stationRevenue.length > 0 && (() => {
+            const maxAmount = stationRevenue[0]?.amount || 1;
+            return stationRevenue.map((st) => {
+              const ratio = st.amount / maxAmount;
+              const radius = 6 + ratio * 14;
+              const heatColor = ratio > 0.75 ? '#DC2626' : ratio > 0.5 ? '#EA580C' : ratio > 0.25 ? '#F59E0B' : '#FBBF24';
+              return (
+                <CircleMarker
+                  key={`heat-${st.name}`}
+                  center={[st.lat, st.lng]}
+                  radius={radius}
+                  fillColor={heatColor}
+                  fillOpacity={0.5}
+                  color="#7C2D12"
+                  weight={1.5}
+                  dashArray="4 3"
+                >
+                  <Tooltip direction="top" offset={[0, -8]} opacity={1}>
+                    <div className="text-xs">
+                      <span className="font-semibold">{st.name}역</span>
+                      <span className="block mt-0.5">계약 매출: {st.amount.toLocaleString()}원 ({st.count}건)</span>
+                    </div>
+                  </Tooltip>
+                </CircleMarker>
+              );
+            });
+          })()}
         </MapContainer>
       ) : (
         <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -369,6 +454,19 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
             L: <span className="text-gray-700 font-bold">{subwayData?.stations.length || 0}</span>
           </p>
         </div>
+
+        {/* 역별 매출 히트맵 토글 */}
+        <button
+          onClick={() => setShowHeatmap(prev => !prev)}
+          className={`flex flex-col items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg border p-2 shadow-md transition-all ${showHeatmap ? 'border-orange-400 text-orange-500' : 'border-gray-200 text-gray-500 hover:text-orange-500'}`}
+          title="계약(ACCEPTED) 제안 금액을 역별로 시각화합니다"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+          </svg>
+          <span className="text-[10px] font-bold">{showHeatmap ? '히트맵 ON' : '매출 히트맵'}</span>
+          {loadingHeatmap && <span className="text-[9px] text-gray-400 animate-pulse">로딩중...</span>}
+        </button>
       </div>
 
       {/* 하단 노선 필터 및 범례 - 하단 바 스타일로 정돈 */}

@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { findNearestStation, convertGRS80ToWGS84 } from '@/app/lead-manager/utils';
-import { upsertLeadsByMgtNo, getOrgId, requireSyncAuth } from '@/app/api/sync-utils';
+import { upsertLeadsByMgtNo, getOrgId, requireSyncAuth, getOrgScoringConfig } from '@/app/api/sync-utils';
 
 export const dynamic = 'force-dynamic';
 // 대량 데이터 처리를 위해 타임아웃 연장 (import-csv 선례: Vercel Hobby 최대 300초)
@@ -365,6 +365,7 @@ export async function POST(request: NextRequest) {
 
   // ── 권한 확인: owner 또는 admin만 동기화 가능 ──────────────
   const orgId = auth.orgId;
+  const scoringConfig = await getOrgScoringConfig(supabase, orgId);
   if (!['owner', 'admin'].includes(auth.role ?? '')) {
     return NextResponse.json({ error: '동기화 권한이 없습니다. owner 또는 admin만 가능합니다.' }, { status: 403 });
   }
@@ -430,7 +431,7 @@ export async function POST(request: NextRequest) {
         const leads = rows.map(row => mapSeoulRow(row, config, orgId));
         let saved = 0;
         if (sync && leads.length > 0) {
-          const { error } = await upsertLeadsByMgtNo(supabase, leads);
+          const { error } = await upsertLeadsByMgtNo(supabase, leads, scoringConfig);
           if (error) throw error;
           saved = leads.length;
         }

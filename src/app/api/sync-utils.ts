@@ -2,9 +2,31 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { geocodeAddress } from '@/lib/geocoding';
 import { findNearestStation } from '@/app/lead-manager/utils';
-import { calculateLeadScore } from '@/lib/lead-scoring';
+import { calculateLeadScore, normalizeScoreConfig, type ScoreConfig } from '@/lib/lead-scoring';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * 조직별 리드 스코어링 가중치 조회
+ * organizations.scoring_config(JSONB)가 없으면 기본 가중치를 반환합니다.
+ */
+export async function getOrgScoringConfig(
+  supabase: SupabaseClient,
+  orgId: string | null | undefined
+): Promise<ScoreConfig> {
+  if (!orgId) return normalizeScoreConfig();
+  try {
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('scoring_config')
+      .eq('id', orgId)
+      .maybeSingle();
+    if (error || !data) return normalizeScoreConfig();
+    return normalizeScoreConfig((data as { scoring_config?: unknown }).scoring_config as Partial<ScoreConfig> | null | undefined);
+  } catch {
+    return normalizeScoreConfig();
+  }
+}
 
 /** 현재 로그인 사용자의 organization_id를 조회 (실패 원인은 콘솔 로그로 기록) */
 export async function getOrgId(supabase: SupabaseClient): Promise<string | null> {
@@ -119,7 +141,11 @@ const WRITE_BATCH = 25;    // 동시 쓰기 요청 수 제한
  * Supabase 쿼리는 실패해도 reject되지 않고 { error }를 반환하므로
  * 각 결과를 직접 검사하여 실제 성공/중복/실패 건수를 집계합니다.
  */
-export async function upsertLeadsByMgtNo(supabase: SupabaseClient, leads: any[]): Promise<UpsertLeadsResult> {
+export async function upsertLeadsByMgtNo(
+  supabase: SupabaseClient,
+  leads: any[],
+  scoringConfig: ScoreConfig | null = null
+): Promise<UpsertLeadsResult> {
   const result: UpsertLeadsResult = {
     savedCount: 0, insertedCount: 0, updatedCount: 0, skippedCount: 0, failedCount: 0, error: null,
   };
@@ -164,13 +190,16 @@ export async function upsertLeadsByMgtNo(supabase: SupabaseClient, leads: any[])
       }
 
       // 2-2. 리드 스코어링 산출 (lead_score/lead_grade 컬럼은 20260721 마이그레이션으로 존재)
-      const scoringResult = calculateLeadScore({
-        distance: lead.station_distance,
-        category: lead.category,
-        phone: lead.phone,
-        address: lead.road_address || lead.lot_address,
-        bizName: lead.biz_name,
-      });
+      const scoringResult = calculateLeadScore(
+        {
+          distance: lead.station_distance,
+          category: lead.category,
+          phone: lead.phone,
+          address: lead.road_address || lead.lot_address,
+          bizName: lead.biz_name,
+        },
+        scoringConfig
+      );
       lead.lead_score = scoringResult.score;
       lead.lead_grade = scoringResult.grade;
 

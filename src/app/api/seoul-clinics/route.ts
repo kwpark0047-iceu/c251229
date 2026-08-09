@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { findNearestStation, convertGRS80ToWGS84 } from '@/app/lead-manager/utils';
-import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
+import { upsertLeadsByMgtNo, getOrgScoringConfig } from '@/app/api/sync-utils';
 
 const API_ENDPOINT = 'http://openapi.seoul.go.kr:8088';
 const PAGE_SIZE = 1000;
@@ -162,7 +162,8 @@ export async function GET(request: NextRequest) {
         ...(orgId ? { organization_id: orgId } : {}),
       }));
 
-      const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
+      const scoringConfig = await getOrgScoringConfig(supabase, orgId);
+      const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads, scoringConfig);
 
       if (dbError) {
         console.error('[Seoul Clinic API] DB 저장 오류:', dbError);
