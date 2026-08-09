@@ -610,7 +610,7 @@ export async function getCRMStats(): Promise<{
  * 고도화된 CRM 및 영업 성과 통계 조회
  */
 export async function getExtendedCRMStats(): Promise<{
-  funnelData: { stage: string; count: number; rate: number; color: string }[];
+  funnelData: { stage: string; count: number; rate: number; color: string; amount?: number }[];
   categoryPerformance: { category: string; leads: number; conversionRate: number }[];
   weeklyTrends: { date: string; viewRate: number; conversionRate: number }[];
   totalMetrics: {
@@ -645,12 +645,23 @@ export async function getExtendedCRMStats(): Promise<{
   const viewed = viewedProposals;
   const contracted = leads?.filter((l: any) => l.status === 'CONTRACTED').length || 0;
 
+  // 파이프라인 단계별 금액 (final_price 기준)
+  const sentAmount = (proposals || [])
+    .filter((p: any) => p.status !== 'DRAFT')
+    .reduce((sum: number, p: any) => sum + (Number(p.final_price) || 0), 0);
+  const viewedAmount = (proposals || [])
+    .filter((p: any) => p.status === 'VIEWED' || p.status === 'ACCEPTED')
+    .reduce((sum: number, p: any) => sum + (Number(p.final_price) || 0), 0);
+  const acceptedAmount = (proposals || [])
+    .filter((p: any) => p.status === 'ACCEPTED')
+    .reduce((sum: number, p: any) => sum + (Number(p.final_price) || 0), 0);
+
   const funnelData = [
     { stage: '신규 리드', count: newLeads, rate: 100, color: 'var(--metro-line2)' },
     { stage: '컨택 완료', count: contacted, rate: newLeads > 0 ? (contacted / newLeads) * 100 : 0, color: 'var(--metro-line5)' },
-    { stage: '제안 발송', count: sent, rate: contacted > 0 ? (sent / contacted) * 100 : 0, color: 'var(--metro-line4)' },
-    { stage: '제안 열람', count: viewed, rate: sent > 0 ? (viewed / sent) * 100 : 0, color: 'var(--metro-line1)' },
-    { stage: '계약 성사', count: contracted, rate: viewed > 0 ? (contracted / viewed) * 100 : 0, color: 'var(--metro-line3)' },
+    { stage: '제안 발송', count: sent, rate: contacted > 0 ? (sent / contacted) * 100 : 0, color: 'var(--metro-line4)', amount: sentAmount },
+    { stage: '제안 열람', count: viewed, rate: sent > 0 ? (viewed / sent) * 100 : 0, color: 'var(--metro-line1)', amount: viewedAmount },
+    { stage: '계약 성사', count: contracted, rate: viewed > 0 ? (contracted / viewed) * 100 : 0, color: 'var(--metro-line3)', amount: acceptedAmount },
   ];
 
   // 4. 카테고리별 성과

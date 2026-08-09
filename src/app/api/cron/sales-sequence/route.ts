@@ -9,8 +9,12 @@ import { sendProposalReminder } from '@/lib/email-service';
 export const dynamic = 'force-dynamic';
 
 function getSupabase() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+        // fail-fast: 서비스 역할 키가 없으면 절대 익명 키로 폴백하지 않음 (RLS 우회 시도 방지)
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured. Refusing to run with anon key.');
+    }
     return createClient(url, key);
 }
 

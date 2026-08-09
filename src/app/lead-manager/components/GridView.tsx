@@ -35,6 +35,7 @@ interface GridViewProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   onRefresh?: () => void;
+  sortByScore?: boolean;
 }
 
 export default function GridView({
@@ -49,13 +50,19 @@ export default function GridView({
   pageSize,
   onPageChange,
   onRefresh,
+  sortByScore = false,
 }: GridViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
-  const sortedLeads = useMemo(() => leads.slice().sort((a, b) => {
-    const dateA = a.licenseDate ? new Date(a.licenseDate).getTime() : 0;
-    const dateB = b.licenseDate ? new Date(b.licenseDate).getTime() : 0;
-    return dateB - dateA;
-  }), [leads]);
+  const sortedLeads = useMemo(() => {
+    if (sortByScore) {
+      return leads.slice().sort((a, b) => (b.leadScore ?? -1) - (a.leadScore ?? -1));
+    }
+    return leads.slice().sort((a, b) => {
+      const dateA = a.licenseDate ? new Date(a.licenseDate).getTime() : 0;
+      const dateB = b.licenseDate ? new Date(b.licenseDate).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [leads, sortByScore]);
 
   return (
     <>

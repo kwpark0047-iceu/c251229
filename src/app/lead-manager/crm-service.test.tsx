@@ -156,5 +156,34 @@ describe('CRM 서비스', () => {
       expect(stats).toHaveProperty('callsByOutcome');
       expect(stats).toHaveProperty('progressCounts');
     });
+
+    it('확장 통계: 파이프라인 단계별 금액과 매출 지표를 계산한다', async () => {
+      const mockLeads = [
+        { id: 'l1', category: 'HEALTH', status: 'NEW' },
+        { id: 'l2', category: 'FOOD', status: 'CONTACTED' },
+        { id: 'l3', category: 'ANIMAL', status: 'CONTRACTED' },
+      ];
+      const mockProposals = [
+        { id: 'p1', status: 'SENT', final_price: 100000, created_at: '2026-06-10T00:00:00Z' },
+        { id: 'p2', status: 'VIEWED', final_price: 200000, created_at: '2026-06-20T00:00:00Z' },
+        { id: 'p3', status: 'ACCEPTED', final_price: 300000, created_at: '2026-07-01T00:00:00Z' },
+        { id: 'p4', status: 'DRAFT', final_price: 50000, created_at: '2026-07-05T00:00:00Z' },
+      ];
+      mockSupabaseClient.from
+        .mockReturnValueOnce(createMockBuilder(mockLeads, mockLeads.length))
+        .mockReturnValueOnce(createMockBuilder(mockProposals, mockProposals.length));
+
+      const { getExtendedCRMStats } = await import('./crm-service');
+      const stats = await getExtendedCRMStats();
+
+      expect(stats.totalMetrics.totalLeads).toBe(3);
+      expect(stats.totalMetrics.closingRate).toBeCloseTo(33.33, 1);
+      expect(stats.revenueMetrics.totalProposalAmount).toBe(650000);
+      expect(stats.revenueMetrics.contractedAmount).toBe(300000);
+      const sentFunnel = stats.funnelData.find(f => f.stage === '제안 발송');
+      const contractedFunnel = stats.funnelData.find(f => f.stage === '계약 성사');
+      expect(sentFunnel?.amount).toBe(600000);
+      expect(contractedFunnel?.amount).toBe(300000);
+    }, 60000);
   });
 });

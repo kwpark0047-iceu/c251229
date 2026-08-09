@@ -119,11 +119,16 @@ function CustomTooltip({ active, payload, label }: any) {
               {entry.name}: <span className="font-bold text-[var(--text-primary)]">
                 {typeof entry.value === 'number' && entry.name.includes('율')
                   ? `${entry.value.toFixed(1)}%`
-                  : entry.name.includes('매출')
+                  : entry.name.includes('매출') || entry.name.includes('금액')
                     ? formatWon(entry.value || 0)
                     : `${entry.value}${entry.name.includes('수') || entry.name.includes('리드') ? '건' : ''}`}
               </span>
             </p>
+            {entry.payload?.amount != null && entry.payload.amount > 0 && (
+              <p className="text-xs text-[var(--text-muted)]">
+                단계 금액: <span className="font-bold text-[var(--text-primary)]">{formatWon(entry.payload.amount)}</span>
+              </p>
+            )}
           </div>
         ))}
       </div>

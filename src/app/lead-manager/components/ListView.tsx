@@ -25,6 +25,7 @@ interface ListViewProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   onRefresh?: () => void;
+  sortByScore?: boolean;
 }
 
 type SortField = 'bizName' | 'nearestStation' | 'stationDistance' | 'licenseDate' | 'status' | 'createdAt' | 'leadScore';
@@ -75,14 +76,19 @@ export default function ListView({
   pageSize,
   onPageChange,
   onRefresh,
+  sortByScore = false,
 }: ListViewProps) {
-  const [sortField, setSortField] = useState<SortField>('licenseDate');
+  const [sortField, setSortField] = useState<SortField>(sortByScore ? 'leadScore' : 'licenseDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [callModalLeadId, setCallModalLeadId] = useState<string | null>(null);
 
   const selectedLead = leads.find(l => l.id === selectedLeadId);
   const callModalLead = leads.find(l => l.id === callModalLeadId);
+
+  React.useEffect(() => {
+    if (sortByScore) setSortField('leadScore');
+  }, [sortByScore]);
 
   // 정렬 처리
   const sortedLeads = [...leads].sort((a, b) => {

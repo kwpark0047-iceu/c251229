@@ -34,6 +34,7 @@ import {
   X,
   Shield,
   Database,
+  Star,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS, MainTab } from './types';
@@ -136,6 +137,7 @@ function LeadManagerContent() {
   const [stationSuggestions, setStationSuggestions] = useState<typeof SUBWAY_STATIONS>([]);
   const [showStationSuggestions, setShowStationSuggestions] = useState(false);
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);
+  const [sortByScore, setSortByScore] = useState(false);
 
   // 스케줄 관련 상태
   const [scheduleView, setScheduleView] = useState<'calendar' | 'board'>('calendar');
@@ -691,6 +693,8 @@ function LeadManagerContent() {
                 <div className="flex gap-1 p-0.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                   <button onClick={() => setIsFieldMode(!isFieldMode)} className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all ${isFieldMode ? 'bg-[var(--metro-line2)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`} title="현장 모드"><Zap className="w-4 h-4" /></button>
                   <div className="w-px bg-[var(--border-subtle)] my-1" />
+                  <button onClick={() => setSortByScore(!sortByScore)} className={`flex items-center justify-center w-8 h-8 rounded-lg transition-all ${sortByScore ? 'bg-[var(--metro-line5)] text-white shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}`} title="리드 스코어 우선순위 정렬"><Star className="w-4 h-4" /></button>
+                  <div className="w-px bg-[var(--border-subtle)] my-1" />
                   {[
                     { mode: 'grid' as ViewMode, icon: LayoutGrid, color: 'var(--metro-line2)', name: '그리드 보기' },
                     { mode: 'list' as ViewMode, icon: List, color: 'var(--metro-line4)', name: '목록 보기' },
@@ -864,8 +868,8 @@ function LeadManagerContent() {
               </div>
             ) : (
               <>
-                {viewMode === 'grid' && <GridView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} isFieldMode={isFieldMode} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} />}
-                {viewMode === 'list' && <ListView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} />}
+{viewMode === 'grid' && <GridView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} isFieldMode={isFieldMode} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} />}
+                  {viewMode === 'list' && <ListView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} />}
                 {viewMode === 'map' && <MapView leads={filteredLeads} onStatusChange={handleStatusChange} onListView={() => setViewMode('list')} focusLead={mapFocusLead} onFocusClear={() => setMapFocusLead(null)} />}
               </>
             )}
