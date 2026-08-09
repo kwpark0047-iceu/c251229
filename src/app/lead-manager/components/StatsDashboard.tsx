@@ -19,6 +19,8 @@ import {
   ChevronDown,
   ChevronUp,
   Wallet,
+  Trophy,
+  Flag,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS } from '../types';
@@ -138,8 +140,26 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function StatsDashboard({ leads, isExpanded = false, onToggle, onStatusFilter, currentStatusFilter }: StatsDashboardProps) {
-  const [activeChart, setActiveChart] = useState<'status' | 'trend' | 'line' | 'funnel' | 'category' | 'revenue'>('status');
+  const [activeChart, setActiveChart] = useState<'status' | 'trend' | 'line' | 'funnel' | 'category' | 'revenue' | 'rep' | 'goal'>('status');
   const [extendedStats, setExtendedStats] = useState<any>(null);
+
+  const GOAL_STORAGE_KEY = 'crm-monthly-revenue-goal';
+  const [revenueGoal, setRevenueGoal] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0;
+    const saved = window.localStorage.getItem(GOAL_STORAGE_KEY);
+    return saved ? Number(saved) || 0 : 0;
+  });
+
+  const contractedAmount = extendedStats?.revenueMetrics?.contractedAmount || 0;
+  const goalProgress = revenueGoal > 0 ? Math.min((contractedAmount / revenueGoal) * 100, 100) : 0;
+
+  const handleGoalChange = (value: number) => {
+    setRevenueGoal(value);
+    if (typeof window !== 'undefined') {
+      if (value > 0) window.localStorage.setItem(GOAL_STORAGE_KEY, String(value));
+      else window.localStorage.removeItem(GOAL_STORAGE_KEY);
+    }
+  };
 
   // 고도화된 통계 데이터 로드
   React.useEffect(() => {
@@ -351,6 +371,8 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                 { id: 'category', label: '업종 성과', icon: Users },
                 { id: 'trend', label: '성과 트렌드', icon: TrendingUp },
                 { id: 'revenue', label: '매출 추이', icon: Wallet },
+                { id: 'rep', label: '담당자 성과', icon: Trophy },
+                { id: 'goal', label: '매출 목표', icon: Flag },
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -419,6 +441,52 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                     <Legend fontSize={10} />
                     <Bar dataKey="amount" name="계약 매출" fill="var(--metro-line3)" radius={[4, 4, 0, 0]} barSize={36} />
                   </BarChart>
+                ) : activeChart === 'rep' ? (
+                  <BarChart data={extendedStats?.salesRepPerformance || []} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-subtle)" />
+                    <XAxis dataKey="name" fontSize={11} interval={0} />
+                    <YAxis fontSize={10} tickFormatter={(v) => formatWon(v)} width={70} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend fontSize={10} />
+                    <Bar dataKey="revenue" name="매출 금액" fill="var(--metro-line1)" radius={[4, 4, 0, 0]} barSize={30} />
+                    <Bar dataKey="leads" name="리드 수" fill="var(--metro-line2)" radius={[4, 4, 0, 0]} barSize={30} />
+                  </BarChart>
+                ) : activeChart === 'goal' ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-4 px-8">
+                    <div className="w-full max-w-md">
+                      <div className="flex items-end justify-between mb-2">
+                        <div>
+                          <p className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
+                            {formatWon(contractedAmount)}
+                          </p>
+                          <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mt-1">계약 매출</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-[var(--metro-line3)]">{goalProgress.toFixed(0)}%</p>
+                          <p className="text-xs text-[var(--text-muted)] mt-1">
+                            목표 {revenueGoal > 0 ? formatWon(revenueGoal) : '(미설정)'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="h-3 w-full bg-[var(--bg-primary)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-[var(--metro-line1)] to-[var(--metro-line3)] transition-all duration-700"
+                          style={{ width: `${goalProgress}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 mt-4">
+                        <input
+                          type="number"
+                          min={0}
+                          step={100000}
+                          placeholder="월 매출 목표 (예: 30000000)"
+                          value={revenueGoal || ''}
+                          onChange={(e) => handleGoalChange(Number(e.target.value))}
+                          className="flex-1 px-3 py-2 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line1)]/40"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <AreaChart data={extendedStats?.weeklyTrends || []}>
                     <defs>

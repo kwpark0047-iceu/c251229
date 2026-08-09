@@ -623,17 +623,24 @@ export async function getExtendedCRMStats(): Promise<{
     contractedAmount: number;
     monthlyRevenue: { month: string; amount: number }[];
   };
+  salesRepPerformance: {
+    name: string;
+    leads: number;
+    proposals: number;
+    contracts: number;
+    revenue: number;
+  }[];
 }> {
   const supabase = getSupabase();
 
   // 1. 전체 리드 및 기본 정보
-  const { data: leads } = await supabase.from('leads').select('id, category, status');
+  const { data: leads } = await supabase.from('leads').select('id, category, status, assigned_to_name');
   const totalLeads = leads?.length || 0;
 
   // 2. 제안서 정보 (열람률 계산용 + 매출 집계용)
   const { data: proposals } = await supabase
     .from('proposals')
-    .select('status, final_price, created_at');
+    .select('status, final_price, created_at, lead_id');
   const totalProposals = proposals?.length || 0;
   const viewedProposals = proposals?.filter((p: any) => p.status === 'VIEWED' || p.status === 'ACCEPTED').length || 0;
   const proposalViewRate = totalProposals > 0 ? (viewedProposals / totalProposals) * 100 : 0;
@@ -714,6 +721,32 @@ export async function getExtendedCRMStats(): Promise<{
     amount: monthMap[monthKey] || 0,
   }));
 
+  // 7. 담당자별 성과 집계 (리드 수, 제안 수, 계약 수, 계약 매출)
+  const repMap: Record<string, { leads: number; proposals: number; contracts: number; revenue: number }> = {};
+  leads?.forEach((l: any) => {
+    const name = l.assigned_to_name || '미배정';
+    if (!repMap[name]) repMap[name] = { leads: 0, proposals: 0, contracts: 0, revenue: 0 };
+    repMap[name].leads++;
+  });
+
+  // 제안서 → 리드(담당자) 연결: proposals.lead_id → leads.id → assigned_to_name
+  const leadAssigneeMap = new Map<string, string>();
+  leads?.forEach((l: any) => {
+    if (l.id) leadAssigneeMap.set(l.id, l.assigned_to_name || '미배정');
+  });
+
+  (proposals || []).forEach((p: any) => {
+    const name = p.lead_id ? leadAssigneeMap.get(p.lead_id) || '미배정' : '미배정';
+    if (!repMap[name]) repMap[name] = { leads: 0, proposals: 0, contracts: 0, revenue: 0 };
+    repMap[name].proposals++;
+    repMap[name].revenue += Number(p.final_price) || 0;
+    if (p.status === 'ACCEPTED') repMap[name].contracts++;
+  });
+
+  const salesRepPerformance = Object.entries(repMap)
+    .map(([name, data]) => ({ name, ...data }))
+    .sort((a, b) => b.revenue - a.revenue);
+
   return {
     funnelData,
     categoryPerformance,
@@ -727,7 +760,8 @@ export async function getExtendedCRMStats(): Promise<{
       totalProposalAmount,
       contractedAmount,
       monthlyRevenue,
-    }
+    },
+    salesRepPerformance,
   };
 }
 
