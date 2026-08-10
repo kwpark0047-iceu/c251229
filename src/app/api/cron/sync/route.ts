@@ -84,73 +84,81 @@ export async function GET(request: Request) {
       `[Cron] Syncing ${orgList.length} organization(s) × ${sourceKeys.length} source(s)`
     );
 
-    // 3. 조직별 × 소스별 순차 동기화 (공공 API 과부하 방지)
-    //    증분 동기화: mgt_no 기반 upsert가 신규(insert)/변경(update)만 반영하므로
-    //    추가/수정된 데이터만 저장된다 (source_sync_logs에 실행 이력 기록).
-    for (const org of orgList) {
-      const scoringConfig = await getOrgScoringConfig(supabase, org.id);
+    // 3. 조직 병렬 동기화: 23개 조직을 순차로 돌면 크론 한도(300초) 초과 → 4개씩 병렬.
+    //    조직 내부 소스 루프는 순차 유지 (공공 API 과부하 방지). 증분 동기화는
+    //    mgt_no 기반 upsert가 신규/변경만 반영하고 source_sync_logs에 이력을 남긴다.
+    const CONCURRENT_ORGS = 4;
 
-      for (const sourceKey of sourceKeys) {
-        const startedAt = new Date().toISOString();
-        const result = await syncSource(supabase, sourceKey, org.id, {
-          scoringConfig,
-          // sync=true: 페치 데이터를 leads에 저장 (누락 시 페치만 하고 저장 안 함 — 과거 버그)
-          sync: true,
-        });
-        const finishedAt = new Date().toISOString();
+    for (let orgIdx = 0; orgIdx < orgList.length; orgIdx += CONCURRENT_ORGS) {
+      const orgChunk = orgList.slice(orgIdx, orgIdx + CONCURRENT_ORGS);
 
-        results.push({
-          organization: org.name,
-          source: result.source,
-          label: result.label,
-          total: result.total,
-          fetched: result.fetched,
-          saved: result.saved,
-          inserted: result.inserted,
-          updated: result.updated,
-          skipped: result.skipped,
-          failed: result.failed,
-          error: result.error,
-        });
+      await Promise.all(
+        orgChunk.map(async (org) => {
+          const scoringConfig = await getOrgScoringConfig(supabase, org.id);
 
-        // 4. 소스별 실행 이력 기록 (다음 실행 시 최신 상태 확인용)
-        const { error: logError } = await supabase
-          .from('source_sync_logs')
-          .upsert(
-            {
-              organization_id: org.id,
-              source_key: result.source,
-              source_label:
-                sourceLabels.find((s) => s.key === result.source)?.label ??
-                result.label,
-              status: result.error ? 'error' : 'success',
-              total_count: result.total,
-              fetched_count: result.fetched,
-              inserted_count: result.inserted ?? 0,
-              updated_count: result.updated ?? 0,
-              skipped_count: result.skipped ?? 0,
-              failed_count: result.failed ?? 0,
-              error_message: result.error ?? null,
-              started_at: startedAt,
-              finished_at: finishedAt,
-            },
-            {
-              onConflict: 'organization_id,source_key',
-              ignoreDuplicates: false,
+          for (const sourceKey of sourceKeys) {
+            const startedAt = new Date().toISOString();
+            const result = await syncSource(supabase, sourceKey, org.id, {
+              scoringConfig,
+              // sync=true: 페치 데이터를 leads에 저장 (누락 시 페치만 하고 저장 안 함 — 과거 버그)
+              sync: true,
+            });
+            const finishedAt = new Date().toISOString();
+
+            results.push({
+              organization: org.name,
+              source: result.source,
+              label: result.label,
+              total: result.total,
+              fetched: result.fetched,
+              saved: result.saved,
+              inserted: result.inserted,
+              updated: result.updated,
+              skipped: result.skipped,
+              failed: result.failed,
+              error: result.error,
+            });
+
+            // 4. 소스별 실행 이력 기록 (다음 실행 시 최신 상태 확인용)
+            const { error: logError } = await supabase
+              .from('source_sync_logs')
+              .upsert(
+                {
+                  organization_id: org.id,
+                  source_key: result.source,
+                  source_label:
+                    sourceLabels.find((s) => s.key === result.source)?.label ??
+                    result.label,
+                  status: result.error ? 'error' : 'success',
+                  total_count: result.total,
+                  fetched_count: result.fetched,
+                  inserted_count: result.inserted ?? 0,
+                  updated_count: result.updated ?? 0,
+                  skipped_count: result.skipped ?? 0,
+                  failed_count: result.failed ?? 0,
+                  error_message: result.error ?? null,
+                  started_at: startedAt,
+                  finished_at: finishedAt,
+                },
+                {
+                  onConflict: 'organization_id,source_key',
+                  ignoreDuplicates: false,
+                }
+              );
+
+            if (logError) {
+              console.error(
+                `[Cron] Failed to log sync result for ${org.name}/${result.source}: ${logError.message}`
+              );
             }
-          );
 
-        if (logError) {
-          console.error(
-            `[Cron] Failed to log sync result for ${org.name}/${result.source}: ${logError.message}`
-          );
-        }
-
-        const status = result.error ? 'FAILED' : 'OK';
-        console.log(
-          `[Cron] [${org.name}] ${result.label}: ${status} total=${result.total} fetched=${result.fetched} saved=${result.saved} inserted=${result.inserted ?? 0} updated=${result.updated ?? 0}${result.error ? ` error=${result.error}` : ''}`
-        );
-      }
+            const status = result.error ? 'FAILED' : 'OK';
+            console.log(
+              `[Cron] [${org.name}] ${result.label}: ${status} total=${result.total} fetched=${result.fetched} saved=${result.saved} inserted=${result.inserted ?? 0} updated=${result.updated ?? 0}${result.error ? ` error=${result.error}` : ''}`
+            );
+          }
+        })
+      );
     }
 
     const failedCount = results.filter((r) => r.error).length;
