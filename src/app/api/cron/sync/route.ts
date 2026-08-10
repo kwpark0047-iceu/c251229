@@ -94,6 +94,8 @@ export async function GET(request: Request) {
         const startedAt = new Date().toISOString();
         const result = await syncSource(supabase, sourceKey, org.id, {
           scoringConfig,
+          // sync=true: 페치 데이터를 leads에 저장 (누락 시 페치만 하고 저장 안 함 — 과거 버그)
+          sync: true,
         });
         const finishedAt = new Date().toISOString();
 
