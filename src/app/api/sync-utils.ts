@@ -32,13 +32,16 @@ export async function getOrgScoringConfig(
 export async function getOrgId(supabase: SupabaseClient): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.id) return null;
+  // 다중 멤버십 대응: .single()은 다중 행이면 PGRST116을 반환해 '조직 없음'으로 오판하므로 최신 멤버십 1개만 조회
   const { data: member, error } = await supabase
     .from('organization_members')
     .select('organization_id')
     .eq('user_id', user.id)
-    .single();
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
   if (error) {
-    // PGRST116: 행 없음 / PGRST116 외: 중복 행, RLS 차단 등 — '조직 없음'과 구분해 기록
+    // PGRST116: 행 없음 / PGRST116 외: RLS 차단 등 — '조직 없음'과 구분해 기록
     console.error(`[sync-utils] getOrgId member 조회 실패 (user=${user.id}): ${error.code || ''} ${error.message}`);
     return null;
   }
@@ -75,11 +78,14 @@ export async function requireSyncAuth(
       errorResponse: NextResponse.json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 }),
     };
   }
+  // 다중 멤버십 대응: .single()은 다중 행이면 PGRST116을 반환해 '조직 없음'으로 오판하므로 최신 멤버십 1개만 조회
   const { data: member, error: memberError } = await supabase
     .from('organization_members')
     .select('organization_id, role')
     .eq('user_id', user.id)
-    .single();
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
   if (memberError) {
     // PGRST116: 행 없음(조직 미가입) / 그 외: 중복 행, RLS 차단 등 — 구분해서 기록
     console.error(

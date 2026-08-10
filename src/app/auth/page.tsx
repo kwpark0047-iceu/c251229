@@ -319,6 +319,8 @@ function AuthContent() {
           data: {
             tier, // 조직 가입 시에도 등급 적용 가능성 대비
             full_name: fullName || email.split('@')[0],
+            // [중요] DB 트리거(handle_new_user)가 invite_code로 초대 조직 member 가입 처리 — 누락 시 새 조직+owner로 잘못 소속됨
+            invite_code: inviteCode.trim(),
           }
         },
       })
@@ -335,20 +337,7 @@ function AuthContent() {
         return
       }
 
-      const { error: memberError } = await supabase
-        .from('organization_members')
-        .insert({
-          organization_id: orgData.id,
-          user_id: authData.user.id,
-          role: 'member',
-        })
-
-      if (memberError) {
-        setError(getErrorMessage(memberError))
-        setLoading(false)
-        return
-      }
-
+      // [중요] 멤버십 생성은 DB 트리거(handle_new_user)가 담당 (signUp 시 동기 실행). 이메일 확인 전 세션 없음으로 클라이언트 INSERT는 RLS 차단됨
       setMessage(`'${orgData.name}' 조직에 가입되었습니다. 이메일을 확인해주세요.`)
       setLoading(false)
     } catch (err) {
