@@ -50,3 +50,12 @@ next-env.d.ts
 
 
 .vercel
+
+# Claude Code cwd junk
+tmpclaude-*
+*.cwd
+.gitignore.tmp
+*.backup
+*.bak
+test_output.*
+*.swp

@@ -24,13 +24,13 @@
 
 #### Windows (PowerShell)
 ```powershell
-.\scripts\test-pipeline.ps1
+.\scripts\archive\test-pipeline.ps1
 ```
 
 #### Linux/Mac (Bash)
 ```bash
-chmod +x scripts/test-pipeline.sh
-./scripts/test-pipeline.sh
+chmod +x scripts/archive/test-pipeline.sh
+./scripts/archive/test-pipeline.sh
 ```
 
 #### npm 스크립트 사용

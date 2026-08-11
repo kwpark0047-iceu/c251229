@@ -79,7 +79,12 @@ src/
 │   │   └── page.tsx        # 메인 대시보드 페이지
 │   └── ...
 ├── components/             # 공통 UI 컴포넌트
-└── lib/                    # 유틸리티 및 설정 (global.antigravity.config.ts 포함)
+├── lib/                    # 유틸리티 및 설정 (global.antigravity.config.ts 포함)
+└── ... 생략 ...
+
+scripts/
+├── archive/                # 일회성 스크립트 보관 (수동 실행, 더 이상 사용 안 함)
+└── (데이터 파이프라인 스크립트)  # 데이터 임포트/동기화/업로드/검증 (예: sync-gg-*.js, upload-*.js)
 ```
 
 ## 🧪 테스트 및 CI/CD
