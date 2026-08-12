@@ -7,7 +7,9 @@
     "dev": "next dev",
     "dev:setup": "npm run db:dev:generate && npm run db:dev:push && npm run db:seed",
     "build": "next build",
-    "vercel-build": "prisma migrate deploy && next build",
+    "vercel-build": "next build",
+    "vercel-install": "npm install",
+    "validate-env": "tsx scripts/validate-env.ts",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -35,7 +37,8 @@
     "cron-worker": "tsx worker/cron-worker.ts",
     "dev:fetch": "tsx scripts/dev-fetch.ts",
     "dev:fetch:source": "tsx scripts/dev-fetch.ts",
-    "fetch": "curl -X POST http://localhost:3000/api/cron"
+    "fetch": "curl -X POST http://localhost:3000/api/cron",
+    "db:resolve:baseline": "npx prisma migrate resolve --applied 0001_init"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

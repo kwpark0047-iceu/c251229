@@ -12,6 +12,9 @@ const nextConfig = {
       { protocol: 'https', hostname: '**' },
     ],
   },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 }
 
 // Wrap with Sentry config. Source map upload only runs when

@@ -1,0 +1,62 @@
+# Vercel ignore file - exclude files not needed for deployment
+
+# Railway configs (removed)
+railway.json
+nixpacks.toml
+scripts/startup.sh
+
+# Local development
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Dependencies
+node_modules/
+
+# Test outputs
+coverage/
+.nyc_output/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# RAM measurement
+.ram/
+scripts/measure-ram.mjs
+scripts/fit-check.mjs
+
+# Prisma (generated client is built during deployment)
+prisma/migrations/
+
+# TypeScript
+*.tsbuildinfo
+
+# Playwright
+playwright-report/
+test-results/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+
+# Backup files
+*.bak
+*.backup
