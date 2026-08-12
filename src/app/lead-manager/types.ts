@@ -519,6 +519,7 @@ export interface ExcelInventoryRow {
   priceMonthly?: number;
   priceWeekly?: number;
   availabilityStatus?: AvailabilityStatus;
+  availableFrom?: string;
   description?: string;
 }
 

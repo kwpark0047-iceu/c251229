@@ -276,48 +276,79 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
     const line = getValueByKey(['호선']);
     const grade = getValueByKey(['등급']);
 
-    // 날짜 컬럼 확인하여 가용 상태 결정 (MM/DD 또는 숫자/문자가 있는 날짜 컬럼)
-    // 날짜 컬럼에 값이 있으면 계약됨(OCCUPIED), 없으면 가용(AVAILABLE)
-    let hasOccupiedDate = false;
-    for (const key of keys) {
-      // 날짜 패턴 확인 (01/05, 02/15 등) 또는 미사용 컬럼 제외
-      if (/^\d{2}\/\d{2}$/.test(key)) {
-        const cellValue = row[key];
-        // 값이 있으면 (null, undefined, '' 제외) 계약된 것으로 판단
-        if (cellValue !== null && cellValue !== undefined && cellValue !== '') {
-          hasOccupiedDate = true;
-          break;
+    // 단가 처리: 월단가가 없고 일단가/년단가가 있으면 12로 나눔
+    let priceMonthly: number | undefined;
+    const monthlyStr = getValueByKey(['단가(월)', '월단가', 'price_monthly']);
+    if (monthlyStr) {
+      priceMonthly = parseFloat(monthlyStr.replace(/,/g, '')) || undefined;
+    } else {
+      const yearlyStr = getValueByKey(['단가(년)', '년단가', '단가']);
+      if (yearlyStr) {
+        const priceYear = parseFloat(yearlyStr.replace(/,/g, ''));
+        if (priceYear > 0) {
+          priceMonthly = Math.round(priceYear / 12);
         }
       }
     }
 
-    // 상태 컬럼이 있으면 우선 사용, 없으면 날짜 컬럼 기반으로 판단
+    // 날짜 및 상태 판단
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dateRangeRegex = /\((\d{4}-\d{2}-\d{2})\s*~\s*(\d{4}-\d{2}-\d{2})\)/;
+    
+    let hasOccupiedDate = false;
+    let extractedAvailableFrom: string | undefined = undefined;
+    let contractInfo = '';
+
+    for (const key of keys) {
+      const cellVal = String(row[key] || '').trim();
+      if (!cellVal) continue;
+
+      if (/^\d{2}\/\d{2}$/.test(key)) {
+        hasOccupiedDate = true;
+      }
+
+      const match = cellVal.match(dateRangeRegex);
+      if (match) {
+        contractInfo = cellVal;
+        const endDate = new Date(match[2]);
+        if (endDate < today) {
+          extractedAvailableFrom = today.toISOString().split('T')[0];
+        } else {
+          hasOccupiedDate = true;
+          const nextDay = new Date(endDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          extractedAvailableFrom = nextDay.toISOString().split('T')[0];
+        }
+      }
+    }
+
     const statusFromExcel = getValueByKey(['상태', 'status']);
     let availabilityStatus: AvailabilityStatus;
     if (statusFromExcel) {
       availabilityStatus = mapAvailabilityStatus(statusFromExcel);
+    } else if (contractInfo.includes('[부킹]')) {
+      availabilityStatus = 'RESERVED';
     } else {
       availabilityStatus = hasOccupiedDate ? 'OCCUPIED' : 'AVAILABLE';
     }
 
-    // 디버깅: 첫 3개 행
-    // 파싱 진행 중 (디버그 로그 제거)
-
-    // 설명에 호선, 등급, 메모 포함
     const memo = getValueByKey(['메모', '설명', 'description']);
     const descParts = [];
     if (line) descParts.push(getLineDisplayName(line));
     if (grade) descParts.push(`${grade}등급`);
     if (memo) descParts.push(memo);
+    if (contractInfo) descParts.push(`계약: ${contractInfo}`);
 
     return {
       stationName,
       locationCode,
       adType,
       adSize: getValueByKey(['크기(mm)', '크기', 'ad_size']) || undefined,
-      priceMonthly: parseFloat(String(getValueByKey(['단가(월)', '월단가', 'price_monthly'])).replace(/,/g, '')) || undefined,
+      priceMonthly,
       priceWeekly: parseFloat(String(getValueByKey(['단가(주)', '주단가', 'price_weekly'])).replace(/,/g, '')) || undefined,
       availabilityStatus,
+      availableFrom: extractedAvailableFrom,
       description: descParts.length > 0 ? descParts.join(' / ') : undefined,
     };
   });
@@ -393,6 +424,7 @@ export async function uploadInventoryExcel(
           price_monthly: row.priceMonthly || null,
           price_weekly: row.priceWeekly || null,
           availability_status: row.availabilityStatus || 'AVAILABLE',
+          available_from: row.availableFrom || null,
           description: row.description || null,
           organization_id: orgId,
         };

@@ -17,6 +17,7 @@ import {
 } from '../../types';
 import { getInventory, deleteInventory, updateInventoryStatus } from '../../inventory-service';
 import { SUBWAY_STATIONS, METRO_LINES, METRO_LINE_NAMES, METRO_LINE_COLORS, MetroLine } from '@/lib/constants';
+import { TOTAL_SUBWAY_STATIONS } from '../../data/stations';
 
 interface InventoryTableProps {
   onRefresh?: () => void;
@@ -46,6 +47,33 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
     loadInventory();
   }, [loadInventory]);
 
+  // 아이템별 노선 추출 헬퍼 함수
+  const getItemLines = useCallback((item: AdInventory): string[] => {
+    const lines = new Set<string>();
+    
+    // 1. 설명(description)에서 "X호선" 패턴 추출
+    if (item.description) {
+      const matches = item.description.match(/(\d+)호선/g);
+      if (matches) {
+        matches.forEach(m => lines.add(m.replace('호선', '')));
+      }
+    }
+
+    // 2. 역명 기준 TOTAL_SUBWAY_STATIONS 및 SUBWAY_STATIONS 조회
+    const cleanName = item.stationName.replace(/역$/, '');
+    const totalStation = TOTAL_SUBWAY_STATIONS.find(s => s.name === cleanName || s.name === item.stationName);
+    if (totalStation && totalStation.lines) {
+      totalStation.lines.forEach(l => lines.add(l));
+    }
+
+    const station = SUBWAY_STATIONS.find(s => s.name === cleanName || s.name === item.stationName);
+    if (station && station.lines) {
+      station.lines.forEach(l => lines.add(l));
+    }
+
+    return Array.from(lines);
+  }, []);
+
   // Apply client‑side filtering based on search, status, type, and line
   const filteredInventory = inventory.filter(item => {
     const matchesSearch =
@@ -59,15 +87,8 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
     const matchesType =
       typeFilters.length === 0 || typeFilters.includes(item.adType);
       
-    const matchesLine = lineFilters.length === 0 || (() => {
-      // Find the station in the predefined list
-      const cleanStationName = item.stationName.replace(/역$/, '');
-      const station = SUBWAY_STATIONS.find(s => s.name === cleanStationName);
-      if (station) {
-        return station.lines.some(line => lineFilters.includes(line));
-      }
-      return false; // Exclude if we can't determine the line and filters are active
-    })();
+    const itemLines = getItemLines(item);
+    const matchesLine = lineFilters.length === 0 || itemLines.some(line => lineFilters.includes(line));
 
     return matchesSearch && matchesStatus && matchesType && matchesLine;
   });
@@ -76,11 +97,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
   const adTypes = Array.from(new Set(inventory.map(i => i.adType)));
 
   // 노선 목록 (필터 UI 용)
-  const availableLinesSet = new Set(inventory.flatMap(item => {
-    const cleanStationName = item.stationName.replace(/역$/, '');
-    const station = SUBWAY_STATIONS.find(s => s.name === cleanStationName);
-    return station ? station.lines : [];
-  }));
+  const availableLinesSet = new Set(inventory.flatMap(item => getItemLines(item)));
   const orderedAvailableLines = METRO_LINES.filter(line => availableLinesSet.has(line));
 
   // Optimistic status update
