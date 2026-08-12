@@ -236,6 +236,16 @@ const SEOUL_BASE = 'http://openapi.seoul.go.kr:8088';
 const SEOUL_PAGE_SIZE = 1000;
 const SEOUL_MAX_PAGES = 100; // 10만 건까지 수용 가능하도록 확대
 
+/** 최종수정일자(LASTMODTS, 'YYYY-MM-DD HH:MM:SS')가 최근 3년 이내인지 확인 (ISO 날짜 문자열 사전순 비교) */
+function isWithinLastThreeYears(lastModTs: string | null | undefined): boolean {
+  if (!lastModTs || typeof lastModTs !== 'string') return false;
+  const datePart = lastModTs.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return false;
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 3);
+  return datePart >= cutoff.toISOString().slice(0, 10);
+}
+
 export async function fetchSeoulAllPages(
   config: SeoulSourceConfig,
   apiKey: string
@@ -276,8 +286,12 @@ export async function fetchSeoulAllPages(
           }
           const data = await res.json();
           const rows = data[config.serviceCode]?.row || [];
-          // 폐업 제외
-          return rows.filter((r: any) => !(r.DTLSTATENM || '').includes('폐업'));
+          // 영업중이면서 최종수정일자가 최근 3년 이내인 업소만 유효 처리
+          return rows.filter(
+            (r: any) =>
+              (r.TRDSTATENM || '').trim() === '영업중' &&
+              isWithinLastThreeYears(r.LASTMODTS),
+          );
         })
         .catch(e => {
           console.warn(`[${config.label}] 페이지 ${page} 예외:`, e);
@@ -336,6 +350,7 @@ export function mapSeoulRow(row: any, config: SeoulSourceConfig, orgId: string |
     mgt_no: row.MGTNO || null,
     biz_id: row.BRNO || null,
     license_date: row.APVPERMYMD || null,
+    last_modified_date: row.LASTMODTS || null,
     ...(orgId ? { organization_id: orgId } : {}),
   };
 }

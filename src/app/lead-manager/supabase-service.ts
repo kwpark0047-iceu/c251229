@@ -387,6 +387,13 @@ export async function getLeads(filters?: {
       }
     }
 
+    // 서울 데이터 표시 필터: 영업중 + 최종수정일자(LASTMODTS) 3년 이내만 표시.
+    // GG 데이터는 last_modified_date가 NULL이라 통과 (last_modified_date는 서울만 설정됨).
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 3);
+    const cutoff = d.toISOString().slice(0, 10);
+    query = query.or(`and(operating_status.eq.영업중,last_modified_date.gte.${cutoff}),last_modified_date.is.null`);
+
     const { data, count, error } = await query.range(from, to);
 
     if (error) {

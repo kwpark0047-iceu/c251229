@@ -28,6 +28,7 @@ const createMockBuilder = (data: any = [], count: number | null = 1, error: any 
     eq: vi.fn().mockReturnThis(),
     not: vi.fn().mockReturnThis(),
     neq: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: Array.isArray(data) ? data[0] : data, error }),
     delete: vi.fn().mockReturnThis(),
@@ -46,6 +47,7 @@ const createMockBuilder = (data: any = [], count: number | null = 1, error: any 
   builder.eq.mockReturnValue(builder);
   builder.not.mockReturnValue(builder);
   builder.neq.mockReturnValue(builder);
+  builder.or.mockReturnValue(builder);
   builder.limit.mockReturnValue(builder);
   builder.delete.mockReturnValue(builder);
   builder.update.mockReturnValue(builder);
