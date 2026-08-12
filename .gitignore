@@ -54,3 +54,4 @@ backups/
 
 # ram measurement artifacts
 /.ram/
+.env*
