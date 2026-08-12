@@ -530,10 +530,14 @@ export async function createOrganization(name: string): Promise<{
     return { success: false, message: '조직 이름은 50자 이하여야 합니다.' };
   }
 
-  // 1. 조직 생성 (invite_code는 DB 기본값으로 자동 생성)
+  // 1. 조직 생성 (invite_code 생성 후 함께 저장 - DB 트리거와 동일한 방식)
+  const inviteCode = Array.from(crypto.getRandomValues(new Uint8Array(6)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
   const { data: org, error: orgError } = await supabase
     .from('organizations')
-    .insert({ name: trimmedName })
+    .insert({ name: trimmedName, invite_code: inviteCode })
     .select('id, name, invite_code')
     .single();
 
