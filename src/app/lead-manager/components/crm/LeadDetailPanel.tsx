@@ -22,7 +22,9 @@ import {
   User,
   Tag,
   Check,
+  Sparkles,
 } from 'lucide-react';
+import SmartAdMatcherModal from './SmartAdMatcherModal';
 import {
   LeadWithCRM,
   AdInventory,
@@ -77,6 +79,7 @@ export default function LeadDetailPanel({
   const [selectedProposal, setSelectedProposal] = useState<Proposal | null>(null);
   const [inventory, setInventory] = useState<AdInventory[]>([]);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+  const [showSmartMatcher, setShowSmartMatcher] = useState(false);
 
   useEffect(() => {
     getCurrentUser().then(user => setCurrentUser(user));
@@ -163,6 +166,13 @@ export default function LeadDetailPanel({
           >
             <FileText className="w-4 h-4" />
             <span className="text-sm">통화기록</span>
+          </button>
+          <button
+            onClick={() => setShowSmartMatcher(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:opacity-95 transition-all hover:scale-105 active:scale-95 shadow-sm font-semibold"
+          >
+            <Sparkles className="w-4 h-4 animate-pulse" />
+            <span className="text-sm">AI 매칭</span>
           </button>
           <button
             onClick={() => setShowProposalForm(true)}
@@ -438,6 +448,15 @@ export default function LeadDetailPanel({
             loadLead();
             onStatusChange?.();
           }}
+        />
+      )}
+
+      {/* AI 스마트 매체 매칭 & ROI 예측 리포트 */}
+      {showSmartMatcher && (
+        <SmartAdMatcherModal
+          lead={lead}
+          inventory={inventory}
+          onClose={() => setShowSmartMatcher(false)}
         />
       )}
 

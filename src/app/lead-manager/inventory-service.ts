@@ -16,6 +16,7 @@ import {
 } from './types';
 import { calculateDistance } from './utils';
 import { SUBWAY_STATIONS } from './constants';
+import { TOTAL_SUBWAY_STATIONS } from './data/stations';
 import { getOrganizationId } from './auth-service';
 import { mapColorToStatus, findTargetDateColumnIndex } from './utils/excel-color-utils';
 import { getLineDisplayName, normalizeLineCode } from './utils/subway-utils';
@@ -687,40 +688,48 @@ export async function findInventoryByStation(
 }
 
 /**
- * 리드(병원) 위치 기반 인근 인벤토리 조회
+ * 리드(병원/업체) 위치 기반 인근 인벤토리 조회
  */
 export async function findInventoryForLead(
   lead: Lead,
-  maxDistanceMeters: number = 1000
+  maxDistanceMeters: number = 1200
 ): Promise<AdInventory[]> {
-  if (!lead.latitude || !lead.longitude) {
-    return [];
+  const targetStationNames = new Set<string>();
+
+  if (lead.nearestStation) {
+    const clean = lead.nearestStation.replace(/역$/, '');
+    targetStationNames.add(lead.nearestStation);
+    targetStationNames.add(clean);
+    targetStationNames.add(`${clean}역`);
   }
 
-  // 반경 내 역 찾기
-  const nearbyStations = SUBWAY_STATIONS.filter(station => {
-    const distance = calculateDistance(
-      lead.latitude!,
-      lead.longitude!,
-      station.lat,
-      station.lng
-    );
-    return distance <= maxDistanceMeters;
-  });
-
-  if (nearbyStations.length === 0) {
-    return [];
+  if (lead.latitude && lead.longitude) {
+    // TOTAL_SUBWAY_STATIONS 및 SUBWAY_STATIONS에서 반경 내 역 검색
+    const allStations = [...TOTAL_SUBWAY_STATIONS, ...SUBWAY_STATIONS];
+    for (const station of allStations) {
+      const dist = calculateDistance(
+        lead.latitude,
+        lead.longitude,
+        station.lat,
+        station.lng
+      );
+      if (dist <= maxDistanceMeters) {
+        targetStationNames.add(station.name);
+        targetStationNames.add(`${station.name}역`);
+      }
+    }
   }
 
-  // 해당 역들의 가용 인벤토리 조회
-  const stationNames = nearbyStations.map(s => s.name);
+  if (targetStationNames.size === 0) {
+    return [];
+  }
 
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('ad_inventory')
     .select('*')
-    .in('station_name', stationNames)
-    .eq('availability_status', 'AVAILABLE')
+    .in('station_name', Array.from(targetStationNames))
+    .order('availability_status', { ascending: true })
     .order('station_name');
 
   if (error || !data) {

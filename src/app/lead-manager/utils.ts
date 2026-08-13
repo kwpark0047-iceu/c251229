@@ -419,3 +419,15 @@ export function extractNeighborhood(address: string | null | undefined): string 
   const match = address.match(/([가-힣\d]+동)\b/);
   return match ? match[1] : null;
 }
+
+/**
+ * 금액을 한글 단위로 포맷 (억/만/원)
+ * @param value - 금액 (원)
+ * @returns 포맷된 금액 문자열 (예: 1.2억, 350만, 4,500원)
+ */
+export function formatWon(value: number): string {
+  if (!value || value <= 0) return '-';
+  if (value >= 100000000) return `${(value / 100000000).toFixed(1)}억`;
+  if (value >= 10000) return `${(value / 10000).toFixed(1)}만`;
+  return `${value.toLocaleString()}원`;
+}
