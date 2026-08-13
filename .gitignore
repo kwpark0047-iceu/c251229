@@ -59,3 +59,5 @@ tmpclaude-*
 *.bak
 test_output.*
 *.swp
+
+.env*.local
