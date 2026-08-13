@@ -2,7 +2,7 @@
 
 > **목적**: AI가 세션 간 전환 시에도 정확히 어디까지 진행했는지 파악하기 위한 기록  
 > **마지막 갱신**: 2026-08-13  
-> **다음 작업**: Phase 9 완료 — 테스트 타입 오류 정리, ignoreBuildErrors 제거, 문서 갱신
+> **다음 작업**: Phase 11 — 테스트 커버리지 70% 달성 (stock-service 24% → 최우선)
 
 ---
 
@@ -126,8 +126,22 @@ f7be167 fix: stop infinite Redis reconnect attempts when Upstash unreachable
 |---|---|---|---|
 | AI-IT db-service 테스트 11건 수정 | src/lib/ai-it/__tests__/db-service.test.ts | ✅ | mock 타입/필드 정합, 26개 전부 통과 |
 | scripts/validate-env.ts import 경로 수정 | scripts/validate-env.ts | ✅ | `./src/` → `../src/` |
-| next.config.ts에서 `ignoreBuildErrors` 제거 | next.config.js | ✅ | 빌드 타입 체크 강제 |
+| next.config.js에서 `ignoreBuildErrors` 제거 | next.config.js | ✅ | 빌드 타입 체크 강제 |
 | 문서 갱신 (Vercel 배포 반영, 테스트 499개) | DOCUMENTATION.md / tasks.md | ✅ | 499 tests/33 suites 반영 |
+
+---
+
+## Phase 10: 완료 (2026-08-13, 미커밋)
+
+| 작업 | 파일 | 상태 | 비고 |
+|---|---|---|---|
+| 관리자 대시보드 수동 수집(강제수집) 버튼 | src/app/admin/page.tsx | ✅ | 소스 테이블 행별 '⚡ 강제수집' → POST /api/admin/trigger |
+| 관리자 대시보드 캐시 무효화 버튼 | src/app/admin/page.tsx | ✅ | CACHE_PATTERNS 7종 + '🗑️ 전체 캐시 초기화' → POST /api/admin/cache/invalidate |
+| 중복 기사 병합 UI | src/app/admin/page.tsx | ✅ | GET/POST /api/admin/duplicates (미리보기 + 실행) |
+| 수동 수집 API | src/app/api/admin/trigger/route.ts | ✅ | RSS→runRssFetch, AI_IT→fetchAndProcessSource |
+| 캐시 무효화 API | src/app/api/admin/cache/invalidate/route.ts | ✅ | CLEARABLE_PATTERNS 매핑, deleteByPattern |
+
+> **비고**: Task 4 UI·API는 기존 코드에 이미 구현되어 있어 재작성 없이 동작 확인·문서화만 수행함.
 
 ---
 

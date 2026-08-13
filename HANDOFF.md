@@ -91,7 +91,7 @@ Financial (별도 도메인)
 
 ### Jest (499 tests, 33 suites)
 ```
-Test Suites: 31 passed, 31 total
+Test Suites: 33 passed, 33 total
 Tests:       499 passed, 499 total
 ```
 
