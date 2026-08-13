@@ -4,10 +4,11 @@ import { createLogger } from '@/lib/logger'
 
 const log = createLogger('ApiCronCleanup')
 
-// Cleanup configuration
+// Cleanup configuration - uses ARTICLE_RETENTION_DAYS env var for articles
+// Defaults to 90 days if not set, matching db-service.ts RETENTION_DAYS
 const CLEANUP_CONFIG = {
-  // Keep articles for 30 days, delete older
-  articleRetentionDays: 30,
+  // Keep articles for ARTICLE_RETENTION_DAYS days (default: 90), delete older
+  articleRetentionDays: parseInt(process.env.ARTICLE_RETENTION_DAYS || '90', 10),
   // Keep fetch logs for 90 days
   fetchLogRetentionDays: 90,
   // Keep financial fetch logs for 90 days

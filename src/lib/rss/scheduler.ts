@@ -8,6 +8,7 @@ import { runJobWithLock } from '@/lib/utils/lock'
 import { logSchedulerError, logSchedulerSuccess, createSafeSchedulerJob } from '@/lib/utils/scheduler-error-handler'
 
 import { createLogger } from '@/lib/logger';
+import { prisma } from "@/lib/db";
 
 const log = createLogger('RSSFinder')
 
@@ -23,9 +24,32 @@ export interface FetchResult {
 let initialized = false
 
 export async function runRssFetch(sourceNameEn?: string): Promise<FetchResult[]> {
-  const sourcesToFetch = sourceNameEn
-    ? ALL_SOURCES.filter(s => s.nameEn === sourceNameEn)
-    : ALL_SOURCES
+  // Merge hardcoded sources with DB sources for dynamic discovery
+  const mergedSources = [...ALL_SOURCES]
+
+  // Add DB sources that aren't already in the hardcoded list
+  const dbSources = await prisma.source.findMany({
+    where: { isActive: true },
+  })
+  const dbSourceNames = new Set(ALL_SOURCES.map(s => s.nameEn))
+  for (const dbSource of dbSources) {
+    if (!dbSourceNames.has(dbSource.nameEn)) {
+      mergedSources.push({
+        name: dbSource.name,
+        nameEn: dbSource.nameEn,
+        url: dbSource.url,
+        category: (dbSource.category as 'domestic' | 'overseas' | 'medical' | 'smallbiz') || 'domestic',
+        subcategory: dbSource.subcategory || 'general',
+        language: (dbSource.language as 'ko' | 'en') || 'ko',
+        icon: dbSource.icon ?? undefined,
+        fetchInterval: dbSource.fetchInterval || 3,
+      })
+    }
+  }
+
+  const sourcesToFetch = mergedSources.filter((source) =>
+    sourceNameEn ? source.nameEn === sourceNameEn : true,
+  )
 
   // Always seed sources to ensure new or updated sources are in the DB
   await seedSources()
@@ -45,6 +69,12 @@ export async function runRssFetch(sourceNameEn?: string): Promise<FetchResult[]>
     const config = sourcesToFetch[i]
     const start = Date.now()
     try {
+      // Small delay between sources to prevent rate limiting and memory issues
+      // (skip delay on the last source to avoid unnecessary wait)
+      if (i > 0 && i < sourcesToFetch.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+
       const sourceId = await getSourceIdByNameEn(config.nameEn)
       if (!sourceId) {
         results.push({ source: config.nameEn, status: 'skipped', error: 'Source not found in DB', duration: Date.now() - start })

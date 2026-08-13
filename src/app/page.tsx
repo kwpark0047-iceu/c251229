@@ -88,7 +88,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                     {article.title}
                   </Link>
                   <span className="flex-shrink-0 text-xs text-muted-foreground">
-                    {article.source.name}
+                    {article.source?.name ?? '제목 없음'}
                   </span>
                 </div>
               ))}
