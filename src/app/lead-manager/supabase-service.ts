@@ -651,3 +651,126 @@ export async function getLeadStats(): Promise<{
     return { total: 0, byStatus: { NEW: 0, PROPOSAL_SENT: 0, CONTACTED: 0, CONTRACTED: 0 }, byStation: [] };
   }
 }
+
+/**
+ * 중복 리드 병합 (keep 리드 유지 + 나머지 삭제)
+ * - organization_id 스코프 유지 (getLeads와 동일 패턴)
+ * - 병합 가능한 필드만 업데이트하여 null 덮어쓰기 방지
+ */
+export async function mergeDuplicateLeadsInDB(
+  keepId: string,
+  removeIds: string[],
+  mergedData: Partial<Lead>,
+  userInfo?: any
+): Promise<{ success: boolean; message: string; mergedCount: number }> {
+  try {
+    const supabase = getSupabase();
+
+    const isSuperAdmin = userInfo?.isSuperAdmin || userInfo?.email === 'kwpark0047@gmail.com';
+    const organizationId = userInfo?.organizationId;
+
+    const updatePayload = {
+      road_address: mergedData.roadAddress || null,
+      lot_address: mergedData.lotAddress || null,
+      coord_x: mergedData.coordX || null,
+      coord_y: mergedData.coordY || null,
+      latitude: mergedData.latitude || null,
+      longitude: mergedData.longitude || null,
+      phone: mergedData.phone || null,
+      biz_id: mergedData.bizId || null,
+      license_date: mergedData.licenseDate || null,
+    };
+
+    let updateQuery = supabase
+      .from('leads')
+      .update(updatePayload)
+      .eq('id', keepId);
+
+    if (!isSuperAdmin && organizationId) {
+      updateQuery = updateQuery.eq('organization_id', organizationId);
+    }
+
+    const { error: updateError } = await updateQuery;
+
+    if (updateError) {
+      console.error('[Supabase] mergeDuplicateLeadsInDB Update Error:', updateError);
+      return { success: false, message: `병합 대상 업데이트 실패: ${updateError.message}`, mergedCount: 0 };
+    }
+
+    // 나머지 중복 리드 배치 삭제
+    let deletedCount = 0;
+    for (let i = 0; i < removeIds.length; i += 100) {
+      const batch = removeIds.slice(i, i + 100);
+
+      let deleteQuery = supabase
+        .from('leads')
+        .delete()
+        .in('id', batch);
+
+      if (!isSuperAdmin && organizationId) {
+        deleteQuery = deleteQuery.eq('organization_id', organizationId);
+      }
+
+      const { error: deleteError } = await deleteQuery;
+
+      if (deleteError) {
+        console.error('[Supabase] mergeDuplicateLeadsInDB Delete Error:', deleteError);
+        return { success: false, message: `중복 리드 삭제 실패: ${deleteError.message}`, mergedCount: 0 };
+      }
+
+      deletedCount += batch.length;
+    }
+
+    return { success: true, message: `중복 리드 병합 완료 (${deletedCount}건 정리)`, mergedCount: deletedCount };
+  } catch (error: any) {
+    console.error('[Supabase] mergeDuplicateLeadsInDB Error:', error);
+    return { success: false, message: error?.message || '병합 중 오류가 발생했습니다.', mergedCount: 0 };
+  }
+}
+
+/**
+ * 특정 리드 일괄 삭제 (organization_id 스코프 유지)
+ */
+export async function deleteLeadsByIds(
+  ids: string[],
+  userInfo?: any
+): Promise<{ success: boolean; message: string; deletedCount: number }> {
+  if (ids.length === 0) {
+    return { success: true, message: '삭제할 리드가 없습니다.', deletedCount: 0 };
+  }
+
+  try {
+    const supabase = getSupabase();
+
+    const isSuperAdmin = userInfo?.isSuperAdmin || userInfo?.email === 'kwpark0047@gmail.com';
+    const organizationId = userInfo?.organizationId;
+
+    let deletedCount = 0;
+    for (let i = 0; i < ids.length; i += 100) {
+      const batch = ids.slice(i, i + 100);
+
+      let deleteQuery = supabase
+        .from('leads')
+        .delete()
+        .in('id', batch);
+
+      if (!isSuperAdmin && organizationId) {
+        deleteQuery = deleteQuery.eq('organization_id', organizationId);
+      }
+
+      const { error } = await deleteQuery;
+
+      if (error) {
+        console.error('[Supabase] deleteLeadsByIds Error:', error);
+        return { success: false, message: `리드 삭제 실패: ${error.message}`, deletedCount: 0 };
+      }
+
+      deletedCount += batch.length;
+    }
+
+    return { success: true, message: `리드 ${deletedCount}건 삭제 완료`, deletedCount };
+  } catch (error: any) {
+    console.error('[Supabase] deleteLeadsByIds Error:', error);
+    return { success: false, message: error?.message || '삭제 중 오류가 발생했습니다.', deletedCount: 0 };
+  }
+}

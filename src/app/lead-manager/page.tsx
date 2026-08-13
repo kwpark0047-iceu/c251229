@@ -42,17 +42,18 @@ import { DEFAULT_SETTINGS, METRO_TAB_COLORS, SUBWAY_STATIONS } from './constants
 import { METRO_LINE_NAMES } from '@/lib/constants';
 import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
-import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings } from './supabase-service';
+import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings, mergeDuplicateLeadsInDB, deleteLeadsByIds } from './supabase-service';
 import { getCurrentUser, signOut, UserInfo, logActivity } from './auth-service';
 import { getProgressBatch } from './crm-service';
 import { SalesProgress } from './types';
 import { isAddressInRegions, RegionCode } from './region-utils';
-import { removeDuplicateLeads } from './deduplication-utils';
+import { removeDuplicateLeads, groupDuplicateLeads, mergeDuplicateLeads } from './deduplication-utils';
 
 import GridView from './components/GridView';
 import ListView from './components/ListView';
 import SettingsModal from './components/SettingsModal';
 import SyncProgressModal from './components/SyncProgressModal';
+import DuplicateManager from './components/DuplicateManager';
 
 // MapView를 dynamic 임포트 (SSR 방지)
 import dynamic from 'next/dynamic';
@@ -120,6 +121,54 @@ function LeadManagerContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const { showNotification } = useNotification();
+
+  const handleMergeDuplicates = async (finalLeads: Lead[]) => {
+    try {
+      const groups = groupDuplicateLeads(leads);
+      let mergedCount = 0;
+
+      for (const group of groups) {
+        const merged = mergeDuplicateLeads(group);
+        const removeIds = group.filter(l => l.id !== merged.id).map(l => l.id);
+        if (removeIds.length === 0) continue;
+
+        const result = await mergeDuplicateLeadsInDB(merged.id, removeIds, merged, userInfo);
+        if (!result.success) {
+          showNotification('error', result.message);
+          return;
+        }
+        mergedCount += 1;
+      }
+
+      const removedCount = Math.max(0, leads.length - finalLeads.length);
+      setLeads(finalLeads);
+      setTotalCount(prev => Math.max(0, prev - removedCount));
+      showNotification('success', mergedCount > 0 ? `중복 리드 ${mergedCount}그룹 병합 완료` : '병합할 중복 리드가 없습니다.');
+    } catch (error) {
+      showNotification('error', error instanceof Error ? error.message : '중복 병합 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleRemoveDuplicates = async (duplicateIds: string[]) => {
+    if (!duplicateIds.length) {
+      showNotification('info', '제거할 중복 리드가 없습니다.');
+      return;
+    }
+
+    try {
+      const result = await deleteLeadsByIds(duplicateIds, userInfo);
+      if (!result.success) {
+        showNotification('error', result.message);
+        return;
+      }
+      setLeads(prev => prev.filter(l => !duplicateIds.includes(l.id)));
+      setTotalCount(prev => Math.max(0, prev - duplicateIds.length));
+      showNotification('success', result.message);
+    } catch (error) {
+      showNotification('error', error instanceof Error ? error.message : '중복 제거 중 오류가 발생했습니다.');
+    }
+  };
+
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>('ALL');
@@ -868,6 +917,9 @@ function LeadManagerContent() {
               </div>
             ) : (
               <>
+                {leads.length > 0 && (
+                  <DuplicateManager leads={leads} onMergeDuplicates={handleMergeDuplicates} onRemoveDuplicates={handleRemoveDuplicates} />
+                )}
 {viewMode === 'grid' && <GridView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} isFieldMode={isFieldMode} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} />}
                   {viewMode === 'list' && <ListView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} />}
                 {viewMode === 'map' && <MapView leads={filteredLeads} onStatusChange={handleStatusChange} onListView={() => setViewMode('list')} focusLead={mapFocusLead} onFocusClear={() => setMapFocusLead(null)} />}
