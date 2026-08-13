@@ -1,7 +1,21 @@
-import { PrismaClient } from '@prisma/client'
-
 // Mock Prisma client before importing the module
-const mockPrisma = {
+type MockPrisma = {
+  article: Record<string, jest.Mock>
+  source: Record<string, jest.Mock>
+  newsSummary: Record<string, jest.Mock>
+  newsCategory: Record<string, jest.Mock>
+  newsTag: Record<string, jest.Mock>
+  newsTagRelation: Record<string, jest.Mock>
+  fetchLog: Record<string, jest.Mock>
+  distributedLock: Record<string, jest.Mock>
+  priceHistory: Record<string, jest.Mock>
+  cryptoCandle: Record<string, jest.Mock>
+  globalIndexQuote: Record<string, jest.Mock>
+  $transaction: jest.Mock
+  $queryRaw: jest.Mock
+}
+
+const mockPrisma: MockPrisma = {
   article: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
@@ -87,7 +101,7 @@ const mockPrisma = {
   globalIndexQuote: {
     deleteMany: jest.fn(),
   },
-  $transaction: jest.fn((fn: (tx: typeof mockPrisma) => Promise<unknown>) => fn(mockPrisma)),
+  $transaction: jest.fn((fn: (tx: MockPrisma) => Promise<unknown>) => fn(mockPrisma)),
   $queryRaw: jest.fn(),
 }
 
@@ -222,7 +236,8 @@ describe('ai-it/db-service', () => {
           sourceId: 'source-1',
           sourceType: 'AI_IT' as const,
           categoryId: 'cat-1',
-          language: 'en',
+          language: 'en' as const,
+          sourceNameEn: 'openai_blog',
         },
         {
           guid: 'guid-2',
@@ -236,7 +251,8 @@ describe('ai-it/db-service', () => {
           sourceId: 'source-1',
           sourceType: 'AI_IT' as const,
           categoryId: 'cat-1',
-          language: 'en',
+          language: 'en' as const,
+          sourceNameEn: 'openai_blog',
         },
       ]
 
@@ -282,12 +298,12 @@ describe('ai-it/db-service', () => {
           description: 'Description',
           content: 'Content',
           author: 'Author',
-          thumbnail: null,
           publishedAt: new Date('2024-01-15T10:30:00Z'),
           sourceId: 'source-1',
           sourceType: 'AI_IT' as const,
           categoryId: 'cat-1',
-          language: 'en',
+          language: 'en' as const,
+          sourceNameEn: 'openai_blog',
         },
       ]
 
@@ -340,7 +356,6 @@ describe('ai-it/db-service', () => {
       const result = await getAIITArticles({
         page: 1,
         limit: 10,
-        sourceType: 'AI_IT',
         language: 'en',
       })
 
@@ -351,7 +366,9 @@ describe('ai-it/db-service', () => {
       expect(mockPrisma.article.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            sourceType: 'AI_IT',
+            source: expect.objectContaining({
+              sourceType: 'AI_IT',
+            }),
             language: 'en',
           }),
           orderBy: { publishedAt: 'desc' },
@@ -470,6 +487,7 @@ describe('ai-it/db-service', () => {
       expect(result).toEqual(mockArticle)
       expect(mockPrisma.article.findUnique).toHaveBeenCalledWith({
         where: { url: 'https://example.com/1' },
+        include: { source: true },
       })
     })
   })
@@ -525,52 +543,45 @@ describe('ai-it/db-service', () => {
 
   describe('getAIITArticleStats', () => {
     it('returns article statistics', async () => {
-      mockPrisma.article.count
-        .mockResolvedValueOnce(100) // total
-        .mockResolvedValueOnce(80) // read
-        .mockResolvedValueOnce(20) // bookmarked
-        .mockResolvedValueOnce(5) // breaking
-      mockPrisma.article.groupBy.mockResolvedValue([
-        { sourceId: 'source-1', _count: { sourceId: 50 } },
-        { sourceId: 'source-2', _count: { sourceId: 50 } },
-      ])
+      mockPrisma.article.count.mockResolvedValue(100)
+      mockPrisma.source.count.mockResolvedValue(5)
+      mockPrisma.fetchLog.findFirst.mockResolvedValue({ fetchedAt: new Date() })
+      mockPrisma.article.groupBy.mockResolvedValue([{ _count: { articleId: 3 } }])
 
       const stats = await getAIITArticleStats()
 
-      expect(stats).toEqual({
-        total: 100,
-        read: 80,
-        unread: 20,
-        bookmarked: 20,
-        breaking: 5,
-        bySource: [
-          { sourceId: 'source-1', count: 50 },
-          { sourceId: 'source-2', count: 50 },
-        ],
-      })
+      expect(stats).toEqual(
+        expect.objectContaining({
+          totalArticles: 100,
+          totalSources: 5,
+          lastFetchAt: expect.any(Date),
+          topSources: expect.any(Array),
+          articlesByCategory: expect.any(Array),
+          articlesByLanguage: expect.any(Array),
+        })
+      )
     })
   })
 
   describe('getSubcategoriesWithCount', () => {
     it('returns subcategories with article counts', async () => {
-      mockPrisma.article.groupBy.mockResolvedValue([
-        { categoryId: 'cat-1', _count: { categoryId: 30 } },
-        { categoryId: 'cat-2', _count: { categoryId: 20 } },
+      mockPrisma.source.findMany.mockResolvedValue([
+        { id: 's1', subcategory: 'official_ai' },
+        { id: 's2', subcategory: 'official_ai' },
+        { id: 's3', subcategory: null },
+        { id: 's4', subcategory: 'research' },
       ])
-      mockPrisma.newsCategory.findMany.mockResolvedValue([
-        { id: 'cat-1', name: 'OpenAI', nameEn: 'openai', type: 'official_ai' },
-        { id: 'cat-2', name: 'Google AI', nameEn: 'google_ai', type: 'official_ai' },
-      ])
+      mockPrisma.article.count
+        .mockResolvedValueOnce(30)
+        .mockResolvedValueOnce(20)
+        .mockResolvedValue(10)
 
       const result = await getSubcategoriesWithCount('ai')
 
-      expect(result).toHaveLength(2)
-      expect(result[0]).toEqual({
-        categoryId: 'cat-1',
-        categoryName: 'OpenAI',
-        categoryNameEn: 'openai',
-        count: 30,
-      })
+      expect(result).toEqual([
+        { subcategory: 'official_ai', count: 50 },
+        { subcategory: 'research', count: 10 },
+      ])
     })
   })
 
@@ -587,9 +598,7 @@ describe('ai-it/db-service', () => {
         keywords: ['AI', 'GPT-4'],
         relatedCompanies: ['OpenAI'],
         relatedModels: ['GPT-4'],
-        difficulty: 'intermediate',
-        aiGenerated: true,
-        modelUsed: 'gpt-4o-mini',
+        difficulty: 'intermediate' as const,
       }
 
       mockPrisma.newsSummary.upsert.mockResolvedValue(mockSummary)
@@ -599,10 +608,17 @@ describe('ai-it/db-service', () => {
       expect(result).toEqual(mockSummary)
       expect(mockPrisma.newsSummary.upsert).toHaveBeenCalledWith({
         where: { articleId: 'art-1' },
-        update: mockSummary,
+        update: expect.objectContaining({
+          translatedTitle: 'Translated Title',
+          summary3Line: '3 line summary',
+          keywords: ['AI', 'GPT-4'],
+          relatedCompanies: ['OpenAI'],
+          relatedModels: ['GPT-4'],
+          difficulty: 'intermediate',
+        }),
         create: expect.objectContaining({
-          articleId: 'art-1',
           ...mockSummary,
+          articleId: 'art-1',
         }),
       })
     })
@@ -647,12 +663,12 @@ describe('ai-it/db-service', () => {
     it('adds tags to article', async () => {
       mockPrisma.newsTagRelation.deleteMany.mockResolvedValue({ count: 0 })
       mockPrisma.newsTag.upsert.mockResolvedValue({ id: 'tag-1', name: 'GPT-4' })
-      mockPrisma.newsTagRelation.create.mockResolvedValue({ articleId: 'art-1', tagId: 'tag-1' })
+      mockPrisma.newsTagRelation.upsert.mockResolvedValue({ articleId: 'art-1', tagId: 'tag-1' })
 
       await addTagsToNews('art-1', ['GPT-4', 'OpenAI'])
 
       expect(mockPrisma.newsTag.upsert).toHaveBeenCalledTimes(2)
-      expect(mockPrisma.newsTagRelation.create).toHaveBeenCalledTimes(2)
+      expect(mockPrisma.newsTagRelation.upsert).toHaveBeenCalledTimes(2)
     })
   })
 
@@ -666,39 +682,23 @@ describe('ai-it/db-service', () => {
 
       const result = await getTagsForNews('art-1')
 
-      expect(result).toHaveLength(2)
-      expect(result[0]).toEqual({
-        id: 'tag-1',
-        name: 'GPT-4',
-        nameEn: 'gpt-4',
-        type: 'model',
-        color: '#ff0000',
-      })
+      expect(result).toEqual(['GPT-4', 'OpenAI'])
     })
   })
 
   describe('getPopularTags', () => {
     it('returns popular tags with counts', async () => {
-      mockPrisma.newsTagRelation.groupBy.mockResolvedValue([
-        { tagId: 'tag-1', _count: { tagId: 50 } },
-        { tagId: 'tag-2', _count: { tagId: 30 } },
-      ])
       mockPrisma.newsTag.findMany.mockResolvedValue([
-        { id: 'tag-1', name: 'GPT-4', nameEn: 'gpt-4', type: 'model', color: '#ff0000' },
-        { id: 'tag-2', name: 'OpenAI', nameEn: 'openai', type: 'company', color: '#00ff00' },
+        { name: 'GPT-4', _count: { articles: 50 } },
+        { name: 'OpenAI', _count: { articles: 30 } },
       ])
 
       const result = await getPopularTags(10)
 
-      expect(result).toHaveLength(2)
-      expect(result[0]).toEqual({
-        id: 'tag-1',
-        name: 'GPT-4',
-        nameEn: 'gpt-4',
-        type: 'model',
-        color: '#ff0000',
-        count: 50,
-      })
+      expect(result).toEqual([
+        { name: 'GPT-4', count: 50 },
+        { name: 'OpenAI', count: 30 },
+      ])
     })
   })
 
@@ -708,11 +708,12 @@ describe('ai-it/db-service', () => {
 
   describe('seedAIITSources', () => {
     it('seeds default AI/IT sources', async () => {
-      mockPrisma.source.upsert.mockResolvedValue({} as any)
+      mockPrisma.source.findUnique.mockResolvedValue(null)
+      mockPrisma.source.create.mockResolvedValue({ id: 'source-1' })
 
       await seedAIITSources()
 
-      expect(mockPrisma.source.upsert).toHaveBeenCalled()
+      expect(mockPrisma.source.create).toHaveBeenCalled()
     })
   })
 
@@ -732,8 +733,8 @@ describe('ai-it/db-service', () => {
 
   describe('upsertAIITSource', () => {
     it('creates or updates source', async () => {
-      const mockSource = { id: 'source-1', name: 'OpenAI Blog', nameEn: 'openai_blog' }
-      mockPrisma.source.upsert.mockResolvedValue(mockSource)
+      mockPrisma.source.findUnique.mockResolvedValue(null)
+      mockPrisma.source.create.mockResolvedValue({ id: 'source-1' })
 
       const result = await upsertAIITSource({
         name: 'OpenAI Blog',
@@ -741,14 +742,13 @@ describe('ai-it/db-service', () => {
         url: 'https://openai.com/blog',
         category: 'ai',
         subcategory: 'official_ai',
+        language: 'en',
       })
 
-      expect(result).toEqual(mockSource)
-      expect(mockPrisma.source.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { nameEn: 'openai_blog' },
-        })
-      )
+      expect(result).toBe('source-1')
+      expect(mockPrisma.source.findUnique).toHaveBeenCalledWith({
+        where: { nameEn: 'openai_blog' },
+      })
     })
   })
 
@@ -776,18 +776,9 @@ describe('ai-it/db-service', () => {
 
   describe('logAIITFetch', () => {
     it('creates fetch log entry', async () => {
-      const mockLog = { id: 'log-1', sourceId: 'source-1', status: 'success', count: 10 }
-      mockPrisma.fetchLog.create.mockResolvedValue(mockLog)
+      mockPrisma.fetchLog.create.mockResolvedValue({ id: 'log-1' })
 
-      const result = await logAIITFetch({
-        sourceId: 'source-1',
-        status: 'success',
-        count: 10,
-        newCount: 5,
-        duration: 1500,
-      })
-
-      expect(result).toEqual(mockLog)
+      await logAIITFetch('source-1', 'success', 10, 5, 1500)
       expect(mockPrisma.fetchLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           sourceId: 'source-1',

@@ -1,8 +1,8 @@
 # Economy News — 진행 상황 추적 (Tasks)
 
 > **목적**: AI가 세션 간 전환 시에도 정확히 어디까지 진행했는지 파악하기 위한 기록  
-> **마지막 갱신**: 2026-08-02  
-> **다음 작업**: Phase 7 완료 — 신규 기능 (맞춤형 다이제스트, 오늘의 브리핑, DB 백업) 반영 완료
+> **마지막 갱신**: 2026-08-13  
+> **다음 작업**: Phase 9 완료 — 테스트 타입 오류 정리, ignoreBuildErrors 제거, 문서 갱신
 
 ---
 
@@ -21,12 +21,15 @@
 ## Git History
 
 ```
-75e7926 (HEAD -> main) feat: Phase 7 -- test coverage, error monitoring, DB indexes, i18n and OOH section
-0af2080 test: Phase 7 -- 98 test cases
-eb023c4 fix: reduce financial scheduler frequency (OOM prevention)
-b33a58f feat: sports feed pollution filter
-e19feeb feat: sports feed pollution filter (continue)
-cab3577 feat: Phase 1-5 complete — cache invalidate, duplicate merge, keyword alerts, recommendations, push, auto-merge scheduler, popular widget
+c174a18 (HEAD -> main) chore: add .env* to gitignore
+e37e973 chore: fix Vercel Hobby cron + deploy config
+79eafdc chore: add aider conventions (CONVENTIONS.md + .aider.conf.yml)
+62c2824 chore: add daily cleanup cron at midnight
+11af2c4 chore: switch to Vercel deployment, update repo to kwpark0047/news
+aa984c2 revert: remove ci.yml schema-drift job (requires workflow scope)
+fd6d1a9 feat: add RAM measurement pipeline and optimize Playwright memory usage
+f7be167 fix: stop infinite Redis reconnect attempts when Upstash unreachable
+75e7926 feat: Phase 7 -- test coverage, error monitoring, DB indexes, i18n and OOH section
 ```
 
 ---
@@ -91,7 +94,7 @@ cab3577 feat: Phase 1-5 complete — cache invalidate, duplicate merge, keyword 
 
 ## Phase 7: 완료 (HEAD 75e7926)
 
-- 테스트 커버리지 확대 (98개 테스트 추가, 331개 전체 통과)
+- 테스트 커버리지 확대 (98개 테스트 추가, 331개 전체 통과 → 현재 476개 통과)
 - 에러 모니터링 (error-log 시스템, 관리자 error-logs 페이지)
 - DB 인덱스 추가 (sourceType/publishedAt, category/publishedAt 등)
 - i18n 다국어 지원 프레임워크
@@ -113,7 +116,18 @@ cab3577 feat: Phase 1-5 complete — cache invalidate, duplicate merge, keyword 
 | **맞춤형 뉴스 다이제스트** | digest-service + newsletter-digest-scheduler + subscribe API + 위젯 + 관리자 카드 | ✅ | 관심 분야 7종·키워드, 매일 07:00 |
 | **오늘의 경제 브리핑** | briefing-service + /api/briefing + /briefing 페이지 + nav | ✅ | 조회수 랭킹+섹션+키워드, 5분 캐시 |
 | **DB 백업 스크립트** | scripts/backup-db.ts + `npm run db:backup` | ✅ | PG pg_dump/SQLite, 14개 보존 |
-| 문서 갱신 | README/tasks/NEXT_TASK | ✅ | 331 tests/27 suites 반영 |
+| 문서 갱신 | README/tasks/NEXT_TASK | ✅ | 476 tests/31 suites 반영 |
+
+---
+
+## Phase 9: 완료 (2026-08-13, 미커밋)
+
+| 작업 | 파일 | 상태 | 비고 |
+|---|---|---|---|
+| AI-IT db-service 테스트 11건 수정 | src/lib/ai-it/__tests__/db-service.test.ts | ✅ | mock 타입/필드 정합, 26개 전부 통과 |
+| scripts/validate-env.ts import 경로 수정 | scripts/validate-env.ts | ✅ | `./src/` → `../src/` |
+| next.config.ts에서 `ignoreBuildErrors` 제거 | next.config.js | ✅ | 빌드 타입 체크 강제 |
+| 문서 갱신 (Vercel 배포 반영, 테스트 476개) | DOCUMENTATION.md / tasks.md | ✅ | 476 tests/31 suites 반영 |
 
 ---
 
@@ -121,8 +135,8 @@ cab3577 feat: Phase 1-5 complete — cache invalidate, duplicate merge, keyword 
 
 | 영역 | Suite 수 | 테스트 수 | 통과 | 비고 |
 |---|---|---|---|---|
-| 전체 | 27 | 331 | 331 | ✅ |
-| Jest 단위/통합 | 27 | 331 | 331 | ✅ 타이머 누수 경고 없음 |
+| 전체 | 31 | 476 | 476 | ✅ |
+| Jest 단위/통합 | 31 | 476 | 476 | ✅ 타이머 누수 경고 없음 |
 | Playwright E2E | — | — | — | 로컬 dev 서버 필요 |
 
 ## 커버리지 현황 (목표: 70%)
@@ -139,13 +153,13 @@ cab3577 feat: Phase 1-5 complete — cache invalidate, duplicate merge, keyword 
 
 ---
 
-## Railway 배포 정보
+## Vercel 배포 정보
 
 | 항목 | 값 |
 |---|---|
-| 프로젝트 | accurate-magic |
-| 서비스 | beneficial-insight |
-| Health | ✅ 200 OK |
-| 도메인 | beneficial-insight.up.railway.app |
-| DB | PostgreSQL (Railway) |
-| 배포 방식 | GitHub Push (CI 미연결, 수동) |
+| 프로젝트 | kwpark0047/news (GitHub) |
+| 플랫폼 | Vercel (Next.js 프레임워크, 리전 icn1) |
+| 빌드 | `npm run vercel-build` (`next build`) |
+| Cron | `/api/cron` 매일 02:00, `/api/cron/cleanup` 매일 03:00 (KST) |
+| DB | PostgreSQL (외부 프로바이더, `DATABASE_URL`) |
+| 배포 방식 | GitHub Push → Vercel 자동 배포 |

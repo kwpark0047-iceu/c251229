@@ -108,22 +108,31 @@ npm run dev
 
 ---
 
-## 🚀 5. 상용 배포 가이드 (Railway Production Setup)
+## 🚀 5. 상용 배포 가이드 (Vercel Production Setup)
 
 ### 5-1. 환경 변수 구성 (Variables)
-Railway 서비스에 기동을 위한 다음 비밀 변수들을 기입합니다:
+Vercel 프로젝트에 다음 환경 변수를 기입합니다 (`vercel.json`의 `env` 맵이 참조):
 
 | 변수명 | 권장 설정값 | 비고 |
 | :--- | :--- | :--- |
 | `DATABASE_URL` | `postgresql://...` | 상용 PostgreSQL 커넥션 URL |
-| `JWT_SECRET` | `economy-news-super-secret-key-123!` | 암호화 서명 보안 소금 키 |
+| `CRON_SECRET` | *(임의의 긴 문자열)* | cron 트리거 인증용 |
+| `NEXT_PUBLIC_BASE_URL` | `https://...` | 공개 베이스 URL |
+| `LLM_PROVIDER` | `gemini` | 요약/번역 LLM 공급자 (`gemini`/`openai`) |
 | `OPENAI_API_KEY` | `sk-proj-...` | OpenAI GPT-4o-mini 요약/번역 API 키 |
-| `DISCORD_WEBHOOK_URL` | `https://discord.com/api/webhooks/...` | 실시간 핫 알림 Discord 웹훅 채널 |
-| `KOREA_INVEST_APP_KEY` | *(선택 사항)* | 한국투자증권 앱키 (미 기입 시 자동 시뮬레이션 폴백 기동) |
+| `GEMINI_API_KEY` | `AIza...` | Gemini LLM API 키 |
+| `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | *(선택 사항)* | 네이버 검색/뉴스 API |
+| `JWT_SECRET` | `economy-news-super-secret-key-123!` | 암호화 서명 보안 소금 키 |
+| `SMS_PROVIDER` | `mock` | 알림 SMS 공급자 (mock=미사용) |
+| `DISABLE_SCHEDULERS` | `1` | Vercel 서버리스 환경에서 node-cron 비활성화 |
 
-### 5-2. 빌드 및 데이터 마이그레이션 (`railway.json`)
-*   배포 파일 업로드 시 **Nixpacks** 빌드 엔진이 `npx prisma migrate deploy` 마이그레이션을 자동 선제 수행한 후 Next.js Turbopack 최적화 번들을 가동합니다.
-*   빌드 실패가 감지되면 즉각 롤백 정책이 발동되어 상용 런칭의 무장애 운영을 수호합니다.
+### 5-2. 빌드 및 배포 (`vercel.json`)
+*   빌드 커맨드: `npm run vercel-build` (`next build`), 설치: `npm run vercel-install`.
+*   프레임워크: `nextjs`, 리전 `icn1` (서울), API 함수 `maxDuration` 60s.
+*   **Cron 스케줄** (Vercel Cron — Hobby 이상에서 활성):
+    *   `GET /api/cron` — 매일 02:00 (KST) RSS/AI/IT 수집
+    *   `GET /api/cron/cleanup` — 매일 03:00 (KST) 중복/오래된 데이터 정리
+*   빌드 실패 시 이전 배포로 자동 롤백됩니다.
 
 ---
 

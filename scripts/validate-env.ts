@@ -5,7 +5,7 @@
  * Used in production startup (vercel-build, Docker, etc.)
  */
 
-import { validateEnvOrThrow, getEnvStatus } from './src/lib/env-validation'
+import { validateEnvOrThrow, getEnvStatus } from '../src/lib/env-validation'
 
 console.log('🔍 Running environment validation...')
 console.log(`Environment: ${process.env.NODE_ENV || 'development'}`)

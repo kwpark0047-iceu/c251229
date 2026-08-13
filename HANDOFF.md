@@ -9,10 +9,10 @@
 | Build | ✅ 통과 |
 | TypeScript | ✅ tsc --noEmit 통과 |
 | Lint | ✅ 통과 |
-| Test (Jest) | ✅ 200/200 통과 |
+| Test (Jest) | ✅ 476/476 통과 |
 | Test (Playwright E2E) | ✅ 통과 |
 | Coverage | ⚠️ 54.5% (핵심 모듈 85-100%) |
-| 배포 | ✅ Railway (Production) |
+| 배포 | ✅ Vercel (Production) |
 | 모니터링 | ✅ /api/health |
 
 ## 핵심 아키텍처
@@ -89,10 +89,10 @@ Financial (별도 도메인)
 
 ## 테스트 현황
 
-### Jest (200 tests, 19 suites)
+### Jest (476 tests, 31 suites)
 ```
-Test Suites: 19 passed, 19 total
-Tests:       200 passed, 200 total
+Test Suites: 31 passed, 31 total
+Tests:       476 passed, 476 total
 ```
 
 | 모듈 | 커버리지 | 비고 |
@@ -119,18 +119,24 @@ Tests:       200 passed, 200 total
 
 ## 배포 정보
 
-**Railway**: Nixpacks builder, Node 22+
-- `railway.json` — preDeploy: `npx prisma db push --accept-data-loss`
-- `nixpacks.toml` — pnpm 비활성화, npm 사용
-- 환경 변수는 Railway Dashboard에서 관리
+**Vercel**: Next.js 프레임워크, 리전 `icn1` (서울)
+- `vercel.json` — buildCommand: `npm run vercel-build` (`next build`), installCommand: `npm run vercel-install`
+- Cron: `GET /api/cron` (매일 02:00 KST), `GET /api/cron/cleanup` (매일 03:00 KST)
+- API 함수 `maxDuration` 60s, 빌드 실패 시 자동 롤백
+- 환경 변수는 Vercel Dashboard에서 관리
 
 ### 필요 환경 변수
 ```
 DATABASE_URL (required)
 CRON_SECRET (required)
-OPENAI_API_KEY (optional — AI 요약)
-REDIS_URL (optional — 캐싱)
-NEXT_PUBLIC_APP_URL (optional)
+NEXT_PUBLIC_BASE_URL (required)
+LLM_PROVIDER (gemini)
+OPENAI_API_KEY (optional — AI 요약/번역)
+GEMINI_API_KEY (optional — Gemini LLM)
+NAVER_CLIENT_ID / NAVER_CLIENT_SECRET (optional — 네이버 검색)
+JWT_SECRET (required)
+SMS_PROVIDER (mock)
+DISABLE_SCHEDULERS (1 — Vercel 서버리스에서 node-cron 비활성화)
 ```
 
 ## NEXT_TASK
