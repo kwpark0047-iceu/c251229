@@ -94,7 +94,7 @@ f7be167 fix: stop infinite Redis reconnect attempts when Upstash unreachable
 
 ## Phase 7: 완료 (HEAD 75e7926)
 
-- 테스트 커버리지 확대 (98개 테스트 추가, 331개 전체 통과 → 현재 476개 통과)
+- 테스트 커버리지 확대 (98개 테스트 추가, 331개 전체 통과 → 현재 499개 통과)
 - 에러 모니터링 (error-log 시스템, 관리자 error-logs 페이지)
 - DB 인덱스 추가 (sourceType/publishedAt, category/publishedAt 등)
 - i18n 다국어 지원 프레임워크
@@ -116,7 +116,7 @@ f7be167 fix: stop infinite Redis reconnect attempts when Upstash unreachable
 | **맞춤형 뉴스 다이제스트** | digest-service + newsletter-digest-scheduler + subscribe API + 위젯 + 관리자 카드 | ✅ | 관심 분야 7종·키워드, 매일 07:00 |
 | **오늘의 경제 브리핑** | briefing-service + /api/briefing + /briefing 페이지 + nav | ✅ | 조회수 랭킹+섹션+키워드, 5분 캐시 |
 | **DB 백업 스크립트** | scripts/backup-db.ts + `npm run db:backup` | ✅ | PG pg_dump/SQLite, 14개 보존 |
-| 문서 갱신 | README/tasks/NEXT_TASK | ✅ | 476 tests/31 suites 반영 |
+| 문서 갱신 | README/tasks/NEXT_TASK | ✅ | 499 tests/33 suites 반영 |
 
 ---
 
@@ -127,7 +127,7 @@ f7be167 fix: stop infinite Redis reconnect attempts when Upstash unreachable
 | AI-IT db-service 테스트 11건 수정 | src/lib/ai-it/__tests__/db-service.test.ts | ✅ | mock 타입/필드 정합, 26개 전부 통과 |
 | scripts/validate-env.ts import 경로 수정 | scripts/validate-env.ts | ✅ | `./src/` → `../src/` |
 | next.config.ts에서 `ignoreBuildErrors` 제거 | next.config.js | ✅ | 빌드 타입 체크 강제 |
-| 문서 갱신 (Vercel 배포 반영, 테스트 476개) | DOCUMENTATION.md / tasks.md | ✅ | 476 tests/31 suites 반영 |
+| 문서 갱신 (Vercel 배포 반영, 테스트 499개) | DOCUMENTATION.md / tasks.md | ✅ | 499 tests/33 suites 반영 |
 
 ---
 
@@ -135,8 +135,8 @@ f7be167 fix: stop infinite Redis reconnect attempts when Upstash unreachable
 
 | 영역 | Suite 수 | 테스트 수 | 통과 | 비고 |
 |---|---|---|---|---|
-| 전체 | 31 | 476 | 476 | ✅ |
-| Jest 단위/통합 | 31 | 476 | 476 | ✅ 타이머 누수 경고 없음 |
+| 전체 | 33 | 499 | 499 | ✅ |
+| Jest 단위/통합 | 33 | 499 | 499 | ✅ 타이머 누수 경고 없음 |
 | Playwright E2E | — | — | — | 로컬 dev 서버 필요 |
 
 ## 커버리지 현황 (목표: 70%)

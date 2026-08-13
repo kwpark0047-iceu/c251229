@@ -9,7 +9,7 @@
 | Build | ✅ 통과 |
 | TypeScript | ✅ tsc --noEmit 통과 |
 | Lint | ✅ 통과 |
-| Test (Jest) | ✅ 476/476 통과 |
+| Test (Jest) | ✅ 499/499 통과 |
 | Test (Playwright E2E) | ✅ 통과 |
 | Coverage | ⚠️ 54.5% (핵심 모듈 85-100%) |
 | 배포 | ✅ Vercel (Production) |
@@ -89,10 +89,10 @@ Financial (별도 도메인)
 
 ## 테스트 현황
 
-### Jest (476 tests, 31 suites)
+### Jest (499 tests, 33 suites)
 ```
 Test Suites: 31 passed, 31 total
-Tests:       476 passed, 476 total
+Tests:       499 passed, 499 total
 ```
 
 | 모듈 | 커버리지 | 비고 |
