@@ -306,7 +306,8 @@ function LeadManagerContent() {
         searchType: settings.searchType, // 인허가일 vs 최종수정일 기준 전달
         page: page,
         pageSize: PAGE_SIZE,
-        userInfo: currentUser || undefined
+        userInfo: currentUser || undefined,
+        serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined
       });
 
       if (result.success) {
@@ -331,7 +332,7 @@ function LeadManagerContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [categoryFilter, selectedRegions, statusFilter, searchQuery, dateRange, settings.searchType, showNotification, userInfo]);
+  }, [categoryFilter, selectedRegions, statusFilter, searchQuery, dateRange, settings.searchType, showNotification, userInfo, selectedServiceIds]);
 
   // 설정 및 데이터 로드
   useEffect(() => {

@@ -279,6 +279,7 @@ export async function getLeads(filters?: {
   endDate?: string;
   searchType?: 'license_date' | 'modified_date'; // 날짜 필터 기준 컬럼
   regions?: string[];
+  serviceIds?: string[];
   searchQuery?: string;
   page?: number;
   pageSize?: number;
@@ -324,6 +325,11 @@ export async function getLeads(filters?: {
     
     if (filters?.category && filters.category !== 'ALL') {
       query = query.eq('category', filters.category);
+    }
+
+    // 서비스(업종) 필터: 선택된 서비스 ID 목록에 포함된 리드만 조회
+    if (filters?.serviceIds && filters.serviceIds.length > 0) {
+      query = query.in('service_id', filters.serviceIds);
     }
 
     if (filters?.nearestStation) {
