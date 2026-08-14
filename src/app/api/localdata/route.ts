@@ -18,6 +18,7 @@ interface LocalDataParams {
   regionCode: string;     // 지역 코드 (예: 6110000)
   startDate: string;      // 시작일 (YYYYMMDD)
   endDate: string;        // 종료일 (YYYYMMDD)
+  searchType?: string;    // 검색 기준 ('license_date' | 'modified_date')
   pageIndex?: number;     // 페이지 번호
   pageSize?: number;      // 페이지 크기
 }
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
       regionCode,
       startDate,
       endDate,
+      searchType,
       pageIndex = 1,
       pageSize = 100,
     } = params;
@@ -61,8 +63,13 @@ export async function POST(request: NextRequest) {
     apiUrl.searchParams.set('authKey', authKey);
     apiUrl.searchParams.set('opnSvcId', serviceId);
     apiUrl.searchParams.set('localCode', regionCode);
-    apiUrl.searchParams.set('lastModTsBgn', startDate);
-    apiUrl.searchParams.set('lastModTsEnd', endDate);
+    if (searchType === 'license_date') {
+      apiUrl.searchParams.set('bgnYmd', startDate);
+      apiUrl.searchParams.set('endYmd', endDate);
+    } else {
+      apiUrl.searchParams.set('lastModTsBgn', startDate);
+      apiUrl.searchParams.set('lastModTsEnd', endDate);
+    }
     apiUrl.searchParams.set('pageIndex', pageIndex.toString());
     apiUrl.searchParams.set('pageSize', pageSize.toString());
     apiUrl.searchParams.set('resultType', 'xml');
@@ -114,20 +121,18 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[LocalData API] 오류:', error);
-
-    if ((error as Error).name === 'AbortError') {
+    console.error('[LocalData API] 서버 에러:', error);
+    
+    // AbortError (Timeout) 또는 네트워크 오류일 경우 명확한 에러 반환
+    if ((error as Error).name === 'AbortError' || (error as Error).message.includes('fetch')) {
       return NextResponse.json(
-        { success: false, error: 'API 요청 시간 초과 (50초)' },
+        { success: false, error: '공공데이터 포털 서버(localdata.go.kr)가 현재 불안정하거나 응답하지 않습니다.' },
         { status: 504 }
       );
     }
 
-    const err = error as Error & { cause?: unknown };
-    const cause = err.cause ? String(err.cause) : undefined;
-    console.error('[LocalData API] 상세 오류:', { message: err.message, cause });
     return NextResponse.json(
-      { success: false, error: err.message, cause },
+      { success: false, error: (error as Error).message },
       { status: 500 }
     );
   }

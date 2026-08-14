@@ -184,6 +184,7 @@ export async function fetchLocalDataAPI(
           regionCode: region,
           startDate: formatDateToAPI(startDate),
           endDate: formatDateToAPI(endDate),
+          searchType: settings.searchType,
           pageIndex,
           pageSize,
         }),
