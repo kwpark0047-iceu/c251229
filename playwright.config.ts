@@ -39,5 +39,6 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
+    timeout: 120000, // 로컬 파일시스템 느릴 때를 대비해 120초로 연장
   },
 });

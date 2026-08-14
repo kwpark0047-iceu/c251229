@@ -438,7 +438,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                     <Tooltip
                       content={<CustomTooltip />}
                     />
-                    <Legend fontSize={10} />
+                    <Legend wrapperStyle={{ fontSize: 10 }} />
                     <Bar dataKey="amount" name="계약 매출" fill="var(--metro-line3)" radius={[4, 4, 0, 0]} barSize={36} />
                   </BarChart>
                 ) : activeChart === 'rep' ? (
@@ -447,7 +447,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                     <XAxis dataKey="name" fontSize={11} interval={0} />
                     <YAxis fontSize={10} tickFormatter={(v) => formatWon(v)} width={70} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend fontSize={10} />
+                    <Legend wrapperStyle={{ fontSize: 10 }} />
                     <Bar dataKey="revenue" name="매출 금액" fill="var(--metro-line1)" radius={[4, 4, 0, 0]} barSize={30} />
                     <Bar dataKey="leads" name="리드 수" fill="var(--metro-line2)" radius={[4, 4, 0, 0]} barSize={30} />
                   </BarChart>
@@ -499,7 +499,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                     <XAxis dataKey="date" fontSize={10} />
                     <YAxis fontSize={10} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend fontSize={10} />
+                    <Legend wrapperStyle={{ fontSize: 10 }} />
                     <Area type="monotone" dataKey="viewRate" name="열람률(%)" stroke="var(--metro-line4)" fillOpacity={1} fill="url(#colorView)" />
                     <Area type="monotone" dataKey="conversionRate" name="전환율(%)" stroke="var(--metro-line3)" fill="transparent" />
                   </AreaChart>

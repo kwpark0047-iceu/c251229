@@ -137,3 +137,13 @@ STATION_INFO_API_KEY=        # KRIC 역사 정보 (서버사이드)
 - LocalData API: Rate limiting 방지 200ms 지연, 배치 저장 50건씩
 - 좌표계: `constants.ts`의 `PROJ4_DEFS`에 EPSG:5174, EPSG:5181, EPSG:5179, WGS84 정의
 - 테스트 및 CI: Vitest를 활용한 단위/통합 테스트 (커버리지 80% 목표), `.github/workflows/ci.yml`에서 자동 검증
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

@@ -277,6 +277,7 @@ export async function getLeads(filters?: {
   nearestStation?: string;
   startDate?: string;
   endDate?: string;
+  searchType?: 'license_date' | 'modified_date'; // 날짜 필터 기준 컬럼
   regions?: string[];
   searchQuery?: string;
   page?: number;
@@ -294,11 +295,15 @@ export async function getLeads(filters?: {
     const user = filters?.userInfo;
     const isSuperAdmin = user?.isSuperAdmin || user?.email === 'kwpark0047@gmail.com';
     const organizationId = user?.organizationId;
+    // searchType 기본값: license_date
+    const dateColumn = filters?.searchType === 'modified_date' ? 'last_modified_date' : 'license_date';
 
     console.log('[getLeads] Querying with filters:', {
       category: filters?.category,
       regions: filters?.regions,
       status: filters?.status,
+      searchType: filters?.searchType,
+      dateColumn,
       isSuperAdmin,
       organizationId,
       page
@@ -307,8 +312,7 @@ export async function getLeads(filters?: {
     let query = supabase
       .from('leads')
       .select('*', { count: 'exact' })
-      .order('license_date', { ascending: false })
-      
+      .order(dateColumn, { ascending: false, nullsFirst: false })
 
     if (!isSuperAdmin && organizationId) {
       query = query.eq('organization_id', organizationId);
@@ -326,12 +330,21 @@ export async function getLeads(filters?: {
       query = query.eq('nearest_station', filters.nearestStation);
     }
 
-    // 날짜 필터링 (라이선스 날짜)
+    // 날짜 필터링: searchType에 따라 license_date 또는 last_modified_date 사용
     if (filters?.startDate) {
-      query = query.gte('license_date', filters.startDate);
+      // last_modified_date가 null인 경우(경기도 데이터)도 표시하기 위해 OR 조건 사용
+      if (dateColumn === 'last_modified_date') {
+        query = query.or(`${dateColumn}.gte.${filters.startDate},${dateColumn}.is.null`);
+      } else {
+        query = query.gte(dateColumn, filters.startDate);
+      }
     }
     if (filters?.endDate) {
-      query = query.lte('license_date', filters.endDate);
+      if (dateColumn === 'last_modified_date') {
+        query = query.or(`${dateColumn}.lte.${filters.endDate},${dateColumn}.is.null`);
+      } else {
+        query = query.lte(dateColumn, filters.endDate);
+      }
     }
 
     // 검색어 필터링
@@ -389,10 +402,16 @@ export async function getLeads(filters?: {
 
     // 서울 데이터 표시 필터: 영업중 + 최종수정일자(LASTMODTS) 3년 이내만 표시.
     // GG 데이터는 last_modified_date가 NULL이라 통과 (last_modified_date는 서울만 설정됨).
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 3);
-    const cutoff = d.toISOString().slice(0, 10);
-    query = query.or(`and(operating_status.eq.영업중,last_modified_date.gte.${cutoff}),last_modified_date.is.null`);
+    // 서울 단독 선택 시에만 적용 (서울+경기 함께 선택 시에는 적용 안 함 — GG 데이터 유실 방지)
+    const hasSeoul = filters?.regions?.includes('6110000') ?? false;
+    const isSeoulOnly = hasSeoul && (filters?.regions?.length ?? 0) === 1;
+    
+    if (isSeoulOnly) {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() - 3);
+      const cutoff = d.toISOString().slice(0, 10);
+      query = query.or(`and(operating_status.eq.영업중,last_modified_date.gte.${cutoff}),last_modified_date.is.null`);
+    }
 
     const { data, count, error } = await query.range(from, to);
 
@@ -531,6 +550,8 @@ export async function saveSettings(settings: Settings): Promise<{ success: boole
         cors_proxy: settings.corsProxy,
         search_type: settings.searchType,
         region_code: settings.regionCode,
+        // 다중 지역 선택 배열 저장 (JSON 직렬화)
+        region_codes: settings.regionCodes ? JSON.stringify(settings.regionCodes) : null,
       }, {
         onConflict: 'user_id',
       });
@@ -558,6 +579,16 @@ export async function getSettings(): Promise<{ success: boolean; settings: Setti
     const { data, error } = await query.maybeSingle();
     if (error || !data) return { success: true, settings: DEFAULT_SETTINGS };
 
+    // region_codes 복원 (JSON 파싱)
+    let regionCodes: string[] | undefined;
+    if (data.region_codes) {
+      try {
+        regionCodes = JSON.parse(data.region_codes);
+      } catch {
+        regionCodes = undefined;
+      }
+    }
+
     return {
       success: true,
       settings: {
@@ -565,6 +596,7 @@ export async function getSettings(): Promise<{ success: boolean; settings: Setti
         corsProxy: data.cors_proxy || DEFAULT_SETTINGS.corsProxy,
         searchType: data.search_type || DEFAULT_SETTINGS.searchType,
         regionCode: data.region_code || DEFAULT_SETTINGS.regionCode,
+        regionCodes: regionCodes || DEFAULT_SETTINGS.regionCodes,
       },
     };
   } catch (error) {

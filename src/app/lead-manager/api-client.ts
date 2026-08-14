@@ -47,7 +47,7 @@ export async function safeFetch<T = any>(
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
 
-            const response = await fetch(url, fetchOptions);
+            const response = await globalThis.fetch(url, fetchOptions);
 
             if (response.ok) {
                 return await response.json();

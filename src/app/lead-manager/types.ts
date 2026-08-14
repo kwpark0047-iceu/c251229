@@ -64,7 +64,7 @@ export interface Lead {
   coordX?: number;           // 원본 X 좌표 (GRS80)
   coordY?: number;           // 원본 Y 좌표 (GRS80)
   latitude?: number;         // 위도 (WGS84)
-  longitude?: number;        // 경도 (WGS84)
+  longitude?: number;        // 경도 (GRS84)
   phone?: string;            // 전화번호
   medicalSubject?: string;   // 진료과목/업태명
   category?: BusinessCategory; // 업종 카테고리
@@ -98,6 +98,28 @@ export interface Lead {
   blog_url?: string;
   email?: string;
   naver_place_id?: string;
+
+  // SOPA(소상공인시장진흥공단) 상가정보 연동 필드
+  sopoBizesId?: string;           // 상가업소번호
+  sopoBizName?: string;           // 상호명
+  sopoRoadAddress?: string;       // 도로명 주소
+  sopoLotAddress?: string;        // 지번 주소
+  sopoLatitude?: number;          // 위도 (WGS84)
+  sopoLongitude?: number;         // 경도 (WGS84)
+  sopoCategoryLarge?: string;     // 대분류 업종코드 (indsLclsCd)
+  sopoCategoryLargeName?: string; // 대분류 업종명
+  sopoCategoryMiddle?: string;    // 중분류 업종코드 (indsMclsCd)
+  sopoCategoryMiddleName?: string; // 중분류 업종명
+  sopoCategorySmall?: string;     // 소분류 업종코드 (indsSclsCd)
+  sopoCategorySmallName?: string;  // 소분류 업종명
+  sopoProvinceCode?: string;      // 시도코드 (ctprvnCd)
+  sopoProvinceName?: string;      // 시도명 (ctprvnNm)
+  sopoDistrictCode?: string;      // 시군구코드 (signguCd)
+  sopoDistrictName?: string;      // 시군구명 (signguNm)
+  sopoDongCode?: string;          // 행정동코드 (adongCd)
+  sopoDongName?: string;          // 행정동명 (adongNm)
+  sopoStdYm?: string;             // 조사연월 (stdrYm)
+  sopoDataFetchedAt?: string;     // SOPO 데이터 조회 일시
 }
 
 

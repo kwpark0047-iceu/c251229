@@ -14,6 +14,7 @@ import {
   Calendar,
   ChevronDown,
   User,
+  Trash2,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS, STATUS_METRO_COLORS, LINE_COLORS, SalesProgress } from '../types';
@@ -28,6 +29,7 @@ interface GridViewProps {
   onStatusChange: (leadId: string, newStatus: LeadStatus) => Promise<void>;
   searchQuery: string;
   onMapView: (lead: Lead) => void;
+  onSopoClick?: (lead: Lead) => void;
   salesProgressMap?: Map<string, SalesProgress[]>;
   isFieldMode?: boolean;
   currentPage: number;
@@ -35,6 +37,7 @@ interface GridViewProps {
   pageSize: number;
   onPageChange: (page: number) => void;
   onRefresh?: () => void;
+  onDeleteLead?: (leadId: string) => void;
   sortByScore?: boolean;
 }
 
@@ -50,7 +53,9 @@ export default function GridView({
   pageSize,
   onPageChange,
   onRefresh,
+  onDeleteLead,
   sortByScore = false,
+  onSopoClick,
 }: GridViewProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const sortedLeads = useMemo(() => {
@@ -76,9 +81,11 @@ export default function GridView({
             onSelect={() => setSelectedLeadId(lead.id)}
             searchQuery={searchQuery}
             onMapView={() => onMapView(lead)}
+            onSopoClick={onSopoClick}
             progress={salesProgressMap?.get(lead.id)}
             isFieldMode={isFieldMode}
             onRefresh={onRefresh}
+            onDeleteLead={onDeleteLead}
           />
         ))}
       </div>
@@ -165,14 +172,16 @@ interface LeadCardProps {
   index: number;
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   onSelect: () => void;
+  onSopoClick?: (lead: Lead) => void;
   searchQuery?: string;
   onMapView?: () => void;
   progress?: SalesProgress[];
   isFieldMode?: boolean;
   onRefresh?: () => void;
+  onDeleteLead?: (leadId: string) => void;
 }
 
-function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onMapView, progress, isFieldMode = false, onRefresh }: LeadCardProps) {
+function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQuery = '', onMapView, progress, isFieldMode = false, onRefresh, onDeleteLead }: LeadCardProps) {
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [showCallModal, setShowCallModal] = useState(false);
   const statusColor = STATUS_METRO_COLORS[lead.status];
@@ -371,11 +380,31 @@ function LeadCard({ lead, index, onStatusChange, onSelect, searchQuery = '', onM
             className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line4)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
           >
             <FileText className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
-            제안
+제안
           </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteLead?.(lead.id);
+            }}
+            className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-red-500/80 ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
+          >
+            <Trash2 className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />삭제
+          </button>
+          {onSopoClick && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSopoClick(lead);
+              }}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line5)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
+              title="SOPO 상가정보 조회"
+            >
+              <MapPin className="w-4 h-4" /> SOPO
+            </button>
+          )}
         </div>
       </div>
-
       {showCallModal && (
         <CallLogModal
           leadId={lead.id}

@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { FileText, ChevronDown, ChevronUp, MessageSquare, User } from 'lucide-react';
+import { FileText, ChevronDown, ChevronUp, MessageSquare, Trash2, User, MapPin } from 'lucide-react';
 
 import { Lead, LeadStatus, STATUS_LABELS, STATUS_METRO_COLORS, LINE_COLORS, SalesProgress } from '../types';
 import { formatDistance, formatPhoneNumber, truncateString, getHighlightParts, findNearestStation } from '../utils';
@@ -19,12 +19,14 @@ interface ListViewProps {
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   searchQuery?: string;
   onMapView?: (lead: Lead) => void;
+  onSopoClick?: (lead: Lead) => void;
   salesProgressMap?: Map<string, SalesProgress[]>;
   currentPage: number;
   totalCount: number;
   pageSize: number;
   onPageChange: (page: number) => void;
   onRefresh?: () => void;
+  onDeleteLead?: (leadId: string) => void;
   sortByScore?: boolean;
 }
 
@@ -76,7 +78,7 @@ export default function ListView({
   pageSize,
   onPageChange,
   onRefresh,
-  sortByScore = false,
+  sortByScore = false, onDeleteLead, onSopoClick
 }: ListViewProps) {
   const [sortField, setSortField] = useState<SortField>(sortByScore ? 'leadScore' : 'licenseDate');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -223,6 +225,7 @@ export default function ListView({
                   searchQuery={searchQuery}
                   onMapView={() => onMapView?.(lead)}
                   salesProgressMap={salesProgressMap}
+                  onSopoClick={onSopoClick}
                 />
               ))}
             </tbody>
@@ -327,6 +330,17 @@ export default function ListView({
                     <FileText className="w-3.5 h-3.5" />
                     제안
                   </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteLead?.(lead.id);
+                    }}
+                    className="p-2 rounded-lg transition-all duration-300 hover:scale-105 text-red-500 bg-[rgba(239,68,68,0.15)]"
+                    title="리드 삭제"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    삭제
+                  </button>
                 </div>
               </div>
             );
@@ -414,12 +428,14 @@ interface LeadRowProps {
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   onSelect: () => void;
   onCallLog: () => void;
+  onSopoClick?: (lead: Lead) => void;
   searchQuery?: string;
   onMapView?: () => void;
   salesProgressMap?: Map<string, SalesProgress[]>;
+  onDeleteLead?: (leadId: string) => void;
 }
 
-function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery = '', onMapView, salesProgressMap }: LeadRowProps) {
+function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick, searchQuery = '', onMapView, salesProgressMap, onDeleteLead }: LeadRowProps) {
   const statusColor = STATUS_METRO_COLORS[lead.status];
   const computedDistance = lead.stationDistance ?? (lead.latitude && lead.longitude ? findNearestStation(lead.latitude, lead.longitude)?.distance : null);
 
@@ -594,6 +610,29 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, searchQuery
           >
             <FileText className="w-4 h-4" />
           </button>
+<button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteLead?.(lead.id);
+            }}
+            className="p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-red-500 bg-[rgba(239,68,68,0.15)]"
+            title="리드 삭제"
+          >
+            <Trash2 className="w-4 h-4" />
+            삭제
+          </button>
+          {onSopoClick && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSopoClick(lead);
+              }}
+              className="p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-[var(--metro-line5)] bg-[rgba(99,102,241,0.15)]"
+              title="SOPO 상가정보 조회"
+            >
+              <MapPin className="w-3.5 h-3.5" /> SOPO
+            </button>
+          )}
         </div>
       </td>
     </tr>

@@ -169,6 +169,28 @@ function LeadManagerContent() {
     }
   };
 
+  const handleDeleteLead = async (leadId: string) => {
+    if (!userInfo?.permissions?.can_delete_lead && !userInfo?.isSuperAdmin) {
+      showNotification('error', '삭제 권한이 없습니다.');
+      return;
+    }
+
+    if (!window.confirm('이 리드를 삭제하시겠습니까? 삭제한 리드는 복구할 수 없습니다.')) return;
+
+    try {
+      const result = await deleteLeadsByIds([leadId], userInfo);
+      if (!result.success) {
+        showNotification('error', result.message);
+        return;
+      }
+      setLeads(prev => prev.filter(l => l.id !== leadId));
+      setTotalCount(prev => Math.max(0, prev - 1));
+      showNotification('success', result.message);
+    } catch (error) {
+      showNotification('error', error instanceof Error ? error.message : '리드 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>('ALL');
@@ -187,6 +209,10 @@ function LeadManagerContent() {
   const [showStationSuggestions, setShowStationSuggestions] = useState(false);
   const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);
   const [sortByScore, setSortByScore] = useState(false);
+
+  // SOPO 모달 상태
+  const [sopoModalOpen, setSopoModalOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
   // 스케줄 관련 상태
   const [scheduleView, setScheduleView] = useState<'calendar' | 'board'>('calendar');
@@ -272,6 +298,7 @@ function LeadManagerContent() {
         searchQuery: search || searchQuery,
         startDate: formatDateForLeadQuery(dateRange.start),
         endDate: formatDateForLeadQuery(dateRange.end),
+        searchType: settings.searchType, // 인허가일 vs 최종수정일 기준 전달
         page: page,
         pageSize: PAGE_SIZE,
         userInfo: currentUser || undefined
@@ -297,7 +324,7 @@ function LeadManagerContent() {
     } finally {
       setIsLoading(false);
     }
-  }, [categoryFilter, selectedRegions, statusFilter, searchQuery, dateRange, showNotification, userInfo]);
+  }, [categoryFilter, selectedRegions, statusFilter, searchQuery, dateRange, settings.searchType, showNotification, userInfo]);
 
   // 설정 및 데이터 로드
   useEffect(() => {
@@ -481,10 +508,23 @@ function LeadManagerContent() {
         const regionNames = selectedRegions.map(code => REGION_OPTIONS.find(r => r.code === code)?.name || code).join('+');
         showNotification('success', `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}] 신규 리드 ${result.leads.length}건이 동기화되었습니다.`);
       } else {
-        showNotification('error', result.message || '데이터 조회에 실패했습니다.');
+        const msg = result.message || '데이터 조회에 실패했습니다.';
+        // API 키 미설정(503) 여부 확인 후 안내
+        if (msg.includes('API 키') || msg.includes('503') || msg.includes('서버 설정 오류')) {
+          showNotification('error', '⚠️ LocalData API 키가 설정되지 않았습니다. [설정] 버튼에서 API 키를 입력해주세요.');
+          setIsSettingsOpen(true); // 설정 모달 자동 오픈
+        } else {
+          showNotification('error', msg);
+        }
       }
     } catch (error) {
-      showNotification('error', `오류: ${(error as Error).message}`);
+      const errMsg = (error as Error).message;
+      if (errMsg.includes('API 키') || errMsg.includes('503')) {
+        showNotification('error', '⚠️ API 키 설정이 필요합니다. [설정]에서 LocalData API 키를 입력해주세요.');
+        setIsSettingsOpen(true);
+      } else {
+        showNotification('error', `오류: ${errMsg}`);
+      }
     } finally {
       setIsLoading(false);
       setLoadingStatus('');
@@ -920,8 +960,22 @@ function LeadManagerContent() {
                 {leads.length > 0 && (
                   <DuplicateManager leads={leads} onMergeDuplicates={handleMergeDuplicates} onRemoveDuplicates={handleRemoveDuplicates} />
                 )}
-{viewMode === 'grid' && <GridView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} isFieldMode={isFieldMode} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} />}
-                  {viewMode === 'list' && <ListView leads={filteredLeads} onStatusChange={handleStatusChange} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} />}
+{viewMode === 'grid' && <GridView leads={filteredLeads} onStatusChange={handleStatusChange} onDeleteLead={handleDeleteLead} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} isFieldMode={isFieldMode} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} onSopoClick={async (lead) => {
+    if (userInfo?.permissions?.can_export || userInfo?.isSuperAdmin) {
+      setSelectedLead(lead);
+      setSopoModalOpen(true);
+    } else {
+      showNotification('error', 'SOPO 조회 권한이 없습니다.');
+    }
+  }} />}
+                  {viewMode === 'list' && <ListView leads={filteredLeads} onStatusChange={handleStatusChange} onDeleteLead={handleDeleteLead} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} onSopoClick={async (lead) => {
+    if (userInfo?.permissions?.can_export || userInfo?.isSuperAdmin) {
+      setSelectedLead(lead);
+      setSopoModalOpen(true);
+    } else {
+      showNotification('error', 'SOPO 조회 권한이 없습니다.');
+    }
+  }} />}
                 {viewMode === 'map' && <MapView leads={filteredLeads} onStatusChange={handleStatusChange} onListView={() => setViewMode('list')} focusLead={mapFocusLead} onFocusClear={() => setMapFocusLead(null)} />}
               </>
             )}

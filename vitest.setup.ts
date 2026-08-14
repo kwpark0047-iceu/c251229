@@ -65,11 +65,11 @@ vi.mock('leaflet', () => ({
 }));
 
 // Mock proj4
+// projFunc는 직접 호출 가능한 함수여야 하면서 .defs() 메서드도 있어야 함
+const mockProj4 = vi.fn(() => [127.0, 37.5]) as any;
+mockProj4.defs = vi.fn();
 vi.mock('proj4', () => ({
-  default: {
-    defs: vi.fn(),
-    __proto__: vi.fn(() => [127.0, 37.5]),
-  },
+  default: mockProj4,
 }));
 
 // Mock ResizeObserver

@@ -1,7 +1,11 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
+/**
+ * Next.js 16 Proxy (구 middleware)
+ * 세션 관리 및 라우트 보호
+ */
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const logoutParam = request.nextUrl.searchParams.get('logout')
 
