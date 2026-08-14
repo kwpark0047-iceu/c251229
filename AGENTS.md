@@ -83,7 +83,7 @@ supabase/migrations/        # DB 마이그레이션 (YYYYMMDDHHMMSS_description.
 - `station-info-service.ts` - KRIC 역사 정보 캐싱
 
 ### 인증 및 멀티테넌시
-- `middleware.ts`가 세션 관리 및 라우트 보호
+- `proxy.ts`(Next.js 16, 구 `middleware.ts`)가 세션 관리 및 라우트 보호
 - `/lead-manager/*` 보호됨 → 미인증 시 `/auth`로 리다이렉트
 - 조직(organization) 기반 데이터 격리: 사용자는 `organization_id`로 그룹화
 - RLS 정책이 조직별 데이터 접근 제어

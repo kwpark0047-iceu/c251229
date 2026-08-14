@@ -61,3 +61,6 @@ test_output.*
 *.swp
 
 .env*.local
+
+# 임시 스크립트/데이터 (git 추적 제외)
+/scripts/temp_chanyou/

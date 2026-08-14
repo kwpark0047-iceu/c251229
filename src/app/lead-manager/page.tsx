@@ -35,6 +35,7 @@ import {
   Shield,
   Database,
   Star,
+  Handshake,
 } from 'lucide-react';
 
 import { Lead, LeadStatus, ViewMode, Settings, STATUS_LABELS, BusinessCategory, CATEGORY_LABELS, CATEGORY_COLORS, CATEGORY_SERVICE_IDS, MainTab } from './types';
@@ -44,7 +45,7 @@ import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
 import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings, mergeDuplicateLeadsInDB, deleteLeadsByIds } from './supabase-service';
 import { getCurrentUser, signOut, UserInfo, logActivity } from './auth-service';
-import { getProgressBatch } from './crm-service';
+import { getProgressBatch, getLastContactDates } from './crm-service';
 import { SalesProgress } from './types';
 import { isAddressInRegions, RegionCode } from './region-utils';
 import { removeDuplicateLeads, groupDuplicateLeads, mergeDuplicateLeads } from './deduplication-utils';
@@ -76,6 +77,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 import { ScheduleCalendar, TaskBoard, TaskFormModal } from './components/schedule';
 import ProposalsView from './components/ProposalsView';
 import FloorPlansView from './components/FloorPlansView';
+import ContractsView from './components/ContractsView';
 import SuperAdminDashboard from './components/admin/SuperAdminDashboard';
 import { TaskWithLead } from './types';
 import CallbackNotification from './components/CallbackNotification';
@@ -193,6 +195,9 @@ function LeadManagerContent() {
 
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
+  const [showUncontactedOnly, setShowUncontactedOnly] = useState(false);
+  const [lastContactMap, setLastContactMap] = useState<Record<string, string>>({});
+  const UNCONTACTED_DAYS = 7;
   const [categoryFilter, setCategoryFilter] = useState<BusinessCategory>('ALL');
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -313,6 +318,8 @@ function LeadManagerContent() {
           const leadIds = result.leads.map(l => l.id);
           const progressData = await getProgressBatch(leadIds);
           setSalesProgressMap(progressData);
+          // 미접촉 판정용 마지막 통화 시각 조회
+          getLastContactDates(leadIds).then(setLastContactMap);
         }
       } else {
         console.error('[LoadLeads] API Error:', result.message);
@@ -541,6 +548,12 @@ function LeadManagerContent() {
     const filtered = leads.filter(lead => {
       if (categoryFilter !== 'ALL' && lead.category !== categoryFilter) return false;
       if (statusFilter !== 'ALL' && lead.status !== statusFilter) return false;
+      if (showUncontactedOnly) {
+        const cutoff = Date.now() - UNCONTACTED_DAYS * 24 * 60 * 60 * 1000;
+        const lastContact = lastContactMap[lead.id];
+        // 마지막 통화가 없거나 N일 이상 지난 리드만 유지
+        if (lastContact && new Date(lastContact).getTime() >= cutoff) return false;
+      }
       if (selectedServiceIds.length > 0 && !selectedServiceIds.includes(lead.serviceId || '')) return false;
       if (q) {
         const matchStation = (lead.nearestStation || '').toLowerCase().includes(stationQ);
@@ -567,7 +580,7 @@ function LeadManagerContent() {
       const dateB = b.licenseDate ? new Date(b.licenseDate).getTime() : 0;
       return dateB - dateA;
     });
-  }, [leads, categoryFilter, statusFilter, selectedServiceIds, searchQuery]);
+  }, [leads, categoryFilter, statusFilter, selectedServiceIds, searchQuery, showUncontactedOnly, lastContactMap]);
 
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     const result = await updateLeadStatus(leadId, newStatus);
@@ -597,14 +610,29 @@ function LeadManagerContent() {
   };
 
   const exportToCSV = () => {
-    const headers = ['병원명', '주소', '전화번호', '진료과목', '인근역', '거리', '상태', '인허가일'];
-    const rows = filteredLeads.map(lead => [lead.bizName, lead.roadAddress || lead.lotAddress || '', lead.phone || '', lead.medicalSubject || '', lead.nearestStation || '', lead.stationDistance ? `${lead.stationDistance}m` : '', STATUS_LABELS[lead.status], lead.licenseDate || '']);
+    const headers = ['병원명', '주소', '전화번호', '진료과목', '인근역', '거리', '상태', '인허가일', '담당자', '이메일', '마지막 통화일', '메모'];
+    const rows = filteredLeads.map(lead => [
+      lead.bizName,
+      lead.roadAddress || lead.lotAddress || '',
+      lead.phone || '',
+      lead.medicalSubject || '',
+      lead.nearestStation || '',
+      lead.stationDistance ? `${lead.stationDistance}m` : '',
+      STATUS_LABELS[lead.status],
+      lead.licenseDate || '',
+      lead.assignedToName || '',
+      lead.email || '',
+      lastContactMap[lead.id] ? new Date(lastContactMap[lead.id]).toLocaleDateString('ko-KR') : '',
+      lead.notes || ''
+    ]);
     const csvContent = [headers.join(','), ...rows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
+    link.href = url;
     link.download = `leads_${formatDateDisplay(new Date())}.csv`;
     link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -662,6 +690,7 @@ function LeadManagerContent() {
                 { key: 'schedule' as MainTab, icon: Calendar, label: '스케줄' },
                 { key: 'proposals' as MainTab, icon: FileText, label: '제안서' },
                 { key: 'floor-plans' as MainTab, icon: FileImage, label: '도면' },
+                { key: 'contracts' as MainTab, icon: Handshake, label: '계약' },
                 ...(userInfo?.isSuperAdmin ? [{ key: 'admin' as MainTab, icon: Shield, label: '관리' }] : []),
               ].map(({ key, icon: Icon, label }) => (
                 <button
@@ -901,6 +930,9 @@ function LeadManagerContent() {
         // noinspection CssInlineStyle
                       return <button key={status} onClick={() => setStatusFilter(status)} className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${statusFilter === status ? 'text-white shadow-md bg-[--status-color]' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`} style={{ '--status-color': statusFilter === status ? statusColors[idx] : 'transparent' } as React.CSSProperties}>{status === 'ALL' ? '전체 상태' : STATUS_LABELS[status]}</button>;
                     })}
+                    <button onClick={() => setShowUncontactedOnly(prev => !prev)} className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${showUncontactedOnly ? 'text-white shadow-md bg-[var(--metro-line6)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`} title={`마지막 통화가 ${UNCONTACTED_DAYS}일 이상 지난 리드만 표시`}>
+                      <Calendar className="w-3.5 h-3.5 inline mr-1" />미접촉 {UNCONTACTED_DAYS}일
+                    </button>
                   </div>
                   <span className="text-sm font-semibold text-[var(--metro-line2)]">{totalCount.toLocaleString()}건 조회됨</span>
                 </div>
@@ -1023,6 +1055,8 @@ function LeadManagerContent() {
           <ProposalsView defaultOpenUpload={initialTab === 'proposals' && initialAction === 'upload'} />
         ) : mainTab === 'floor-plans' ? (
           <div className="-mx-6 -my-8 h-[calc(100vh-140px)]"><FloorPlansView /></div>
+        ) : mainTab === 'contracts' ? (
+          <ContractsView />
         ) : (
           <SuperAdminDashboard />
         )}

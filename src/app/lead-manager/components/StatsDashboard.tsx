@@ -41,6 +41,7 @@ const CartesianGrid = dynamic(() => import('recharts').then(mod => mod.Cartesian
 const Tooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false });
 const ResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
 const Legend = dynamic(() => import('recharts').then(mod => mod.Legend), { ssr: false });
+const LabelList = dynamic(() => import('recharts').then(mod => mod.LabelList), { ssr: false });
 
 import { getExtendedCRMStats } from '../crm-service';
 import { CATEGORY_LABELS } from '../types';
@@ -416,6 +417,14 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                     <YAxis dataKey="stage" type="category" axisLine={false} tickLine={false} fontSize={12} width={80} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="count" name="리드 수" radius={[0, 4, 4, 0]} barSize={30}>
+                      <LabelList
+                        dataKey="rate"
+                        position="right"
+                        formatter={(v: any) => `${Number(v).toFixed(1)}%`}
+                        fill="var(--text-secondary)"
+                        fontSize={11}
+                        fontWeight={700}
+                      />
                       {(extendedStats?.funnelData || []).map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
                       ))}

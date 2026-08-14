@@ -53,6 +53,7 @@ import { FloorPlan } from '../../types';
 import { getCardClass } from '../../utils/design-tokens';
 import StationFloorPlans from './StationFloorPlans';
 import SendEmailModal from './SendEmailModal';
+import ActivityTimeline from './ActivityTimeline';
 import { sendProposalEmail } from '../../proposal-service';
 import { toast } from 'sonner';
 
@@ -69,7 +70,7 @@ export default function LeadDetailPanel({
 }: LeadDetailPanelProps) {
   const [lead, setLead] = useState<LeadWithCRM | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'info' | 'calls' | 'proposals'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'calls' | 'proposals' | 'activity'>('info');
   const [showCallModal, setShowCallModal] = useState(false);
   const [showProposalForm, setShowProposalForm] = useState(false);
   const [showStationInfo, setShowStationInfo] = useState(false);
@@ -189,6 +190,7 @@ export default function LeadDetailPanel({
             { key: 'info', label: '정보' },
             { key: 'calls', label: `통화 (${lead.callLogs?.length || 0})` },
             { key: 'proposals', label: `제안서 (${lead.proposals?.length || 0})` },
+            { key: 'activity', label: '활동' },
           ].map(tab => (
             <button
               key={tab.key}
@@ -410,6 +412,10 @@ export default function LeadDetailPanel({
                 </div>
               )}
             </div>
+          )}
+
+          {activeTab === 'activity' && (
+            <ActivityTimeline leadId={leadId} />
           )}
         </div>
       </div>

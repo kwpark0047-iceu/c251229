@@ -125,7 +125,25 @@ export interface Lead {
 
 // 뷰 모드 및 탭 타입
 export type ViewMode = 'grid' | 'list' | 'map';
-export type MainTab = 'leads' | 'inventory' | 'schedule' | 'proposals' | 'floor-plans' | 'admin';
+export type MainTab = 'leads' | 'inventory' | 'schedule' | 'proposals' | 'floor-plans' | 'contracts' | 'admin';
+
+// 계약 관리 타입
+export type ContractStatus = 'active' | 'expiring' | 'expired' | 'unknown';
+
+export interface Contract {
+  id: string;             // 제안서 id
+  leadId: string;
+  lead?: Lead | null;     // 조인된 리드 정보
+  proposalTitle?: string; // 제안서 제목
+  totalPrice?: number;    // 제안 금액
+  discountRate?: number;  // 할인율(%)
+  finalPrice?: number;    // 계약 금액
+  acceptedAt?: string;    // 수락(계약) 시점 — updated_at 근사
+  sentAt?: string;        // 제안서 발송일
+  startDate?: string;     // 계약 시작일
+  endDate?: string;       // 계약 만료일
+  organizationId?: string;
+}
 
 // 검색 기준 타입
 export type SearchType = 'license_date' | 'modified_date';

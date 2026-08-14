@@ -17,6 +17,7 @@ import { getOrganizationId } from './auth-service';
 import { findInventoryForLead } from './inventory-service';
 import { mapCallLogFromDB, mapSalesProgressFromDB } from './utils/mapping-utils';
 import { updateLeadStatus } from './lead-service';
+import { ActivityService } from './activity-service';
 
 // ============================================
 // 통화 기록
@@ -59,6 +60,9 @@ export async function logCall(
       return { success: false, message: error.message };
     }
 
+    // 활동 로그 기록 (통화 저장)
+    await ActivityService.trackCallLog(leadId, outcome, options?.notes);
+
     // 통화 결과에 따라 리드 상태 업데이트
     if (outcome === 'INTERESTED' || outcome === 'MEETING_SCHEDULED') {
       await updateLeadStatus(leadId, 'CONTACTED');
@@ -91,6 +95,30 @@ export async function getCallLogs(leadId: string): Promise<CallLog[]> {
   }
 
   return data.map(mapCallLogFromDB);
+}
+
+/**
+ * 여러 리드의 마지막 통화 시각 조회 (미접촉 판정용)
+ */
+export async function getLastContactDates(leadIds: string[]): Promise<Record<string, string>> {
+  if (!leadIds.length) return {};
+  const supabase = getSupabase();
+
+  const { data, error } = await supabase
+    .from('call_logs')
+    .select('lead_id, called_at')
+    .in('lead_id', leadIds)
+    .order('called_at', { ascending: false });
+
+  if (error || !data) return {};
+
+  const map: Record<string, string> = {};
+  for (const row of data) {
+    if (row.lead_id && !map[row.lead_id]) {
+      map[row.lead_id] = row.called_at;
+    }
+  }
+  return map;
 }
 
 /**
