@@ -5,12 +5,12 @@ import { createGGSyncHandlers } from '@/app/api/gg-common';
 export const dynamic = 'force-dynamic';
 
 const handlers = createGGSyncHandlers({
-  endpoint: 'https://openapi.gg.go.kr/Genrestrtjpnfood',
-  dataKey: 'Genrestrtjpnfood',
+  endpoint: 'https://openapi.gg.go.kr/GENRESTRT',
+  dataKey: 'GENRESTRT',
   envKey: 'GG_REST_API_KEY',
   label: 'GG Restaurant',
   mgtPrefix: 'GG_REST',
-  serviceName: '음식점',
+  serviceName: '일반음식점',
   category: 'FOOD',
   nameFields: ['BIZPLC_NM'],
   phoneField: 'LOCPLC_FACLT_TELNO',

@@ -1,6 +1,6 @@
 /**
  * 공용 데이터 동기화 엔진
- * 경기도 공공 API + 서울 열린광장 API 페치/맵핑/저장 로직을 한 곳에 모은 모듈.
+ * 경기데이터드림 + 서울 열린광장 API 페치/맵핑/저장 로직을 한 곳에 모은 모듈.
  * - /api/sync-all (사용자 수동 동기화)
  * - /api/cron/sync (매일 06:10 자동 증분 동기화)
  * 두 라우트가 함께 import하여 로직 중복을 방지한다.
@@ -14,7 +14,14 @@ import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 // 경기도 API 소스 설정 정의
 // ============================================================
 
-type GGSourceKey = 'gg-clinics' | 'gg-hospitals' | 'gg-restaurants' | 'gg-univ' | 'gg-jncl-univ';
+type GGSourceKey =
+  | 'gg-clinics'
+  | 'gg-hospitals'
+  | 'gg-restaurants'
+  | 'gg-food-trucks'
+  | 'gg-coffee-shops'
+  | 'gg-univ'
+  | 'gg-jncl-univ';
 
 interface GGSourceConfig {
   endpoint: string;
@@ -54,15 +61,37 @@ const GG_SOURCES: Record<GGSourceKey, GGSourceConfig> = {
     mgtPrefix: 'GG_HOSPITAL',
   },
   'gg-restaurants': {
-    endpoint: 'https://openapi.gg.go.kr/Genrestrtjpnfood',
-    dataKey: 'Genrestrtjpnfood',
+    endpoint: 'https://openapi.gg.go.kr/GENRESTRT',
+    dataKey: 'GENRESTRT',
     category: 'FOOD',
-    service_name: '음식점',
+    service_name: '일반음식점',
+    nameField: 'BIZPLC_NM',
+    phoneField: 'LOCPLC_FACLT_TELNO',
+    envKey: 'GG_REST_API_KEY',
+    label: '경기도 일반음식점',
+    mgtPrefix: 'GG_REST',
+  },
+  'gg-food-trucks': {
+    endpoint: 'https://openapi.gg.go.kr/Resrestrtfodtuck',
+    dataKey: 'Resrestrtfodtuck',
+    category: 'FOOD',
+    service_name: '푸드트럭',
     nameField: 'BIZPLC_NM',
     phoneField: '',
-    envKey: 'GG_REST_API_KEY',
-    label: '경기도 음식점',
-    mgtPrefix: 'GG_REST',
+    envKey: 'GG_FOOD_TRUCK_API_KEY',
+    label: '경기도 푸드트럭',
+    mgtPrefix: 'GG_FOOD_TRUCK',
+  },
+  'gg-coffee-shops': {
+    endpoint: 'https://openapi.gg.go.kr/RESRESTRT',
+    dataKey: 'RESRESTRT',
+    category: 'FOOD',
+    service_name: '커피숍',
+    nameField: 'BIZCOND_DIV_NM_INFO', // RESRESTRT는 업소명(BIZPLC_NM)이 없어 업종명을 사용
+    phoneField: '',
+    envKey: 'GG_COFFEE_SHOP_API_KEY',
+    label: '경기도 커피숍',
+    mgtPrefix: 'GG_COFFEE',
   },
   'gg-univ': {
     endpoint: 'https://openapi.gg.go.kr/Univ',
@@ -103,15 +132,40 @@ export async function fetchGGAllPages(
   // 1페이지로 총 건수 파악
   const firstUrl = buildGGUrl(config.endpoint, apiKey, 1, pageSize, sigunNm);
   const firstRes = await fetch(firstUrl, { cache: 'no-store' });
-  if (!firstRes.ok) throw new Error(`[${config.label}] API 응답 오류: HTTP ${firstRes.status}`);
+  if (!firstRes.ok) {
+    // HTTP 오류 응답 본문에 실제 사유(ERROR-xxx 등)가 담겨 있으면 함께 전달한다
+    let detail = '';
+    try {
+      const errText = await firstRes.text();
+      if (errText) {
+        const snippet = errText.slice(0, 200).replace(/\s+/g, ' ');
+        try {
+          const errJson = JSON.parse(errText);
+          detail = errJson.RESULT?.CODE
+            ? ` [${errJson.RESULT.CODE}] ${errJson.RESULT.MESSAGE || ''}`
+            : ` (${snippet})`;
+        } catch {
+          detail = ` (${snippet})`;
+        }
+      }
+    } catch {
+      // 본문 읽기 실패는 무시
+    }
+    throw new Error(`[${config.label}] API 응답 오류: HTTP ${firstRes.status}${detail}`);
+  }
 
   const firstText = await firstRes.text();
   let firstData: any;
   try {
     firstData = JSON.parse(firstText);
   } catch {
-    // EUC-KR HTML 등 비JSON 응답 (서비스 중지/차단 시 발생)
-    throw new Error(`[${config.label}] API 응답 파싱 실패 - 서비스 중지 또는 잘못된 엔드포인트일 수 있음 (응답: ${firstText.slice(0, 120).replace(/\s+/g, ' ')})`);
+    // 경기도 오픈API는 서비스 종료 시 HTTP 200 + EUC-KR HTML 안내문을 반환하므로
+    // 비JSON 응답에서 정책 종료 문구를 감지해 실제 사유를 명확히 던진다
+    const snippet = firstText.slice(0, 300).replace(/\s+/g, ' ');
+    if (/서비스가 종료|정책이 변경|서비스 종료|<html|EUC-KR/i.test(snippet)) {
+      throw new Error(`[${config.label}] 경기데이터드림 정책 변경으로 해당 API 서비스가 종료되었습니다 (응답: ${snippet.slice(0, 120)})`);
+    }
+    throw new Error(`[${config.label}] API 응답 파싱 실패 - 서비스 중지 또는 잘못된 엔드포인트일 수 있음 (응답: ${snippet.slice(0, 120)})`);
   }
   if (!firstData[config.dataKey]) {
     const code = firstData.RESULT?.CODE || 'UNKNOWN';
@@ -270,6 +324,11 @@ export async function fetchSeoulAllPages(
   // 병렬 처리를 위해 chunk 사이즈 정의 (예: 5개 페이지씩 동시에 요청하여 대기 시간 단축)
   const CHUNK_SIZE = 5;
 
+  // 필터 제외 원인별 집계 (0건 수집 문제의 원인 파악용)
+  let statNotOperating = 0; // '영업중'이 아닌 상태 (폐업·휴업 등)
+  let statTooOld = 0;       // 최종수정일이 3년 초과
+  let statBadDate = 0;      // LASTMODTS 포맷 오류 또는 누락
+
   for (let i = 1; i <= totalPages; i += CHUNK_SIZE) {
     const pagePromises = [];
     for (let j = 0; j < CHUNK_SIZE && i + j <= totalPages; j++) {
@@ -287,11 +346,24 @@ export async function fetchSeoulAllPages(
           const data = await res.json();
           const rows = data[config.serviceCode]?.row || [];
           // 영업중이면서 최종수정일자가 최근 3년 이내인 업소만 유효 처리
-          return rows.filter(
-            (r: any) =>
-              (r.TRDSTATENM || '').trim() === '영업중' &&
-              isWithinLastThreeYears(r.LASTMODTS),
-          );
+          const valid: any[] = [];
+          for (const r of rows) {
+            if ((r.TRDSTATENM || '').trim() !== '영업중') {
+              statNotOperating++;
+              continue;
+            }
+            const ts = r.LASTMODTS;
+            if (!ts || typeof ts !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(ts.slice(0, 10))) {
+              statBadDate++;
+              continue;
+            }
+            if (!isWithinLastThreeYears(ts)) {
+              statTooOld++;
+              continue;
+            }
+            valid.push(r);
+          }
+          return valid;
         })
         .catch(e => {
           console.warn(`[${config.label}] 페이지 ${page} 예외:`, e);
@@ -307,6 +379,15 @@ export async function fetchSeoulAllPages(
       allRows = allRows.concat(rows);
       console.log(`[${config.label}] 페이지 ${i + index}/${totalPages}: ${rows.length}건 유효`);
     });
+  }
+
+  // 제외 원인별 집계 로그: 0건 수집일 때 어느 필터가 걸러냈는지 즉시 파악 가능
+  const excluded = statNotOperating + statTooOld + statBadDate;
+  if (excluded > 0) {
+    console.log(`[${config.label}] 필터 제외 ${excluded}건 (폐업·휴업 ${statNotOperating}, 3년 초과 ${statTooOld}, 날짜 포맷 오류 ${statBadDate})`);
+  }
+  if (total > 0 && allRows.length / total < 0.1) {
+    console.warn(`[${config.label}] 유효 건수가 전체의 10% 미만입니다 (${allRows.length}/${total}건) - API 키 갱신 또는 필터 조건 재검토 필요`);
   }
 
   return { total, rows: allRows };

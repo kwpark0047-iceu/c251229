@@ -78,14 +78,38 @@ function buildTestRequest(type: string, apiKey: string, sigunNm?: string): { tes
     }
 
     case 'gg-restaurant': {
-      const urlObj = new URL('https://openapi.gg.go.kr/Genrestrt');
+      const urlObj = new URL('https://openapi.gg.go.kr/GENRESTRT');
       urlObj.searchParams.set('KEY', apiKey);
       urlObj.searchParams.set('Type', 'json');
       urlObj.searchParams.set('pIndex', '1');
       urlObj.searchParams.set('pSize', '1');
       if (sigunNm) urlObj.searchParams.set('SIGUN_NM', sigunNm);
       testUrl = urlObj.toString();
-      validationFn = (data: any) => !!data.Genrestrt;
+      validationFn = (data: any) => !!data.GENRESTRT;
+      break;
+    }
+
+    case 'gg-food-trucks': {
+      const urlObj = new URL('https://openapi.gg.go.kr/Resrestrtfodtuck');
+      urlObj.searchParams.set('KEY', apiKey);
+      urlObj.searchParams.set('Type', 'json');
+      urlObj.searchParams.set('pIndex', '1');
+      urlObj.searchParams.set('pSize', '1');
+      if (sigunNm) urlObj.searchParams.set('SIGUN_NM', sigunNm);
+      testUrl = urlObj.toString();
+      validationFn = (data: any) => !!data.Resrestrtfodtuck;
+      break;
+    }
+
+    case 'gg-coffee-shops': {
+      const urlObj = new URL('https://openapi.gg.go.kr/RESRESTRT');
+      urlObj.searchParams.set('KEY', apiKey);
+      urlObj.searchParams.set('Type', 'json');
+      urlObj.searchParams.set('pIndex', '1');
+      urlObj.searchParams.set('pSize', '1');
+      if (sigunNm) urlObj.searchParams.set('SIGUN_NM', sigunNm);
+      testUrl = urlObj.toString();
+      validationFn = (data: any) => !!data.RESRESTRT;
       break;
     }
 

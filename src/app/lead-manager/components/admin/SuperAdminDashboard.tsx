@@ -6,7 +6,7 @@ import {
   Search, Filter, Activity,
   Settings, History, Download, FileText, Calendar,
   BarChart3, UserCheck, X, AlertCircle, Trash2, GraduationCap, Utensils,
-  Plus, Edit
+  Coffee, Truck, Plus, Edit
 } from 'lucide-react';
 import { 
   getAllProfiles, 
@@ -413,6 +413,8 @@ export default function SuperAdminDashboard({ user }: Props) {
         univ: 'gg-univ',
         restaurant: 'gg-restaurant',
         jncl: 'gg-jncl-univ',
+        'food-trucks': 'gg-food-trucks',
+        'coffee-shops': 'gg-coffee-shops',
         'seoul-clinic': 'seoul-clinic'
       };
       
@@ -1538,7 +1540,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                 id="sync-gg-univ-btn"
                 title="대학교 데이터"
                 subtitle="Education Network"
-                description="경기도 데이터 드림 및 공공데이터포털 API를 통해 전국 대학교 및 대학원 정보를 동기화합니다. 학교 홈페이지 및 연락처 정보를 포함하여 캠퍼스 광고 영업용 리드로 활용합니다."
+                description="경기데이터드림 및 공공데이터포털 API를 통해 전국 대학교 및 대학원 정보를 동기화합니다. 학교 홈페이지 및 연락처 정보를 포함하여 캠퍼스 광고 영업용 리드로 활용합니다."
                 icon={GraduationCap}
                 colorName="amber"
                 features={["대학교, 전문대학, 대학원 통합 데이터", "홈페이지 및 대표 연락처 정보 검색 최적화", "캠퍼스별 위치 정보 및 역세권 분석"]}
@@ -1552,11 +1554,39 @@ export default function SuperAdminDashboard({ user }: Props) {
                 id="sync-gg-rest-btn"
                 title="경기도 음식점 데이터"
                 subtitle="Food & Beverage"
-                description="경기도 일반음식점(일식 등) 인허가 현황 API를 통해 지역 내 식음료 업장 정보를 동기화합니다. 업종별 영업 상태를 실시간으로 파악하여 영업 리드로 전환합니다."
+                description="경기데이터드림 일반음식점 현황 API(GENRESTRT)를 통해 지역 내 식음료 업장 정보를 동기화합니다. 업종별 영업 상태를 실시간으로 파악하여 영업 리드로 전환합니다."
                 icon={Utensils}
                 colorName="orange"
-                features={["도내 일반음식점(일식/기타) 인허가 데이터", "영업/폐업 상태 실시간 업데이트 반영", "업종 자동 분류 (FOOD)"]}
+                features={["도내 일반음식점 인허가 데이터", "영업/폐업 상태 실시간 업데이트 반영", "업종 자동 분류 (FOOD)"]}
                 apiPath="/api/gg-restaurants"
+                syncingSector={syncingSector}
+                onSync={handleSync}
+              />
+
+              <SyncCard 
+                sectorKey="food-trucks"
+                id="sync-gg-food-truck-btn"
+                title="경기도 푸드트럭 데이터"
+                subtitle="Mobile Dining"
+                description="경기데이터드림 식품접객업(푸드트럭) 현황 API(Resrestrtfodtuck)를 통해 이동식 음식 판매 업장 정보를 동기화합니다."
+                icon={Truck}
+                colorName="lime"
+                features={["이동식 음식 판매업(푸드트럭) 인허가 데이터", "영업 상태 실시간 반영", "업종 자동 분류 (FOOD)"]}
+                apiPath="/api/gg-food-trucks"
+                syncingSector={syncingSector}
+                onSync={handleSync}
+              />
+
+              <SyncCard 
+                sectorKey="coffee-shops"
+                id="sync-gg-coffee-shop-btn"
+                title="경기도 커피숍 데이터"
+                subtitle="Coffee Culture"
+                description="경기데이터드림 식품접객업(커피숍) 현황 API(RESRESTRT)를 통해 도내 커피숍 업장 정보를 동기화합니다."
+                icon={Coffee}
+                colorName="teal"
+                features={["커피숍 인허가 데이터", "업종명 기준 업소 식별", "업종 자동 분류 (FOOD)"]}
+                apiPath="/api/gg-coffee-shops"
                 syncingSector={syncingSector}
                 onSync={handleSync}
               />
@@ -1639,7 +1669,9 @@ export default function SuperAdminDashboard({ user }: Props) {
                     <option value="gg-clinic">경기도 의원 상세 현황 (AsembyStus)</option>
                     <option value="gg-hospital">경기도 병원 상세 현황 (GgMedctnstus)</option>
                     <option value="gg-academy">경기도 학원/교습소 현황 (GenmstClassStus)</option>
-                    <option value="gg-restaurant">경기도 일반음식점 현황 (Genrestrt)</option>
+                    <option value="gg-restaurant">경기도 일반음식점 현황 (GENRESTRT)</option>
+                    <option value="gg-food-trucks">경기도 푸드트럭 현황 (Resrestrtfodtuck)</option>
+                    <option value="gg-coffee-shops">경기도 커피숍 현황 (RESRESTRT)</option>
                     <option value="gg-jncl-univ">경기도 전문대학 현황 (GgJnclUnivStus)</option>
                     <option value="gg-univ">경기도 대학교 현황 (GgUnivStus)</option>
                   </select>

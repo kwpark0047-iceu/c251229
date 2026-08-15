@@ -204,7 +204,7 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[var(--metro-line3)]" />
-                  <span className="text-sm font-semibold text-[var(--text-primary)]">경기도 공공 API</span>
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">경기데이터드림</span>
                 </div>
                 <button
                   onClick={() => selectAllByRegion('경기도')}

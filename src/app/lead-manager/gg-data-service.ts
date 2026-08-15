@@ -1,6 +1,6 @@
 
 /**
- * 경기도 공공데이터(학원/교습소) 서비스
+ * 경기데이터드림(학원/교습소) 서비스
  */
 
 import { Lead, BusinessCategory } from './types';
