@@ -5,6 +5,13 @@
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
+// Mock axios (KRIC API) — 실제 네트워크 호출을 차단하고 fetch mock만으로 동작하도록 함
+vi.mock('axios', () => ({
+  default: {
+    get: vi.fn().mockResolvedValue({ data: { response: { body: { items: [] } } } }),
+  },
+}));
+
 // Mock fetch for testing
 global.fetch = vi.fn();
 

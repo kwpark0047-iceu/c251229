@@ -91,6 +91,7 @@ vi.mock('@/lib/supabase/utils', () => ({
 
 vi.mock('./auth-service', () => ({
   getOrganizationId: vi.fn(() => Promise.resolve('org-1')),
+  logActivity: vi.fn(() => Promise.resolve()),
 }));
 
 describe('CRM 서비스', () => {
