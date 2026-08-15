@@ -2,7 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { getProposalWithInventory } from '@/app/lead-manager/proposal-service';
 import ProposalViewerClient from './ProposalViewerClient';
-import { getSupabase } from '@/lib/supabase/utils';
+import { createClient } from '@/lib/supabase/server';
 
 export const metadata = {
   title: '광고 제안서 - Antigravity Geo-System',
@@ -24,7 +24,7 @@ export default async function ProposalPage({ params }: { params: { id: string } 
   }
 
   // 추가로 리드(고객) 정보 조회
-  const supabase = getSupabase();
+  const supabase = await createClient();
   const { data: lead } = await supabase
     .from('leads')
     .select('biz_name')
