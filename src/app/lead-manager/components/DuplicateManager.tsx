@@ -24,6 +24,7 @@ export default function DuplicateManager({
   const [stats, setStats] = useState<ReturnType<typeof generateDuplicateStats> | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<Set<number>>(new Set());
+  const [noDuplicateDismissed, setNoDuplicateDismissed] = useState(false);
 
   useEffect(() => {
     if (leads.length > 0) {
@@ -33,6 +34,16 @@ export default function DuplicateManager({
       setIsLoading(false);
     }
   }, [leads]);
+
+  // 중복 데이터 없음 메시지: 표시된 후 3초 뒤 자동으로 닫힘
+  useEffect(() => {
+    if (stats && stats.duplicates === 0) {
+      setNoDuplicateDismissed(false);
+      const timer = setTimeout(() => setNoDuplicateDismissed(true), 3000);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [stats]);
 
   const handleMergeAll = async () => {
     if (!stats || !onMergeDuplicates) return;
@@ -111,6 +122,8 @@ export default function DuplicateManager({
   if (!stats) return null;
 
   if (stats.duplicates === 0) {
+    if (noDuplicateDismissed) return null;
+
     return (
       <div className="p-6 text-center">
         <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
