@@ -233,7 +233,7 @@ export default function OptimizedFloorPlanViewer({
           <h2 className="text-lg font-bold text-[var(--text-primary)]">
             {plan.stationName} <span className="text-sm font-medium text-[var(--text-muted)] ml-1">{plan.floorName}층</span>
           </h2>
-          <div className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/5 text-[var(--text-muted)] border border-white/5 uppercase">
+          <div className="px-2 py-0.5 rounded-full text-xs font-bold bg-white/5 text-[var(--text-muted)] border border-white/5 uppercase">
             {plan.planType === 'psd' ? 'PSD 도면' : '역구조 도면'}
           </div>
         </div>
@@ -294,7 +294,7 @@ export default function OptimizedFloorPlanViewer({
           </div>
         )}
 
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 text-[10px] text-white/60 font-medium flex items-center gap-2 pointer-events-none transition-opacity duration-300 animate-float-subtle">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 text-xs text-white/60 font-medium flex items-center gap-2 pointer-events-none transition-opacity duration-300 animate-float-subtle">
           <Move className="w-3 h-3" />
           휠로 확대/축소하고 드래그하여 이동하세요
         </div>
@@ -324,12 +324,12 @@ export default function OptimizedFloorPlanViewer({
                 }}
               />
             </div>
-            <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-black/40 text-[8px] font-black text-white/40 uppercase">Map</div>
+            <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-black/40 text-[10px] font-black text-white/40 uppercase">Map</div>
           </div>
         )}
       </div>
 
-      <div className="px-4 py-2 border-t border-white/5 bg-[var(--bg-secondary)]/30 backdrop-blur-sm flex justify-between items-center text-[10px] text-[var(--text-muted)] font-medium">
+      <div className="px-4 py-2 border-t border-white/5 bg-[var(--bg-secondary)]/30 backdrop-blur-sm flex justify-between items-center text-xs text-[var(--text-muted)] font-medium">
         <div className="flex items-center gap-3">
           <span>{plan.fileName}</span>
           <span className="w-px h-2 bg-white/10" />

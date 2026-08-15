@@ -222,7 +222,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
               </span>
               {lead.leadGrade && (
                 <span
-                  className={`text-[11px] font-bold px-1.5 py-0.5 rounded-md leading-none ${
+                  className={`text-xs font-bold px-1.5 py-0.5 rounded-md leading-none ${
                     lead.leadGrade === 'A'
                       ? 'bg-red-500/20 text-red-500'
                       : lead.leadGrade === 'B'

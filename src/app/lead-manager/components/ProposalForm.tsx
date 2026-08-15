@@ -642,7 +642,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                           <span className="text-sm font-bold text-[var(--text-primary)]">
                             {AD_TYPE_LABELS[item.adType] || item.adType}
                           </span>
-                          <span className="text-[10px] text-[var(--text-muted)] border px-1 rounded">
+                          <span className="text-xs text-[var(--text-muted)] border px-1 rounded">
                             {item.locationCode}
                           </span>
                         </div>
@@ -695,10 +695,10 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                             </div>
                             <div className="flex flex-col">
                               <span className="text-sm font-bold text-[var(--text-primary)]">{prop.title}</span>
-                              <span className="text-[10px] text-[var(--text-muted)]">{prop.originalFilename}</span>
+                              <span className="text-xs text-[var(--text-muted)]">{prop.originalFilename}</span>
                             </div>
                           </div>
-                          <div className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)] font-medium">
+                          <div className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)] font-medium">
                             {prop.fileType || 'PDF'}
                           </div>
                         </div>
@@ -710,7 +710,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     </div>
                   )}
                   {selectedAttachmentIds.length > 0 && (
-                    <div className="pt-2 flex items-center gap-2 text-[10px] text-[var(--metro-line2)] font-bold">
+                    <div className="pt-2 flex items-center gap-2 text-xs text-[var(--metro-line2)] font-bold">
                       <CheckCircle className="w-3 h-3" />
                       {selectedAttachmentIds.length}媛쒖쓽 留ㅼ껜 ?쒖븞?쒓? 異붽?濡?泥⑤??⑸땲??
                     </div>
@@ -1025,7 +1025,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     }`}
                   >
                     <div className="font-bold mb-1">?낅줈??諛?諛쒖넚 泥섎━</div>
-                    <div className="text-[10px] opacity-70">?쒖뒪?쒖뿉???쒖븞??諛쒖넚 ?꾨즺濡?泥섎━?⑸땲??</div>
+                    <div className="text-xs opacity-70">?쒖뒪?쒖뿉???쒖븞??諛쒖넚 ?꾨즺濡?泥섎━?⑸땲??</div>
                   </button>
                   <button
                     onClick={() => setUploadStatus('DRAFT')}
@@ -1036,7 +1036,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     }`}
                   >
                     <div className="font-bold mb-1">임시 저장</div>
-                    <div className="text-[10px] opacity-70">?낅줈?쒕쭔 ?섍퀬 諛쒖넚 泥섎━???섏쨷???⑸땲??</div>
+                    <div className="text-xs opacity-70">?낅줈?쒕쭔 ?섍퀬 諛쒖넚 泥섎━???섏쨷???⑸땲??</div>
                   </button>
                 </div>
               </div>

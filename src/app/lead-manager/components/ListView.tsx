@@ -259,7 +259,7 @@ export default function ListView({
                     </p>
                   </div>
                   <div
-                    className="px-2 py-1 rounded text-[10px] font-bold bg-[--status-bg] text-[--status-text] border border-[--status-border]"
+                    className="px-2 py-1 rounded text-xs font-bold bg-[--status-bg] text-[--status-text] border border-[--status-border]"
                      
    
   /* stylelint-disable-next-line */
@@ -277,7 +277,7 @@ export default function ListView({
                   </div>
                   {lead.leadGrade && (
                     <span
-                      className={`text-[10px] font-bold px-1.5 py-1 rounded leading-none ${
+                      className={`text-xs font-bold px-1.5 py-1 rounded leading-none ${
                         lead.leadGrade === 'A'
                           ? 'bg-red-500/20 text-red-500'
                           : lead.leadGrade === 'B'
@@ -509,7 +509,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick
       <td className="px-5 py-4 hidden md:table-cell">
         {lead.leadGrade ? (
           <span
-            className={`inline-block text-[11px] font-bold px-1.5 py-0.5 rounded-md leading-none ${
+            className={`inline-block text-xs font-bold px-1.5 py-0.5 rounded-md leading-none ${
               lead.leadGrade === 'A'
                 ? 'bg-red-500/20 text-red-500'
                 : lead.leadGrade === 'B'

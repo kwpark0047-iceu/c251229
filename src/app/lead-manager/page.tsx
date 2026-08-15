@@ -680,7 +680,7 @@ function LeadManagerContent() {
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-[var(--text-primary)] leading-tight">지하철 광고</h1>
-                <p className="text-[10px] text-[var(--text-muted)] font-medium tracking-wider uppercase">리드 매니저</p>
+                <p className="text-xs text-[var(--text-muted)] font-medium tracking-wider uppercase">리드 매니저</p>
               </div>
             </div>
 
@@ -734,13 +734,13 @@ function LeadManagerContent() {
                         <div className="flex items-center gap-2 mt-1.5">
                           <Building2 className="w-3.5 h-3.5 text-[var(--metro-line4)]" />
                           <span className="text-xs text-[var(--text-secondary)]">{userInfo.organizationName}</span>
-                          {userInfo.role === 'owner' && <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-[var(--metro-line5)] text-white">관리자</span>}
+                          {userInfo.role === 'owner' && <span className="text-xs px-1.5 py-0.5 rounded-full font-medium bg-[var(--metro-line5)] text-white">관리자</span>}
                         </div>
                       )}
                     </div>
                     {userInfo?.role === 'owner' && userInfo?.inviteCode && (
                       <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
-                        <p className="text-[10px] text-[var(--text-muted)] mb-1.5 font-medium">팀 초대 코드</p>
+                        <p className="text-xs text-[var(--text-muted)] mb-1.5 font-medium">팀 초대 코드</p>
                         <div className="flex items-center gap-2">
                           <code className="flex-1 text-xs font-mono bg-[var(--bg-secondary)] text-[var(--metro-line2)] px-2.5 py-1.5 rounded-lg">{userInfo.inviteCode}</code>
                           <button onClick={copyInviteCode} className="p-1.5 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors">
@@ -890,7 +890,7 @@ function LeadManagerContent() {
                     />
                     {showStationSuggestions && (
                       <div className="absolute top-full left-0 mt-1 w-72 bg-[var(--bg-card)] border border-[var(--border-subtle)] rounded-xl shadow-xl z-50 overflow-hidden">
-                        <div className="px-3 py-1.5 text-[10px] text-[var(--text-muted)] border-b border-[var(--border-subtle)] font-medium">인근역 빠른 검색</div>
+                        <div className="px-3 py-1.5 text-xs text-[var(--text-muted)] border-b border-[var(--border-subtle)] font-medium">인근역 빠른 검색</div>
                         {stationSuggestions.map(station => (
                           <button
                             key={station.name}
@@ -905,7 +905,7 @@ function LeadManagerContent() {
                               {station.lines.map(line => (
                                 <span
                                   key={line}
-                                  className="text-[10px] px-1.5 py-0.5 rounded text-white font-bold"
+                                  className="text-xs px-1.5 py-0.5 rounded text-white font-bold"
                                   style={{ backgroundColor: `var(--metro-line${line.match(/^\d$/) ? line : ''})` || '#888' }}
                                 >
                                   {METRO_LINE_NAMES[line] || line}
@@ -939,10 +939,10 @@ function LeadManagerContent() {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-[var(--text-muted)]">세부:</span>
-                  <button onClick={() => setSelectedServiceIds([])} className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${selectedServiceIds.length === 0 ? 'bg-[var(--metro-line2)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}>전체 서비스</button>
+                  <button onClick={() => setSelectedServiceIds([])} className={`px-2.5 py-1 text-xs rounded-md transition-all font-medium ${selectedServiceIds.length === 0 ? 'bg-[var(--metro-line2)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}>전체 서비스</button>
                   {CATEGORY_SERVICE_IDS[categoryFilter].map(service => {
                     const isSelected = selectedServiceIds.includes(service.id);
-                    return <button key={service.id} onClick={() => setSelectedServiceIds(prev => isSelected ? prev.filter(id => id !== service.id) : [...prev, service.id])} className={`px-2.5 py-1 text-[11px] rounded-md transition-all font-medium ${isSelected ? 'bg-[var(--metro-line4)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}>{service.name}</button>;
+                    return <button key={service.id} onClick={() => setSelectedServiceIds(prev => isSelected ? prev.filter(id => id !== service.id) : [...prev, service.id])} className={`px-2.5 py-1 text-xs rounded-md transition-all font-medium ${isSelected ? 'bg-[var(--metro-line4)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`}>{service.name}</button>;
                   })}
                 </div>
               </div>

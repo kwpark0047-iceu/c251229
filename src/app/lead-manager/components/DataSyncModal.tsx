@@ -282,7 +282,7 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
                     {GG_SIGUNS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
-                <p className="text-[11px] text-[var(--text-muted)]">
+                <p className="text-xs text-[var(--text-muted)]">
                   API 키를 별도로 입력하면 환경변수 키를 덮어씁니다. 통상적으로 입력 불필요합니다.
                 </p>
               </div>
@@ -393,26 +393,26 @@ function SourceCard({ source, selected, state, onToggle, isCurrent }: SourceCard
 
       {/* 진행 중 상태 */}
       {isRunning && (
-        <p className="text-[11px] text-[var(--metro-line4)]">데이터 수집 중...</p>
+        <p className="text-xs text-[var(--metro-line4)]">데이터 수집 중...</p>
       )}
 
       {/* 성공 결과 */}
       {isSuccess && state?.result && (
-        <p className="text-[11px] text-[var(--metro-line2)]">
+        <p className="text-xs text-[var(--metro-line2)]">
           {state.result.saved.toLocaleString()}건 저장 / {state.result.fetched.toLocaleString()}건 수집
         </p>
       )}
 
       {/* 실패 결과 */}
       {isError && state?.result?.error && (
-        <p className="text-[11px] text-red-400 truncate" title={state.result.error}>
+        <p className="text-xs text-red-400 truncate" title={state.result.error}>
           {state.result.error}
         </p>
       )}
 
       {/* 기본 상태 */}
       {!isRunning && !isSuccess && !isError && (
-        <p className="text-[11px] text-[var(--text-muted)]">
+        <p className="text-xs text-[var(--text-muted)]">
           {source.hasKey ? '✓ API 키 설정됨' : '⚠ API 키 미설정'}
         </p>
       )}

@@ -599,7 +599,7 @@ function AuthContent() {
                               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                             )}
                           </div>
-                          <p className={`text-[10px] ${tier === t.id ? 'text-emerald-600/70' : 'text-slate-400'}`}>
+                          <p className={`text-xs ${tier === t.id ? 'text-emerald-600/70' : 'text-slate-400'}`}>
                             {t.desc}
                           </p>
                         </button>
@@ -725,7 +725,7 @@ function AuthContent() {
                               <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                             )}
                           </div>
-                          <p className={`text-[10px] ${tier === t.id ? 'text-orange-600/70' : 'text-slate-400'}`}>
+                          <p className={`text-xs ${tier === t.id ? 'text-orange-600/70' : 'text-slate-400'}`}>
                             {t.desc}
                           </p>
                         </button>
@@ -753,7 +753,7 @@ function AuthContent() {
             {[1, 2, 3, 4, 5].map((line) => (
               <div 
                 key={line} 
-                className={`line-badge line-badge-${line} !text-[10px] !min-w-[20px] !h-[20px]`} 
+                className={`line-badge line-badge-${line} !text-xs !min-w-[20px] !h-[20px]`} 
               >
                 {line}
               </div>

@@ -102,7 +102,7 @@ export default function AiRecommendWidget() {
       <div className="glass-card p-8 md:p-12 relative overflow-hidden backdrop-blur-2xl">
         <div className="flex items-center gap-3 mb-8">
           <div className="bg-blue-500/20 p-2 rounded-xl">
-            <Sparkles className="text-blue-400" size={24} />
+            <Sparkles className="w-6 h-6 text-blue-400" />
           </div>
           <h2 className="text-display text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
             AI 광고 자동 추천 허브
@@ -114,7 +114,7 @@ export default function AiRecommendWidget() {
             <div className="space-y-6">
               <div>
                 <label className="metro-input-label flex items-center gap-2">
-                  <Building size={14} className="text-blue-400" />
+                  <Building className="w-3.5 h-3.5 text-blue-400" />
                   업종 선택
                 </label>
                 <select 
@@ -129,7 +129,7 @@ export default function AiRecommendWidget() {
 
               <div>
                 <label className="metro-input-label flex items-center gap-2">
-                  <DollarSign size={14} className="text-emerald-400" />
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
                   월간 예산
                 </label>
                 <select 
@@ -144,7 +144,7 @@ export default function AiRecommendWidget() {
 
               <div>
                 <label className="metro-input-label flex items-center gap-2">
-                  <MapPin size={14} className="text-orange-400" />
+                  <MapPin className="w-3.5 h-3.5 text-orange-400" />
                   희망 지역
                 </label>
                 <select 
@@ -161,7 +161,7 @@ export default function AiRecommendWidget() {
             <div className="flex flex-col justify-between p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-blue-500/30 transition-all group">
               <div>
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-white">
-                  <TrendingUp size={18} className="text-blue-400" />
+                  <TrendingUp className="w-[18px] h-[18px] text-blue-400" />
                   분석 포인트
                 </h3>
                 <ul className="space-y-3 text-sm text-gray-400">
@@ -185,10 +185,10 @@ export default function AiRecommendWidget() {
                 disabled={loading}
                 className="metro-btn-primary w-full mt-8 group-hover:shadow-[0_0_20px_rgba(34,197,94,0.4)]"
               >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : (
+                {loading ? <Loader2 className="animate-spin w-[18px] h-[18px]" /> : (
                   <>
                     즉시 분석 결과 확인
-                    <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                    <ChevronRight className="w-[18px] h-[18px] group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
@@ -235,7 +235,7 @@ export default function AiRecommendWidget() {
                                 className="w-full h-full object-cover opacity-60 group-hover/station:scale-110 transition-transform duration-500"
                               />
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                                <span className="text-[10px] bg-blue-500/80 px-2 py-1 rounded text-white font-bold">도면 분석 완료</span>
+                                <span className="text-xs bg-blue-500/80 px-2 py-1 rounded text-white font-bold">도면 분석 완료</span>
                               </div>
                             </div>
                           )}
@@ -254,7 +254,7 @@ export default function AiRecommendWidget() {
                         <div className="text-xs text-blue-400 font-bold mb-2 uppercase tracking-wider">추천 매체</div>
                         <div className="flex flex-wrap gap-2">
                           {result.recommendedMedia.mediaTypes.map(m => (
-                            <span key={m} className="badge badge-info text-[10px]">{m}</span>
+                            <span key={m} className="badge badge-info text-xs">{m}</span>
                           ))}
                         </div>
                       </div>
@@ -283,7 +283,7 @@ export default function AiRecommendWidget() {
                   </button>
                   <button className="metro-btn-primary group">
                     전문 컨설팅 신청
-                    <ChevronRight size={18} className="group-hover:translate-x-1" />
+                    <ChevronRight className="w-[18px] h-[18px] group-hover:translate-x-1" />
                   </button>
                 </div>
               </>

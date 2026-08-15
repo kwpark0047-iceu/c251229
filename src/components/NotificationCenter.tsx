@@ -42,7 +42,7 @@ export default function NotificationCenter() {
             >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-[var(--bg-primary)] animate-pulse">
+                    <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-xs font-bold flex items-center justify-center rounded-full border-2 border-[var(--bg-primary)] animate-pulse">
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
@@ -62,7 +62,7 @@ export default function NotificationCenter() {
                         <div className="flex items-center gap-2">
                             <h3 className="text-sm font-bold text-[var(--text-primary)]">알림</h3>
                             {unreadCount > 0 && (
-                                <span className="px-2 py-0.5 rounded-full bg-[var(--metro-line2)]/20 text-[var(--metro-line2)] text-[10px] font-bold">
+                                <span className="px-2 py-0.5 rounded-full bg-[var(--metro-line2)]/20 text-[var(--metro-line2)] text-xs font-bold">
                                     NEW {unreadCount}
                                 </span>
                             )}
@@ -114,7 +114,7 @@ export default function NotificationCenter() {
                                                 {n.message}
                                             </p>
                                             <div className="flex items-center gap-3 mt-2">
-                                                <span className="text-[10px] text-[var(--text-muted)] flex items-center gap-1">
+                                                <span className="text-xs text-[var(--text-muted)] flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
                                                     {formatTime(n.timestamp)}
                                                 </span>
@@ -139,7 +139,7 @@ export default function NotificationCenter() {
 
                     {/* 하단 푸터 */}
                     <div className="px-5 py-3 border-t border-[var(--border-subtle)] bg-white/5">
-                        <button className="w-full text-center text-[10px] font-bold text-[var(--text-muted)] hover:text-[var(--text-secondary)] uppercase tracking-widest transition-colors">
+                        <button className="w-full text-center text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-secondary)] uppercase tracking-widest transition-colors">
                             전체 활동 보기
                         </button>
                     </div>

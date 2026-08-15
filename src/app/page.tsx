@@ -42,7 +42,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 group cursor-pointer">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-              <Train size={22} className="text-white" />
+              <Train className="w-[22px] h-[22px] text-white" />
             </div>
             <span className="font-display text-2xl tracking-tight text-white group-hover:text-blue-400 transition-colors">
               WE MARKET
@@ -62,7 +62,7 @@ export default function Home() {
                 className="metro-btn-ghost px-5 py-2 text-sm flex items-center gap-2 group"
               >
                 관리자 로그인
-                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
           </div>
@@ -77,7 +77,7 @@ export default function Home() {
         
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-semibold mb-8 animate-fade-in-down">
-            <Sparkles size={16} />
+            <Sparkles className="w-4 h-4" />
             AI 기반 데이터 플랫폼 위마켓 2.0 정식 출시
           </div>
           
@@ -94,11 +94,11 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-6 animate-fade-in-up delay-200">
             <Link href="#ai-recommend" className="metro-btn-primary px-10 py-5 text-lg group">
               AI 자동 추천 시작하기
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link href="/contact" className="glass-card flex items-center gap-3 px-10 py-5 text-lg font-semibold text-white hover:bg-white/5 border border-white/10">
               광고 매체 문의
-              <MousePointer2 size={18} className="text-blue-400" />
+              <MousePointer2 className="w-[18px] h-[18px] text-blue-400" />
             </Link>
           </div>
         </div>
@@ -151,7 +151,7 @@ export default function Home() {
               <p className="text-gray-400 text-lg">단순한 광고 집행을 넘어, 영업 파이프라인 관리와 성과 분석까지 하나의 플랫폼에서 해결하세요.</p>
             </div>
             <div className="text-blue-400 font-bold flex items-center gap-2 cursor-pointer hover:underline">
-              모든 기능 상세히 보기 <ArrowRight size={18} />
+              모든 기능 상세히 보기 <ArrowRight className="w-[18px] h-[18px]" />
             </div>
           </div>
 
@@ -168,7 +168,7 @@ export default function Home() {
   // noinspection CssInlineStyle
   // NOSONAR
   style={{ background: `${feature.color}15` }}>
-                  <feature.icon size={28}  
+                  <feature.icon className="w-7 h-7"  
    
   /* stylelint-disable-next-line */
   // @ts-ignore
@@ -210,7 +210,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <Train size={16} className="text-blue-400" />
+              <Train className="w-4 h-4 text-blue-400" />
             </div>
             <span className="font-display text-lg text-white">WE MARKET</span>
           </div>

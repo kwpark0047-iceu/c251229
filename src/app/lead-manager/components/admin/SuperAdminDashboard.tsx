@@ -111,7 +111,7 @@ function SyncCard({
           </div>
           <div>
             <h3 className="font-black text-white text-xl uppercase tracking-tighter">{title}</h3>
-            <p className={`text-[10px] ${c.iconColor}/60 font-black tracking-widest uppercase`}>{subtitle}</p>
+            <p className={`text-xs ${c.iconColor}/60 font-black tracking-widest uppercase`}>{subtitle}</p>
           </div>
         </div>
         <p className="text-sm text-slate-400 leading-relaxed mb-6">{description}</p>
@@ -680,7 +680,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                  <p className="text-[10px] font-bold text-emerald-400/80 tracking-[0.2em] uppercase">System Core Integrity Active</p>
+                  <p className="text-xs font-bold text-emerald-400/80 tracking-[0.2em] uppercase">System Core Integrity Active</p>
                 </div>
               </div>
             </div>
@@ -700,13 +700,13 @@ export default function SuperAdminDashboard({ user }: Props) {
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-black text-white tracking-tight">{user.email.split('@')[0]}</span>
-                    <span className="px-1.5 py-0.5 bg-indigo-500 text-[9px] font-black rounded uppercase tracking-tighter shadow-lg shadow-indigo-500/20">ROOT</span>
+                    <span className="px-1.5 py-0.5 bg-indigo-500 text-xs font-black rounded uppercase tracking-tighter shadow-lg shadow-indigo-500/20">ROOT</span>
                   </div>
-                  <span className="text-[10px] text-slate-500 font-medium">{user.email}</span>
+                  <span className="text-xs text-slate-500 font-medium">{user.email}</span>
                 </div>
                 <div className="ml-4 pl-4 border-l border-white/5 flex flex-col items-end">
-                  <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Master Auth</p>
-                  <p className="text-[11px] font-black text-indigo-400/80 uppercase tracking-tighter">Verified Session</p>
+                  <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">Master Auth</p>
+                  <p className="text-xs font-black text-indigo-400/80 uppercase tracking-tighter">Verified Session</p>
                 </div>
 
                 {/* 알림 센터 벨 (NEW) */}
@@ -720,7 +720,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                   >
                     <Bell className={`w-5 h-5 ${unreadCount > 0 ? 'animate-bounce' : ''}`} />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-[#0D0D0D] shadow-lg animate-pulse">
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-xs font-black rounded-full flex items-center justify-center border-2 border-[#0D0D0D] shadow-lg animate-pulse">
                         {unreadCount}
                       </span>
                     )}
@@ -736,7 +736,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                         </h4>
                         <button 
                           onClick={handleMarkAllAsRead}
-                          className="text-[9px] font-black text-indigo-400 hover:text-indigo-300 uppercase tracking-tighter"
+                          className="text-xs font-black text-indigo-400 hover:text-indigo-300 uppercase tracking-tighter"
                         >
                           Clear All
                         </button>
@@ -762,7 +762,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                                   <p className={`text-xs leading-relaxed ${notif.is_read ? 'text-slate-400' : 'text-slate-200 font-bold'}`}>
                                     {notif.message}
                                   </p>
-                                  <p className="text-[9px] text-slate-600 mt-1 font-medium italic">
+                                  <p className="text-xs text-slate-600 mt-1 font-medium italic">
                                     {new Date(notif.created_at).toLocaleString()}
                                   </p>
                                 </div>
@@ -775,12 +775,12 @@ export default function SuperAdminDashboard({ user }: Props) {
                         ) : (
                           <div className="p-10 text-center flex flex-col items-center gap-3">
                             <Shield className="w-8 h-8 text-slate-800" />
-                            <p className="text-[10px] text-slate-600 font-black uppercase tracking-widest">No Active Alerts</p>
+                            <p className="text-xs text-slate-600 font-black uppercase tracking-widest">No Active Alerts</p>
                           </div>
                         )}
                       </div>
                       <div className="p-3 bg-white/[0.02] border-t border-white/5 text-center">
-                        <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">System Integrity Verified</p>
+                        <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">System Integrity Verified</p>
                       </div>
                     </div>
                   )}
@@ -800,8 +800,8 @@ export default function SuperAdminDashboard({ user }: Props) {
                 <Users className="w-6 h-6" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-blue-500/60 tracking-widest uppercase mb-1">Scale</span>
-                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[9px] font-black rounded-full border border-blue-500/20">TOTAL</span>
+                <span className="text-xs font-black text-blue-500/60 tracking-widest uppercase mb-1">Scale</span>
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs font-black rounded-full border border-blue-500/20">TOTAL</span>
               </div>
             </div>
             <div>
@@ -817,8 +817,8 @@ export default function SuperAdminDashboard({ user }: Props) {
                 <Activity className="w-6 h-6 animate-pulse" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-emerald-500/60 tracking-widest uppercase mb-1">Status</span>
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-[9px] font-black rounded-full border border-emerald-500/20">
+                <span className="text-xs font-black text-emerald-500/60 tracking-widest uppercase mb-1">Status</span>
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs font-black rounded-full border border-emerald-500/20">
                   <span className="w-1 h-1 bg-emerald-500 rounded-full animate-ping"></span>
                   ONLINE
                 </span>
@@ -830,14 +830,14 @@ export default function SuperAdminDashboard({ user }: Props) {
                 {onlineUsers.slice(0, 5).map((u, i) => (
                   <div
                     key={u.id}
-                    className={`w-5 h-5 rounded-full bg-emerald-500 border border-white/20 flex items-center justify-center text-[7px] font-bold animate-fade-in animate-float-subtle opacity-90 delay-${i * 100}`}
+                    className={`w-5 h-5 rounded-full bg-emerald-500 border border-white/20 flex items-center justify-center text-[10px] font-bold animate-fade-in animate-float-subtle opacity-90 delay-${i * 100}`}
                   >
                     {(u.email || '?')[0].toUpperCase()}
                   </div>
                 ))}
-                {onlineUsersCount > 5 && <div className="w-5 h-5 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[7px] font-bold">+ {onlineUsersCount - 5}</div>}
+                {onlineUsersCount > 5 && <div className="w-5 h-5 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[10px] font-bold">+ {onlineUsersCount - 5}</div>}
               </div>
-              <p className="text-slate-500 text-[10px] font-bold mt-2 uppercase tracking-wide">실시간 활성 계정</p>
+              <p className="text-slate-500 text-xs font-bold mt-2 uppercase tracking-wide">실시간 활성 계정</p>
             </div>
           </div>
 
@@ -848,8 +848,8 @@ export default function SuperAdminDashboard({ user }: Props) {
                 <Shield className="w-6 h-6" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-indigo-500/60 tracking-widest uppercase mb-1">Trust</span>
-                <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 text-[9px] font-black rounded-full border border-indigo-500/20">REGS</span>
+                <span className="text-xs font-black text-indigo-500/60 tracking-widest uppercase mb-1">Trust</span>
+                <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 text-xs font-black rounded-full border border-indigo-500/20">REGS</span>
               </div>
             </div>
             <div>
@@ -865,8 +865,8 @@ export default function SuperAdminDashboard({ user }: Props) {
                 <UserCheck className="w-6 h-6" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-amber-500/60 tracking-widest uppercase mb-1">Action</span>
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400 text-[9px] font-black rounded-full border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                <span className="text-xs font-black text-amber-500/60 tracking-widest uppercase mb-1">Action</span>
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400 text-xs font-black rounded-full border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
                   <span className="w-1 h-1 bg-amber-500 rounded-full animate-ping"></span>
                   LIVE PENDING
                 </span>
@@ -885,8 +885,8 @@ export default function SuperAdminDashboard({ user }: Props) {
                 <Calendar className="w-6 h-6" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-[10px] font-black text-purple-500/60 tracking-widest uppercase mb-1">Trial</span>
-                <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[9px] font-black rounded-full border border-purple-500/20">DEMO</span>
+                <span className="text-xs font-black text-purple-500/60 tracking-widest uppercase mb-1">Trial</span>
+                <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs font-black rounded-full border border-purple-500/20">DEMO</span>
               </div>
             </div>
             <div>
@@ -1009,7 +1009,7 @@ export default function SuperAdminDashboard({ user }: Props) {
               <div className="bg-white/[0.01] backdrop-blur-sm rounded-3xl border border-white/5 shadow-2xl overflow-hidden mb-12">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-white/[0.03] border-b border-white/5 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                    <tr className="bg-white/[0.03] border-b border-white/5 text-slate-400 text-xs font-black uppercase tracking-[0.2em]">
                       <th className="px-8 py-5">Identity Profile</th>
                       <th className="px-8 py-5">Organization & Access</th>
                       <th className="px-8 py-5">Security Tier</th>
@@ -1028,10 +1028,10 @@ export default function SuperAdminDashboard({ user }: Props) {
                             </div>
                             <div>
                               <p className="font-black text-white text-sm tracking-tight">{p.fullName || 'Unidentified Node'}</p>
-                              <p className="text-[11px] text-slate-500 font-medium group-hover:text-indigo-400 transition-colors">{p.email}</p>
+                              <p className="text-xs text-slate-500 font-medium group-hover:text-indigo-400 transition-colors">{p.email}</p>
                             </div>
                             {p.isSuperAdmin && (
-                              <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded text-[9px] font-black tracking-widest shadow-lg shadow-indigo-500/10">ROOT</span>
+                              <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded text-xs font-black tracking-widest shadow-lg shadow-indigo-500/10">ROOT</span>
                             )}
                           </div>
                         </td>
@@ -1044,7 +1044,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                               <p className="text-slate-300 font-bold text-xs">
                                 {p.membership?.organizationName || <span className="text-slate-600 italic font-medium">No Domain</span>}
                               </p>
-                              <p className="text-[10px] uppercase font-black text-indigo-500/60 tracking-wider">
+                              <p className="text-xs uppercase font-black text-indigo-500/60 tracking-wider">
                                 {p.membership?.role || 'Guest'}
                               </p>
                             </div>
@@ -1056,7 +1056,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                               aria-label="회원 등급 변경"
                               value={p.tier || 'FREE'}
                               onChange={(e) => handleTierChange(p.id, p.email, e.target.value)}
-                              className={`inline-flex items-center w-fit px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-[0.15em] shadow-lg cursor-pointer outline-none transition-all ${
+                              className={`inline-flex items-center w-fit px-2.5 py-1 rounded text-xs font-black uppercase tracking-[0.15em] shadow-lg cursor-pointer outline-none transition-all ${
                                 p.tier === 'DEMO' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
                                 p.tier === 'MEDIA' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
                                 p.tier === 'SALES' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
@@ -1069,7 +1069,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                               <option value="SALES" className="bg-[#0f172a] text-amber-400">SALES</option>
                             </select>
                             {p.tier === 'DEMO' && p.trialExpiresAt && (
-                              <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
+                              <p className="text-xs font-bold text-slate-500 flex items-center gap-1">
                                 <span className="w-1 h-1 bg-purple-500 rounded-full"></span>
                                 {Math.max(0, Math.ceil((new Date(p.trialExpiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} Days Remaining
                               </p>
@@ -1078,17 +1078,17 @@ export default function SuperAdminDashboard({ user }: Props) {
                         </td>
                         <td className="px-8 py-6 text-sm font-medium">
                           {p.isApproved ? (
-                            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 shadow-lg shadow-emerald-500/5">
+                            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-black uppercase tracking-widest border border-emerald-500/20 shadow-lg shadow-emerald-500/5">
                               <CheckCircle className="w-3.5 h-3.5" /> Trusted
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-500/20 shadow-lg shadow-amber-500/5">
+                            <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-400 rounded-xl text-xs font-black uppercase tracking-widest border border-amber-500/20 shadow-lg shadow-amber-500/5">
                               <AlertCircle className="w-3.5 h-3.5" /> Verification
                             </span>
                           )}
                         </td>
                         <td className="px-8 py-6">
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Entry Date</p>
+                            <p className="text-slate-500 text-xs font-black uppercase tracking-widest">Entry Date</p>
                             <p className="text-slate-300 text-xs font-bold mt-0.5">{new Date(p.createdAt).toLocaleDateString()}</p>
                         </td>
                         <td className="px-8 py-6">
@@ -1168,7 +1168,7 @@ export default function SuperAdminDashboard({ user }: Props) {
               </div>
               <button 
                 onClick={loadAllLogs} 
-                className="relative z-10 flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 border border-white/10 shadow-2xl"
+                className="relative z-10 flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all active:scale-95 border border-white/10 shadow-2xl"
               >
                 <Activity className="w-4 h-4" />
                 Rescan System
@@ -1178,7 +1178,7 @@ export default function SuperAdminDashboard({ user }: Props) {
             {logsLoading ? (
               <div className="flex flex-col items-center justify-center py-32 gap-6">
                 <div className="w-12 h-12 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-                <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest animate-pulse">Syncing Audit Stream...</p>
+                <p className="text-xs font-black text-slate-600 uppercase tracking-widest animate-pulse">Syncing Audit Stream...</p>
               </div>
             ) : allLogs.length > 0 ? (
               <div className="relative space-y-6 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-px before:bg-gradient-to-b before:from-indigo-500/50 before:via-purple-500/20 before:to-transparent">
@@ -1211,20 +1211,20 @@ export default function SuperAdminDashboard({ user }: Props) {
                     <div className="bg-white/[0.02] hover:bg-white/[0.04] backdrop-blur-md border border-white/5 p-6 rounded-3xl transition-all duration-500 group-hover:border-indigo-500/20 shadow-xl group-hover:shadow-indigo-500/5 translate-x-0 group-hover:translate-x-2">
                        <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-[10px] font-black text-slate-500">
+                             <div className="w-8 h-8 rounded-full bg-slate-900 border border-white/5 flex items-center justify-center text-xs font-black text-slate-500">
                                {(log.user_email || 'U')[0].toUpperCase()}
                              </div>
                              <div>
-                                <p className="text-[11px] font-black text-white group-hover:text-indigo-300 transition-colors">{log.user_email}</p>
+                                <p className="text-xs font-black text-white group-hover:text-indigo-300 transition-colors">{log.user_email}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                   <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                                   <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${
                                       log.action_type.includes('PROPOSAL') ? 'bg-purple-500/20 text-purple-400' :
                                       log.action_type.includes('LEAD') ? 'bg-indigo-500/20 text-indigo-400' :
                                       'bg-slate-800 text-slate-500'
                                    }`}>
                                       {log.action_type}
                                    </span>
-                                   <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tighter flex items-center gap-1">
+                                   <span className="text-xs text-slate-600 font-bold uppercase tracking-tighter flex items-center gap-1">
                                       <Calendar className="w-3 h-3" /> {new Date(log.created_at).toLocaleString()}
                                    </span>
                                 </div>
@@ -1235,8 +1235,8 @@ export default function SuperAdminDashboard({ user }: Props) {
                              <div className="group/meta relative">
                                 <AlertCircle className="w-4 h-4 text-slate-700 cursor-help hover:text-slate-400 transition-colors" />
                                 <div className="absolute right-0 top-full mt-2 w-48 p-3 bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl opacity-0 group-hover/meta:opacity-100 transition-opacity z-30 pointer-events-none">
-                                   <p className="text-[8px] text-slate-500 font-bold uppercase mb-1">Node Metadata</p>
-                                   <p className="text-[9px] text-slate-400 break-all leading-relaxed">{log.details.client_context.userAgent}</p>
+                                   <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Node Metadata</p>
+                                   <p className="text-xs text-slate-400 break-all leading-relaxed">{log.details.client_context.userAgent}</p>
                                 </div>
                              </div>
                           )}
@@ -1248,7 +1248,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                           </p>
                           {log.entity_id && (
                              <div className="mt-3 flex items-center gap-2">
-                                <div className="px-2 py-1 bg-black/40 border border-white/5 rounded-lg text-[9px] text-slate-600 font-bold font-mono">
+                                <div className="px-2 py-1 bg-black/40 border border-white/5 rounded-lg text-xs text-slate-600 font-bold font-mono">
                                    ENTITY_ID: {log.entity_id}
                                 </div>
                              </div>
@@ -1330,7 +1330,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                             </td>
                             <td className="p-4">{config.sigunNm || '-'}</td>
                             <td className="p-4">
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest ${
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-widest ${
                                 config.isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-500 border border-slate-700'
                               }`}>
                                 {config.isActive ? '사용중' : '중지'}
@@ -1339,7 +1339,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                             <td className="p-4 text-right flex items-center justify-end gap-2">
                               {/* 연결 테스트 결과 표시 */}
                               {result && (
-                                <span className={`text-[10px] font-bold mr-2 ${
+                                <span className={`text-xs font-bold mr-2 ${
                                   result.success ? 'text-emerald-400 animate-pulse' : 'text-rose-400'
                                 }`}>
                                   {result.success ? `SUCCESS (${result.duration}ms)` : `ERROR: ${result.error}`}
@@ -1349,7 +1349,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                               <button
                                 onClick={() => handleTestConnection(config.id, config.type, config.apiKey, config.sigunNm)}
                                 disabled={isTesting}
-                                className={`px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 ${
+                                className={`px-3 py-1.5 rounded-xl border text-xs font-black uppercase tracking-wider transition-all active:scale-95 ${
                                   isTesting ? 'bg-white/5 border-white/5 text-slate-500 cursor-not-allowed' : 'bg-white/5 border-white/10 hover:bg-white/10 text-slate-300'
                                 }`}
                               >
@@ -1388,7 +1388,7 @@ export default function SuperAdminDashboard({ user }: Props) {
             <div className="bg-white/[0.02] backdrop-blur-xl rounded-3xl p-8 border border-white/10">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg">
-                  <BarChart3 size={20} />
+                  <BarChart3 className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-100">리드 스코어링 가중치</h3>
@@ -1698,7 +1698,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                     defaultValue={editingConfig?.sigunNm || ''}
                     className="w-full bg-[#151515] border border-white/10 rounded-xl p-3 text-white outline-none focus:border-indigo-500 transition-colors font-medium"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">※ 서울시 데이터에는 적용되지 않습니다.</p>
+                  <p className="text-xs text-slate-500 mt-1">※ 서울시 데이터에는 적용되지 않습니다.</p>
                 </div>
 
                 <div className="space-y-1.5">
@@ -1862,7 +1862,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                       
                       <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl">
                         <div className="flex items-center justify-between mb-2">
-                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold uppercase ${
                             log.action_type === 'DOWNLOAD' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
                           }`}>
                             {log.action_type === 'DOWNLOAD' ? <Download className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
@@ -1901,7 +1901,7 @@ export default function SuperAdminDashboard({ user }: Props) {
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">New Deployment</span>
+                  <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">New Deployment</span>
                   <button 
                     onClick={() => setToastNotification(null)} 
                     className="text-slate-600 hover:text-white transition-colors"
@@ -1912,7 +1912,7 @@ export default function SuperAdminDashboard({ user }: Props) {
                   </button>
                 </div>
                 <h5 className="text-sm font-black text-white tracking-tight">신규 회원가입 발생</h5>
-                <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+                <p className="text-xs text-slate-400 mt-0.5 leading-snug">
                   <span className="text-emerald-300 font-bold">{toastNotification.user_email}</span> 님이 시스템에 새롭게 합류했습니다.
                 </p>
               </div>

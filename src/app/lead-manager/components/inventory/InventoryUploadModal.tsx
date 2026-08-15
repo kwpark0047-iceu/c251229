@@ -223,18 +223,18 @@ export default function InventoryUploadModal({
             <div className="grid grid-cols-3 gap-2">
               <div className="flex flex-col items-center p-2 bg-white rounded border border-amber-100">
                 <div className="w-4 h-4 rounded-full bg-pink-400 mb-1" />
-                <span className="text-[10px] font-bold text-slate-700">분홍색</span>
-                <span className="text-[10px] text-pink-600">사용중</span>
+                <span className="text-xs font-bold text-slate-700">분홍색</span>
+                <span className="text-xs text-pink-600">사용중</span>
               </div>
               <div className="flex flex-col items-center p-2 bg-white rounded border border-amber-100">
                 <div className="w-4 h-4 rounded-full bg-yellow-300 mb-1" />
-                <span className="text-[10px] font-bold text-slate-700">노란형광</span>
-                <span className="text-[10px] text-amber-600">예약중</span>
+                <span className="text-xs font-bold text-slate-700">노란형광</span>
+                <span className="text-xs text-amber-600">예약중</span>
               </div>
               <div className="flex flex-col items-center p-2 bg-white rounded border border-amber-100">
                 <div className="w-4 h-4 rounded-full bg-slate-100 border border-slate-200 mb-1" />
-                <span className="text-[10px] font-bold text-slate-700">공란</span>
-                <span className="text-[10px] text-green-600">사용가능</span>
+                <span className="text-xs font-bold text-slate-700">공란</span>
+                <span className="text-xs text-green-600">사용가능</span>
               </div>
             </div>
           </div>

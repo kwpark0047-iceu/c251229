@@ -158,7 +158,7 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                             {selectedMarker && (
                                 <div className="absolute bottom-6 right-6 w-72 bg-white/90 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 p-5 animate-in fade-in slide-in-from-bottom-4 duration-300 z-20 animate-float">
                                     <div className="flex justify-between items-start mb-3">
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${AVAILABILITY_COLORS[selectedMarker.availabilityStatus].bg} ${AVAILABILITY_COLORS[selectedMarker.availabilityStatus].text}`}>
+                                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${AVAILABILITY_COLORS[selectedMarker.availabilityStatus].bg} ${AVAILABILITY_COLORS[selectedMarker.availabilityStatus].text}`}>
                                             {AVAILABILITY_LABELS[selectedMarker.availabilityStatus]}
                                         </span>
                                         <button onClick={() => setSelectedMarker(null)} title="마커 상세 닫기" aria-label="정보 팝업 닫기" className="text-slate-400 hover:text-slate-600">

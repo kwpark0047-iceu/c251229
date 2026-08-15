@@ -275,7 +275,7 @@ export default function TaskBoard({ onTaskClick, onEditTask }: TaskBoardProps) {
               {item.value}
             </div>
             {item.isAlert && (
-              <div className="mt-2 text-[10px] font-bold text-red-400 animate-pulse">
+              <div className="mt-2 text-xs font-bold text-red-400 animate-pulse">
                 즉시 확인 필요
               </div>
             )}

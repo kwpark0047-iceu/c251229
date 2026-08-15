@@ -324,7 +324,7 @@ export default function LeadDetailPanel({
                       </div>
                     ))}
                     {inventoryCount > 3 && (
-                      <p className="text-[10px] text-blue-400 text-center">외 {inventoryCount - 3}개 더 있음</p>
+                      <p className="text-xs text-blue-400 text-center">외 {inventoryCount - 3}개 더 있음</p>
                     )}
                   </div>
                 </section>
@@ -609,19 +609,19 @@ function ProposalCard({
               {proposal.title}
             </h4>
             {isExternal && (
-              <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white uppercase tracking-tighter shadow-sm shadow-amber-500/20">
+              <span className="shrink-0 px-2 py-0.5 rounded-full text-xs font-black bg-amber-500 text-white uppercase tracking-tighter shadow-sm shadow-amber-500/20">
                 {fileType}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-slate-400">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
             <Calendar className="w-3 h-3" />
             {proposal.createdAt ? new Date(proposal.createdAt).toLocaleDateString('ko-KR') : '날짜 없음'}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`px-2 py-1 text-[10px] font-bold rounded-lg border shadow-sm ${statusColor.bg} ${statusColor.text} border-slate-200/50`}
+            className={`px-2 py-1 text-xs font-bold rounded-lg border shadow-sm ${statusColor.bg} ${statusColor.text} border-slate-200/50`}
           >
             {PROPOSAL_STATUS_LABELS[proposal.status]}
           </span>
@@ -636,7 +636,7 @@ function ProposalCard({
             {showMenu && (
               <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 py-1 overflow-hidden animate-scale-in">
                 <div className="px-3 py-1.5 border-b border-slate-50 mb-1">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">상태 변경</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">상태 변경</span>
                 </div>
                 {statusOptions.map(status => (
                   <button

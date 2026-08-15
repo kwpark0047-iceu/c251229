@@ -119,10 +119,10 @@ export default function StationDetailPanel({ station, leads, onClose }: StationD
                     <div className={`absolute top-0 left-0 w-1 h-full ${availabilityColor.bg}`} />
                     <div className="flex justify-between items-start mb-2 ml-2">
                       <div>
-                        <span className="text-[10px] font-black tracking-wider text-gray-400 uppercase">{inv.adType}</span>
+                        <span className="text-xs font-black tracking-wider text-gray-400 uppercase">{inv.adType}</span>
                         <h4 className="font-bold text-gray-800 text-sm mt-0.5">{inv.locationCode}</h4>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${availabilityColor.bg} ${availabilityColor.text} ${availabilityColor.border}`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-bold border ${availabilityColor.bg} ${availabilityColor.text} ${availabilityColor.border}`}>
                         {AVAILABILITY_LABELS[inv.availabilityStatus as keyof typeof AVAILABILITY_LABELS] || inv.availabilityStatus}
                       </span>
                     </div>
@@ -156,7 +156,7 @@ export default function StationDetailPanel({ station, leads, onClose }: StationD
                   <div className="flex justify-between items-start mb-1">
                     <h4 className="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition-colors">{lead.bizName}</h4>
                     {lead.leadGrade && (
-                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-black ${
                         lead.leadGrade === 'A' ? 'bg-red-100 text-red-600' :
                         lead.leadGrade === 'B' ? 'bg-blue-100 text-blue-600' :
                         'bg-gray-100 text-gray-600'

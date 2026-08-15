@@ -105,21 +105,21 @@ export default function SmartAdMatcherModal({
               {/* 4 Metric Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3 rounded-xl bg-[var(--bg-secondary)]/90 border border-[var(--border-subtle)] text-center">
-                  <p className="text-[10px] text-[var(--text-muted)] font-medium">월 예상 노출수</p>
+                  <p className="text-xs text-[var(--text-muted)] font-medium">월 예상 노출수</p>
                   <p className="text-sm font-bold text-blue-400 mt-1">
                     {(topMatch.monthlyImpressions / 10000).toFixed(0)}만 회
                   </p>
                 </div>
                 <div className="p-3 rounded-xl bg-[var(--bg-secondary)]/90 border border-[var(--border-subtle)] text-center">
-                  <p className="text-[10px] text-[var(--text-muted)] font-medium">1천회 노출당 비용 (CPM)</p>
+                  <p className="text-xs text-[var(--text-muted)] font-medium">1천회 노출당 비용 (CPM)</p>
                   <p className="text-sm font-bold text-emerald-400 mt-1">{topMatch.cpm.toLocaleString()}원</p>
                 </div>
                 <div className="p-3 rounded-xl bg-[var(--bg-secondary)]/90 border border-[var(--border-subtle)] text-center">
-                  <p className="text-[10px] text-[var(--text-muted)] font-medium">월 예상 신규 유입</p>
+                  <p className="text-xs text-[var(--text-muted)] font-medium">월 예상 신규 유입</p>
                   <p className="text-sm font-bold text-purple-400 mt-1">약 {topMatch.estimatedNewClients}명</p>
                 </div>
                 <div className="p-3 rounded-xl bg-[var(--bg-secondary)]/90 border border-[var(--border-subtle)] text-center">
-                  <p className="text-[10px] text-[var(--text-muted)] font-medium">월 단가</p>
+                  <p className="text-xs text-[var(--text-muted)] font-medium">월 단가</p>
                   <p className="text-sm font-bold text-[var(--text-primary)] mt-1">{formatWon(topMatch.priceMonthly)}</p>
                 </div>
               </div>
@@ -151,10 +151,10 @@ export default function SmartAdMatcherModal({
                           <span className="font-bold text-sm text-[var(--text-primary)]">
                             {analysis.stationName}역 {analysis.locationCode}
                           </span>
-                          <span className="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                          <span className="px-2 py-0.5 text-xs font-semibold rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
                             {analysis.adType}
                           </span>
-                          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-md ${
+                          <span className={`px-2 py-0.5 text-xs font-semibold rounded-md ${
                             invItem?.availabilityStatus === 'AVAILABLE'
                               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                               : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
@@ -165,7 +165,7 @@ export default function SmartAdMatcherModal({
                         <p className="text-xs text-[var(--text-secondary)]">
                           {invItem?.description || '역세권 프리미엄 매체'}
                         </p>
-                        <p className="text-[11px] text-emerald-400/90 font-medium">
+                        <p className="text-xs text-emerald-400/90 font-medium">
                           ✨ {analysis.recommendationReason}
                         </p>
                       </div>
@@ -173,9 +173,9 @@ export default function SmartAdMatcherModal({
                       <div className="flex items-center gap-6 justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-[var(--border-subtle)]">
                         <div className="text-right">
                           <p className="text-xs font-bold text-[var(--text-primary)]">
-                            {formatWon(analysis.priceMonthly)} <span className="text-[10px] text-[var(--text-muted)] font-normal">/ 월</span>
+                            {formatWon(analysis.priceMonthly)} <span className="text-xs text-[var(--text-muted)] font-normal">/ 월</span>
                           </p>
-                          <p className="text-[11px] text-[var(--text-muted)]">
+                          <p className="text-xs text-[var(--text-muted)]">
                             CPM: {analysis.cpm.toLocaleString()}원 | 월 {(analysis.monthlyImpressions / 10000).toFixed(0)}만회
                           </p>
                         </div>

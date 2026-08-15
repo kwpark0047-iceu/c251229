@@ -226,7 +226,7 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${
+                      <span className={`px-2 py-1 rounded-md text-xs font-bold uppercase ${
                         proposal.isExternal ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
                       }`}>
                         {proposal.isExternal ? (proposal.fileType || 'FILE') : 'GENERATED'}
@@ -334,7 +334,7 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
                           <span className="text-sm font-bold text-[var(--text-primary)]">
                             {log.user_email || '익명 사용자'}
                           </span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-muted)]">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-[var(--bg-secondary)] text-[var(--text-muted)]">
                             {log.action_type === 'DOWNLOAD' ? '다운로드' : '열람함'}
                           </span>
                         </div>

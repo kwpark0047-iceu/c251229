@@ -107,7 +107,7 @@ export default function UserManagementView() {
     };
     const config = tierConfig[tier] || { label: tier, class: 'bg-gray-100 text-gray-700 border-gray-200' };
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${config.class}`}>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border ${config.class}`}>
         {config.label}
       </span>
     );
@@ -207,7 +207,7 @@ export default function UserManagementView() {
                           <p className="text-xs text-slate-500">{p.email}</p>
                         </div>
                         {p.isSuperAdmin && (
-                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-bold">SUPER</span>
+                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-bold">SUPER</span>
                         )}
                       </div>
                     </td>
@@ -216,7 +216,7 @@ export default function UserManagementView() {
                         {getTierBadge(p.tier)}
                         <select
                           title="사용자 서비스 등급 변경"
-                          className="text-[10px] border-none bg-slate-100 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+                          className="text-xs border-none bg-slate-100 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
                           value={p.tier}
                           onChange={(e) => handleTierChange(p.id, e.target.value)}
                         >
@@ -232,7 +232,7 @@ export default function UserManagementView() {
                         <span className="text-slate-900 font-medium">
                           {p.membership?.organizationName || '소속 없음'}
                         </span>
-                        <span className="text-[10px] text-slate-400 uppercase font-bold">
+                        <span className="text-xs text-slate-400 uppercase font-bold">
                           {p.membership?.role || '정의되지 않음'}
                         </span>
                       </div>

@@ -443,13 +443,13 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
         {isLoadingSubwayData && (
           <div className="bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 p-2 flex items-center gap-2 shadow-md">
             <div className="w-3 h-3 border-2 border-t-blue-500 border-gray-200 rounded-full animate-spin" />
-            <span className="text-[10px] font-bold text-gray-500">SYNCING</span>
+            <span className="text-xs font-bold text-gray-500">SYNCING</span>
           </div>
         )}
 
         {/* 지도 표시 통계 - 간소화 */}
         <div className="bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 p-2 shadow-md">
-          <p className="text-[10px] font-mono text-gray-400 leading-tight">
+          <p className="text-xs font-mono text-gray-400 leading-tight">
             N: <span className="text-gray-700 font-bold">{validLeads.length}</span><br />
             L: <span className="text-gray-700 font-bold">{subwayData?.stations.length || 0}</span>
           </p>
@@ -464,8 +464,8 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
           </svg>
-          <span className="text-[10px] font-bold">{showHeatmap ? '히트맵 ON' : '매출 히트맵'}</span>
-          {loadingHeatmap && <span className="text-[9px] text-gray-400 animate-pulse">로딩중...</span>}
+          <span className="text-xs font-bold">{showHeatmap ? '히트맵 ON' : '매출 히트맵'}</span>
+          {loadingHeatmap && <span className="text-xs text-gray-400 animate-pulse">로딩중...</span>}
         </button>
       </div>
 
@@ -505,7 +505,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                        
                     } as React.CSSProperties}
                     className={`
-                      flex-shrink-0 min-w-[26px] h-[26px] rounded-full flex items-center justify-center text-[10px] font-bold transition-all
+                      flex-shrink-0 min-w-[26px] h-[26px] rounded-full flex items-center justify-center text-xs font-bold transition-all
                       ${isActive ? 'text-white bg-[--brand-color]' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}
                     `}
                   >
@@ -534,11 +534,11 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
                        
                     } as React.CSSProperties} 
                   />
-                  <span className="text-[10px] font-semibold text-gray-500 uppercase">{STATUS_LABELS[status].split(' ')[0]}</span>
+                  <span className="text-xs font-semibold text-gray-500 uppercase">{STATUS_LABELS[status].split(' ')[0]}</span>
                 </div>
               ))}
             </div>
-            <div className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">
+            <div className="text-xs font-bold text-gray-300 uppercase tracking-widest">
               Standard Map Engine v2.0
             </div>
           </div>
@@ -598,7 +598,7 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
           {lead.bizName}
         </button>
         {lead.medicalSubject && (
-          <p className="text-[10px] font-bold text-blue-500/80 uppercase tracking-tighter mt-0.5">{lead.medicalSubject}</p>
+          <p className="text-xs font-bold text-blue-500/80 uppercase tracking-tighter mt-0.5">{lead.medicalSubject}</p>
         )}
       </div>
 
@@ -623,7 +623,7 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
             <p className="text-xs font-semibold text-slate-300">
               {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'}
               {lead.nearestExitNo && ` ${lead.nearestExitNo}번 출구`}
-              <span className="text-[10px] text-slate-500 font-normal ml-1">
+              <span className="text-xs text-slate-500 font-normal ml-1">
                 ({lead.stationDistance && formatDistance(lead.stationDistance)})
               </span>
             </p>

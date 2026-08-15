@@ -115,14 +115,14 @@ export default function ActivityTimeline({ leadId }: ActivityTimelineProps) {
                   <div className="flex-1 min-w-0 pt-0.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-semibold text-slate-700">{meta.label}</span>
-                      <span className="text-[10px] text-slate-400 flex items-center gap-1 flex-shrink-0">
+                      <span className="text-xs text-slate-400 flex items-center gap-1 flex-shrink-0">
                         <Clock className="w-3 h-3" />
                         {formatTime(log.created_at)}
                       </span>
                     </div>
                     <p className="text-sm text-slate-600 mt-0.5 break-words">{message}</p>
                     {log.user_email && (
-                      <p className="text-[10px] text-slate-400 mt-0.5">{log.user_email}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{log.user_email}</p>
                     )}
                   </div>
                 </div>

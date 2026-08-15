@@ -495,7 +495,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                     )}
                   </div>
                   {verifyStatus.localdata.success === false && verifyStatus.localdata.message && (
-                    <p className="text-[11px] text-red-400 bg-red-500/5 p-2 rounded border border-red-500/10">
+                    <p className="text-xs text-red-400 bg-red-500/5 p-2 rounded border border-red-500/10">
                       {verifyStatus.localdata.message}
                     </p>
                   )}
@@ -566,7 +566,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                     )}
                   </div>
                   {verifyStatus.seoul.success === false && verifyStatus.seoul.message && (
-                    <p className="text-[11px] text-red-400 bg-red-500/5 p-2 rounded border border-red-500/10">
+                    <p className="text-xs text-red-400 bg-red-500/5 p-2 rounded border border-red-500/10">
                       {verifyStatus.seoul.message}
                     </p>
                   )}
@@ -578,7 +578,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                     <Sparkles className="w-3.5 h-3.5 text-[var(--metro-line2)]" />
                     <span>KRIC 역사 편의시설 / Resend 발송용 API</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[10px]">자동 연동 대기</span>
+                  <span className="px-2 py-0.5 rounded bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-xs">자동 연동 대기</span>
                 </div>
               </div>
             </div>

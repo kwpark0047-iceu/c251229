@@ -57,14 +57,14 @@ export default function AdPositionDetail({ position, onClose }: AdPositionDetail
                                 <h3 className="text-sm font-bold text-[var(--text-primary)]">
                                     {position.label || position.adCode}
                                 </h3>
-                                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${statusColor.bg} ${statusColor.text} ${statusColor.border}`}>
+                                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold border ${statusColor.bg} ${statusColor.text} ${statusColor.border}`}>
                                     {status === 'AVAILABLE' && <CheckCircle2 className="w-2.5 h-2.5" />}
                                     {status === 'RESERVED' && <Clock className="w-2.5 h-2.5" />}
                                     {status === 'OCCUPIED' && <AlertCircle className="w-2.5 h-2.5" />}
                                     {AVAILABILITY_LABELS[status]}
                                 </div>
                             </div>
-                            <p className="text-[10px] text-[var(--text-muted)] mt-0.5">상세 광고 구좌 정보</p>
+                            <p className="text-xs text-[var(--text-muted)] mt-0.5">상세 광고 구좌 정보</p>
                         </div>
                     </div>
                     <button
@@ -80,7 +80,7 @@ export default function AdPositionDetail({ position, onClose }: AdPositionDetail
                 <div className="p-5 space-y-4">
                     {/* 가격 정보 */}
                     <div className="group relative p-4 rounded-2xl bg-white/5 border border-white/5 transition-all hover:bg-white/[0.08]">
-                        <div className="flex items-center gap-2 mb-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                        <div className="flex items-center gap-2 mb-2 text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
                             <CreditCard className="w-3 h-3" />
                             월 광고 비용
                         </div>
@@ -97,18 +97,18 @@ export default function AdPositionDetail({ position, onClose }: AdPositionDetail
                         <div className="p-3 rounded-xl bg-white/5 border border-white/5">
                             <div className="flex items-center gap-1.5 mb-1.5">
                                 <TrendingUp className="w-3 h-3 text-[var(--metro-line4)]" />
-                                <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase">타입</span>
+                                <span className="text-xs font-bold text-[var(--text-muted)] uppercase">타입</span>
                             </div>
-                            <p className="text-[11px] font-semibold text-[var(--text-primary)] truncate">
+                            <p className="text-xs font-semibold text-[var(--text-primary)] truncate">
                                 {inventory?.adType || '정보 없음'}
                             </p>
                         </div>
                         <div className="p-3 rounded-xl bg-white/5 border border-white/5">
                             <div className="flex items-center gap-1.5 mb-1.5">
                                 <Maximize2 className="w-3 h-3 text-[var(--metro-line3)]" />
-                                <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase">규격</span>
+                                <span className="text-xs font-bold text-[var(--text-muted)] uppercase">규격</span>
                             </div>
-                            <p className="text-[11px] font-semibold text-[var(--text-primary)] truncate">
+                            <p className="text-xs font-semibold text-[var(--text-primary)] truncate">
                                 {inventory?.adSize || '표준 규격'}
                             </p>
                         </div>
@@ -121,7 +121,7 @@ export default function AdPositionDetail({ position, onClose }: AdPositionDetail
                                 <BarChart3 className="w-3.5 h-3.5 text-[var(--metro-line2)]" />
                             </div>
                             <div>
-                                <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase mb-0.5">일일 유동인구</p>
+                                <p className="text-xs text-[var(--text-muted)] font-bold uppercase mb-0.5">일일 유동인구</p>
                                 <p className="text-xs font-semibold text-[var(--text-primary)]">
                                     {inventory?.trafficDaily ? `${inventory.trafficDaily.toLocaleString()} 명` : '통계 데이터 분석중'}
                                 </p>
@@ -133,7 +133,7 @@ export default function AdPositionDetail({ position, onClose }: AdPositionDetail
                                 <Users className="w-3.5 h-3.5 text-purple-500" />
                             </div>
                             <div>
-                                <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase mb-0.5">주요 타겟</p>
+                                <p className="text-xs text-[var(--text-muted)] font-bold uppercase mb-0.5">주요 타겟</p>
                                 <p className="text-xs font-semibold text-[var(--text-primary)]">
                                     {inventory?.demographics || '전 연령대 다양'}
                                 </p>
@@ -145,7 +145,7 @@ export default function AdPositionDetail({ position, onClose }: AdPositionDetail
                                 <MapPin className="w-3.5 h-3.5 text-orange-500" />
                             </div>
                             <div>
-                                <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase mb-0.5">상세 위치</p>
+                                <p className="text-xs text-[var(--text-muted)] font-bold uppercase mb-0.5">상세 위치</p>
                                 <p className="text-xs font-semibold text-[var(--text-primary)]">
                                     {inventory?.locationCode || position.adCode || '역내 지정 위치'}
                                 </p>
@@ -156,11 +156,11 @@ export default function AdPositionDetail({ position, onClose }: AdPositionDetail
                     {/* 상세 설명 */}
                     {inventory?.description && (
                         <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/5">
-                            <div className="flex items-center gap-2 mb-2 text-[10px] font-bold text-[var(--text-muted)] uppercase">
+                            <div className="flex items-center gap-2 mb-2 text-xs font-bold text-[var(--text-muted)] uppercase">
                                 <Info className="w-3 h-3" />
                                 특징 및 설명
                             </div>
-                            <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                            <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
                                 {inventory.description}
                             </p>
                         </div>

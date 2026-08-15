@@ -273,7 +273,7 @@ export default function AdminDashboardPage() {
                                             : 'border-slate-100 hover:border-slate-200 bg-slate-50'
                                     }`}
                                 >
-                                    <div className={`w-full h-12 rounded-lg mb-3 flex items-center justify-center font-bold text-[10px] ${
+                                    <div className={`w-full h-12 rounded-lg mb-3 flex items-center justify-center font-bold text-xs ${
                                         theme.id === 'glass' ? 'bg-white/40 backdrop-blur-md border border-white/20' :
                                         theme.id === 'neo' ? 'shadow-[inset_5px_5px_10px_#bebebe,inset_-5px_-5px_10px_#ffffff] bg-[#e0e0e0]' :
                                         'shadow-2xl translate-y-[-4px] bg-slate-800 text-white'
@@ -281,7 +281,7 @@ export default function AdminDashboardPage() {
                                         PREVIEW
                                     </div>
                                     <h4 className="font-bold text-slate-800 text-sm">{theme.name}</h4>
-                                    <p className="text-[10px] text-slate-500 mt-1">{theme.desc}</p>
+                                    <p className="text-xs text-slate-500 mt-1">{theme.desc}</p>
                                 </button>
                             ))}
                         </div>
@@ -305,7 +305,7 @@ export default function AdminDashboardPage() {
                                                 {new Date(log.created_at).toLocaleString()} - {log.user_email}
                                             </p>
                                             {log.details && Object.keys(log.details).length > 0 && (
-                                                <pre className="text-[10px] text-slate-500 bg-slate-100 p-1 rounded overflow-x-auto">
+                                                <pre className="text-xs text-slate-500 bg-slate-100 p-1 rounded overflow-x-auto">
                                                     {JSON.stringify(log.details, null, 2)}
                                                 </pre>
                                             )}

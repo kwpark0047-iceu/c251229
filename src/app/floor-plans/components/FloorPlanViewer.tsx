@@ -273,9 +273,9 @@ export default function FloorPlanViewer({
                 </div>
 
                 {/* 개선된 툴팁 */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg bg-black/80 backdrop-blur-md text-white text-[10px] font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-xl pointer-events-none">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg bg-black/80 backdrop-blur-md text-white text-xs font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-xl pointer-events-none">
                   {pos.label || pos.adCode || '광고 위치'}
-                  <div className="text-[8px] font-medium text-white/60 mt-0.5">
+                  <div className="text-[10px] font-medium text-white/60 mt-0.5">
                     {pos.inventory?.adType || '광고 매체'} • {(pos.inventory?.priceMonthly || 0).toLocaleString()}원
                   </div>
                   {/* 화살표 */}

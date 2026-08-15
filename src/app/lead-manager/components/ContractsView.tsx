@@ -203,7 +203,7 @@ export default function ContractsView() {
                       <td className="px-6 py-4 text-right">
                         <span className="text-sm font-bold text-[var(--text-primary)]">{formatWon(c.finalPrice)}</span>
                         {c.discountRate ? (
-                          <div className="text-[11px] text-[var(--text-muted)]">
+                          <div className="text-xs text-[var(--text-muted)]">
                             할인 {c.discountRate}%
                           </div>
                         ) : null}

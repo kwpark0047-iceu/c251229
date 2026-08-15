@@ -110,12 +110,12 @@ export default function ResponsiveLeadManager({
 
         <div className="grid grid-cols-2 gap-2 mb-4">
           <div className="bg-black/40 border border-white/5 p-2 rounded-xl text-center">
-            <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Station</p>
-            <p className="text-[11px] font-bold text-slate-300 truncate">{lead.nearestStation}</p>
+            <p className="text-xs font-black text-slate-600 uppercase tracking-widest">Station</p>
+            <p className="text-xs font-bold text-slate-300 truncate">{lead.nearestStation}</p>
           </div>
           <div className="bg-black/40 border border-white/5 p-2 rounded-xl text-center">
-            <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Distance</p>
-            <p className="text-[11px] font-bold text-indigo-400">{lead.distance}m</p>
+            <p className="text-xs font-black text-slate-600 uppercase tracking-widest">Distance</p>
+            <p className="text-xs font-bold text-indigo-400">{lead.distance}m</p>
           </div>
         </div>
 
@@ -128,7 +128,7 @@ export default function ResponsiveLeadManager({
                 onUpdateStatus(lead.id, e.target.value as LeadStatus);
               }}
               title="노드 상태 선택"
-              className="appearance-none bg-black/60 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer hover:bg-black/80 transition-all"
+              className="appearance-none bg-black/60 text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer hover:bg-black/80 transition-all"
               onClick={(e) => e.stopPropagation()}
             >
               <option value="NEW">New Node</option>
@@ -358,25 +358,25 @@ export default function ResponsiveLeadManager({
                     <ResponsiveText size={{ sm: 'text-3xl' }} weight={{ sm: 'font-black' }} className="text-white tracking-tighter">
                       {leads.length}
                     </ResponsiveText>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Total Nodes</p>
+                    <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Total Nodes</p>
                   </div>
                   <div className="flex flex-col items-center border-r border-white/5 last:border-0">
                     <ResponsiveText size={{ sm: 'text-3xl' }} weight={{ sm: 'font-black' }} className="text-blue-400 tracking-tighter">
                       {leads.filter(l => l.status === 'NEW').length}
                     </ResponsiveText>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Discovery</p>
+                    <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Discovery</p>
                   </div>
                   <div className="flex flex-col items-center border-r border-white/5 last:border-0">
                     <ResponsiveText size={{ sm: 'text-3xl' }} weight={{ sm: 'font-black' }} className="text-indigo-400 tracking-tighter">
                       {leads.filter(l => l.status === 'PROPOSAL_SENT').length}
                     </ResponsiveText>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Transmitting</p>
+                    <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Transmitting</p>
                   </div>
                   <div className="flex flex-col items-center border-r border-white/5 last:border-0">
                     <ResponsiveText size={{ sm: 'text-3xl' }} weight={{ sm: 'font-black' }} className="text-emerald-400 tracking-tighter">
                       {leads.filter(l => l.status === 'CONTRACTED').length}
                     </ResponsiveText>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Integrated</p>
+                    <p className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mt-1">Integrated</p>
                   </div>
                 </ResponsiveGrid>
               </div>
@@ -411,10 +411,10 @@ export default function ResponsiveLeadManager({
                       </ResponsiveText>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-[10px] font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-500/20">
+                      <span className="text-xs font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-500/20">
                         {lead.nearestStation}
                       </span>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      <span className="text-xs font-black uppercase tracking-widest text-slate-500">
                         {lead.distance}m
                       </span>
                       <div className="relative">
@@ -425,7 +425,7 @@ export default function ResponsiveLeadManager({
                             onUpdateStatus(lead.id, e.target.value as LeadStatus);
                           }}
                           title="노드 상태 선택"
-                          className="appearance-none bg-black/60 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer"
+                          className="appearance-none bg-black/60 text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <option value="NEW">New Node</option>
@@ -530,7 +530,7 @@ export default function ResponsiveLeadManager({
           
           <div className="mt-auto border-t border-white/5 pt-6">
             <div className="p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
-              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">System Version</p>
+              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-1">System Version</p>
               <p className="text-xs text-slate-400">Ver 2.0.5 Anti-G Edition</p>
             </div>
           </div>

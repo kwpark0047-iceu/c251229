@@ -107,7 +107,7 @@ function NavButton({
             <div className={`transition-all duration-500 ${isActive ? 'drop-shadow-[0_0_8px_var(--metro-line4)]' : ''}`}>
                 <Icon className={`w-6 h-6 ${isActive ? 'fill-current opacity-20' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
             </div>
-            <span className={`text-[10px] font-bold transition-all ${isActive ? 'opacity-100' : 'opacity-70'}`}>{label}</span>
+            <span className={`text-xs font-bold transition-all ${isActive ? 'opacity-100' : 'opacity-70'}`}>{label}</span>
             {isActive && (
                 <div className="absolute -bottom-1 w-1 h-1 rounded-full bg-[var(--metro-line4)] shadow-[0_0_8px_var(--metro-line4)]" />
             )}

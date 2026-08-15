@@ -105,7 +105,7 @@ export default function SubwayNetworkMap() {
                   <div>
                     <h3 className="text-2xl font-bold text-white">{selectedLine.name} 인사이트</h3>
                     <div className="flex items-center gap-2 text-xs text-gray-500 uppercase tracking-widest mt-1">
-                      <Zap size={12} className="text-yellow-400" /> 유동인구 랭킹: TOP {selectedLine.trafficRank}
+                      <Zap className="w-3 h-3 text-yellow-400" /> 유동인구 랭킹: TOP {selectedLine.trafficRank}
                     </div>
                   </div>
                 </div>
@@ -125,9 +125,9 @@ export default function SubwayNetworkMap() {
 
               <div className="w-full md:w-64 space-y-4 bg-void/50 p-6 rounded-2xl border border-white/5">
                 <div className="space-y-1">
-                  <div className="text-[10px] text-gray-500 font-bold uppercase">가장 붐비는 역</div>
+                  <div className="text-xs text-gray-500 font-bold uppercase">가장 붐비는 역</div>
                   <div className="text-xl font-bold text-white flex items-center gap-2">
-                    {selectedLine.peakStation} <ArrowUpRight size={16} className="text-emerald-400" />
+                    {selectedLine.peakStation} <ArrowUpRight className="w-4 h-4 text-emerald-400" />
                   </div>
                 </div>
                 
@@ -135,18 +135,18 @@ export default function SubwayNetworkMap() {
                 
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] text-gray-500 font-bold uppercase">사용자 선호도</div>
+                    <div className="text-xs text-gray-500 font-bold uppercase">사용자 선호도</div>
                     <div className="text-lg font-bold text-emerald-400">98.2%</div>
                   </div>
                   <div className="p-2 bg-emerald-500/10 rounded-lg">
-                    <TrendingUp size={20} className="text-emerald-400" />
+                    <TrendingUp className="w-5 h-5 text-emerald-400" />
                   </div>
                 </div>
               </div>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-gray-500 animate-pulse">
-              <Info size={48} className="mb-4 opacity-20" />
+              <Info className="w-12 h-12 mb-4 opacity-20" />
               <p>노선 번호를 클릭하여 상세 광고 데이터를 확인하세요</p>
             </div>
           )}

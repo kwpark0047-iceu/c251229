@@ -253,7 +253,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                 </div>
                 <div>
                   <p className="text-lg font-bold text-[var(--text-primary)] leading-none mb-1">{metrics.total}</p>
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Total Leads</p>
+                  <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Total Leads</p>
                 </div>
               </div>
               <div className="w-px h-6 bg-[var(--border-subtle)]" />
@@ -263,7 +263,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                 </div>
                 <div>
                   <p className="text-lg font-bold text-[var(--text-primary)] leading-none mb-1">{metrics.viewRate.toFixed(1)}%</p>
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">View Rate</p>
+                  <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">View Rate</p>
                 </div>
               </div>
               <div className="w-px h-6 bg-[var(--border-subtle)]" />
@@ -273,7 +273,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                 </div>
                 <div>
                   <p className="text-lg font-bold text-[var(--text-primary)] leading-none mb-1">{metrics.closingRate.toFixed(1)}%</p>
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Closing Rate</p>
+                  <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Closing Rate</p>
                 </div>
               </div>
               <div className="w-px h-6 bg-[var(--border-subtle)]" />
@@ -287,7 +287,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                       ? formatWon(extendedStats.revenueMetrics.contractedAmount)
                       : '-'}
                   </p>
-                  <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">계약 매출</p>
+                  <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider">계약 매출</p>
                 </div>
               </div>
             </div>
@@ -526,7 +526,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
             <div className="space-y-3">
               {lineStats.map((line) => (
                 <div key={line.line} className="space-y-1">
-                  <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider">
+                  <div className="flex items-center justify-between text-xs uppercase font-bold tracking-wider">
                     <span className="text-[var(--text-secondary)]">{line.name}</span>
                     <span className="text-[var(--text-primary)]">{line.count}건</span>
                   </div>
@@ -551,7 +551,7 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
             </div>
 
             <div className="mt-8 p-4 rounded-xl bg-gradient-to-br from-[var(--metro-line2)]/10 to-[var(--metro-line4)]/10 border border-[var(--metro-line4)]/20">
-              <p className="text-[11px] font-medium text-[var(--text-secondary)] leading-relaxed">
+              <p className="text-xs font-medium text-[var(--text-secondary)] leading-relaxed">
                 현재 전반적인 제안서 <span className="text-[var(--metro-line4)] font-extrabold text-sm mx-1">열람률은 {metrics.viewRate.toFixed(1)}%</span>로
                 양호한 수준을 유지하고 있습니다. {metrics.closingRate > 10 ? '계약 전환율이 상승세에 있어 긍정적인 성과가 기대됩니다.' : '전환율 향상을 위한 후속 팔로업이 필요해 보입니다.'}
               </p>
@@ -600,7 +600,7 @@ function MetricCard({
   style={{ '--icon-color': color } as React.CSSProperties} />
         </div>
         {change !== undefined && (
-          <div className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 ${change >= 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+          <div className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 ${change >= 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
             {change >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {Math.abs(change).toFixed(0)}%
           </div>
