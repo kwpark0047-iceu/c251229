@@ -5,7 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
+import { requireUser } from '@/app/api/sync-utils';
 import { generateProposalPDF } from '@/app/lead-manager/proposal-service';
 
 // Resend 클라이언트 생성 함수 (런타임에 호출)
@@ -17,16 +18,14 @@ function getResend() {
   return new Resend(apiKey);
 }
 
-// Supabase 클라이언트 생성 함수 (런타임에 호출)
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !key) {
-    throw new Error('Supabase 환경변수가 설정되지 않았습니다.');
-  }
-
-  return createClient(url, key);
+/** HTML 인젝션 방지를 위한 이스케이프 (이메일 본문/제목에 사용자 입력 삽입 시 필수) */
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 interface SendProposalRequest {
@@ -53,8 +52,13 @@ interface SendProposalRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+
+    // 인증 가드: 비로그인 호출 차단 (제안서 생성 + 이메일 발송은 로그인 사용자만)
+    const authError = await requireUser(supabase);
+    if (authError) return authError;
+
     const resend = getResend();
-    const supabase = getSupabase();
     const body: SendProposalRequest = await request.json();
 
     // 필수 필드 검증
@@ -119,7 +123,7 @@ export async function POST(request: NextRequest) {
     const lineBadges = body.stationLines
       .map(
         (line) =>
-          `<span style="display: inline-block; width: 24px; height: 24px; border-radius: 50%; background-color: ${lineColors[line] || '#888'}; color: white; font-size: 12px; font-weight: bold; text-align: center; line-height: 24px; margin-right: 4px;">${line}</span>`
+          `<span style="display: inline-block; width: 24px; height: 24px; border-radius: 50%; background-color: ${lineColors[line] || '#888'}; color: white; font-size: 12px; font-weight: bold; text-align: center; line-height: 24px; margin-right: 4px;">${escapeHtml(line)}</span>`
       )
       .join('');
 
@@ -129,13 +133,13 @@ export async function POST(request: NextRequest) {
         (item, index) =>
           `<tr style="border-bottom: 1px solid #334155;">
             <td style="padding: 16px; text-align: center; color: #94a3b8;">${index + 1}</td>
-            <td style="padding: 16px; color: #f1f5f9;">${item.stationName}역</td>
+            <td style="padding: 16px; color: #f1f5f9;">${escapeHtml(item.stationName)}역</td>
             <td style="padding: 16px; color: #f1f5f9;">
               <span style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); padding: 2px 8px; border-radius: 4px; color: #60a5fa; font-size: 11px;">
-                ${item.adType}
+                ${escapeHtml(item.adType)}
               </span>
             </td>
-            <td style="padding: 16px; color: #f1f5f9; font-family: monospace;">${item.locationCode}</td>
+            <td style="padding: 16px; color: #f1f5f9; font-family: monospace;">${escapeHtml(item.locationCode)}</td>
             <td style="padding: 16px; text-align: right; color: #38bdf8; font-weight: 700;">${item.priceMonthly.toLocaleString()}원</td>
           </tr>`
       )
@@ -148,9 +152,9 @@ export async function POST(request: NextRequest) {
         <div style="margin-top: 24px; padding: 20px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;">
           <h3 style="margin: 0 0 12px 0; font-size: 14px; color: #f1f5f9; display: flex; align-items: center;">
             <span style="display: inline-block; width: 8px; height: 8px; background: #38bdf8; border-radius: 50%; margin-right: 8px;"></span>
-            ${item.stationName}역 상세 도면 (${item.locationCode})
+            ${escapeHtml(item.stationName)}역 상세 도면 (${escapeHtml(item.locationCode)})
           </h3>
-          <img src="${item.floorPlanUrl}" alt="${item.stationName} 도면" style="width: 100%; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);" />
+          <img src="${escapeHtml(item.floorPlanUrl)}" alt="${escapeHtml(item.stationName)} 도면" style="width: 100%; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);" />
         </div>
       `).join('');
 
@@ -181,12 +185,12 @@ export async function POST(request: NextRequest) {
       <!-- 수신자 -->
       <div style="margin-bottom: 32px;">
         <span style="display: inline-block; padding: 6px 12px; background: rgba(56, 189, 248, 0.1); color: #38bdf8; font-size: 13px; font-weight: 600; border-radius: 100px; margin-bottom: 12px;">OFFICIAL PROPOSAL</span>
-        <h2 style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff;">${body.recipientName} 귀하</h2>
+        <h2 style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff;">${escapeHtml(body.recipientName)} 귀하</h2>
       </div>
 
       <!-- 인사말 섹션 -->
       <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; padding: 32px; border-radius: 20px; line-height: 1.8; color: #cbd5e1; font-size: 16px;">
-        <div style="white-space: pre-line;">${body.greetingMessage}</div>
+        <div style="white-space: pre-line;">${escapeHtml(body.greetingMessage)}</div>
       </div>
 
       <!-- 추천 역사 하이라이트 -->
@@ -199,7 +203,7 @@ export async function POST(request: NextRequest) {
         <div style="display: grid; background: #1e293b; border-radius: 20px; overflow: hidden; border: 1px solid #334155;">
           <div style="padding: 24px; border-bottom: 1px solid #334155;">
             <div style="font-size: 13px; color: #94a3b8; margin-bottom: 4px;">TARGET STATION</div>
-            <div style="font-size: 22px; font-weight: 800; color: #38bdf8;">${body.stationName}역</div>
+            <div style="font-size: 22px; font-weight: 800; color: #38bdf8;">${escapeHtml(body.stationName)}역</div>
           </div>
           <div style="display: grid; padding: 20px 24px; gap: 20px;">
             ${body.trafficDaily ? `
@@ -211,7 +215,7 @@ export async function POST(request: NextRequest) {
             ${body.stationCharacteristics ? `
             <div>
               <div style="font-size: 12px; color: #64748b; margin-bottom: 2px;">역사 주요권역 특색</div>
-              <div style="font-size: 15px; color: #cbd5e1; line-height: 1.5;">${body.stationCharacteristics}</div>
+              <div style="font-size: 15px; color: #cbd5e1; line-height: 1.5;">${escapeHtml(body.stationCharacteristics)}</div>
             </div>
             ` : ''}
           </div>
@@ -298,7 +302,7 @@ export async function POST(request: NextRequest) {
 `;
 
     // 2. 서버 사이드에서 PDF 생성
-    let attachments: any[] = [];
+    let attachments: Array<{ filename: string; content: string }> = [];
     try {
       const pdfResult = await generateProposalPDF(proposalData.id);
       if (pdfResult.success && pdfResult.pdfBlob) {
