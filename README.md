@@ -51,13 +51,58 @@ yarn install
 
 `.env.local` 파일을 생성하고 필요한 환경 변수를 설정합니다. (`.env.example` 참조)
 
+#### Supabase
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-LOCALDATA_API_KEY=your_api_key
-RESEND_API_KEY=your_resend_api_key
-KRIC_API_KEY=your_kric_api_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # 서버 전용 (cron/동기화)
 ```
+
+#### 공공 데이터 API
+
+```env
+LOCALDATA_API_KEY=your_api_key        # LocalData (전국 인허가)
+DATAGOKR_API_KEY=your_api_key         # 공공데이터포털
+SEOUL_DATA_API_KEY=your_api_key       # 서울열린데이터광장 (기본)
+SEOUL_DATA_CLINIC_API_KEY=your_api_key       # 서울 의원
+SEOUL_DATA_HOSPITAL_API_KEY=your_api_key     # 서울 병원
+SEOUL_DATA_FITNESS_API_KEY=your_api_key      # 서울 운동시설
+SEOUL_DATA_QUASI_MEDICAL_API_KEY=your_api_key # 서울 유사의료기관
+GG_CLINIC_API_KEY=your_api_key        # 경기데이터드림 의원
+GG_HOSPITAL_API_KEY=your_api_key      # 경기데이터드림 병원
+GG_DATA_API_KEY=your_api_key          # 경기데이터드림 (기본)
+GG_REST_API_KEY=your_api_key          # 경기데이터드림 음식점
+GG_UNIV_API_KEY=your_api_key          # 경기데이터드림 대학
+GG_JNCL_UNIV_API_KEY=your_api_key     # 경기데이터드림 전문대학
+STATION_INFO_API_KEY=your_api_key     # 지하철 역사 정보
+```
+
+#### 지도/지오코딩
+
+```env
+KAKAO_REST_API_KEY=your_api_key     # 카카오 로컬 API (지오코딩)
+NAVER_CLIENT_ID=your_client_id
+NAVER_CLIENT_SECRET=your_client_secret
+```
+
+#### AI/이메일/기타
+
+```env
+OPENAI_API_KEY=your_api_key        # AI 매체 매칭 & ROI 예측
+OPENAI_BASE_URL=https://api.openai.com/v1  # 커스텀 프록시 사용 시 변경
+OPENAI_MODEL=gpt-4o                # 사용 모델
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM_EMAIL=no-reply@your-domain.com
+RESEND_FROM_NAME=Lead Manager
+KRIC_API_KEY=your_kric_api_key               # 서버 전용 (산업분류코드)
+NEXT_PUBLIC_KRIC_API_KEY=your_kric_api_key   # 브라우저 노출용
+NEXT_PUBLIC_SITE_URL=http://localhost:3000   # 절대 URL 생성 (배포 시 도메인)
+CRON_SECRET=your_cron_secret                 # 서버 전용 (cron 인증)
+```
+
+> **주의**: `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `OPENAI_API_KEY`, `RESEND_API_KEY` 등은
+> 서버에서만 사용하는 비밀값입니다. 절대 `NEXT_PUBLIC_` 접두사를 붙이지 마세요.
 
 ### 3. 개발 서버 실행
 
@@ -84,8 +129,20 @@ src/
 
 scripts/
 ├── archive/                # 일회성 스크립트 보관 (수동 실행, 더 이상 사용 안 함)
-└── (데이터 파이프라인 스크립트)  # 데이터 임포트/동기화/업로드/검증 (예: sync-gg-*.js, upload-*.js)
+├── sync-gg-*.js            # 경기데이터드림 데이터 동기화 (클리닉/병원/음식점/학원/대학)
+├── import-clinics*.js/ts   # 병·의원 데이터 임포트
+├── import-*-inventory.js   # 인벤토리(포스터/조명) 데이터 임포트
+├── import-leads-csv.ts     # CSV 리드 업로드
+├── upload-*.js/ts          # DB/Storage 업로드 (도면, CSV, 클리닉)
+├── verify-*.js             # 데이터 무결성 검증 (도면, 제안서 로그)
+├── bulk-upload-floor-plans.js  # 도면 일괄 업로드
+├── recalculate-nearest-station.ts # 역세권 재매칭
+├── load-vault.js           # 환경변수 시크릿 로드
+└── setup-storage.js        # Supabase Storage 버킷 설정
 ```
+
+> `scripts/`의 스크립트는 데이터 파이프라인 일회성/정기 작업입니다. `node scripts/xxx.js` 또는
+> `npx ts-node scripts/xxx.ts` 형태로 실행합니다.
 
 ## 🧪 테스트 및 CI/CD
 

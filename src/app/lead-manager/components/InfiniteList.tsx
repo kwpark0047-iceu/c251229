@@ -176,7 +176,7 @@ export default function InfiniteList({
 }: InfiniteListProps) {
   const [visibleLeads, setVisibleLeads] = useState<Lead[]>([]);
   const [displayedCount, setDisplayedCount] = useState(50); // 초기 표시 개수
-  const observerRef = useRef<IntersectionObserver>();
+  const observerRef = useRef<IntersectionObserver | undefined>(undefined);
   const lastItemRef = useRef<HTMLTableRowElement>(null);
 
   // 필터링된 데이터 계산

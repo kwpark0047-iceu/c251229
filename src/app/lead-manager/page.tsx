@@ -1059,7 +1059,7 @@ function LeadManagerContent() {
         ) : mainTab === 'contracts' ? (
           <ContractsView />
         ) : (
-          <SuperAdminDashboard />
+          <SuperAdminDashboard user={userInfo} />
         )}
       </main>
 

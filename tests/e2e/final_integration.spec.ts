@@ -10,8 +10,6 @@ test.describe('Final Admin Notification Integration Test', () => {
     const adminContext = await browser.newContext();
     const adminPage = await adminContext.newPage();
     
-    console.log('--- Navigating to Login as Admin ---');
-    adminPage.on('console', msg => console.log('ADMIN PAGE CONSOLE:', msg.text()));
     await adminPage.goto('http://localhost:3000/auth');
     
     // 이메일과 비밀번호 입력 (실제 placeholder 반영)
@@ -24,8 +22,7 @@ test.describe('Final Admin Notification Integration Test', () => {
     
     // 로그인 제출 버튼 클릭 (탭 버튼과 구분을 위해 type="submit" 사용)
     console.log('Clicking login submit button...');
-    await adminPage.click('form button[type="submit"]:has-text("로그인")');
-    
+    await adminPage.click('form button[type="submit"]:has-text("로그인")');    
     // 대시보드 진입 확인
     await expect(adminPage).toHaveURL(/.*lead-manager/, { timeout: 15000 });
     console.log('Admin logged in.');
@@ -35,8 +32,8 @@ test.describe('Final Admin Notification Integration Test', () => {
     const adminTab = adminPage.locator('button:has-text("관리")');
     await adminTab.click();
     
-    // Master Auth 텍스트 대기 (SuperAdminDashboard 로드 확인)
-    await expect(adminPage.locator('text=Master Auth')).toBeVisible({ timeout: 15000 });
+    // SuperAdminDashboard 로드 확인 (관리자 탭 내 대시보드 헤딩/상태 문구)
+    await expect(adminPage.locator('text=System Core Integrity Active')).toBeVisible({ timeout: 15000 });
     console.log('Super Admin Dashboard loaded and monitoring.');
 
     // 2. 신규 사용자용 브라우저 세션 (가입 수행자)
@@ -57,7 +54,10 @@ test.describe('Final Admin Notification Integration Test', () => {
     await userPage.fill('input[placeholder="비밀번호 재입력"]', password);
     
     // 가입 버튼 클릭
-    await userPage.click('button:has-text("회원가입 확인")');
+    // force: 가입 버튼에 animate-float-subtle(무한 float 애니메이션)이 적용되어
+    // Playwright의 안정성(2 연속 프레임 bounding box 동일) 검사가 영원히 통과하지 못함.
+    // 버튼은 가시·활성 상태이므로 force 클릭으로 actionability 검사를 우회해도 기능상 안전.
+    await userPage.click('button:has-text("회원가입 확인")', { force: true });
     
     // 가입 완료 화면 대기 ("신청 완료" 메시지)
     await expect(userPage.locator('text=신청 완료')).toBeVisible({ timeout: 10000 });
@@ -78,7 +78,7 @@ test.describe('Final Admin Notification Integration Test', () => {
     // 4. 알림 센터 목록 확인
     await adminPage.click('button[aria-label="시스템 알림"]');
     // 알림 리스트에 해당 메시지가 표시되는지 확인
-    await expect(adminPage.locator(`text=${newUserEmail} 사용자가 새롭게 합류했습니다.`)).toBeVisible();
+    await expect(adminPage.locator(`text=${newUserEmail} 사용자가 새롭게 가입했습니다.`)).toBeVisible();
     console.log('SUCCESS: Notification is also visible in the notification list.');
   });
 });

@@ -344,7 +344,7 @@ export function AccessibleTooltip({
   delay = 300,
 }: AccessibleTooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   const showTooltip = useCallback(() => {

@@ -449,11 +449,13 @@ export default function SuperAdminDashboard({ user }: Props) {
     loadData();
   }, [loadData]);
 
-  useEffect(() => {
+useEffect(() => {
     if (!user?.id) return;
 
     // 실시간 구독 설정 (최종 안정화 버전)
     const supabase = createClient();
+
+    // 채널 생성 및 존재감 구독
     const channel = supabase
       .channel('antigravity-admin-global-presence', {
         config: {
@@ -498,7 +500,8 @@ export default function SuperAdminDashboard({ user }: Props) {
           loadData();
         }, 200);
       })
-      .subscribe();
+      .subscribe((status: string, err: any) => {
+      });
 
     // 관리자 알림 실시간 구독
     const notificationChannel = supabase
@@ -530,7 +533,8 @@ export default function SuperAdminDashboard({ user }: Props) {
           }
         }
       )
-      .subscribe();
+      .subscribe((status: string, err: any) => {
+      });
 
     return () => {
       supabase.removeChannel(channel);

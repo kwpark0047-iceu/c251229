@@ -43,7 +43,7 @@ export default function OptimizedFloorPlanViewer({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const animationFrameRef = useRef<number>();
+  const animationFrameRef = useRef<number | undefined>(undefined);
   const lastMousePos = useRef({ x: 0, y: 0 });
 
   const MAX_ZOOM = 5;

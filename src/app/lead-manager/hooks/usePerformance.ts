@@ -217,7 +217,7 @@ export function useBatchProcessor<T>(
 ) {
   const [queue, setQueue] = useState<T[]>([]);
   const [processing, setProcessing] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const addToQueue = useCallback((item: T) => {
     setQueue(prev => [...prev, item]);
