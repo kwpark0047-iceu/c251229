@@ -59,6 +59,7 @@ export interface Lead {
   bizName: string;           // 사업장명
   bizId?: string;            // 사업자등록번호
   licenseDate?: string;      // 인허가일자
+  lastModifiedDate?: string; // 최종수정일자
   roadAddress?: string;      // 도로명 주소
   lotAddress?: string;       // 지번 주소
   coordX?: number;           // 원본 X 좌표 (GRS80)

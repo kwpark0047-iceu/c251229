@@ -33,6 +33,7 @@ interface RawLead {
   trdStateNm?: string;
   dtlStateNm?: string;
   licenseDate?: string;
+  lastModifiedDate?: string;
   roadAddress?: string;
   lotAddress?: string;
   coordX?: number;
@@ -123,6 +124,7 @@ async function convertToLeads(
         bizName: raw.bizName,
         bizId: raw.bizId || undefined,
         licenseDate: raw.licenseDate || undefined,
+        lastModifiedDate: raw.lastModifiedDate || undefined,
         roadAddress: raw.roadAddress,
         lotAddress: raw.lotAddress,
         coordX: x || undefined,
@@ -362,6 +364,7 @@ export async function fetchAllLeads(
               trdStateNm: r.TRDSTATENM,
               dtlStateNm: r.DTLSTATENM,
               licenseDate: r.APVPERMYMD || undefined,
+              lastModifiedDate: r.LASTMODTS || undefined,
               roadAddress: r.RDNWHLADDR,
               lotAddress: r.SITEWHLADDR,
               coordX: parseFloat((r.X || '0').toString()) || undefined,
@@ -372,11 +375,11 @@ export async function fetchAllLeads(
 
             const processed = await convertToLeads(rawLeads, serviceInfo);
 
-const filtered = processed.filter(l => {
-          if (!l.licenseDate) return true;
-          const d = l.licenseDate.replace(/-/g, '');
-          return d >= startStr && d <= endStr;
-        });
+            const filtered = processed.filter(l => {
+              if (!l.licenseDate) return true;
+              const d = l.licenseDate.replace(/-/g, '');
+              return d >= startStr && d <= endStr;
+            });
 
             if (filtered.length > 0) {
               await lock();

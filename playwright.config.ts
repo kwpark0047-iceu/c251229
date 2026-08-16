@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1, // 병렬 워커 간 Realtime 토스트 크로스파이어 방지 (다른 런의 INSERT가 관리자 토스트를 덮어씀) — 로컬·CI 동일 직렬
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:3000',

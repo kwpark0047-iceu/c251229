@@ -189,6 +189,7 @@ export async function saveLeads(
         biz_name: lead.bizName,
         biz_id: lead.bizId || null,
         license_date: lead.licenseDate || null,
+        last_modified_date: lead.lastModifiedDate || null,
         road_address: lead.roadAddress || null,
         lot_address: lead.lotAddress || null,
         coord_x: lead.coordX || null,
