@@ -9,7 +9,6 @@ import { NextRequest, NextResponse } from 'next/server';
 export const maxDuration = 60;
 
 // 환경변수에서 API 키 로드 (서버에서만 접근 가능)
-// 환경변수에서 API 키 로드 (서버에서만 접근 가능)
 const LOCALDATA_API_KEY = process.env.LOCALDATA_API_KEY || '';
 const API_ENDPOINT = 'https://www.localdata.go.kr/platform/rest/TO0/openDataApi';
 
@@ -24,6 +23,9 @@ interface LocalDataParams {
 }
 
 export async function POST(request: NextRequest) {
+  // 에러 로그에 포함할 요청 컨텍스트 (파라미터 파싱 후 채움)
+  let requestContext = '';
+
   try {
     // 클라이언트가 전달한 커스텀 API 키 파싱
     const customApiKey = request.headers.get('x-api-key') || request.nextUrl.searchParams.get('apiKey') || undefined;
@@ -49,6 +51,9 @@ export async function POST(request: NextRequest) {
       pageIndex = 1,
       pageSize = 100,
     } = params;
+
+    // 에러 로그용 요청 컨텍스트 기록
+    requestContext = `serviceId=${serviceId}, region=${regionCode}, page=${pageIndex}`;
 
     // 필수 파라미터 검증
     if (!serviceId || !regionCode || !startDate || !endDate) {
@@ -121,13 +126,14 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[LocalData API] 서버 에러:', error);
+    console.error(`[LocalData API] 서버 에러 (${requestContext || '요청 컨텍스트 없음'}):`, error);
     
     // AbortError (Timeout) 또는 네트워크 오류일 경우 명확한 에러 반환
     if ((error as Error).name === 'AbortError' || (error as Error).message.includes('fetch')) {
+      // 업스트림 장애 시 클라이언트 재시도와 연동되는 대기 시간 안내 헤더
       return NextResponse.json(
         { success: false, error: '공공데이터 포털 서버(localdata.go.kr)가 현재 불안정하거나 응답하지 않습니다.' },
-        { status: 504 }
+        { status: 504, headers: { 'X-Retry-After': '30' } }
       );
     }
 

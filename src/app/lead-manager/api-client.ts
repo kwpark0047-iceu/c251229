@@ -7,6 +7,8 @@ export interface RequestOptions extends RequestInit {
     maxRetries?: number;
     initialDelay?: number;
     backoffFactor?: number;
+    maxDelay?: number;  // 백오프 지연 상한 (ms)
+    timeout?: number;   // 요청 타임아웃 (ms)
 }
 
 export class ApiError extends Error {
@@ -34,6 +36,8 @@ export async function safeFetch<T = any>(
         maxRetries = 3,
         initialDelay = 500,
         backoffFactor = 2,
+        maxDelay = 8000,
+        timeout,
         ...fetchOptions
     } = options;
 
@@ -42,9 +46,20 @@ export async function safeFetch<T = any>(
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
             if (attempt > 0) {
-                const delay = initialDelay * Math.pow(backoffFactor, attempt - 1);
-                console.warn(`[API] Retry attempt ${attempt}/${maxRetries} after ${delay}ms delay...`);
+                // 지수 백오프 + 상한(maxDelay) + jitter(±20%)로 동시 재시도 충돌 완화
+                const baseDelay = Math.min(initialDelay * Math.pow(backoffFactor, attempt - 1), maxDelay);
+                const delay = Math.round(baseDelay * (0.8 + Math.random() * 0.4));
+                const lastStatus = lastError instanceof ApiError ? lastError.status : 'network';
+                console.warn(`[API] Retry attempt ${attempt}/${maxRetries} after ${delay}ms delay... (status: ${lastStatus})`);
                 await new Promise(resolve => setTimeout(resolve, delay));
+            }
+
+            // 타임아웃 옵션: 기존 signal과 병합 (각 시도마다 새 타임아웃 적용)
+            if (timeout) {
+                const timeoutSignal = AbortSignal.timeout(timeout);
+                fetchOptions.signal = fetchOptions.signal
+                    ? AbortSignal.any([fetchOptions.signal, timeoutSignal])
+                    : timeoutSignal;
             }
 
             const response = await globalThis.fetch(url, fetchOptions);
@@ -94,7 +109,8 @@ export async function safeFetch<T = any>(
             }
 
             if (attempt === maxRetries) {
-                console.error(`[API] Final failure after ${maxRetries} retries:`, error);
+                const failStatus = error instanceof ApiError ? error.status : 'network';
+                console.error(`[API] Final failure after ${maxRetries} retries (status: ${failStatus}):`, error);
                 throw error;
             }
         }
