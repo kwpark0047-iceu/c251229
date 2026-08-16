@@ -372,12 +372,11 @@ export async function fetchAllLeads(
 
             const processed = await convertToLeads(rawLeads, serviceInfo);
 
-            // 날짜 범위 필터링 (licenseDate 없는 데이터는 포함)
-            const filtered = processed.filter(l => {
-              if (!l.licenseDate) return true;
-              const d = l.licenseDate.replace(/-/g, '');
-              return d >= startStr && d <= endStr;
-            });
+const filtered = processed.filter(l => {
+          if (!l.licenseDate) return true;
+          const d = l.licenseDate.replace(/-/g, '');
+          return d >= startStr && d <= endStr;
+        });
 
             if (filtered.length > 0) {
               await lock();

@@ -467,10 +467,9 @@ function LeadManagerContent() {
   }, [settings, showNotification]);
 
   const refreshData = async () => {
-    // Validate date range
     const now = new Date();
     let { start, end } = dateRange;
-    // Clamp future dates
+    // Clamp future dates to today
     if (start > now) start = now;
     if (end > now) end = now;
     // Ensure start <= end
