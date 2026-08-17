@@ -63,36 +63,55 @@ export default function SopoLookupModal({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSopoIndex, setSelectedSopoIndex] = useState(-1);
 
-  // 지역 옵션 로드 (프로비언스 변경 시 시군구 재로드)
+  const fetchSopoData = useCallback(async (mgtNo: string, sigunNm?: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/sopo/lookup?mgtNo=${mgtNo}${sigunNm ? `&sigunNm=${sigunNm}` : ''}`, {
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || 'API 오류');
+      setSopoItems(result.data || []);
+      setSelectedSopoIndex(0);
+      toast('성공', { description: 'SOPO 데이터가 조회되었습니다.' });
+    } catch (error: any) {
+      console.error('SOPO API 오류:', error);
+      toast('오류', { description: error.message || 'SOPO 조회 중 오류가 발생했습니다.' });
+      setSopoItems(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const loadProvinceOptions = useCallback(async () => {
     setIsLoading(true);
     try {
-      // 실제 API 호출은 향후 구현
-      // const items = await fetchSopoData({ key: sopoKey, ... });
-      // 여기에 API 응답 처리 로직 추가
+      if (!sopoKey) {
+        setProvinceOptions([{ value: '', label: '선택하세요' }]);
+        setDistrictOptions([{ value: '', label: '선택하세요' }]);
+        setDongOptions([{ value: '', label: '선택하세요' }]);
+        return;
+      }
+      // API 호출로 시도 목록 조회
+      const response = await fetch(`/api/sopo/lookup?mgtNo=${sopoKey}`, {
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error('API 오류');
 
-      // 시범 데이터로 provinces 설정
-      const mockProvinces = [
-        { value: '11', label: '서울특별시' },
-        { value: '26', label: '인천광역시' },
-        { value: '29', label: '대전광역시' },
-        { value: '31', label: '대구광역시' },
-        { value: '34', label: '광주광역시' },
-        { value: '35', label: '부산광역시' },
-        { value: '36', label: '울산광역시' },
-        { value: '37', label: '세종특별자치시' },
-        { value: '38', label: '경기도' },
-      ];
-
+      // 결과에서 고유 시도 추출
+      const allItems = result.data || [];
+      const provinces = [...new Set(allItems.map((item: any) => item.ctprvnNm))].sort() as { value: string; label: string }[];
       setProvinceOptions([
         { value: '', label: '선택하세요' },
-        ...mockProvinces,
+        ...provinces.map((name: { value: string; label: string }) => ({ value: name.value, label: name.label })),
       ]);
       setDistrictOptions([{ value: '', label: '선택하세요' }]);
       setDongOptions([{ value: '', label: '선택하세요' }]);
     } catch (error) {
       console.error('SOPO 시도 로드 오류:', error);
       toast('오류', { description: 'SOPO 시도 조회 중 오류가 발생했습니다.' });
+      setProvinceOptions([{ value: '', label: '선택하세요' }]);
     } finally {
       setIsLoading(false);
     }
@@ -101,19 +120,32 @@ export default function SopoLookupModal({
   const loadDistrictOptions = useCallback(async () => {
     setIsLoading(true);
     try {
-      // 실제 API 호출은 향후 구현
-      const mockDistricts = [
-        { value: '30170', label: '서울 강남구' },
-        { value: '30171', label: '서울 강북구' },
-      ];
+      if (!sopoKey) {
+        setDistrictOptions([{ value: '', label: '선택하세요' }]);
+        setDongOptions([{ value: '', label: '선택하세요' }]);
+        return;
+      }
+      // API 호출로 시군구 조회
+      const response = await fetch(`/api/sopo/lookup?mgtNo=${sopoKey}`, {
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error('API 오류');
 
+      const allItems = result.data || [];
+// 고유 시도 추출 및 정렬
+      const districts = [...new Set(allItems.map((item: any) => item.signguNm || ''))].sort() as { value: string; label: string }[];
+      
       setDistrictOptions([
         { value: '', label: '선택하세요' },
-        ...mockDistricts,
+        ...districts.map((name: { value: string; label: string }) => ({ value: name.value, label: name.label })),
       ]);
       setDongOptions([{ value: '', label: '선택하세요' }]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('시군구 로드 오류:', error);
+      toast('오류', { description: '시군구 조회 중 오류가 발생했습니다.' });
+      setDistrictOptions([{ value: '', label: '선택하세요' }]);
+      setDongOptions([{ value: '', label: '선택하세요' }]);
     } finally {
       setIsLoading(false);
     }
@@ -122,22 +154,33 @@ export default function SopoLookupModal({
   const loadDongOptions = useCallback(async () => {
     setIsLoading(true);
     try {
-      // 실제 API 호출은 향후 구현
-      const mockDongs = [
-        { value: '30170640', label: '대전 대덕구 탄방동' },
-        { value: '30170650', label: '대전 대덕구 법동' },
-      ];
+      if (!sopoKey || selectedSopoIndex < 0 || !sopoItems || sopoItems.length === 0) {
+        setDongOptions([{ value: '', label: '선택하세요' }]);
+        return;
+      }
+      const selectedItem = sopoItems[selectedSopoIndex];
+      const sigunNm = selectedItem.signguNm || '';
+      const response = await fetch(`/api/sopo/lookup?mgtNo=${sopoKey}&sigunNm=${encodeURIComponent(sigunNm)}`, {
+        cache: 'no-store',
+      });
+      const result = await response.json();
+      if (!result.success) throw new Error('API 오류');
+
+const allItems = result.data || [];
+      const dongs = [...new Set(allItems.map((item: any) => item.adongNm || ''))].sort() as { value: string; label: string }[];
 
       setDongOptions([
         { value: '', label: '선택하세요' },
-        ...mockDongs,
+        ...dongs.map((name: { value: string; label: string }) => ({ value: name.value, label: name.label })),
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('행정동 로드 오류:', error);
+      toast('오류', { description: '행정동 조회 중 오류가 발생했습니다.' });
+      setDongOptions([{ value: '', label: '선택하세요' }]);
     } finally {
       setIsLoading(false);
     }
-  }, [sopoKey, provinceOptions[0]?.value]);
+  }, [sopoKey, selectedSopoIndex, sopoItems]);
 
   // 프로비언스 변경 시 시군구 및 행정동 초기화 및 로드
   useEffect(() => {
@@ -146,66 +189,53 @@ export default function SopoLookupModal({
       setDongOptions([{ value: '', label: '선택하세요' }]);
       loadDistrictOptions();
     }
-  }, [sopoKey, provinceOptions[0]?.value]);
+  }, [sopoKey, loadDistrictOptions]);
 
   // SOPO 조회 버튼 핸들러
   const handleSearchSopo = useCallback(() => {
-    setIsLoading(true);
-    // 실제 API 호출은 향후 구현
-    // const items = await fetchSopoData({ key: sopoKey, ...});
-    
-    // 시범 데이터로 조회 결과 표시
-    const mockItems = [
-      {
-        bizesNm: '테스트 상가',
-        rdnmAdr: '테스트 도로명 주소',
-        ctprvnNm: '서울특별시',
-        signguNm: '강남구',
-        adongNm: '신사동',
-      },
-    ];
-    setSopoItems(mockItems);
-    setSelectedSopoIndex(0);
-    toast('성공', { description: 'SOPO 데이터가 조회되었습니다.' });
-    setIsLoading(false);
-  }, [sopoKey]);
+    if (!sopoKey) {
+      toast('경고', { description: '조회할 관리번호가 없습니다.' });
+      return;
+    }
+    fetchSopoData(sopoKey);
+  }, [sopoKey, fetchSopoData]);
 
   // 데이터 저장 핸들러
-  const handleSave = useCallback(async () => {
+const handleSave = useCallback(async () => {
     if (!sopoItems || sopoItems.length === 0 || selectedSopoIndex < 0) {
       toast('경고', { description: '조회된 SOPO 데이터가 없습니다.' });
       return;
     }
 
+    const selectedItem = sopoItems[selectedSopoIndex] as any;
     const mappedLead = {
       ...lead,
-      // SOPO 필드 매핑 (더미 데이터 활용)
-      sopoBizesId: sopoItems[selectedSopoIndex]?.bizesNm ? 'MA010120220800000218' : undefined,
-      sopoBizName: sopoItems[selectedSopoIndex]?.bizesNm,
-      sopoRoadAddress: sopoItems[selectedSopoIndex]?.rdnmAdr,
-      sopoLotAddress: '',
-      sopoLatitude: 37.5665,
-      sopoLongitude: 126.9780,
-      sopoCategoryLarge: 'FOOD',
-      sopoCategoryLargeName: '식음업',
-      sopoCategoryMiddle: 'I201',
-      sopoCategoryMiddleName: '한식',
-      sopoCategorySmall: 'I20101',
-      sopoCategorySmallName: '백반/한정식',
-      sopoProvinceCode: '11',
-      sopoProvinceName: '서울특별시',
-      sopoDistrictCode: '30170',
-      sopoDistrictName: '강남구',
-      sopoDongCode: '30170640',
-      sopoDongName: '신사동',
-      sopoStdYm: '202606',
+      sopoBizesId: selectedItem.bizesId || selectedItem.사업자번호 || '',
+      sopoBizName: selectedItem.bizesNm || '',
+      sopoRoadAddress: selectedItem.rdnmAdr || '',
+      sopoLotAddress: selectedItem.법정동주소 || '',
+      sopoLatitude: selectedItem.위도 || 37.5665,
+      sopoLongitude: selectedItem.경도 || 126.9780,
+      sopoCategoryLarge: selectedItem.업종대분류 || 'ETC',
+      sopoCategoryLargeName: selectedItem.업종대분류명 || '기타',
+      sopoCategoryMiddle: selectedItem.업종중분류 || 'I00',
+      sopoCategoryMiddleName: selectedItem.업종중분류명 || '',
+      sopoCategorySmall: selectedItem.업종소분류 || 'I000',
+      sopoCategorySmallName: selectedItem.업종소분류명 || '',
+      sopoProvinceCode: selectedItem.시도코드 || '11',
+      sopoProvinceName: selectedItem.시도명 || '서울특별시',
+      sopoDistrictCode: selectedItem.시군구코드 || '30170',
+      sopoDistrictName: selectedItem.시군구명 || '강남구',
+      sopoDongCode: selectedItem.행정동코드 || '30170640',
+      sopoDongName: selectedItem.행정동명 || '신사동',
+      sopoStdYm: selectedItem.표준월 || new Date().getFullYear().toString(),
       sopoDataFetchedAt: new Date().toISOString(),
     };
 
     showNotification('success', 'SOPO 데이터가 리드에 매핑되었습니다.');
     onSave(mappedLead as Lead);
     onClose();
-  }, [sopoItems, selectedSopoIndex, lead, onSave, onClose]);
+  }, [sopoItems, selectedSopoIndex, lead, onSave, onClose, showNotification]);
 
   // 취소 버튼
   const handleCancel = () => {

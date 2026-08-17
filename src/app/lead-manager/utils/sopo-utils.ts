@@ -15,6 +15,8 @@ const DEFAULT_SERVICE_KEY = 'vvzgm7q5ew3N8ORtQRISiwZ3SsgDE0vpkDs1LHu0yY51Pmyg3IW
 export interface SopoRequestParams {
   /** 상가업소 관리번호 (건물 단위 조회 시 필수) */
   key: string;
+  /** 서비스 키 - 우선순위: params.serviceKey > env.DATAGOKR_API_KEY > DEFAULT_SERVICE_KEY */
+  serviceKey?: string;
   /** 시도코드 (시/도) - 선택적 */
   ctprvnCd?: string;
   /** 시군구코드 (구/군) - 선택적 */
@@ -143,7 +145,7 @@ export async function fetchSopoData(params: SopoRequestParams): Promise<SopoItem
     }
 
     // 서비스 키 적용 (기본값 사용 또는 환경 변수에서 로드)
-    const serviceKey = DEFAULT_SERVICE_KEY;
+    const serviceKey = params.serviceKey || process.env.DATAGOKR_API_KEY || DEFAULT_SERVICE_KEY;
 
     // 쿼리 파라미터 구성
     const queryParams = new URLSearchParams({
