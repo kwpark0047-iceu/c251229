@@ -13,35 +13,11 @@ import { fetchSopoData } from '@/app/lead-manager/utils/sopo-utils';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-interface SopoLookupRequest {
-  mgtNo: string;
-  sigunNm?: string;
-}
-
-interface SopoItem {
-  // SOPO 데이터 필드 (sopo-utils.ts 기준)
-  upclCn: string;
-  upclNm: string;
-  indsLclsCd: string;
-  indsLclsNm: string;
-  indsMclsCd: string;
-  indsMclsNm: string;
-  indsSclsCd: string;
-  indsSclsNm: string;
-  ctprvnCd: string;
-  ctprvnNm: string;
-  signguCd: string;
-  signguNm: string;
-  adongCd: string;
-  adongNm: string;
-  stdrYm: string;
-}
-
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const mgtNo = searchParams.get('mgtNo') || '';
-    const sigunNm = searchParams.get('sigunNm') || undefined;
+    const mgtNo = searchParams.get('mgtNo')?.trim() || '';
+    const sigunNm = searchParams.get('sigunNm')?.trim() || undefined;
 
     if (!mgtNo) {
       return NextResponse.json(
@@ -50,8 +26,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // 서버사이드 env 키로 SOPO 데이터 조회 (mgtNo만 전달, sigunNm은 쿼리 파라미터로 자동 포함됨)
-    const sopoItems = await fetchSopoData({ key: mgtNo });
+    const sopoItems = await fetchSopoData({ key: mgtNo, sigunNm });
 
     return NextResponse.json({
       success: true,
@@ -60,7 +35,10 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('[SOPO Lookup API Error]:', error);
     return NextResponse.json(
-      { success: false, error: (error as Error).message || 'SOPO 조회 중 오류가 발생했습니다.' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'SOPO 조회 중 오류가 발생했습니다.',
+      },
       { status: 500 }
     );
   }
