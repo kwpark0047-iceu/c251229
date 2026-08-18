@@ -6,6 +6,16 @@ import { calculateLeadScore, normalizeScoreConfig, type ScoreConfig } from '@/li
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export function isSupabaseAuthError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const code = Reflect.get(error, 'code');
+  const message = Reflect.get(error, 'message');
+  return (
+    (typeof code === 'string' && code === 'invalid_api_key') ||
+    (typeof message === 'string' && message.toLowerCase().includes('invalid api key'))
+  );
+}
+
 /**
  * 조직별 리드 스코어링 가중치 조회
  * organizations.scoring_config(JSONB)가 없으면 기본 가중치를 반환합니다.
@@ -70,7 +80,20 @@ export async function requireSyncAuth(
   | { orgId: string; role: string | null; errorResponse: null }
   | { orgId: null; role: null; errorResponse: NextResponse }
 > {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (isSupabaseAuthError(authError)) {
+    return {
+      orgId: null,
+      role: null,
+      errorResponse: NextResponse.json(
+        {
+          success: false,
+          error: 'Supabase 인증 설정이 올바르지 않습니다. 서버 환경변수의 API 키를 확인해 주세요.',
+        },
+        { status: 503 }
+      ),
+    };
+  }
   if (!user?.id) {
     return {
       orgId: null,
