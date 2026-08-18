@@ -12,6 +12,7 @@ import { removeDuplicateLeads } from './deduplication-utils';
 import { RegionCode, getRegionPrefixes } from './region-utils';
 import { ActivityService } from './activity-service';
 import { chunkArray } from '@/lib/utils/array-utils';
+import { toLeadDbRow } from './lead-db-mapper';
 
 interface SaveLeadsResult {
   success: boolean;
@@ -185,52 +186,7 @@ export async function saveLeads(
 
       onProgress?.(savedCount, newLeads.length, `저장 중... (${savedCount}/${newLeads.length})`);
 
-      const dbLeads = batch.map(lead => ({
-        biz_name: lead.bizName,
-        biz_id: lead.bizId || null,
-        license_date: lead.licenseDate || null,
-        last_modified_date: lead.lastModifiedDate || null,
-        road_address: lead.roadAddress || null,
-        lot_address: lead.lotAddress || null,
-        coord_x: lead.coordX || null,
-        coord_y: lead.coordY || null,
-        latitude: lead.latitude || null,
-        longitude: lead.longitude || null,
-        phone: lead.phone || null,
-        medical_subject: lead.medicalSubject || null,
-        mgt_no: lead.mgtNo || null,
-        operating_status: lead.operatingStatus || null,
-        detailed_status: lead.detailedStatus || null,
-        category: lead.category || 'OTHER',
-        service_id: lead.serviceId || null,
-        service_name: lead.serviceName || null,
-        nearest_station: lead.nearestStation || null,
-        station_distance: lead.stationDistance ? Math.round(lead.stationDistance) : null,
-        station_lines: lead.stationLines || null,
-        nearest_exit_no: lead.nearestExitNo || null,
-        status: lead.status || 'NEW',
-notes: lead.notes || null,
-      sopoBizesId: lead.sopoBizesId || null,
-      sopoBizName: lead.sopoBizName || null,
-      sopoRoadAddress: lead.sopoRoadAddress || null,
-      sopoLotAddress: lead.sopoLotAddress || null,
-      sopoLatitude: lead.sopoLatitude || null,
-      sopoLongitude: lead.sopoLongitude || null,
-      sopoCategoryLarge: lead.sopoCategoryLarge || null,
-      sopoCategoryLargeName: lead.sopoCategoryLargeName || null,
-      sopoCategoryMiddle: lead.sopoCategoryMiddle || null,
-      sopoCategoryMiddleName: lead.sopoCategoryMiddleName || null,
-      sopoCategorySmall: lead.sopoCategorySmall || null,
-      sopoCategorySmallName: lead.sopoCategorySmallName || null,
-      sopoProvinceCode: lead.sopoProvinceCode || null,
-      sopoProvinceName: lead.sopoProvinceName || null,
-      sopoDistrictCode: lead.sopoDistrictCode || null,
-      sopoDistrictName: lead.sopoDistrictName || null,
-      sopoDongCode: lead.sopoDongCode || null,
-      sopoDongName: lead.sopoDongName || null,
-      sopoStdYm: lead.sopoStdYm || null,
-      organization_id: orgId,
-      }));
+      const dbLeads = batch.map(lead => toLeadDbRow(lead, orgId));
 
       const { error } = await supabase
         .from('leads')
