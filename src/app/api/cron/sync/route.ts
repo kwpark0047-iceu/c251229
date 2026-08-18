@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { syncSource, getAllSourceKeys, getSourceList } from '@/app/api/sync-engine';
-import { getOrgScoringConfig } from '@/app/api/sync-utils';
+import { getOrgScoringConfig, isSupabaseAuthError } from '@/app/api/sync-utils';
 
 export const dynamic = 'force-dynamic';
 // Cron 작업은 오래 걸릴 수 있으므로 타임아웃 연장
@@ -60,6 +60,15 @@ export async function GET(request: Request) {
 
     if (orgError) {
       console.error('[Cron] Failed to fetch organizations:', orgError.message);
+      if (isSupabaseAuthError(orgError)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Supabase 인증 설정이 올바르지 않습니다. 서버 환경변수의 서비스 롤 키를 확인해 주세요.',
+          },
+          { status: 503 }
+        );
+      }
       throw new Error(`조직 목록 조회 실패: ${orgError.message}`);
     }
 
