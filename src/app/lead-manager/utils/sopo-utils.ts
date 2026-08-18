@@ -7,7 +7,6 @@ import { Lead } from '../types';
 
 // SOPO API 기본 설정
 const SOPO_API_BASE = 'https://apis.data.go.kr/B553077/api/open/sdsc2';
-const DEFAULT_SERVICE_KEY = 'vvzgm7q5ew3N8ORtQRISiwZ3SsgDE0vpkDs1LHu0yY51Pmyg3IWnhDTF1RQfQPfBZp3zE2TNQl8gJKG7h0YzCg=';
 
 /**
  * SOPO API 요청 파라미터 타입
@@ -15,7 +14,7 @@ const DEFAULT_SERVICE_KEY = 'vvzgm7q5ew3N8ORtQRISiwZ3SsgDE0vpkDs1LHu0yY51Pmyg3IW
 export interface SopoRequestParams {
   /** 상가업소 관리번호 (건물 단위 조회 시 필수) */
   key: string;
-  /** 서비스 키 - 우선순위: params.serviceKey > env.DATAGOKR_API_KEY > DEFAULT_SERVICE_KEY */
+  /** 서비스 키 - 우선순위: params.serviceKey > env.DATAGOKR_API_KEY */
   serviceKey?: string;
   /** 시도코드 (시/도) - 선택적 */
   ctprvnCd?: string;
@@ -23,6 +22,8 @@ export interface SopoRequestParams {
   signguCd?: string;
   /** 행정동코드 (동) - 선택적 */
   adongCd?: string;
+  /** 시군구명 - 선택적 */
+  sigunNm?: string;
   /** 페이지 번호 */
   pageNo?: number;
   /** 한 페이지 결과 수 */
@@ -144,8 +145,10 @@ export async function fetchSopoData(params: SopoRequestParams): Promise<SopoItem
       throw new Error('SOPO API: "key" 파라미터가 필요합니다. (건물 관리번호)');
     }
 
-    // 서비스 키 적용 (기본값 사용 또는 환경 변수에서 로드)
-    const serviceKey = params.serviceKey || process.env.DATAGOKR_API_KEY || DEFAULT_SERVICE_KEY;
+    const serviceKey = params.serviceKey || process.env.DATAGOKR_API_KEY;
+    if (!serviceKey) {
+      throw new Error('SOPO API: DATAGOKR_API_KEY 환경변수가 설정되지 않았습니다.');
+    }
 
     // 쿼리 파라미터 구성
     const queryParams = new URLSearchParams({
@@ -160,6 +163,7 @@ export async function fetchSopoData(params: SopoRequestParams): Promise<SopoItem
     if (params.ctprvnCd) queryParams.append('ctprvnCd', params.ctprvnCd);
     if (params.signguCd) queryParams.append('signguCd', params.signguCd);
     if (params.adongCd) queryParams.append('adongCd', params.adongCd);
+    if (params.sigunNm) queryParams.append('sigunNm', params.sigunNm);
 
     // API 엔드포인트 구성
     const url = `${SOPO_API_BASE}/storeListInBuilding?${queryParams.toString()}`;
@@ -214,34 +218,18 @@ export function mapSopoToLead(
   const item = items[0]; // 첫 번째 아이템 사용 (일반적으로 유일한 매칭)
 
   return {
-    // 기존 Lead 필드 보존 (우선: existingLead가 있으면)
-    id: existingLead?.id || item.bizesId || '',
-    bizName: existingLead?.bizName || item.bizesNm || '',
-    bizId: existingLead?.bizId,
-
-    // 주소 관련
-    roadAddress: existingLead?.roadAddress || item.rdnmAdr || item.lnoAdr || '',
-    lotAddress: existingLead?.lotAddress || '',
-
-    // 좌표
+    ...existingLead,
+    id: existingLead?.id || item.lnoCd || item.bizesId,
+    bizName: existingLead?.bizName || item.bizesNm,
+    roadAddress: existingLead?.roadAddress || item.rdnmAdr || item.lnoAdr,
+    lotAddress: existingLead?.lotAddress || item.lnoAdr,
     latitude: existingLead?.latitude ?? item.lat,
     longitude: existingLead?.longitude ?? item.lon,
-
-    // 전화
-    phone: existingLead?.phone,
-
-    // 상태 및 점수 유지
-    status: existingLead?.status || 'NEW' as const,
-    leadScore: existingLead?.leadScore,
-
-    // 업종 관련 (기존 것과 병합)
-    category: existingLead?.category,
-
-    // SOPO 필드 매핑 (new fields 우선)
+    status: existingLead?.status || 'NEW',
     sopoBizesId: item.bizesId,
     sopoBizName: item.bizesNm,
     sopoRoadAddress: item.rdnmAdr || item.lnoAdr,
-    sopoLotAddress: '', // 개별 항목에 없는 경우 빈 문자열
+    sopoLotAddress: item.lnoAdr,
     sopoLatitude: item.lat,
     sopoLongitude: item.lon,
     sopoCategoryLarge: item.indsLclsCd,
@@ -256,12 +244,9 @@ export function mapSopoToLead(
     sopoDistrictName: item.signguNm,
     sopoDongCode: item.adongCd,
     sopoDongName: item.adongNm,
-    sopoStdYm: item['stdrYm'],
+    sopoStdYm: item.stdrYm,
     sopoDataFetchedAt: new Date().toISOString(),
-
-    // 기존 필드들 보존
-    ...(existingLead || {}),
-  } as Lead;
+  };
 }
 
 /**
