@@ -190,9 +190,8 @@ export async function fetchLocalDataAPI(
           pageIndex,
           pageSize,
         }),
-        maxRetries: 2,
-        // 라우트(50s)보다 여유 있는 클라이언트 타임아웃 — 504 수신 후 재시도 여지 확보
-        timeout: 55000,
+        maxRetries: 0,
+        timeout: 25000,
       }
     );
 

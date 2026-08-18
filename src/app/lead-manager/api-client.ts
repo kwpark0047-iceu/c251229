@@ -25,6 +25,13 @@ export class ApiError extends Error {
     }
 }
 
+function getErrorMessage(data: unknown): string | undefined {
+    if (typeof data !== 'object' || data === null) return undefined;
+    if (!('error' in data) && !('message' in data)) return undefined;
+    const value = 'error' in data ? data.error : data.message;
+    return typeof value === 'string' ? value : undefined;
+}
+
 /**
  * 지수 백오프를 사용한 fetch 래퍼
  */
@@ -68,8 +75,8 @@ export async function safeFetch<T = any>(
                 return await response.json();
             }
 
-            // 429(Rate Limit) 또는 5xx(Server Error)의 경우 재시도 가치가 있음
-            if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
+            // 504는 이미 게이트웨이 타임아웃이므로 같은 요청을 다시 보내면 대기만 누적된다.
+            if (response.status === 429 || (response.status >= 500 && response.status < 504)) {
                 let errorData;
                 try {
                     errorData = await response.json();
@@ -77,7 +84,7 @@ export async function safeFetch<T = any>(
                     errorData = null;
                 }
 
-                throw new ApiError(`Request failed with status ${response.status}${response.statusText ? `: ${response.statusText}` : ''}`, {
+                throw new ApiError(getErrorMessage(errorData) || `Request failed with status ${response.status}${response.statusText ? `: ${response.statusText}` : ''}`, {
                     status: response.status,
                     statusText: response.statusText,
                     data: errorData
@@ -103,7 +110,7 @@ export async function safeFetch<T = any>(
 
             // ApiError가 아니고 status가 429나 5xx가 아닌 경우 (즉, 네트워크 단절 등) 재시도 시도
             if (error instanceof ApiError) {
-                if (error.status !== 429 && !(error.status! >= 500 && error.status! < 600)) {
+                if (error.status !== 429 && !(error.status! >= 500 && error.status! < 504)) {
                     throw error; // 재시도 없이 즉시 실패
                 }
             }
