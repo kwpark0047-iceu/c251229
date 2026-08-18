@@ -29,6 +29,18 @@ interface SourceResult {
   error?: string;
 }
 
+interface SyncRequestBody {
+  sources: string[];
+  sync: true;
+  sigunNm?: string;
+  apiKeys?: Record<string, string>;
+}
+
+interface SyncResponse {
+  results?: SourceResult[];
+  error?: string;
+}
+
 interface SourceState {
   status: SyncStatus;
   result?: SourceResult;
@@ -117,7 +129,7 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
       setSourceStates(prev => ({ ...prev, [sourceKey]: { status: 'running' } }));
 
       try {
-        const body: any = {
+        const body: SyncRequestBody = {
           sources: [sourceKey],
           sync: true,
         };
@@ -130,14 +142,16 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
           body: JSON.stringify(body),
         });
 
-        const data = await res.json();
+        const data: SyncResponse = await res.json();
         const result: SourceResult = data.results?.[0] || {
           source: sourceKey,
           label: sourceKey,
           total: 0,
           fetched: 0,
           saved: 0,
-          error: data.error || '알 수 없는 오류',
+           error: data.error || (res.status === 503
+             ? 'Supabase 인증 설정을 확인해 주세요.'
+             : `동기화 요청 실패 (${res.status})`),
         };
 
         allResults.push(result);
@@ -150,12 +164,13 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
             result,
           },
         }));
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : '동기화 요청 중 알 수 없는 오류가 발생했습니다.';
         setSourceStates(prev => ({
           ...prev,
           [sourceKey]: {
             status: 'error',
-            result: { source: sourceKey, label: sourceKey, total: 0, fetched: 0, saved: 0, error: e.message },
+            result: { source: sourceKey, label: sourceKey, total: 0, fetched: 0, saved: 0, error: message },
           },
         }));
       }
