@@ -5,8 +5,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-// Vercel Serverless Function 타임아웃 설정 (Pro 플랜의 경우 60초 이상 활용 가능)
-export const maxDuration = 60;
+// 플랫폼 타임아웃보다 먼저 종료해 브라우저가 무한히 재시도하지 않도록 한다.
+export const maxDuration = 30;
 
 // 환경변수에서 API 키 로드 (서버에서만 접근 가능)
 const LOCALDATA_API_KEY = process.env.LOCALDATA_API_KEY || '';
@@ -83,18 +83,21 @@ export async function POST(request: NextRequest) {
 
     // API 호출
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 50000); // 30초 -> 50초로 연장
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-    const response = await fetch(apiUrl.toString(), {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/xml, text/xml, */*',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
+    let response: Response;
+    try {
+      response = await fetch(apiUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/xml, text/xml, */*',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
       console.error(`[LocalData API] HTTP 오류: ${response.status}`);
@@ -129,7 +132,9 @@ export async function POST(request: NextRequest) {
     console.error(`[LocalData API] 서버 에러 (${requestContext || '요청 컨텍스트 없음'}):`, error);
     
     // AbortError (Timeout) 또는 네트워크 오류일 경우 명확한 에러 반환
-    if ((error as Error).name === 'AbortError' || (error as Error).message.includes('fetch')) {
+    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+    const isAbort = error instanceof DOMException && error.name === 'AbortError';
+    if (isAbort || errorMessage.includes('fetch')) {
       // 업스트림 장애 시 클라이언트 재시도와 연동되는 대기 시간 안내 헤더
       return NextResponse.json(
         { success: false, error: '공공데이터 포털 서버(localdata.go.kr)가 현재 불안정하거나 응답하지 않습니다.' },
@@ -138,7 +143,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: (error as Error).message },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }
