@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mapSopoToLead, type SopoItem } from '@/app/lead-manager/utils/sopo-utils';
 
 const item: SopoItem = {
@@ -63,5 +63,29 @@ describe('mapSopoToLead', () => {
 
   it('rejects an empty SOPO result', () => {
     expect(() => mapSopoToLead([])).toThrow('매핑할 SOPO 데이터가 없습니다.');
+  });
+});
+
+describe('fetchSopoData', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('rejects malformed external responses instead of trusting a TypeScript cast', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ header: { resultCode: '00' }, body: { items: [{ bizesId: 'store-1' }] } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        })
+      )
+    );
+
+    const { fetchSopoData } = await import('@/app/lead-manager/utils/sopo-utils');
+
+    await expect(fetchSopoData({ key: 'building-1', serviceKey: 'test-key' })).rejects.toThrow(
+      'SOPO API 응답 형식이 올바르지 않습니다.'
+    );
   });
 });

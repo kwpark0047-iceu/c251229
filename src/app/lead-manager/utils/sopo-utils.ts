@@ -87,6 +87,92 @@ export interface SopoItem {
   stdrYm: string;
 }
 
+type JsonObject = Record<string, unknown>;
+
+function asJsonObject(value: unknown): JsonObject | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as JsonObject
+    : null;
+}
+
+function readText(record: JsonObject, key: string): string {
+  const value = record[key];
+  return typeof value === 'string' ? value : '';
+}
+
+function readNumber(record: JsonObject, key: string): number {
+  const value = record[key];
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+}
+
+function parseSopoItem(value: unknown): SopoItem | null {
+  const record = asJsonObject(value);
+  if (!record) return null;
+
+  const bizesId = readText(record, 'bizesId');
+  const bizesNm = readText(record, 'bizesNm');
+  const lnoCd = readText(record, 'lnoCd');
+  if (!bizesId || !bizesNm || !lnoCd) return null;
+
+  return {
+    bizesId, bizesNm,
+    brchNm: readText(record, 'brchNm'),
+    indsLclsCd: readText(record, 'indsLclsCd'), indsLclsNm: readText(record, 'indsLclsNm'),
+    indsMclsCd: readText(record, 'indsMclsCd'), indsMclsNm: readText(record, 'indsMclsNm'),
+    indsSclsCd: readText(record, 'indsSclsCd'), indsSclsNm: readText(record, 'indsSclsNm'),
+    ksicCd: readText(record, 'ksicCd'), ksicNm: readText(record, 'ksicNm'),
+    ctprvnCd: readText(record, 'ctprvnCd'), ctprvnNm: readText(record, 'ctprvnNm'),
+    signguCd: readText(record, 'signguCd'), signguNm: readText(record, 'signguNm'),
+    adongCd: readText(record, 'adongCd'), adongNm: readText(record, 'adongNm'),
+    ldongCd: readText(record, 'ldongCd'), ldongNm: readText(record, 'ldongNm'),
+    lnoCd, lnoMnno: readNumber(record, 'lnoMnno'), lnoSlno: readText(record, 'lnoSlno'),
+    lnoAdr: readText(record, 'lnoAdr'), rdnmCd: readText(record, 'rdnmCd'),
+    rdnm: readText(record, 'rdnm'), bldMnno: readNumber(record, 'bldMnno'),
+    bldSlno: readText(record, 'bldSlno'), bldMngNo: readText(record, 'bldMngNo'),
+    bldNm: readText(record, 'bldNm'), rdnmAdr: readText(record, 'rdnmAdr'),
+    oldZipcd: readText(record, 'oldZipcd'), newZipcd: readText(record, 'newZipcd'),
+    dongNo: readText(record, 'dongNo'), flrNo: readText(record, 'flrNo'), hoNo: readText(record, 'hoNo'),
+    lon: readNumber(record, 'lon'), lat: readNumber(record, 'lat'), stdrYm: readText(record, 'stdrYm'),
+  };
+}
+
+function parseSopoResponse(value: unknown): SopoResponse {
+  const root = asJsonObject(value);
+  const header = root ? asJsonObject(root.header) : null;
+  const body = root ? asJsonObject(root.body) : null;
+  const rawItems = body?.items;
+  if (!header || !body || typeof header.resultCode !== 'string' || !Array.isArray(rawItems)) {
+    throw new Error('SOPO API 응답 형식이 올바르지 않습니다.');
+  }
+
+  const items = rawItems.map(parseSopoItem);
+  if (items.some((item): item is null => item === null)) {
+    throw new Error('SOPO API 응답 형식이 올바르지 않습니다.');
+  }
+
+  return {
+    header: {
+      description: readText(header, 'description'),
+      columns: Array.isArray(header.columns)
+        ? header.columns.filter((column): column is string => typeof column === 'string')
+        : [],
+      resultCode: header.resultCode,
+      resultMsg: readText(header, 'resultMsg'),
+    },
+    body: {
+      items: items.filter((item): item is SopoItem => item !== null),
+      numOfRows: readNumber(body, 'numOfRows'),
+      pageNo: readNumber(body, 'pageNo'),
+      totalCount: readNumber(body, 'totalCount'),
+    },
+  };
+}
+
 /**
  * SOPO API 전체 응답 타입
  */
@@ -168,20 +254,26 @@ export async function fetchSopoData(params: SopoRequestParams): Promise<SopoItem
     // API 엔드포인트 구성
     const url = `${SOPO_API_BASE}/storeListInBuilding?${queryParams.toString()}`;
 
-    // API 요청
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+    // 외부 공공 API가 멈춰도 애플리케이션 요청이 무기한 대기하지 않도록 제한합니다.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`SOPO API 요청 실패 (${response.status}): ${errorText}`);
     }
 
-    const data: SopoResponse = await response.json();
+    const data = parseSopoResponse(await response.json());
 
     // 결과 코드 확인
     if (data.header.resultCode !== '00') {
