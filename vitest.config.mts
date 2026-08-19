@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import path from 'path';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
     plugins: [react()],
@@ -17,6 +17,7 @@ export default defineConfig({
             '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
             'tests/**/*.spec.ts',
             'tests/e2e/**/*.spec.ts',
+            '**/*.tmp.test.ts',
         ],
         coverage: {
             provider: 'v8',
@@ -42,7 +43,7 @@ export default defineConfig({
             },
         },
         alias: {
-            '@': path.resolve(__dirname, './src'),
+            '@': fileURLToPath(new URL('./src', import.meta.url)),
         },
     },
 });
