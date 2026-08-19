@@ -345,10 +345,11 @@ export async function fetchSeoulAllPages(
           }
           const data = await res.json();
           const rows = data[config.serviceCode]?.row || [];
-          // 영업중이면서 최종수정일자가 최근 3년 이내인 업소만 유효 처리
+          // 영업중(또는 영업/정상)이면서 최종수정일자가 최근 3년 이내인 업소만 유효 처리
           const valid: any[] = [];
           for (const r of rows) {
-            if ((r.TRDSTATENM || '').trim() !== '영업중') {
+            const trdState = (r.TRDSTATENM || '').trim();
+            if (trdState !== '영업중' && trdState !== '영업/정상') {
               statNotOperating++;
               continue;
             }
@@ -426,7 +427,7 @@ export function mapSeoulRow(row: any, config: SeoulSourceConfig, orgId: string |
     station_lines: nearest?.station.lines ?? null,
     station_distance: nearest ? Math.round(nearest.distance) : null,
     status: 'NEW',
-    operating_status: row.TRDSTATENM || '영업중',
+    operating_status: (row.TRDSTATENM || '').trim() === '영업/정상' ? '영업중' : (row.TRDSTATENM || '영업중'),
     detailed_status: row.DTLSTATENM || null,
     mgt_no: row.MGTNO || null,
     biz_id: row.BRNO || null,
@@ -466,6 +467,27 @@ export interface SyncSourceOptions {
  * - Seoul 소스: scoringConfig 적용
  * 실패 시 throw하지 않고 error 필드가 담긴 결과를 반환한다 (자동 동기화 견고성).
  */
+async function logSyncSource(supabase: SupabaseClient, organizationId: string | null, sourceKey: string, label: string, result: SyncSourceResult): Promise<void> {
+  const { total, fetched, saved, inserted, updated, skipped, failed, error } = result;
+  await supabase
+    .from('source_sync_logs')
+    .upsert({
+      organization_id: organizationId,
+      source_key: sourceKey,
+      source_label: label,
+      status: error ? 'error' : 'success',
+      total_count: total,
+      fetched_count: fetched,
+      inserted_count: inserted ?? 0,
+      updated_count: updated ?? 0,
+      skipped_count: skipped ?? 0,
+      failed_count: failed ?? 0,
+      error_message: error ?? null,
+      started_at: new Date(),
+      finished_at: new Date(),
+    }, { onConflict: 'organization_id, source_key' });
+}
+
 export async function syncSource(
   supabase: SupabaseClient,
   sourceKey: string,
@@ -478,10 +500,12 @@ export async function syncSource(
   if (sourceKey in GG_SOURCES) {
     const config = GG_SOURCES[sourceKey as GGSourceKey];
     if (config.disabled) {
+      await logSyncSource(supabase, orgId, sourceKey, config.label, { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `비활성: ${config.disabledReason}` });
       return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `비활성: ${config.disabledReason}` };
     }
     const apiKey = apiKeys[config.envKey] || process.env[config.envKey] || '';
     if (!apiKey) {
+      await logSyncSource(supabase, orgId, sourceKey, config.label, { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` });
       return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` };
     }
     try {
@@ -501,9 +525,13 @@ export async function syncSource(
       } else if (sync) {
         saved = leads.length;
       }
+      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed };
+      await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
       console.log(`[sync-engine] ${config.label} 완료: ${leads.length}/${total}건 (저장: ${saved}건)`);
-      return { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed };
+      return syncResult;
     } catch (e: any) {
+      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message };
+      await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
       console.error(`[sync-engine] ${config.label} 오류:`, e);
       return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message };
     }
@@ -517,6 +545,7 @@ export async function syncSource(
       process.env.SEOUL_DATA_API_KEY ||
       '';
     if (!apiKey) {
+      await logSyncSource(supabase, orgId, sourceKey, config.label, { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` });
       return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` };
     }
     try {
@@ -536,9 +565,13 @@ export async function syncSource(
       } else if (sync) {
         saved = leads.length;
       }
+      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed };
+      await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
       console.log(`[sync-engine] ${config.label} 완료: ${leads.length}/${total}건 (저장: ${saved}건)`);
-      return { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed };
+      return syncResult;
     } catch (e: any) {
+      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message };
+      await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
       console.error(`[sync-engine] ${config.label} 오류:`, e);
       return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message };
     }
