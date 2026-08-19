@@ -9,16 +9,16 @@
 ### 1. GitHub Actions 워크플로우
 
 #### `.github/workflows/ci.yml`
-- **트리거**: `main`, `develop` 브랜치에 push 또는 PR 생성 시
+- **트리거**: `master`, `main`, `develop` 브랜치에 push 또는 PR 생성 시
 - **작업**:
   - Lint 체크
   - TypeScript 타입 체크
   - 단위 테스트 실행
   - 빌드 테스트
 
-#### `.github/workflows/test-pipeline.yml`
-- **트리거**: 수동 실행 또는 push/PR 시
-- **작업**: 전체 파이프라인 테스트 (통합)
+#### `.github/workflows/test-pipeline.yml` (제거됨)
+- **상태**: 별도 워크플로우 파일은 더 이상 존재하지 않으며, 파이프라인 검증은 `ci.yml`로 통합되었습니다.
+- **작업**: 전체 파이프라인 테스트 (통합) — `npm run ci` 또는 로컬 스크립트(`scripts/archive/test-pipeline.*`)로 대체
 
 ### 2. 로컬 테스트 스크립트
 
@@ -105,13 +105,12 @@ GitHub Actions에서 다음 환경 변수를 설정해야 합니다:
 ### GitHub Actions에서 테스트
 
 1. **자동 실행**
-   - `main` 또는 `develop` 브랜치에 push
+   - `master`, `main` 또는 `develop` 브랜치에 push
    - Pull Request 생성
 
-2. **수동 실행**
-   - GitHub 저장소 → Actions 탭
-   - "Test Pipeline" 워크플로우 선택
-   - "Run workflow" 클릭
+2. **실행 확인**
+   - GitHub 저장소 → Actions 탭에서 "CI Pipeline" 워크플로우의 실행 상태를 확인
+   - `ci.yml`은 push/PR 시 자동 실행되며, 수동 트리거(`workflow_dispatch`)는 제공되지 않습니다.
 
 ## 파이프라인 상태 확인
 
