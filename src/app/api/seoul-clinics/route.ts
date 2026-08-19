@@ -48,7 +48,7 @@ function parseRows(rows: any[]) {
         station_lines: nearest ? nearest.station.lines : null,
         station_distance: nearest ? Math.round(nearest.distance) : null,
         status: 'NEW',
-        operating_status: row.TRDSTATENM || '영업중',
+        operating_status: (row.TRDSTATENM || '').trim() === '영업/정상' ? '영업중' : (row.TRDSTATENM || '영업중'),
         detailed_status: row.DTLSTATENM || null,
         mgt_no: row.MGTNO || null,
         biz_id: row.BRNO || null,
