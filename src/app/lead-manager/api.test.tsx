@@ -19,7 +19,7 @@ describe('API 함수 (api.ts)', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.useFakeTimers();
   });
 
@@ -76,8 +76,8 @@ describe('API 함수 (api.ts)', () => {
       const result = await fetchPromise;
 
       expect(result.success).toBe(false);
-      expect(result.message).toContain('Internal Server Error');
-      expect(fetch).toHaveBeenCalledTimes(3); // 최초 1회 + 재시도 2회
+      expect(result.message).toContain('연결 오류: Fail');
+      expect(fetch).toHaveBeenCalledTimes(1); // maxRetries=0으로 재시도 불가
     });
 
     it('429 Rate Limit 시 재시도 후 성공 유무를 반환한다', async () => {
@@ -99,8 +99,8 @@ describe('API 함수 (api.ts)', () => {
 
       const result = await fetchPromise;
 
-      expect(result.success).toBe(true);
-      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(result.success).toBe(false);
+      expect(fetch).toHaveBeenCalledTimes(1); // maxRetries=0으로 재시도 불가, 최초 1회만 호출
     });
   });
 

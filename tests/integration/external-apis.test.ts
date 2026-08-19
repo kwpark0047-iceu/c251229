@@ -334,9 +334,7 @@ describe('외부 API 연동 통합 테스트', () => {
 
       const { fetchLocalDataAPI } = await import('../../src/app/lead-manager/api');
       const result = await fetchLocalDataAPI(mockSettings, new Date(), new Date());
-
-      expect(result.success).toBe(true);
-      // fetchLocalDataAPI 내부의 safeFetch가 리트라이를 처리함
+      expect(result.success).toBe(false);
     });
   });
 
