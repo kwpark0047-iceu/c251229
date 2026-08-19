@@ -164,6 +164,10 @@ export async function fetchLocalDataAPI(
   serviceInfo?: ServiceIdInfo,
   regionCode?: string
 ): Promise<FetchResult> {
+  if (pageIndex < 1) throw new Error('pageIndex must be >= 1');
+  if (pageSize < 1 || pageSize > 1000) throw new Error('pageSize must be between 1 and 1000');
+  if (startDate > endDate) throw new Error('startDate must be <= endDate');
+
   const resolvedServiceInfo: ServiceIdInfo = serviceInfo ?? {
     id: '01_01_02_P',
     name: '의원',
