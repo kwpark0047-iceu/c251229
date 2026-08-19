@@ -290,13 +290,13 @@ const SEOUL_BASE = 'http://openapi.seoul.go.kr:8088';
 const SEOUL_PAGE_SIZE = 1000;
 const SEOUL_MAX_PAGES = 100; // 10만 건까지 수용 가능하도록 확대
 
-/** 최종수정일자(LASTMODTS, 'YYYY-MM-DD HH:MM:SS')가 최근 3년 이내인지 확인 (ISO 날짜 문자열 사전순 비교) */
-function isWithinLastThreeYears(lastModTs: string | null | undefined): boolean {
+/** 최종수정일자(LASTMODTS, 'YYYY-MM-DD HH:MM:SS')가 최근 3개월 이내인지 확인 (ISO 날짜 문자열 사전순 비교) */
+function isWithinLastThreeMonths(lastModTs: string | null | undefined): boolean {
   if (!lastModTs || typeof lastModTs !== 'string') return false;
   const datePart = lastModTs.slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return false;
   const cutoff = new Date();
-  cutoff.setFullYear(cutoff.getFullYear() - 3);
+  cutoff.setMonth(cutoff.getMonth() - 3);
   return datePart >= cutoff.toISOString().slice(0, 10);
 }
 
@@ -326,7 +326,7 @@ export async function fetchSeoulAllPages(
 
   // 필터 제외 원인별 집계 (0건 수집 문제의 원인 파악용)
   let statNotOperating = 0; // '영업중'이 아닌 상태 (폐업·휴업 등)
-  let statTooOld = 0;       // 최종수정일이 3년 초과
+  let statTooOld = 0;       // 최종수정일이 3개월 초과
   let statBadDate = 0;      // LASTMODTS 포맷 오류 또는 누락
 
   for (let i = 1; i <= totalPages; i += CHUNK_SIZE) {
@@ -345,7 +345,7 @@ export async function fetchSeoulAllPages(
           }
           const data = await res.json();
           const rows = data[config.serviceCode]?.row || [];
-          // 영업중(또는 영업/정상)이면서 최종수정일자가 최근 3년 이내인 업소만 유효 처리
+          // 영업중(또는 영업/정상)이면서 최종수정일자가 최근 3개월 이내인 업소만 유효 처리
           const valid: any[] = [];
           for (const r of rows) {
             const trdState = (r.TRDSTATENM || '').trim();
@@ -358,7 +358,7 @@ export async function fetchSeoulAllPages(
               statBadDate++;
               continue;
             }
-            if (!isWithinLastThreeYears(ts)) {
+            if (!isWithinLastThreeMonths(ts)) {
               statTooOld++;
               continue;
             }
@@ -385,7 +385,7 @@ export async function fetchSeoulAllPages(
   // 제외 원인별 집계 로그: 0건 수집일 때 어느 필터가 걸러냈는지 즉시 파악 가능
   const excluded = statNotOperating + statTooOld + statBadDate;
   if (excluded > 0) {
-    console.log(`[${config.label}] 필터 제외 ${excluded}건 (폐업·휴업 ${statNotOperating}, 3년 초과 ${statTooOld}, 날짜 포맷 오류 ${statBadDate})`);
+    console.log(`[${config.label}] 필터 제외 ${excluded}건 (폐업·휴업 ${statNotOperating}, 3개월 초과 ${statTooOld}, 날짜 포맷 오류 ${statBadDate})`);
   }
   if (total > 0 && allRows.length / total < 0.1) {
     console.warn(`[${config.label}] 유효 건수가 전체의 10% 미만입니다 (${allRows.length}/${total}건) - API 키 갱신 또는 필터 조건 재검토 필요`);

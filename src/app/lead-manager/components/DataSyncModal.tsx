@@ -16,6 +16,7 @@ interface SourceConfig {
   region: '경기도' | '서울';
   category: string;
   hasKey: boolean;
+  disabled?: boolean;
 }
 
 type SyncStatus = 'idle' | 'running' | 'success' | 'error';
@@ -84,9 +85,9 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
       .then(r => r.json())
       .then(data => {
         setSources(data.sources || []);
-        // API 키가 있는 소스를 기본 선택
+        // API 키가 있고 비활성(disabled)이 아닌 소스만 기본 선택
         const defaultSelected = (data.sources || [])
-          .filter((s: SourceConfig) => s.hasKey)
+          .filter((s: SourceConfig) => s.hasKey && !s.disabled)
           .map((s: SourceConfig) => s.key);
         setSelectedSources(defaultSelected);
       })
