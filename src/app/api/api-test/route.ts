@@ -54,14 +54,14 @@ function buildTestRequest(type: string, apiKey: string, sigunNm?: string): { tes
     }
 
     case 'gg-hospital': {
-      const urlObj = new URL('https://openapi.gg.go.kr/GgMedctnstus');
+      const urlObj = new URL('https://openapi.gg.go.kr/GgHosptlM');
       urlObj.searchParams.set('KEY', apiKey);
       urlObj.searchParams.set('Type', 'json');
       urlObj.searchParams.set('pIndex', '1');
       urlObj.searchParams.set('pSize', '1');
       if (sigunNm) urlObj.searchParams.set('SIGUN_NM', sigunNm);
       testUrl = urlObj.toString();
-      validationFn = (data: any) => !!data.GgMedctnstus;
+      validationFn = (data: any) => !!data.GgHosptlM;
       break;
     }
 
@@ -114,14 +114,14 @@ function buildTestRequest(type: string, apiKey: string, sigunNm?: string): { tes
     }
 
     case 'gg-jncl-univ': {
-      const urlObj = new URL('https://openapi.gg.go.kr/GgJnclUnivStus');
+      const urlObj = new URL('https://openapi.gg.go.kr/Jnclluniv');
       urlObj.searchParams.set('KEY', apiKey);
       urlObj.searchParams.set('Type', 'json');
       urlObj.searchParams.set('pIndex', '1');
       urlObj.searchParams.set('pSize', '1');
       if (sigunNm) urlObj.searchParams.set('SIGUN_NM', sigunNm);
       testUrl = urlObj.toString();
-      validationFn = (data: any) => !!data.GgJnclUnivStus;
+      validationFn = (data: any) => !!data.Jnclluniv;
       break;
     }
 
@@ -154,7 +154,8 @@ async function runTest({ type, apiKey, sigunNm }: TestRequest) {
   const res = await fetch(testUrl, {
     method: 'GET',
     headers: {
-      'Accept': 'application/json',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36',
+      'Referer': 'https://data.gg.go.kr/',
     },
     cache: 'no-store'
   });

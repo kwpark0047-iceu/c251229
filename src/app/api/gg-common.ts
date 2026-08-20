@@ -15,6 +15,12 @@ import { upsertLeadsByMgtNo, requireSyncAuth, requireUser, getOrgScoringConfig }
 
 const PAGE_SIZE = 1000;
 
+/** openapi.gg.go.kr WAF 우회용 브라우저 헤더 (Accept 미포함 — Accept: application/json은 HTTP 500 유발) */
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36',
+  'Referer': 'https://data.gg.go.kr/',
+};
+
 export interface GGRouteConfig {
   endpoint: string;         // openapi.gg.go.kr 엔드포인트 URL
   dataKey: string;          // 응답 JSON의 데이터 키 (예: 'AsembyStus')
@@ -74,7 +80,7 @@ async function fetchAllLeads(
   orgId: string | null,
   sigunNm?: string
 ): Promise<{ total: number; leads: any[] } | { errorResponse: NextResponse }> {
-  const firstRes = await fetch(buildUrl(config, 1, 1, apiKey, sigunNm), { cache: 'no-store' });
+  const firstRes = await fetch(buildUrl(config, 1, 1, apiKey, sigunNm), { cache: 'no-store', headers: BROWSER_HEADERS });
   if (!firstRes.ok) throw new Error(`API 응답 오류: ${firstRes.status}`);
 
   const firstData = await firstRes.json();
@@ -92,7 +98,7 @@ async function fetchAllLeads(
 
   let leads: any[] = [];
   for (let page = 1; page <= totalPages; page++) {
-    const res = await fetch(buildUrl(config, page, PAGE_SIZE, apiKey, sigunNm), { cache: 'no-store' });
+    const res = await fetch(buildUrl(config, page, PAGE_SIZE, apiKey, sigunNm), { cache: 'no-store', headers: BROWSER_HEADERS });
     if (!res.ok) { console.warn(`[${config.label}] 페이지 ${page} 실패`); continue; }
     const data = await res.json();
     const rows = data[config.dataKey]?.find((i: any) => i.row)?.row || [];
