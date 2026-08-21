@@ -428,77 +428,13 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                 </div>
               </div>
 
-              {/* API 키 리스트 */}
+{/* API 키 리스트 */}
               <div className="space-y-5">
-                {/* 1. LocalData API Key */}
-                <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/30 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[var(--metro-line4)] shadow-[0_0_8px_var(--metro-line4)]" />
-                      <span className="text-sm font-bold text-[var(--text-primary)]">공공데이터포털 LocalData 키</span>
-                    </div>
-                    <span className="text-xs text-[var(--text-muted)]">의원, 병원, 체육시설 (전국)</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type={showKeys.localdata ? 'text' : 'password'}
-                        value={apiKeys.localdata}
-                        onChange={(e) => handleRegisterKey('localdata', e.target.value)}
-                        placeholder="인증키(authKey)를 입력하세요"
-                        className="metro-input pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowKeys(prev => ({ ...prev, localdata: !prev.localdata }))}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                      >
-                        {showKeys.localdata ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {apiKeys.localdata && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteKey('localdata')}
-                        className="p-3 rounded-lg border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors"
-                        title="키 삭제"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between pt-1">
-                    <button
-                      type="button"
-                      onClick={() => handleVerifyKey('localdata')}
-                      disabled={verifyStatus.localdata.loading || !apiKeys.localdata}
-                      className="text-xs font-semibold px-3 py-1.5 rounded bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] disabled:opacity-50 transition-colors flex items-center gap-1.5"
-                    >
-                      {verifyStatus.localdata.loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--metro-line4)]" />}
-                      연결 확인
-                    </button>
-                    
-                    {verifyStatus.localdata.success !== null && (
-                      <div className="flex items-center gap-1.5 text-xs">
-                        {verifyStatus.localdata.success ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 text-[var(--metro-line2)]" />
-                            <span className="text-[var(--metro-line2)] font-semibold">연결 성공 ({verifyStatus.localdata.latency}ms)</span>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="w-4 h-4 text-red-500" />
-                            <span className="text-red-400 font-semibold" title={verifyStatus.localdata.message}>인증 실패 (클릭하여 오류 확인)</span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {verifyStatus.localdata.success === false && verifyStatus.localdata.message && (
-                    <p className="text-xs text-red-400 bg-red-500/5 p-2 rounded border border-red-500/10">
-                      {verifyStatus.localdata.message}
-                    </p>
-                  )}
+                {/* 1. LocalData API Key (사용 중단됨) */}
+                <div className="p-4 rounded-xl border border-dashed border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/10 text-xs text-[var(--text-muted)]">
+                  <span>localdata.go.kr 연동이 중단되었습니다.</span>
+                  <br />
+                  <span>서울시 열린데이터 광장 키를 사용하세요.</span>
                 </div>
 
                 {/* 2. Seoul Data Portal API Key */}

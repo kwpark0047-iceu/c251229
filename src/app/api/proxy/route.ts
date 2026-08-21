@@ -11,8 +11,6 @@ import { requireUser } from '../sync-utils';
 
 // 프록시를 허용할 공공 데이터 API 도메인 (SSRF 방지 화이트리스트)
 const ALLOWED_HOSTS = new Set([
-  'www.localdata.go.kr',
-  'localdata.go.kr',
   'openapi.seoul.go.kr',
   'openapi.gg.go.kr',
 ]);

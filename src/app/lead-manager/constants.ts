@@ -23,10 +23,6 @@ export const REGION_OPTIONS = [
   { code: '6410000', name: '경기', color: 'var(--metro-line3)' },
 ];
 
-// 기본 API 키 (deprecated - 서버에서 환경변수로 관리됨)
-// 환경변수 LOCALDATA_API_KEY에 설정하세요
-export const DEFAULT_API_KEY = '{"seoul":"6d7a6b6c766b777033346b53716455"}';
-
 // CORS 프록시 옵션
 export const CORS_PROXIES = [
   { label: '로컬 프록시 (추천)', value: '/api/proxy?url=' },
@@ -36,19 +32,15 @@ export const CORS_PROXIES = [
 
 // 기본 설정
 export const DEFAULT_SETTINGS: Settings = {
-  apiKey: DEFAULT_API_KEY,
+  apiKey: '', // basic auth 토큰 형태가 아님 - 실제 인증은 Supabase RLS를 통해 처리
   corsProxy: '/api/proxy?url=',
   searchType: 'license_date',
   regionCode: '6110000',
   regionCodes: ['6110000', '6410000', '6280000'], // 서울, 경기도, 인천
 };
 
-// LocalData API 엔드포인트 (TO0 = 통합조회)
-export const API_ENDPOINT = 'http://www.localdata.go.kr/platform/rest/TO0/openDataApi';
-
-
 // 좌표 변환을 위한 proj4 정의
-// LocalData API는 EPSG:5174 (Korea 2000 / Central Belt) 좌표계 사용
+// 좌표계: EPSG:5174 (Korea 2000 / Central Belt), EPSG:5181, EPSG:5179, WGS84
 export const PROJ4_DEFS = {
   // EPSG:5174 - 중부원점TM (Bessel 타원체, 서울/경기 지역)
   EPSG5174: '+proj=tmerc +lat_0=38 +lon_0=127.0028902777778 +k=1 +x_0=200000 +y_0=500000 +ellps=bessel +units=m +no_defs +towgs84=-115.80,474.99,674.11,1.16,-2.31,-1.63,6.43',

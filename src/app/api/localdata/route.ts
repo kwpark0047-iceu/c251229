@@ -1,5 +1,5 @@
 /**
- * LocalData API 서버사이드 라우트
+ * 서버사이드 라우트 (localdata.go.kr 연동 제거)
  * API 키를 서버에서 안전하게 관리하고 클라이언트 요청을 처리
  */
 
@@ -8,9 +8,13 @@ import { NextRequest, NextResponse } from 'next/server';
 // 플랫폼 타임아웃보다 먼저 종료해 브라우저가 무한히 재시도하지 않도록 한다.
 export const maxDuration = 30;
 
-// 환경변수에서 API 키 로드 (서버에서만 접근 가능)
-const LOCALDATA_API_KEY = process.env.LOCALDATA_API_KEY || '';
-const API_ENDPOINT = 'https://www.localdata.go.kr/platform/rest/TO0/openDataApi';
+// API 엔드포인트 (localdata.go.kr 연동 제거)
+// 더 이상 사용되지 않음 - 기존 코드 보호를 위해 빈 문자열로 설정
+const API_ENDPOINT = '';
+
+// API 키는 환경변수에서 로드 (서버에서만 접근 가능)
+// localdata.go.kr API 키 사용 중단
+const LOCALDATA_API_KEY = '';
 
 interface LocalDataParams {
   serviceId: string;      // 서비스 ID (예: 01_01_02_P)
@@ -31,11 +35,11 @@ export async function POST(request: NextRequest) {
     const customApiKey = request.headers.get('x-api-key') || request.nextUrl.searchParams.get('apiKey') || undefined;
     const authKey = customApiKey || LOCALDATA_API_KEY;
 
-    // API 키 확인
+    // API 키 확인 (localdata.go.kr 연동 제거)
     if (!authKey) {
-      console.error('[LocalData API] API 키가 설정되지 않았습니다.');
+      console.error('[LocalData API] API 키가 설정되지 않았습니다. (연동 중단됨)');
       return NextResponse.json(
-        { success: false, error: '서버 설정 오류: API 키가 누락되었습니다.' },
+        { success: false, error: '서버 설정 오류: API 키 사용 중단' },
         { status: 503 }
       );
     }
@@ -63,11 +67,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // API URL 구성 (API 키는 서버에서만 사용)
-    const apiUrl = new URL(API_ENDPOINT);
-    apiUrl.searchParams.set('authKey', authKey);
-    apiUrl.searchParams.set('opnSvcId', serviceId);
-    apiUrl.searchParams.set('localCode', regionCode);
+    // API URL 구성 (localdata.go.kr 연동 제거)
+// 더 이상 사용되지 않음
+const apiUrl = new URL('https://example.com/api/placeholder');
     if (searchType === 'license_date') {
       apiUrl.searchParams.set('bgnYmd', startDate);
       apiUrl.searchParams.set('endYmd', endDate);
@@ -100,7 +102,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!response.ok) {
-      console.error(`[LocalData API] HTTP 오류: ${response.status}`);
+      console.error(`[LocalData API] HTTP 오류: ${response.status} (연결 중단)`);
       return NextResponse.json(
         { success: false, error: `API 서버 오류: ${response.status}` },
         { status: response.status }
@@ -109,19 +111,19 @@ export async function POST(request: NextRequest) {
 
     const xmlText = await response.text();
 
-    // HTML 에러 페이지 체크
+    // HTML 에러 페이지 체크 (localdata.go.kr 응답 더 이상 아님)
     if (xmlText.includes('<!DOCTYPE') || xmlText.includes('<html')) {
-      console.error('[LocalData API] HTML 응답 수신 (에러 페이지)');
+      console.error('[LocalData API] HTML 응답 수신 (에러 페이지) - 연결 중단됨');
       return NextResponse.json(
-        { success: false, error: 'API 서버에서 에러 페이지를 반환했습니다.' },
+        { success: false, error: 'API 서버 연결이 중단되었습니다.' },
         { status: 502 }
       );
     }
 
-    // XML 파싱
+    // XML 파싱 (localdata.go.kr 데이터 더 이상 사용 안 함)
     const result = parseXMLResponse(xmlText);
 
-    console.log(`[LocalData API] 응답: ${result.totalCount}건 중 ${result.leads.length}건 조회`);
+    console.log(`[LocalData API] 응답: ${result.totalCount}건 중 ${result.leads.length}건 조회 (연결 중단됨)`);
 
     return NextResponse.json({
       success: true,
@@ -150,93 +152,23 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * XML 응답 파싱
+ * XML 응답 파싱 (localdata.go.kr 연동 제거 - 더 이상 사용되지 않음)
  */
 function parseXMLResponse(xmlText: string): {
-  leads: RawLead[];
+  leads: any[];
   totalCount: number;
   message?: string;
 } {
-  // 간단한 XML 파싱 (DOMParser는 서버에서 사용 불가하므로 정규식 사용)
-  const leads: RawLead[] = [];
-
-  // 결과 코드 확인
-  const codeMatch = xmlText.match(/<code>(\d+)<\/code>/);
-  const resultCode = codeMatch ? codeMatch[1] : null;
-
-  if (resultCode !== '00') {
-    const msgMatch = xmlText.match(/<message>([^<]*)<\/message>/);
-    return {
-      leads: [],
-      totalCount: 0,
-      message: `API 오류 (${resultCode}): ${msgMatch?.[1] || '알 수 없는 오류'}`,
-    };
-  }
-
-  // 전체 건수
-  const totalMatch = xmlText.match(/<totalCount>(\d+)<\/totalCount>/);
-  const totalCount = totalMatch ? parseInt(totalMatch[1]) : 0;
-
-  // 각 row 파싱
-  const rowRegex = /<row>([\s\S]*?)<\/row>/g;
-  let match;
-
-  while ((match = rowRegex.exec(xmlText)) !== null) {
-    const rowXml = match[1];
-    const lead = parseRowXml(rowXml);
-    if (lead) {
-      leads.push(lead);
-    }
-  }
-
-  return { leads, totalCount };
-}
-
-interface RawLead {
-  bizName: string;
-  bizId?: string;
-  mgtNo?: string;         // 관리번호
-  trdStateNm?: string;    // 영업상태명
-  dtlStateNm?: string;    // 상세영업상태명
-  licenseDate?: string;
-  roadAddress?: string;
-  lotAddress?: string;
-  coordX?: number;
-  coordY?: number;
-  phone?: string;
-  medicalSubject?: string;
-}
-
-/**
- * 개별 row XML 파싱
- */
-function parseRowXml(rowXml: string): RawLead | null {
-  const getValue = (tagName: string): string => {
-    const regex = new RegExp(`<${tagName}>([^<]*)</${tagName}>`);
-    const match = rowXml.match(regex);
-    return match ? match[1].trim() : '';
-  };
-
-  const bizName = getValue('bplcNm');
-  if (!bizName) return null;
-
+  // localdata.go.kr 데이터 파싱 기능 비활성화
+  // 항상 빈 결과 반환
   return {
-    bizName,
-    bizId: getValue('brno') || undefined,
-    mgtNo: getValue('mgtNo') || undefined,
-    trdStateNm: getValue('trdStateNm') || undefined,
-    dtlStateNm: getValue('dtlStateNm') || undefined,
-    licenseDate: getValue('apvPermYmd') || getValue('dcbYmd') || undefined,
-    roadAddress: getValue('rdnWhlAddr') || undefined,
-    lotAddress: getValue('sitWhlAddr') || undefined,
-    coordX: parseFloat(getValue('x')) || undefined,
-    coordY: parseFloat(getValue('y')) || undefined,
-    phone: getValue('siteTel') || undefined,
-    medicalSubject: getValue('medicalSubject') || getValue('uptaeNm') || undefined,
+    leads: [],
+    totalCount: 0,
+    message: 'localdata.go.kr 연동이 중단되었습니다.',
   };
 }
 
-// OPTIONS 요청 처리 (CORS)
+// OPTIONS 요청 처리 (CORS) - localdata.go.kr 연동 제거
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,

@@ -1,10 +1,10 @@
 /**
  * API 함수 테스트
- * LocalData API 연동 및 재시도 로직 테스트
+ * 서울 오픈데이터 포털 API 연동 테스트
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchLocalDataAPI, testAPIConnection } from './api';
+import { testAPIConnection } from './api';
 import { Settings } from './types';
 
 // Mock global fetch
@@ -21,87 +21,6 @@ describe('API 함수 (api.ts)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.useFakeTimers();
-  });
-
-  describe('fetchLocalDataAPI', () => {
-    it('사업자 인허가 데이터를 조회할 수 있다', async () => {
-      const mockResponse = {
-        success: true,
-        leads: [
-          {
-            bizName: '테스트 상점',
-            roadAddress: '서울시 강남구 테헤란로 123',
-            coordX: 200000,
-            coordY: 500000,
-          },
-        ],
-        totalCount: 1,
-      };
-
-      (fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockResponse,
-      });
-
-      const startDate = new Date('2024-01-01');
-      const endDate = new Date('2024-01-31');
-
-      const result = await fetchLocalDataAPI(mockSettings, startDate, endDate);
-
-      expect(result.success).toBe(true);
-      expect(result.leads).toHaveLength(1);
-      expect(result.leads[0].bizName).toBe('테스트 상점');
-      expect(fetch).toHaveBeenCalledWith(
-        '/api/localdata',
-        expect.objectContaining({
-          method: 'POST',
-          body: expect.stringContaining('6110000'),
-        })
-      );
-    });
-
-    it('API 호출 실패 시 에러 메시지를 반환하며 재시도한다', async () => {
-      (fetch as any).mockResolvedValue({
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error',
-        json: async () => ({ error: 'Fail' }),
-      });
-
-      const fetchPromise = fetchLocalDataAPI(mockSettings, new Date(), new Date());
-
-      // 재시도 대기 시간 시뮬레이션
-      await vi.runAllTimersAsync();
-
-      const result = await fetchPromise;
-
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('연결 오류: Fail');
-      expect(fetch).toHaveBeenCalledTimes(1); // maxRetries=0으로 재시도 불가
-    });
-
-    it('429 Rate Limit 시 재시도 후 성공 유무를 반환한다', async () => {
-      (fetch as any)
-        .mockResolvedValueOnce({
-          ok: false,
-          status: 429,
-          statusText: 'Too Many Requests',
-          json: async () => ({ error: 'Rate limit' }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ success: true, leads: [], totalCount: 0 }),
-        });
-
-      const fetchPromise = fetchLocalDataAPI(mockSettings, new Date(), new Date());
-
-      await vi.runAllTimersAsync();
-
-      const result = await fetchPromise;
-
-      expect(result.success).toBe(false);
-      expect(fetch).toHaveBeenCalledTimes(1); // maxRetries=0으로 재시도 불가, 최초 1회만 호출
-    });
   });
 
   describe('testAPIConnection', () => {

@@ -20,13 +20,10 @@ function buildTestRequest(type: string, apiKey: string, sigunNm?: string): { tes
   // API 타입별 테스트 엔드포인트 및 검증 로직 설정
   switch (type) {
     case 'localdata': {
-      // LocalData 개방플랫폼 (serviceKey 인증)
-      const urlObj = new URL('https://www.localdata.go.kr/platform/rest/TO0/openDataApi');
-      urlObj.searchParams.set('serviceKey', apiKey);
-      urlObj.searchParams.set('startPage', '1');
-      urlObj.searchParams.set('endPage', '1');
-      testUrl = urlObj.toString();
-      validationFn = (data: any) => !!data && !data.ERROR;
+      // localdata.go.kr 연동 테스트 사용 중단
+      // 더 이상 사용되지 않음
+      testUrl = '';
+      validationFn = (data: any) => false;
       break;
     }
 

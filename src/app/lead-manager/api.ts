@@ -406,8 +406,9 @@ export async function fetchAllLeads(
 
         progressDone(`[${regionName}] ${serviceInfo.name}: 완료 (${savedInTask}건 신규)`);
       } else {
-        // ── LocalData.go.kr 경로 ──
-        const firstResult = await fetchLocalDataAPI(
+        // ── 서울 오픈API 경로 ──
+        // localdata.go.kr API 사용 중단 - 서울 오픈데이터 포털 사용
+        const firstResult = await fetchSeoulDataAPI(
           settings, startDate, endDate, 1, pageSize, serviceInfo, regionCode
         );
 
