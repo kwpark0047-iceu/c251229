@@ -24,9 +24,9 @@ async function loadKoreanFont(pdf: jsPDF): Promise<void> {
     const fontBuffer = await response.arrayBuffer();
 
     // ArrayBuffer를 Base64로 변환
-    const base64Font = btoa(
-      new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-    );
+    const bytes = new Uint8Array(fontBuffer);
+      const binary = String.fromCharCode(...bytes);
+      const base64Font = btoa(binary);
 
     // jsPDF에 폰트 등록
     pdf.addFileToVFS('NanumGothic.ttf', base64Font);

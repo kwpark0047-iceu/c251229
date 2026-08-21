@@ -406,50 +406,12 @@ export async function fetchAllLeads(
 
         progressDone(`[${regionName}] ${serviceInfo.name}: 완료 (${savedInTask}건 신규)`);
       } else {
-        // ── 서울 오픈API 경로 ──
+        // ── 서울 오픈API 경로 (localdata.go.kr 연계 제거) ──
         // localdata.go.kr API 사용 중단 - 서울 오픈데이터 포털 사용
-        const firstResult = await fetchSeoulDataAPI(
-          settings, startDate, endDate, 1, pageSize, serviceInfo, regionCode
-        );
-
-        if (!firstResult.success || firstResult.leads.length === 0) {
-          progressDone(`[${regionName}] ${serviceInfo.name}: 데이터 없음`);
-          return;
-        }
-
-        // 첫 페이지 저장
-        await lock();
-        try {
-          const saved = await saveLeads(firstResult.leads, undefined);
-          totalNewLeadsCount += saved.newCount;
-          results.push(...saved.newLeads);
-        } finally {
-          unlock();
-        }
-
-        // 추가 페이지 처리
-        const totalPages = Math.ceil(firstResult.totalCount / pageSize);
-        for (let p = 2; p <= totalPages; p++) {
-          const pageResult = await fetchLocalDataAPI(
-            settings, startDate, endDate, p, pageSize, serviceInfo, regionCode
-          );
-          if (pageResult.success && pageResult.leads.length > 0) {
-            await lock();
-            try {
-              const saved = await saveLeads(pageResult.leads, undefined);
-              totalNewLeadsCount += saved.newCount;
-              results.push(...saved.newLeads);
-            } finally {
-              unlock();
-            }
-          }
-          await delay(500);
-        }
-
-        progressDone(
-          `[${regionName}] ${serviceInfo.name}: ${firstResult.totalCount}건 확인 (${totalNewLeadsCount}건 신규)`
-        );
-        await delay(1000);
+        // TODO: 향후 Seoul Open Data API 연동 구현 필요
+        // 현재는 KORIC OpenAPI station-gate-info 서비스를 사용 권장
+        progressDone(`[${regionName}] ${serviceInfo.name}: localdata.go.kr 연계 중단, KORIC OpenAPI 사용 권장`);
+        return;
       }
     } catch (err) {
       console.error(`[Task Error] ${regionName}/${serviceInfo.name}:`, err);
