@@ -474,7 +474,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               }`}
             >
               <FilePlus className="w-5 h-5" />
-              <span className="font-bold">?먮룞 ?쒖븞???앹꽦</span>
+              <span className="font-bold">자동 제안서 작성</span>
             </button>
           ) : (
             <div className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] opacity-50 border-2 border-transparent">
@@ -528,7 +528,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               <div>
                 <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                   <Mail className="w-4 h-4 inline mr-2" />
-                  ?섏떊???대찓??
+                  이메일 유효성 검사
                 </label>
                 <div className="relative">
                   <input
@@ -553,9 +553,9 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
-                  <Train className="w-4 h-4 inline mr-2" />
-                  異붿쿇 ??궗 ?좏깮
+<label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                  <MapPin className="w-4 h-4 inline mr-2" />
+                  <span>광고 매체 선택</span>
                 </label>
                 <select
                   id="selected-station"
@@ -602,7 +602,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                         <Users className="w-4 h-4 text-[var(--metro-line2)]" />
-                        <span>?쇱씪 ?좊룞?멸뎄: </span>
+                        <span>일일 이용객: </span>
                         <span className="font-semibold text-[var(--text-primary)]">
                           {selectedStation.trafficDaily.toLocaleString()}紐?
                         </span>
@@ -625,7 +625,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                   {loadingInventory ? (
                     <div className="col-span-full py-8 flex flex-col items-center justify-center text-[var(--text-muted)]">
                       <Loader2 className="w-6 h-6 animate-spin mb-2" />
-                      <span>留ㅼ껜 紐⑸줉??遺덈윭?ㅻ뒗 以?..</span>
+                      <span>매체 목록을 불러오는 중...</span>
                     </div>
                   ) : availableInventory.length > 0 ? (
                     availableInventory.map((item) => (
@@ -647,7 +647,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-xs">
-                          <span className="text-[var(--text-muted)]">{item.adSize || '?쒖? 洹쒓꺽'}</span>
+                          <span className="text-[var(--text-muted)]">{item.adSize || '규격 없음'}</span>
                           <span className="font-bold text-[var(--metro-line4)]">
                             {item.priceMonthly?.toLocaleString()}??
                           </span>
@@ -656,7 +656,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     ))
                   ) : (
                     <div className="col-span-full py-8 text-center text-[var(--text-muted)] italic">
-                      {selectedStation ? '媛?⑺븳 留ㅼ껜媛 ?놁뒿?덈떎.' : '??궗瑜?癒쇱? ?좏깮?댁＜?몄슂.'}
+                      {selectedStation ? '가능한 매체가 없습니다.' : '먼저 역을 선택해주세요.'}
                     </div>
                   )}
                 </div>
@@ -722,7 +722,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               <div>
                 <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                   <FileText className="w-4 h-4 inline mr-2" />
-                  ?몄궗留?諛??쒖븞 ?댁슜
+<span className="font-bold">인사말 및 제안 내용</span>
                 </label>
                 <textarea
                   id="greeting-message"
@@ -730,7 +730,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                   value={greetingMessage}
                   onChange={(e) => setGreetingMessage(e.target.value)}
                   rows={8}
-                  title="?몄궗留?諛??쒖븞 ?댁슜"
+                  title="인사말 및 제안 내용"
                   placeholder="고객에게 전달할 인사말 및 제안 내용을 입력하세요"
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)] resize-none"
                 />

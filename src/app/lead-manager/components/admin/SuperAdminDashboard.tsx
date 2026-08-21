@@ -198,7 +198,16 @@ export default function SuperAdminDashboard({ user }: Props) {
       const saved = localStorage.getItem('antigravity_api_configs');
       if (saved) {
         try {
-          setApiConfigs(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          const cleaned = Array.isArray(parsed) ? parsed.filter(
+            (c: any) =>
+              !(c?.id === 'default-gg-clinic' && c?.apiKey === 'c9c5e32c0aff406bbe3de0f7af75f6f8') &&
+              !(c?.id === 'default-gg-academy' && c?.apiKey === 'e9efa0682eef460cb25cefcc42c52484')
+          ) : [];
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem('antigravity_api_configs', JSON.stringify(cleaned));
+          }
+          setApiConfigs(cleaned);
         } catch {
           setApiConfigs([]);
         }
@@ -210,24 +219,6 @@ export default function SuperAdminDashboard({ user }: Props) {
             name: '서울시 의원 인허가 API',
             type: 'seoul-clinic',
             apiKey: '6d7a6b6c766b777033346b53716455',
-            sigunNm: '',
-            isActive: true,
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: 'default-gg-clinic',
-            name: '경기도 의원 상세 API',
-            type: 'gg-clinic',
-            apiKey: 'c9c5e32c0aff406bbe3de0f7af75f6f8',
-            sigunNm: '',
-            isActive: true,
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: 'default-gg-academy',
-            name: '경기도 학원/교습소 API',
-            type: 'gg-academy',
-            apiKey: 'e9efa0682eef460cb25cefcc42c52484',
             sigunNm: '',
             isActive: true,
             createdAt: new Date().toISOString()
