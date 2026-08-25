@@ -529,10 +529,10 @@ export interface SalesProgress {
 // ============================================
 
 export interface LeadWithCRM extends Lead {
-  email?: string;
-  contactPerson?: string;
-  preferredContactTime?: string;
-  budgetRange?: string;
+  email: string;
+  contactPerson: string;
+  preferredContactTime: string;
+  budgetRange: string;
   callLogs?: CallLog[];
   proposals?: Proposal[];
   salesProgress?: SalesProgress[];

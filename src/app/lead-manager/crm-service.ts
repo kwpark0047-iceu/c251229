@@ -18,6 +18,16 @@ import { findInventoryForLead } from './inventory-service';
 import { mapCallLogFromDB, mapSalesProgressFromDB } from './utils/mapping-utils';
 import { updateLeadStatus } from './lead-service';
 import { ActivityService } from './activity-service';
+import {
+  isNoAnswer,
+  isRejected,
+  isInterested,
+  isMeetingScheduled,
+  isOther,
+  getCallOutcomeLabel,
+  getCallOutcomeColor,
+  getNextAction,
+} from './call-outcome-guard';
 
 // ============================================
 // 통화 기록
@@ -431,6 +441,137 @@ export function generateMailtoLink(
 export function generateTelLink(phone: string): string {
   const cleanPhone = phone.replace(/[^0-9]/g, '');
   return `tel:${cleanPhone}`;
+}
+
+// ============================================
+// 이메일 추적
+// ============================================
+
+/**
+ * 제안서 발송 이메일 추적
+ * 제안서가 발송된 시각을 DB에 기록합니다.
+ */
+export async function trackProposalSend(
+  proposalId: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const supabase = getSupabase();
+
+    const { error } = await supabase
+      .from('proposals')
+      .update({ sent_at: new Date().toISOString() })
+      .eq('id', proposalId);
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
+    return { success: true, message: '제안서 발송 내역이 기록되었습니다.' };
+  } catch (error) {
+    return { success: false, message: (error as Error).message };
+  }
+}
+
+/**
+ * 제안서 열람 이메일 추적
+ * 제안서가 열려진 시각을 DB에 기록합니다.
+ */
+export async function trackProposalView(
+  proposalId: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const supabase = getSupabase();
+
+    const { error } = await supabase
+      .from('proposals')
+      .update({ viewed_at: new Date().toISOString() })
+      .eq('id', proposalId);
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
+    return { success: true, message: '제안서 열람 내역이 기록되었습니다.' };
+  } catch (error) {
+    return { success: false, message: (error as Error).message };
+  }
+}
+
+/**
+ * 리드에 대한 리마인드 작업 예약
+ * CONTACTED 상태로부터 일수가 일정치를 초과한 리드에 대해
+ * 후속 조치 작업을 생성합니다.
+ */
+export async function scheduleReminderForLead(
+  leadId: string,
+  daysSinceContacted: number
+): Promise<{ success: boolean; taskId?: string; message: string }> {
+  try {
+    const supabase = getSupabase();
+    const orgId = await getOrganizationId();
+
+    // 리드 상태 조회
+    const { data: leadData } = await supabase
+      .from('leads')
+      .select('status, contacted_at, id, biz_name')
+      .eq('id', leadId)
+      .single();
+
+    if (!leadData || !leadData.status) {
+      return { success: false, message: '리드를 찾을 수 없습니다.' };
+    }
+
+    // CONTACTED 상태인 경우에만 리마인드 예약
+    if (leadData.status !== 'CONTACTED') {
+      return { success: true, message: 'CONTACTED 상태가 아닌 리드는 리마인드 예약이 필요 없습니다.' };
+    }
+
+    // contacted_at이 없으면 리마인드 예약 안 함
+    if (!leadData.contacted_at) {
+      return { success: false, message: '리드에 contacted_at 정보가 없습니다.' };
+    }
+
+    // 경과 일수 계산
+    const contactedAt = new Date(leadData.contacted_at);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - contactedAt.getTime()) / (1000 * 60 * 60 * 24));
+
+    // 리마인드 임계치: 30일을 초과한 경우에만 예약
+    // (이미 리마인드가 되어있거나, 너무 오래된 리드는 건너뜀)
+    if (diffDays <= 30) {
+      return { success: true, message: `리마인드 필요 없음 (경과 ${diffDays}일)` };
+    }
+
+    // 리마인드 작업 생성
+    const reminderTask = await supabase
+      .from('tasks')
+      .insert({
+        lead_id: leadId,
+        task_type: 'REMINDER',
+        title: `[리마인드] ${leadData.biz_name} - 재연락 필요`,
+        description: `CONTACTED 상태로부터 ${diffDays}일 경과. 재연락 권장`,
+        due_date: now.toISOString().split('T')[0],
+        due_time: '09:00',
+        status: 'PENDING',
+        priority: 'HIGH',
+        reminder_at: now.toISOString(),
+        organization_id: orgId,
+      })
+      .select()
+      .single();
+
+    if (reminderTask.error) {
+      return { success: false, message: reminderTask.error.message };
+    }
+
+    return {
+      success: true,
+      taskId: reminderTask.data?.id,
+      message: `${leadData.biz_name} 리마인드 작업이 예약되었습니다 (경과 ${diffDays}일)`,
+    };
+  } catch (error) {
+    return { success: false, message: (error as Error).message };
+  }
 }
 
 // ============================================

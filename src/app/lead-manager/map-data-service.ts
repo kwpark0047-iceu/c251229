@@ -6,7 +6,7 @@
 import { Lead } from './types';
 
 // 공간 해시 그리드
-class SpatialHashGrid {
+export class SpatialHashGrid {
   private cellSize: number;
   private grid: Map<string, Lead[]> = new Map();
 
@@ -70,7 +70,7 @@ class SpatialHashGrid {
 }
 
 // 마커 클러스터링 알고리즘
-class MarkerClusterer {
+export class MarkerClusterer {
   private maxDistance: number;
   private minClusterSize: number;
 
@@ -171,12 +171,14 @@ class MarkerClusterer {
 }
 
 // 지도 데이터 캐시
-class MapDataCache {
+export class MapDataCache {
   private cache = new Map<string, {
     data: any;
     timestamp: number;
     accessCount: number;
   }>();
+  private totalHits = 0;
+  private totalMisses = 0;
   private maxCacheSize = 100;
   private cacheTimeout = 5 * 60 * 1000; // 5분
 
@@ -199,15 +201,20 @@ class MapDataCache {
   get(key: string): any | null {
     const item = this.cache.get(key);
 
-    if (!item) return null;
+    if (!item) {
+      this.totalMisses++;
+      return null;
+    }
 
     // 만료 체크
     if (Date.now() - item.timestamp > this.cacheTimeout) {
       this.cache.delete(key);
+      this.totalMisses++;
       return null;
     }
 
     item.accessCount++;
+    this.totalHits++;
     return item.data;
   }
 
@@ -215,11 +222,14 @@ class MapDataCache {
     this.cache.clear();
   }
 
-  getStats(): { size: number; hitRate: number } {
-    // 단순화된 통계
+  getStats(): { size: number; hitRate: number; hitCount: number; missCount: number } {
+    const totalRequests = this.totalHits + this.totalMisses;
+
     return {
       size: this.cache.size,
-      hitRate: 0, // 실제 구현에서는 히트/미스 카운트 필요
+      hitRate: totalRequests > 0 ? this.totalHits / totalRequests : 0,
+      hitCount: this.totalHits,
+      missCount: this.totalMisses,
     };
   }
 }

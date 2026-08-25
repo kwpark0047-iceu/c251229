@@ -13,6 +13,7 @@ import { RegionCode, getRegionPrefixes } from './region-utils';
 import { ActivityService } from './activity-service';
 import { chunkArray } from '@/lib/utils/array-utils';
 import { toLeadDbRow } from './lead-db-mapper';
+import { validateStatusTransition } from './lead-status-validator';
 
 interface SaveLeadsResult {
   success: boolean;
@@ -455,31 +456,59 @@ export async function getLeads(filters?: {
 
 /**
  * 리드 상태 업데이트
+ * - 상태 전이 유효성 검증 포함 (NEW → PROPOSAL_SENT → CONTACTED → CONTRACTED)
+ * - 유효하지 않은 전이는 실패 응답 반환
  */
 export async function updateLeadStatus(
   leadId: string,
   status: LeadStatus
 ): Promise<{ success: boolean; message: string; assignedToName?: string }> {
   try {
-    const supabase = getSupabase();
-    const updateData: any = { status };
+    const supabase = getSupabase()
+
+    // 1. 현재 상태 조회
+    const { data: currentLead, error: fetchError } = await supabase
+      .from('leads')
+      .select('status')
+      .eq('id', leadId)
+      .single()
+
+    if (fetchError || !currentLead) {
+      return { success: false, message: '리드를 찾을 수 없습니다.' }
+    }
+
+    // 2. 상태 전이 유효성 검증
+    const transitionResult = validateStatusTransition(
+      currentLead.status as LeadStatus,
+      status
+    )
+
+    if (!transitionResult.valid) {
+      return {
+        success: false,
+        message: `유효하지 않은 상태 전이: ${transitionResult.reason}`,
+        assignedToName: undefined,
+      }
+    }
+
+    const updateData: any = { status }
 
     if (status === 'CONTACTED') {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        updateData.assigned_to = user.id;
-        updateData.assigned_to_name = user.user_metadata?.full_name || user.email || '담당자없음';
-        updateData.assigned_at = new Date().toISOString();
+        updateData.assigned_to = user.id
+        updateData.assigned_to_name = user.user_metadata?.full_name || user.email || '담당자없음'
+        updateData.assigned_at = new Date().toISOString()
       }
     }
 
     const { error } = await supabase
       .from('leads')
       .update(updateData)
-      .eq('id', leadId);
+      .eq('id', leadId)
 
-    if (error) return { success: false, message: error.message };
-    ActivityService.trackLeadStatusChange(leadId, '리드', undefined, status);
+    if (error) return { success: false, message: error.message }
+    ActivityService.trackLeadStatusChange(leadId, '리드', undefined, status)
 
     return {
       success: true,
@@ -487,9 +516,9 @@ export async function updateLeadStatus(
         ? `컨택완료! 담당자: ${updateData.assigned_to_name}`
         : '상태가 업데이트되었습니다.',
       assignedToName: updateData.assigned_to_name,
-    };
+    }
   } catch (error) {
-    return { success: false, message: (error as Error).message };
+    return { success: false, message: (error as Error).message }
   }
 }
 

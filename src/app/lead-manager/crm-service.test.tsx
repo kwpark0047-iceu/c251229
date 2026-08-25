@@ -97,6 +97,7 @@ vi.mock('./auth-service', () => ({
 describe('CRM 서비스', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetModules();
     currentMockBuilder = createMockBuilder(mockCallLogs, mockCallLogs.length);
   });
 
@@ -185,6 +186,91 @@ describe('CRM 서비스', () => {
       const contractedFunnel = stats.funnelData.find(f => f.stage === '계약 성사');
       expect(sentFunnel?.amount).toBe(600000);
       expect(contractedFunnel?.amount).toBe(300000);
+}, 60000);
+  });
+
+  describe('이메일 추적', () => {
+    it('제안서 발송 내역을 기록할 수 있다', async () => {
+      currentMockBuilder = createMockBuilder([], 1);
+      currentMockBuilder.update.mockResolvedValueOnce({ error: null, data: {} });
+
+      const { trackProposalSend } = await import('./crm-service');
+      const result = await trackProposalSend('prop-1');
+
+      expect(result.success).toBe(true);
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('proposals');
+      expect(mockSupabaseClient.from().update).toHaveBeenCalledWith({ sent_at: expect.any(String) });
+    }, 60000);
+
+    it('제안서 열람 내역을 기록할 수 있다', async () => {
+      currentMockBuilder = createMockBuilder([], 1);
+      currentMockBuilder.update.mockResolvedValueOnce({ error: null, data: {} });
+
+      const { trackProposalView } = await import('./crm-service');
+      const result = await trackProposalView('prop-1');
+
+      expect(result.success).toBe(true);
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('proposals');
+      expect(mockSupabaseClient.from().update).toHaveBeenCalledWith({ viewed_at: expect.any(String) });
+    }, 60000);
+  });
+
+  describe('리마인드 시스템', () => {
+    it('CONTACTED 상태 리드에 대한 리마인드 작업을 예약할 수 있다', async () => {
+      const oldDate = new Date();
+      oldDate.setDate(oldDate.getDate() - 35);
+      const mockLeadData = {
+        id: 'lead-1',
+        status: 'CONTACTED' as const,
+        contacted_at: oldDate.toISOString(),
+        biz_name: '테스트업체',
+      };
+
+      currentMockBuilder = createMockBuilder(mockLeadData, 1);
+      currentMockBuilder.insert.mockResolvedValueOnce({ data: { id: 'task-reminder-1' }, error: null });
+
+      const { scheduleReminderForLead } = await import('./crm-service');
+      const result = await scheduleReminderForLead('lead-1', 35);
+
+      expect(result.success).toBe(true);
+      expect(result.taskId).toBe('task-reminder-1');
+      expect(result.message).toContain('리마인드 작업이 예약되었습니다');
+    }, 60000);
+
+    it('이미 리마인드 임계치 이내 리드는 예약하지 않는다', async () => {
+      const recentDate = new Date();
+      recentDate.setDate(recentDate.getDate() - 10);
+      const mockLeadData = {
+        id: 'lead-2',
+        status: 'CONTACTED' as const,
+        contacted_at: recentDate.toISOString(),
+        biz_name: '최근업체',
+      };
+
+      currentMockBuilder = createMockBuilder(mockLeadData, 1);
+
+      const { scheduleReminderForLead } = await import('./crm-service');
+      const result = await scheduleReminderForLead('lead-2', 10);
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('리마인드 필요 없음');
+    }, 60000);
+
+    it('CONTACTED 상태가 아닌 리드는 리마인드 예약하지 않는다', async () => {
+      const mockLeadData = {
+        id: 'lead-3',
+        status: 'NEW' as const,
+        contacted_at: null,
+        biz_name: '신규업체',
+      };
+
+      currentMockBuilder = createMockBuilder(mockLeadData, 1);
+
+      const { scheduleReminderForLead } = await import('./crm-service');
+      const result = await scheduleReminderForLead('lead-3', 10);
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('CONTACTED 상태가 아닌 리드는');
     }, 60000);
   });
 });

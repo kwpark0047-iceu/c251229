@@ -26,6 +26,7 @@ import {
 import { Bell, Check, Info } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { textSizeClass, colorClass } from '@/lib/ui';
 
 interface Profile {
   id: string;

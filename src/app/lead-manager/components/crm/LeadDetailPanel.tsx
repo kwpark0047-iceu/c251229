@@ -23,6 +23,7 @@ import {
   Tag,
   Check,
   Sparkles,
+  DollarSign,
 } from 'lucide-react';
 import SmartAdMatcherModal from './SmartAdMatcherModal';
 import {
@@ -288,6 +289,54 @@ export default function LeadDetailPanel({
                         </p>
                       )}
                     </div>
+                  </div>
+                </section>
+              )}
+
+              {/* CRM 정보 - LeadWithCRM 필수 필드 */}
+              {(lead.email || lead.contactPerson || lead.preferredContactTime || lead.budgetRange) && (
+                <section className="p-4 bg-emerald-50 rounded-lg border border-emerald-100">
+                  <h3 className="text-sm font-semibold text-emerald-800 mb-3 flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    CRM 정보
+                  </h3>
+                  <div className="space-y-2">
+                    {lead.email && (
+                      <div className="flex items-start gap-3">
+                        <Mail className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-emerald-600 font-medium">이메일</p>
+                          <p className="text-sm text-slate-700">{lead.email}</p>
+                        </div>
+                      </div>
+                    )}
+                    {lead.contactPerson && (
+                      <div className="flex items-start gap-3">
+                        <User className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-emerald-600 font-medium">담당자</p>
+                          <p className="text-sm text-slate-700">{lead.contactPerson}</p>
+                        </div>
+                      </div>
+                    )}
+                    {lead.preferredContactTime && (
+                      <div className="flex items-start gap-3">
+                        <Clock className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-emerald-600 font-medium">선호 연락 시간</p>
+                          <p className="text-sm text-slate-700">{lead.preferredContactTime}</p>
+                        </div>
+                      </div>
+                    )}
+                    {lead.budgetRange && (
+                      <div className="flex items-start gap-3">
+                        <DollarSign className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs text-emerald-600 font-medium">예산 범위</p>
+                          <p className="text-sm text-slate-700">{lead.budgetRange}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </section>
               )}

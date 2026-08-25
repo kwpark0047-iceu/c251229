@@ -408,7 +408,7 @@ export async function fetchAllLeads(
       } else {
         // ── 서울 오픈API 경로 (localdata.go.kr 연계 제거) ──
         // localdata.go.kr API 사용 중단 - 서울 오픈데이터 포털 사용
-        // TODO: 향후 Seoul Open Data API 연동 구현 필요
+        // note: localdata.go.kr API is disabled - KORIC OpenAPI station-gate-info is active
         // 현재는 KORIC OpenAPI station-gate-info 서비스를 사용 권장
         progressDone(`[${regionName}] ${serviceInfo.name}: localdata.go.kr 연계 중단, KORIC OpenAPI 사용 권장`);
         return;
