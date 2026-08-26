@@ -130,7 +130,7 @@ export default function InventoryUploadModal({
         </div>
 
         {/* 컨텐츠 */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           {/* 드래그 앤 드롭 영역 */}
           <div
             onDragOver={(e) => e.preventDefault()}
@@ -346,8 +346,8 @@ export default function InventoryUploadModal({
             </div>
           )}
 
-          {/* 버튼 */}
-          <div className="flex gap-3">
+          {/* 버튼 - 하단 고정 */}
+          <div className="flex gap-3 sticky bottom-0 bg-white border-t border-slate-200 pt-4 mt-4">
             <button
               type="button"
               onClick={onClose}
