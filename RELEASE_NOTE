@@ -1,0 +1,19 @@
+# Release Note - Korean Font Fix
+
+## Korean Text Rendering Fix in Proposal PDFs
+
+This release fixes the issue where Korean text was appearing garbled/broken in proposal PDF generation.
+
+### Changes
+- **Base64 Encoding Fix**: Fixed corrupted Base64 output from `btoa(new Uint8Array().reduce(...))` pattern
+- **3-Step Font Fallback System**: 
+  1. Google Fonts NanumGothic (primary)
+  2. DotumChe system font (fallback when Google blocked)
+  3. helvetica KSC encoding (final fallback)
+- **Vercel Deployment**: Live at https://c251229-k2i10lkum-park-kang-wons-projects.vercel.app
+- **User Confirmed**: Fix verified with test
+
+### Technical Details
+- Modified files: `src/app/lead-manager/proposal-pdf.ts`, `src/app/lead-manager/api.ts`
+- All 4 integration requirements met
+- Project status: production-ready

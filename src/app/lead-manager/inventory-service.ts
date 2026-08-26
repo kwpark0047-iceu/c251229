@@ -29,8 +29,15 @@ import { getLineDisplayName, normalizeLineCode } from './utils/subway-utils';
  * 엑셀 파일에서 인벤토리 데이터 파싱
  * @param buffer - 엑셀 파일 버퍼
  * @param defaultMediaType - 기본 매체 유형 (광고유형 컬럼이 없을 때 사용)
+ * @param defaultAvailableFrom - 기본 사용 가능일 (엑셀에 데이터 없을 때)
+ * @param defaultAvailableTo - 기본 계약 만료일 (엑셀에 데이터 없을 때)
  */
-export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?: string): Promise<ExcelInventoryRow[]> {
+export async function parseInventoryExcel(
+  buffer: ArrayBuffer,
+  defaultMediaType?: string,
+  defaultAvailableFrom?: string,
+  defaultAvailableTo?: string
+): Promise<ExcelInventoryRow[]> {
   // 브라우저에서도 사용 가능하도록 Uint8Array로 체크 (매직 넘버 확인)
   const uint8 = new Uint8Array(buffer.slice(0, 8));
 
@@ -187,6 +194,8 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
         priceMonthly: parseFloat(String(getVal(['단가(월)', '월단가'])).replace(/,/g, '')) || undefined,
         priceWeekly: parseFloat(String(getVal(['단가(주)', '주단가'])).replace(/,/g, '')) || undefined,
         availabilityStatus: statusValue as AvailabilityStatus,
+        availableFrom: defaultAvailableFrom,
+        availableTo: defaultAvailableTo,
         description: descParts.length > 0 ? descParts.join(' / ') : undefined,
       };
     });
@@ -349,7 +358,8 @@ export async function parseInventoryExcel(buffer: ArrayBuffer, defaultMediaType?
       priceMonthly,
       priceWeekly: parseFloat(String(getValueByKey(['단가(주)', '주단가', 'price_weekly'])).replace(/,/g, '')) || undefined,
       availabilityStatus,
-      availableFrom: extractedAvailableFrom,
+      availableFrom: extractedAvailableFrom || defaultAvailableFrom,
+      availableTo: defaultAvailableTo,
       description: descParts.length > 0 ? descParts.join(' / ') : undefined,
     };
   });
@@ -375,15 +385,19 @@ function mapAvailabilityStatus(status: string): AvailabilityStatus {
  * @param file - 엑셀 파일
  * @param onProgress - 진행 상황 콜백
  * @param defaultMediaType - 기본 매체 유형 (광고유형 컬럼이 없을 때 사용)
+ * @param defaultAvailableFrom - 기본 사용 가능일 (엑셀에 데이터 없을 때)
+ * @param defaultAvailableTo - 기본 계약 만료일 (엑셀에 데이터 없을 때)
  */
 export async function uploadInventoryExcel(
   file: File,
   onProgress?: (current: number, total: number) => void,
-  defaultMediaType?: string
+  defaultMediaType?: string,
+  defaultAvailableFrom?: string,
+  defaultAvailableTo?: string
 ): Promise<ExcelUploadResult> {
   try {
     const buffer = await file.arrayBuffer();
-    const rows = await parseInventoryExcel(buffer, defaultMediaType);
+    const rows = await parseInventoryExcel(buffer, defaultMediaType, defaultAvailableFrom, defaultAvailableTo);
 
     if (rows.length === 0) {
       return {

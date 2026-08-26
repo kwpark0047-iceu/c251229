@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useRef } from 'react';
-import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle } from 'lucide-react';
+import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { ExcelUploadResult } from '../../types';
 import { uploadInventoryExcel } from '../../inventory-service';
@@ -32,6 +32,8 @@ export default function InventoryUploadModal({
 }: InventoryUploadModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [mediaType, setMediaType] = useState<string>('조명');
+  const [availableFrom, setAvailableFrom] = useState<string>('');
+  const [availableTo, setAvailableTo] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [result, setResult] = useState<ExcelUploadResult | null>(null);
@@ -82,7 +84,9 @@ export default function InventoryUploadModal({
       (current, total) => {
         setProgress({ current, total });
       },
-      mediaType // 선택된 매체 유형 전달
+      mediaType, // 선택된 매체 유형 전달
+      availableFrom || undefined,
+      availableTo || undefined
     );
 
     setResult(uploadResult);
@@ -207,6 +211,45 @@ export default function InventoryUploadModal({
               <li>• <strong>크기(mm)</strong> → 크기</li>
               <li>• <strong>호선, 등급, 메모</strong> → 설명</li>
             </ul>
+          </div>
+
+          {/* 계약 기간 날짜 입력 */}
+          <div className="space-y-4">
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar className="w-5 h-5 text-blue-600" />
+                <h3 className="text-sm font-semibold text-blue-800">계약 기간 (선택 사항)</h3>
+              </div>
+              <p className="text-xs text-blue-700 mb-3 leading-relaxed">
+                엑셀에 계약 기간 컬럼이 없는 경우, 아래 날짜를 기본값으로 저장합니다. 엑셀에 데이터가 있으면 엑셀 데이터가 우선 적용됩니다.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    사용 가능일 (available_from)
+                  </label>
+                  <input
+                    type="date"
+                    value={availableFrom}
+                    onChange={(e) => setAvailableFrom(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="YYYY-MM-DD"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                    계약 만료일 (available_to)
+                  </label>
+                  <input
+                    type="date"
+                    value={availableTo}
+                    onChange={(e) => setAvailableTo(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="YYYY-MM-DD"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* 상태 판별 기준 안내 (신규 추가) */}
