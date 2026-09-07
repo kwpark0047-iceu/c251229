@@ -672,11 +672,11 @@ useEffect(() => {
               </div>
               <div>
                 <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-500">
-                  SUPER ADMIN <span className="text-indigo-400/80 font-medium">DASHBOARD</span>
+                  <span className="text-indigo-400/80 font-medium">슈어</span> <span className="hidden sm:inline">Admin</span> <span className="block">대시보드</span>
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                  <p className="text-xs font-bold text-emerald-400/80 tracking-[0.2em] uppercase">System Core Integrity Active</p>
+                  <p className="text-xs font-bold text-emerald-400/80 tracking-[0.2em] uppercase">시스템 핵심 무결성 활성</p>
                 </div>
               </div>
             </div>
@@ -903,7 +903,7 @@ useEffect(() => {
         >
           <div className="flex items-center gap-2">
             <Users className={`w-4 h-4 ${activeTab === 'users' ? 'text-indigo-400' : 'text-slate-500'}`} />
-            Account Management
+            <span className="text-xs font-black uppercase tracking-wider">계정 관리</span>
           </div>
           {activeTab === 'users' && <div className="absolute inset-0 bg-indigo-500/5 blur-xl -z-10"></div>}
         </button>
@@ -915,7 +915,7 @@ useEffect(() => {
         >
           <div className="flex items-center gap-2">
             <Activity className={`w-4 h-4 ${activeTab === 'logs' ? 'text-indigo-400' : 'text-slate-500'}`} />
-            System Audit Logs
+            <span className="text-xs font-black uppercase tracking-wider">시스템 감사 로그</span>
           </div>
           {activeTab === 'logs' && <div className="absolute inset-0 bg-indigo-500/5 blur-xl -z-10"></div>}
         </button>
@@ -927,7 +927,7 @@ useEffect(() => {
         >
           <div className="flex items-center gap-2">
             <Download className={`w-4 h-4 ${activeTab === 'data' ? 'text-indigo-400' : 'text-slate-500'}`} />
-            Data Management
+            <span className="text-xs font-black uppercase tracking-wider">데이터 관리</span>
           </div>
           {activeTab === 'data' && <div className="absolute inset-0 bg-indigo-500/5 blur-xl -z-10"></div>}
         </button>
@@ -1110,7 +1110,7 @@ useEffect(() => {
                               <button
                                 onClick={() => handleApproval(p.id, true)}
                                 className="p-2.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 rounded-xl transition-all shadow-xl active:scale-90"
-                                title="Grant Access"
+                                title="회원 승인"
                               >
                                 <CheckCircle className="w-4 h-4" />
                               </button>
@@ -1118,7 +1118,7 @@ useEffect(() => {
                             <button
                                 onClick={() => handleApproval(p.id, false)}
                                 className="p-2.5 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/20 rounded-xl transition-all shadow-xl active:scale-90"
-                                title="Revoke Trust"
+                                title="접근 철회"
                               >
                                 <XCircle className="w-4 h-4" />
                               </button>
@@ -1128,6 +1128,16 @@ useEffect(() => {
                               className="p-2.5 bg-white/[0.03] text-slate-700 hover:text-red-500 hover:bg-red-500/10 border border-white/5 rounded-xl transition-all shadow-xl active:scale-90"
                               title="Purge Identity"
                             >
+                            {p.isApproved && (
+                              <button
+                                onClick={() => sendWelcomeEmailResend(p.id, p.email)}
+                                className="p-2.5 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500 hover:text-white border border-indigo-500/20 rounded-xl transition-all shadow-xl active:scale-90"
+                                title="환영 이메일 재전송"
+                              >
+                                <Mail className="w-4 h-4" />
+                                <span className="text-xs ml-1">재전송</span>
+                              </button>
+                            ) || (
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>

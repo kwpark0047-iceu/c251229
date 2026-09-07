@@ -778,6 +778,59 @@ export async function sendNewMemberWelcomeEmail(userId: string): Promise<{ succe
 }
 
 /**
+ * [슈퍼 어드민 전용] 승인된 회원에게 환영 이메일 재전송
+ */
+ export async function sendWelcomeEmailResend(userId: string, email: string): Promise<{ success: boolean; message: string }> {
+   const supabase = createClient();
+
+   // 이미 가입된 회원인지 확인 (프로필 조회)
+   const { data: profile, error: profileError } = await supabase
+     .from("profiles")
+     .select("id, email, full_name")
+     .eq("id", userId)
+     .single();
+
+   if (profileError || !profile?.email) {
+     console.error("[auth-service] 프로필 조회 실패:", profileError);
+     return { success: false, message: "회원 프로필을 찾을 수 없습니다." };
+   }
+
+   const fullName = profile.full_name || "회원";
+
+   const subject = `[위마켓] 회원 가입을 축하합니다!`;
+   const html = `
+     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+       <h2 style="color: #00A84D;">회원 가입 축하합니다!</h2>
+       <p>안녕하세요, <strong>${fullName}</strong>님!</p>
+       <p>귀하의 회원 가입이 승인되었습니다. 이제 위마켓의 모든 기능을 이용하실 수 있습니다.</p>
+       <div style="margin: 30px 0; text-align: center;">
+         <a href="https://wemarket.subway/lead-manager" style="background-color: #00A5DE; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">대시보드로 이동하기</a>
+       </div>
+       <p style="color: #666; font-size: 12px;">문의 사항은 고객센터를 이용해 주세요.</p>
+     </div>
+   `;
+
+   try {
+     const { data, error } = await sendEmail({
+       to: email,
+       subject,
+       html,
+     });
+
+     if (error) {
+       console.error("[auth-service] 환영 이메일 재전송 실패:", error);
+       return { success: false, message: error.message };
+     }
+
+     return { success: true, data };
+   } catch (error) {
+     console.error("[auth-service] 환영 이메일 재전송 예외 발생:", error);
+     return { success: false, message: "이메일 발송 중 오류가 발생했습니다." };
+   }
+ }
+
+
+/**
  * [슈퍼 어드민 전용] 새로운 회원 가입 알림 생성
  */
 export async function createNewMemberNotification(userId: string, email: string, fullName: string): Promise<{ success: boolean; message: string }> {
