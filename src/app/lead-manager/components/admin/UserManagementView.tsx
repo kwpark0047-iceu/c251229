@@ -7,6 +7,7 @@ import {
   Mail, Settings, UserPlus, Trash2, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import PendingBadge from './PendingBadge';
 import { 
   getAllProfiles, 
   updateProfileStatus, 
@@ -39,21 +40,16 @@ export default function UserManagementView() {
   const [tierFilter, setTierFilter] = useState<string>('ALL');
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [showOrgModal, setShowOrgModal] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async () => {
-    setLoading(true);
-    const [pResult, oData] = await Promise.all([
-      getAllProfiles(),
-      getAllOrganizations()
-    ]);
-    if (pResult.success) setProfiles(pResult.profiles);
-    setOrgs(oData);
-    setLoading(false);
-  };
+  useEffect(() => {
+    const count = profiles.filter(p => !p.isApproved).length;
+    setPendingCount(count);
+  }, [profiles]);
 
   const handleApproval = async (userId: string, isApproved: boolean) => {
     if (!confirm(isApproved ? '이 사용자를 승인하시겠습니까?' : '승인을 취소하시겠습니까?')) return;
@@ -139,40 +135,41 @@ export default function UserManagementView() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <select
-            id="status-filter"
-            title="승인 상태 필터"
-            name="statusFilter"
-            className="px-3 py-2 border rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500 min-w-[120px]"
+          <Select
+            className="relative"
+            options={['ALL', 'APPROVED', 'PENDING']}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onValueChange={setStatusFilter}
+            placeholder="승인 상태 필터"
           >
             <option value="ALL">승인 상태 (전체)</option>
             <option value="APPROVED">승인 완료</option>
             <option value="PENDING">승인 대기</option>
-          </select>
-          <select
-            id="tier-filter"
-            title="서비스 등급 필터"
-            name="tierFilter"
-            className="px-3 py-2 border rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-indigo-500 min-w-[140px]"
+          </Select>
+          <Select
+            className="relative"
+            options={['ALL', 'FREE', 'DEMO', 'MEDIA', 'SALES']}
             value={tierFilter}
-            onChange={(e) => setTierFilter(e.target.value)}
+            onValueChange={setTierFilter}
+            placeholder="등급 필터"
           >
             <option value="ALL">등급 필터 (전체)</option>
             <option value="FREE">FREE (일반)</option>
             <option value="DEMO">DEMO (데모)</option>
             <option value="MEDIA">MEDIA (매체사)</option>
             <option value="SALES">SALES (영업)</option>
-          </select>
-          <button 
-            onClick={loadData}
-            className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1.5 border"
-            title="데이터 새로고침"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span className="text-xs font-medium">새로고침</span>
-          </button>
+          </Select>
+          <div className="flex items-center gap-2">
+            <PendingBadge count={pendingCount} />
+            <button 
+              onClick={loadData}
+              className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1.5 border"
+              title="데이터 새로고침"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span className="text-xs font-medium">새로고침</span>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -5,6 +5,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup'
+import { sendEmail } from './email-service'
 
 export interface UserInfo {
   id: string;
@@ -425,6 +426,12 @@ export async function updateProfileStatus(
     .eq('id', userId);
 
   if (error) return { success: false, message: error.message };
+
+  if (updates.isApproved && updates.isApproved === true) {
+    await sendNewMemberWelcomeEmail(userId);
+    await createNewMemberNotification(userId, '', '');
+  }
+
   return { success: true, message: '상태가 업데이트되었습니다.' };
 }
 
@@ -715,6 +722,89 @@ export async function getAdminNotifications(limit = 20): Promise<{
   }
 
   return { success: true, notifications: data || [] };
+}
+
+/7/**
+
+ * [슈퍼 어드민 전용] 새로운 회원 가입 환영 이메일 발송
+ */
+export async function sendNewMemberWelcomeEmail(userId: string): Promise<{ success: boolean; message: string }> {
+  const supabase = createClient();
+
+  // 회원 프로필에서 이메일 및 이름 조회
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('email, full_name')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile?.email) {
+    console.error('[auth-service] 회원 프로필 이메일 조회 실패:', profileError);
+    return { success: false, message: '회원 프로필 이메일을 찾을 수 없습니다.' };
+  }
+
+  const fullName = profile.full_name || '회원';
+
+  const subject = `[위마켓] 회원 가입을 축하합니다!`;
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #00A84D;">회원 가입 축하합니다!</h2>
+      <p>안녕하세요, <strong>${fullName}</strong>님!</p>
+      <p>귀하의 회원 가입이 승인되었습니다. 이제 위마켓의 모든 기능을 이용하실 수 있습니다.</p>
+      <div style="margin: 30px 0; text-align: center;">
+        <a href="https://wemarket.subway/lead-manager" style="background-color: #00A5DE; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">대시보드로 이동하기</a>
+      </div>
+      <p style="color: #666; font-size: 12px;">문의 사항은 고객센터를 이용해 주세요.</p>
+    </div>
+  `;
+
+  try {
+    const { data, error } = await sendEmail({
+      to: profile.email,
+      subject,
+      html,
+    });
+
+    if (error) {
+      console.error('[auth-service] 환영 이메일 발송 실패:', error);
+      return { success: false, message: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('[auth-service] 환영 이메일 발송 예외 발생:', error);
+    return { success: false, message: '이메일 발송 중 오류가 발생했습니다.' };
+  }
+}
+
+/**
+ * [슈퍼 어드민 전용] 새로운 회원 가입 알림 생성
+ */
+export async function createNewMemberNotification(userId: string, email: string, fullName: string): Promise<{ success: boolean; message: string }> {
+  const supabase = createClient();
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser?.isSuperAdmin) {
+    return { success: false, message: '권한이 없습니다.' };
+  }
+
+  const { error } = await supabase
+    .from('admin_notifications')
+    .insert({
+      user_id: userId,
+      email: email,
+      full_name: fullName,
+      is_read: false,
+      created_at: new Date().toISOString(),
+      type: 'new_member_signup'
+    });
+
+  if (error) {
+    console.error('[auth-service] 새 회원 가입 알림 생성 실패:', error);
+    return { success: false, message: error.message };
+  }
+
+  return { success: true, message: '새 회원 가입 알림이 생성되었습니다.' };
 }
 
 /**
