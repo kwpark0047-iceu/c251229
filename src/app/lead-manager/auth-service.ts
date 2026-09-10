@@ -5,7 +5,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup'
-import { sendEmail } from './email-service'
+import { sendEmail } from '../../lib/email-service'
 
 export interface UserInfo {
   id: string;
@@ -724,11 +724,11 @@ export async function getAdminNotifications(limit = 20): Promise<{
   return { success: true, notifications: data || [] };
 }
 
-/7/**
+/**
 
  * [슈퍼 어드민 전용] 새로운 회원 가입 환영 이메일 발송
  */
-export async function sendNewMemberWelcomeEmail(userId: string): Promise<{ success: boolean; message: string }> {
+export async function sendNewMemberWelcomeEmail(userId: string): Promise<{ success: boolean; message: string; data?: unknown }> {
   const supabase = createClient();
 
   // 회원 프로필에서 이메일 및 이름 조회
@@ -767,10 +767,10 @@ export async function sendNewMemberWelcomeEmail(userId: string): Promise<{ succe
 
     if (error) {
       console.error('[auth-service] 환영 이메일 발송 실패:', error);
-      return { success: false, message: error.message };
+      return { success: false, message: (error as Error).message };
     }
 
-    return { success: true, data };
+    return { success: true, message: '환영 이메일을 성공적으로 전송했습니다.', data };
   } catch (error) {
     console.error('[auth-service] 환영 이메일 발송 예외 발생:', error);
     return { success: false, message: '이메일 발송 중 오류가 발생했습니다.' };
@@ -780,7 +780,7 @@ export async function sendNewMemberWelcomeEmail(userId: string): Promise<{ succe
 /**
  * [슈퍼 어드민 전용] 승인된 회원에게 환영 이메일 재전송
  */
- export async function sendWelcomeEmailResend(userId: string, email: string): Promise<{ success: boolean; message: string }> {
+ export async function sendWelcomeEmailResend(userId: string, email: string): Promise<{ success: boolean; message: string; data?: unknown }> {
    const supabase = createClient();
 
    // 이미 가입된 회원인지 확인 (프로필 조회)
@@ -819,12 +819,12 @@ export async function sendNewMemberWelcomeEmail(userId: string): Promise<{ succe
 
      if (error) {
        console.error("[auth-service] 환영 이메일 재전송 실패:", error);
-       return { success: false, message: error.message };
+return { success: false, message: (error as Error).message };
      }
 
-     return { success: true, data };
-   } catch (error) {
-     console.error("[auth-service] 환영 이메일 재전송 예외 발생:", error);
+return { success: true, message: "환영 이메일이 성공적으로 재전송되었습니다.", data };
+    } catch (error) {
+      console.error("[auth-service] 환영 이메일 재전송 예외 발생:", error);
      return { success: false, message: "이메일 발송 중 오류가 발생했습니다." };
    }
  }

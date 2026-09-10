@@ -98,12 +98,20 @@ describe('Supabase 서비스 (supabase-service.ts)', () => {
   });
 
   describe('updateLeadStatus', () => {
-    it('리드 상태를 업데이트할 수 있다', async () => {
+    it('리드 상태를 업데이트할 수 있다 (NEW → PROPOSAL_SENT)', async () => {
       const { updateLeadStatus } = await import('./supabase-service');
-      const result = await updateLeadStatus('1', 'CONTACTED');
+      const result = await updateLeadStatus('1', 'PROPOSAL_SENT');
 
       expect(result.success).toBe(true);
       expect(mockSupabaseClient.from).toHaveBeenCalled();
+    });
+
+    it('잘못된 상태 전이(NEW → CONTACTED)는 실패한다', async () => {
+      const { updateLeadStatus } = await import('./supabase-service');
+      const result = await updateLeadStatus('1', 'CONTACTED');
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('유효하지 않은 상태 전이');
     });
   });
 

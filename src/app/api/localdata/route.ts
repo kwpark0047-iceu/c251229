@@ -9,14 +9,14 @@ import { NextRequest, NextResponse } from 'next/server';
 export const maxDuration = 30;
 
 // API 엔드포인트 (localdata.go.kr 연동 제거)
-// 더 이상 사용되지 않음 - 기존 코드 보호를 위해 빈 문자열로 설정
-const API_ENDPOINT = '';
-
-// API 키는 환경변수에서 로드 (서버에서만 접근 가능)
-// localdata.go.kr API 키 사용 중단
-const LOCALDATA_API_KEY = '';
-
-interface LocalDataParams {
+ // 더 이상 사용되지 않음 - 기존 코드 보호를 위해 빈 문자열로 설정
+ const API_ENDPOINT = '';
+ 
+ // API 키는 환경변수에서 로드 (서버에서만 접근 가능)
+ // localdata.go.kr API 키 사용 중단
+ const LOCALDATA_API_KEY = process.env.LOCALDATA_API_KEY || '';
+ 
+ interface LocalDataParams {
   serviceId: string;      // 서비스 ID (예: 01_01_02_P)
   regionCode: string;     // 지역 코드 (예: 6110000)
   startDate: string;      // 시작일 (YYYYMMDD)

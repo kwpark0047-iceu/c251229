@@ -191,27 +191,37 @@ describe('CRM 서비스', () => {
 
   describe('이메일 추적', () => {
     it('제안서 발송 내역을 기록할 수 있다', async () => {
-      currentMockBuilder = createMockBuilder([], 1);
-      currentMockBuilder.update.mockResolvedValueOnce({ error: null, data: {} });
+      const updateMock = vi.fn().mockReturnThis();
+      const eqMock = vi.fn().mockResolvedValue({ error: null, data: {} });
+      const mockBuilder = createMockBuilder([], 1);
+      mockBuilder.update = updateMock;
+      mockBuilder.eq = eqMock;
+      mockSupabaseClient.from.mockReturnValueOnce(mockBuilder);
 
       const { trackProposalSend } = await import('./crm-service');
       const result = await trackProposalSend('prop-1');
 
       expect(result.success).toBe(true);
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('proposals');
-      expect(mockSupabaseClient.from().update).toHaveBeenCalledWith({ sent_at: expect.any(String) });
+      expect(updateMock).toHaveBeenCalledWith({ sent_at: expect.any(String) });
+      expect(eqMock).toHaveBeenCalledWith('id', 'prop-1');
     }, 60000);
 
     it('제안서 열람 내역을 기록할 수 있다', async () => {
-      currentMockBuilder = createMockBuilder([], 1);
-      currentMockBuilder.update.mockResolvedValueOnce({ error: null, data: {} });
+      const updateMock = vi.fn().mockReturnThis();
+      const eqMock = vi.fn().mockResolvedValue({ error: null, data: {} });
+      const mockBuilder = createMockBuilder([], 1);
+      mockBuilder.update = updateMock;
+      mockBuilder.eq = eqMock;
+      mockSupabaseClient.from.mockReturnValueOnce(mockBuilder);
 
       const { trackProposalView } = await import('./crm-service');
       const result = await trackProposalView('prop-1');
 
       expect(result.success).toBe(true);
       expect(mockSupabaseClient.from).toHaveBeenCalledWith('proposals');
-      expect(mockSupabaseClient.from().update).toHaveBeenCalledWith({ viewed_at: expect.any(String) });
+      expect(updateMock).toHaveBeenCalledWith({ viewed_at: expect.any(String) });
+      expect(eqMock).toHaveBeenCalledWith('id', 'prop-1');
     }, 60000);
   });
 
@@ -226,8 +236,14 @@ describe('CRM 서비스', () => {
         biz_name: '테스트업체',
       };
 
-      currentMockBuilder = createMockBuilder(mockLeadData, 1);
-      currentMockBuilder.insert.mockResolvedValueOnce({ data: { id: 'task-reminder-1' }, error: null });
+      const leadBuilder = createMockBuilder(mockLeadData, 1);
+      const taskBuilder = createMockBuilder({ id: 'task-reminder-1' }, 1);
+      taskBuilder.select = vi.fn().mockReturnThis();
+      taskBuilder.single = vi.fn().mockResolvedValue({ data: { id: 'task-reminder-1' }, error: null });
+
+      mockSupabaseClient.from
+        .mockReturnValueOnce(leadBuilder)
+        .mockReturnValueOnce(taskBuilder);
 
       const { scheduleReminderForLead } = await import('./crm-service');
       const result = await scheduleReminderForLead('lead-1', 35);

@@ -43,7 +43,7 @@ import { DEFAULT_SETTINGS, METRO_TAB_COLORS, SUBWAY_STATIONS } from './constants
 import { METRO_LINE_NAMES } from '@/lib/constants';
 import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
-import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings, mergeDuplicateLeadsInDB, deleteLeadsByIds } from './supabase-service';
+import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings, mergeDuplicateLeadsInDB, deleteLeadsByIds, restoreLeadsByIds } from './supabase-service';
 import { getCurrentUser, signOut, UserInfo, logActivity } from './auth-service';
 import { getProgressBatch, getLastContactDates } from './crm-service';
 import { SalesProgress } from './types';
@@ -55,6 +55,7 @@ import ListView from './components/ListView';
 import SettingsModal from './components/SettingsModal';
 import SyncProgressModal from './components/SyncProgressModal';
 import DuplicateManager from './components/DuplicateManager';
+import SopoLookupModal from './components/crm/SopoLookupModal';
 
 // MapView를 dynamic 임포트 (SSR 방지)
 import dynamic from 'next/dynamic';
@@ -177,22 +178,41 @@ function LeadManagerContent() {
       return;
     }
 
-    if (!window.confirm('이 리드를 삭제하시겠습니까? 삭제한 리드는 복구할 수 없습니다.')) return;
-
+    // 즉시 아카이브 처리 (소프트 삭제)
     try {
       const result = await deleteLeadsByIds([leadId], userInfo);
       if (!result.success) {
         showNotification('error', result.message);
         return;
       }
+      
+      // 로컬 상태에서 제거
       setLeads(prev => prev.filter(l => l.id !== leadId));
       setTotalCount(prev => Math.max(0, prev - 1));
-      showNotification('success', result.message);
+      
+      // Undo 토스트 표시 (sonner의 action 지원)
+      const { toast } = await import('sonner');
+      toast('리드가 아카이브되었습니다.', {
+        description: '복원하려면 10초 내에 실행하세요.',
+        action: {
+          label: '실행 취소',
+          onClick: async () => {
+            const restoreResult = await restoreLeadsByIds([leadId], userInfo);
+            if (restoreResult.success) {
+              // 리스트 새로고침 또는 로컬 상태에 다시 추가
+              loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery);
+              toast('복원 완료', { description: '리드가 다시 목록에 나타납니다.' });
+            } else {
+              toast('복원 실패', { description: restoreResult.message });
+            }
+          },
+        },
+        duration: 10000, // 10초 후 자동 사라짐
+      });
     } catch (error) {
-      showNotification('error', error instanceof Error ? error.message : '리드 삭제 중 오류가 발생했습니다.');
+      showNotification('error', error instanceof Error ? error.message : '리드 아카이브 중 오류가 발생했습니다.');
     }
   };
-
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
   const [showUncontactedOnly, setShowUncontactedOnly] = useState(false);
@@ -921,7 +941,7 @@ function LeadManagerContent() {
                       const colors = CATEGORY_COLORS[category];
                       const catColor = colors.bg.includes('red') ? 'var(--metro-line1)' : colors.bg.includes('amber') || colors.bg.includes('orange') ? 'var(--metro-line3)' : colors.bg.includes('purple') ? 'var(--metro-line5)' : colors.bg.includes('cyan') ? 'var(--metro-line4)' : colors.bg.includes('emerald') ? 'var(--metro-line2)' : colors.bg.includes('lime') ? 'var(--metro-line7)' : colors.bg.includes('pink') ? 'var(--metro-line8)' : colors.bg.includes('yellow') ? 'var(--metro-line9)' : colors.bg.includes('rose') ? 'var(--metro-line6)' : 'var(--metro-line9)';
         // noinspection CssInlineStyle
-                      return <button key={category} onClick={() => { setCategoryFilter(category); setSelectedServiceIds([]); }} className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${categoryFilter === category ? 'text-white shadow-md bg-[--cat-color]' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`} style={{ '--cat-color': categoryFilter === category ? catColor : 'transparent' } as React.CSSProperties}>{category === 'ALL' ? '전체 업종' : CATEGORY_LABELS[category]}</button>;
+                      return <button key={category} onClick={() => { setCategoryFilter(category); setSelectedServiceIds([]); }} className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium ${categoryFilter === category ? colors.text + ' shadow-md bg-[--cat-color]' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`} style={{ '--cat-color': categoryFilter === category ? catColor : 'transparent' } as React.CSSProperties}>{category === 'ALL' ? '전체 업종' : CATEGORY_LABELS[category]}</button>;
                     })}
                   </div>
                   <div className="flex items-center gap-2">
@@ -1064,6 +1084,18 @@ function LeadManagerContent() {
 
       {showSyncModal && <SyncProgressModal current={syncProgress.current} total={syncProgress.total} status={syncProgress.status} onClose={() => setShowSyncModal(false)} />}
       {showInventoryUpload && <InventoryUploadModal onClose={() => setShowInventoryUpload(false)} onSuccess={() => { setInventoryRefreshKey(k => k + 1); showNotification('success', '업로드되었습니다.'); }} />}
+      {sopoModalOpen && selectedLead && (
+        <SopoLookupModal
+          lead={selectedLead}
+          onClose={() => setSopoModalOpen(false)}
+          onSave={(updatedLead) => {
+            // 로컬 상태 업데이트
+            setLeads(prev => prev.map(l => l.id === updatedLead.id ? { ...l, ...updatedLead } : l));
+            showNotification('success', 'SOPO 데이터가 저장되었습니다.');
+            setSopoModalOpen(false);
+          }}
+        />
+      )}
       {isSettingsOpen && <SettingsModal settings={settings} onSave={handleSaveSettings} onClose={() => setIsSettingsOpen(false)} onDataChanged={() => loadLeadsFromDB()} />}
       {showTaskForm && <TaskFormModal task={selectedTask} defaultDate={taskFormDefaultDate} onSave={() => { setShowTaskForm(false); setSelectedTask(null); setScheduleRefreshKey(k => k + 1); showNotification('success', '업무가 저장되었습니다.'); }} onClose={() => { setShowTaskForm(false); setSelectedTask(null); }} />}
       {showDataSync && (

@@ -296,6 +296,9 @@ export async function getLeads(filters?: {
       query = query.eq('organization_id', organizationId);
     }
 
+
+    // 아카이브된 리드 제외 (기본값: archived=false)
+    query = query.eq('archived', false);
     if (filters?.status) {
       query = query.eq('status', filters.status);
     }
@@ -774,12 +777,17 @@ export async function mergeDuplicateLeadsInDB(
 /**
  * 특정 리드 일괄 삭제 (organization_id 스코프 유지)
  */
+
+/**
+ * 리드 아카이브 (소프트 삭제) - organization_id 스코프 유지
+ * DB에서 삭제하지 않고 archived=true로 표시하여 복원 가능하게 함
+ */
 export async function deleteLeadsByIds(
   ids: string[],
   userInfo?: any
-): Promise<{ success: boolean; message: string; deletedCount: number }> {
+): Promise<{ success: boolean; message: string; archivedCount: number }> {
   if (ids.length === 0) {
-    return { success: true, message: '삭제할 리드가 없습니다.', deletedCount: 0 };
+    return { success: true, message: '아카이브할 리드가 없습니다.', archivedCount: 0 };
   }
 
   try {
@@ -788,32 +796,175 @@ export async function deleteLeadsByIds(
     const isSuperAdmin = userInfo?.isSuperAdmin || userInfo?.email === 'kwpark0047@gmail.com';
     const organizationId = userInfo?.organizationId;
 
-    let deletedCount = 0;
+    let archivedCount = 0;
     for (let i = 0; i < ids.length; i += 100) {
       const batch = ids.slice(i, i + 100);
 
-      let deleteQuery = supabase
+      let updateQuery = supabase
         .from('leads')
-        .delete()
+        .update({ 
+          archived: true, 
+          archived_at: new Date().toISOString() 
+        })
         .in('id', batch);
 
       if (!isSuperAdmin && organizationId) {
-        deleteQuery = deleteQuery.eq('organization_id', organizationId);
+        updateQuery = updateQuery.eq('organization_id', organizationId);
       }
 
-      const { error } = await deleteQuery;
+      const { error } = await updateQuery;
 
       if (error) {
-        console.error('[Supabase] deleteLeadsByIds Error:', error);
-        return { success: false, message: `리드 삭제 실패: ${error.message}`, deletedCount: 0 };
+        console.error('[Supabase] archiveLeadsByIds Error:', error);
+        return { success: false, message: `리드 아카이브 실패: ${error.message}`, archivedCount: 0 };
       }
 
-      deletedCount += batch.length;
+      archivedCount += batch.length;
     }
 
-    return { success: true, message: `리드 ${deletedCount}건 삭제 완료`, deletedCount };
+    return { success: true, message: `리드 ${archivedCount}건 아카이브 완료 (복원 가능)`, archivedCount };
   } catch (error: any) {
-    console.error('[Supabase] deleteLeadsByIds Error:', error);
-    return { success: false, message: error?.message || '삭제 중 오류가 발생했습니다.', deletedCount: 0 };
+    console.error('[Supabase] archiveLeadsByIds Error:', error);
+    return { success: false, message: error?.message || '아카이브 중 오류가 발생했습니다.', archivedCount: 0 };
+  }
+}
+
+/**
+ * 아카이브된 리드 복원
+ */
+export async function restoreLeadsByIds(
+  ids: string[],
+  userInfo?: any
+): Promise<{ success: boolean; message: string; restoredCount: number }> {
+  if (ids.length === 0) {
+    return { success: true, message: '복원할 리드가 없습니다.', restoredCount: 0 };
+  }
+
+  try {
+    const supabase = getSupabase();
+
+    const isSuperAdmin = userInfo?.isSuperAdmin || userInfo?.email === 'kwpark0047@gmail.com';
+    const organizationId = userInfo?.organizationId;
+
+    let restoredCount = 0;
+    for (let i = 0; i < ids.length; i += 100) {
+      const batch = ids.slice(i, i + 100);
+
+      let updateQuery = supabase
+        .from('leads')
+        .update({ 
+          archived: false, 
+          archived_at: null 
+        })
+        .in('id', batch);
+
+      if (!isSuperAdmin && organizationId) {
+        updateQuery = updateQuery.eq('organization_id', organizationId);
+      }
+
+      const { error } = await updateQuery;
+
+      if (error) {
+        console.error('[Supabase] restoreLeadsByIds Error:', error);
+        return { success: false, message: `리드 복원 실패: ${error.message}`, restoredCount: 0 };
+      }
+
+      restoredCount += batch.length;
+    }
+
+    return { success: true, message: `리드 ${restoredCount}건 복원 완료`, restoredCount };
+  } catch (error: any) {
+    console.error('[Supabase] restoreLeadsByIds Error:', error);
+    return { success: false, message: error?.message || '복원 중 오류가 발생했습니다.', restoredCount: 0 };
+  }
+}
+
+/**
+ * 아카이브된 리드 목록 조회
+ */
+export async function getArchivedLeads(
+  filters?: {
+    page?: number;
+    pageSize?: number;
+    userInfo?: any;
+  }
+): Promise<{ success: boolean; leads: Lead[]; count: number; message?: string }> {
+  try {
+    const supabase = getSupabase();
+
+    const page = filters?.page || 1;
+    const pageSize = filters?.pageSize || 50;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const user = filters?.userInfo;
+    const isSuperAdmin = user?.isSuperAdmin || user?.email === 'kwpark0047@gmail.com';
+    const organizationId = user?.organizationId;
+
+    let query = supabase
+      .from('leads')
+      .select('*', { count: 'exact' })
+      .eq('archived', true)
+      .order('archived_at', { ascending: false, nullsFirst: false });
+
+    if (!isSuperAdmin && organizationId) {
+      query = query.eq('organization_id', organizationId);
+    }
+
+    const { data, count, error } = await query.range(from, to);
+
+    if (error) {
+      return { success: false, leads: [], count: 0, message: error.message };
+    }
+
+    const leads = (data || []).map((row: any) => ({
+      id: row.id,
+      bizName: row.biz_name,
+      bizId: row.biz_id,
+      licenseDate: row.license_date,
+      roadAddress: row.road_address,
+      lotAddress: row.lot_address,
+      coordX: row.coord_x,
+      coordY: row.coord_y,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      phone: row.phone,
+      medicalSubject: row.medical_subject,
+      category: row.category,
+      serviceId: row.service_id,
+      serviceName: row.service_name,
+      nearestStation: row.nearest_station,
+      nearestExitNo: row.nearest_exit_no,
+      stationDistance: row.station_distance,
+      stationLines: row.station_lines,
+      status: row.status,
+      notes: row.notes,
+      assignedTo: row.assigned_to,
+      assignedToName: row.assigned_to_name,
+      assignedAt: row.assigned_at,
+      mgtNo: row.mgt_no,
+      operatingStatus: row.operating_status,
+      detailedStatus: row.detailed_status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      leadScore: row.lead_score,
+      leadGrade: row.lead_grade,
+      lat: row.latitude,
+      lng: row.longitude,
+      distance: row.station_distance,
+      bizType: row.medical_subject,
+      organizationId: row.organization_id,
+      homepage_url: row.homepage_url,
+      blog_url: row.blog_url,
+      email: row.email,
+      naver_place_id: row.naver_place_id,
+      archived: row.archived,
+      archivedAt: row.archived_at,
+    }));
+
+    return { success: true, leads, count: count || 0 };
+  } catch (error: any) {
+    console.error('[Supabase] getArchivedLeads Error:', error);
+    return { success: false, leads: [], count: 0, message: error.message };
   }
 }

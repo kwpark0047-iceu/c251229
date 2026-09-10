@@ -1,3 +1,4 @@
+import { describe, test, expect, vi } from 'vitest'
 import { ImageOptimizationService } from './image-optimization-service'
 
 describe('ImageOptimizationService', () => {
@@ -72,7 +73,7 @@ describe('ImageOptimizationService', () => {
   describe('convertImageFormat', () => {
     test('converts to webp with quality 80', async () => {
       const service = new ImageOptimizationService()
-      const result = await service.convertImageFormat('https://example.com/image.jpg', 'webp', 85)
+      const result = await service.convertImageFormat('https://example.com/image.jpg', 'webp')
       expect(typeof result).toBe('string')
       expect(result).toContain('f=webp')
       expect(result).toContain('q=80')
@@ -80,7 +81,7 @@ describe('ImageOptimizationService', () => {
 
     test('converts to avif with quality 80', async () => {
       const service = new ImageOptimizationService()
-      const result = await service.convertImageFormat('https://example.com/image.jpg', 'avif', 90)
+      const result = await service.convertImageFormat('https://example.com/image.jpg', 'avif')
       expect(typeof result).toBe('string')
       expect(result).toContain('f=avif')
       expect(result).toContain('q=80')
@@ -88,7 +89,7 @@ describe('ImageOptimizationService', () => {
 
     test('keeps jpeg quality as-is when already jpeg', async () => {
       const service = new ImageOptimizationService()
-      const result = await service.convertImageFormat('https://example.com/image.jpg', 'jpeg', 85)
+      const result = await service.convertImageFormat('https://example.com/image.jpg', 'jpeg')
       expect(typeof result).toBe('string')
       expect(result).toContain('f=jpeg')
       expect(result).toContain('q=85')
@@ -96,7 +97,7 @@ describe('ImageOptimizationService', () => {
 
     test('keeps png quality as-is when already png', async () => {
       const service = new ImageOptimizationService()
-      const result = await service.convertImageFormat('https://example.com/image.jpg', 'png', 85)
+      const result = await service.convertImageFormat('https://example.com/image.jpg', 'png')
       expect(typeof result).toBe('string')
       expect(result).toContain('f=png')
       expect(result).toContain('q=85')

@@ -121,6 +121,10 @@ export interface Lead {
   sopoDongName?: string;          // 행정동명 (adongNm)
   sopoStdYm?: string;             // 조사연월 (stdrYm)
   sopoDataFetchedAt?: string;     // SOPO 데이터 조회 일시
+
+  // 소프트 삭제(아카이브) 필드
+  archived?: boolean;              // 아카이브 여부
+  archivedAt?: string;             // 아카이브 일시
 }
 
 

@@ -21,9 +21,10 @@ import {
   getAdminNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-  UserInfo
+  UserInfo,
+  sendWelcomeEmailResend,
 } from '../../auth-service';
-import { Bell, Check, Info } from 'lucide-react';
+import { Bell, Check, Info, Mail } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { textSizeClass, colorClass } from '@/lib/ui';
@@ -1123,12 +1124,7 @@ useEffect(() => {
                                 <XCircle className="w-4 h-4" />
                               </button>
                             )}
-                            <button
-                              onClick={() => handleDeleteProfile(p.id, p.email)}
-                              className="p-2.5 bg-white/[0.03] text-slate-700 hover:text-red-500 hover:bg-red-500/10 border border-white/5 rounded-xl transition-all shadow-xl active:scale-90"
-                              title="Purge Identity"
-                            >
-                            {p.isApproved && (
+{p.isApproved ? (
                               <button
                                 onClick={() => sendWelcomeEmailResend(p.id, p.email)}
                                 className="p-2.5 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500 hover:text-white border border-indigo-500/20 rounded-xl transition-all shadow-xl active:scale-90"
@@ -1137,9 +1133,15 @@ useEffect(() => {
                                 <Mail className="w-4 h-4" />
                                 <span className="text-xs ml-1">재전송</span>
                               </button>
-                            ) || (
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            ) : (
+                              <button
+                                onClick={() => handleDeleteProfile(p.id, p.email)}
+                                className="p-2.5 bg-white/[0.03] text-slate-700 hover:text-red-500 hover:bg-red-500/10 border border-white/5 rounded-xl transition-all shadow-xl active:scale-90"
+                                title="프로필 제거"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

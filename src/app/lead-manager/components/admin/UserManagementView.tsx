@@ -7,7 +7,7 @@ import {
   Mail, Settings, UserPlus, Trash2, RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
-import PendingBadge from './PendingBadge';
+import { PendingBadge } from './PendingBadge';
 import { 
   getAllProfiles, 
   updateProfileStatus, 
@@ -135,30 +135,26 @@ export default function UserManagementView() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Select
-            className="relative"
-            options={['ALL', 'APPROVED', 'PENDING']}
+          <select
             value={statusFilter}
-            onValueChange={setStatusFilter}
-            placeholder="승인 상태 필터"
+            onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'APPROVED' | 'PENDING')}
+            className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">승인 상태 (전체)</option>
             <option value="APPROVED">승인 완료</option>
             <option value="PENDING">승인 대기</option>
-          </Select>
-          <Select
-            className="relative"
-            options={['ALL', 'FREE', 'DEMO', 'MEDIA', 'SALES']}
+          </select>
+          <select
             value={tierFilter}
-            onValueChange={setTierFilter}
-            placeholder="등급 필터"
+            onChange={(e) => setTierFilter(e.target.value as 'ALL' | 'FREE' | 'DEMO' | 'MEDIA' | 'SALES')}
+            className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">등급 필터 (전체)</option>
             <option value="FREE">FREE (일반)</option>
             <option value="DEMO">DEMO (데모)</option>
             <option value="MEDIA">MEDIA (매체사)</option>
             <option value="SALES">SALES (영업)</option>
-          </Select>
+          </select>
           <div className="flex items-center gap-2">
             <PendingBadge count={pendingCount} />
             <button 
@@ -366,4 +362,18 @@ export default function UserManagementView() {
       )}
     </div>
   );
+
+  async function loadData() {
+    setLoading(true);
+    try {
+const { profiles } = await getAllProfiles();
+    setProfiles(profiles);
+      const orgs = await getAllOrganizations();
+      setOrgs(orgs);
+    } catch (error) {
+      console.error('사용자 데이터 로드 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 }
