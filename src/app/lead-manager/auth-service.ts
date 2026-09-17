@@ -6,6 +6,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup'
 import { sendEmail } from '../../lib/email-service'
+import { ApprovalHistoryEntry } from './types'
 
 export interface UserInfo {
   id: string;
@@ -56,7 +57,7 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     const authData: any = await Promise.race([
       (async () => {
         // 조직 정보 조회
-        const { data: member } = await supabase
+        const { data: member, error: memberError } = await supabase
           .from('organization_members')
           .select(`
             role,
@@ -67,21 +68,30 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
               invite_code
             )
           `)
-          .eq('user_id', user.id)
-          .maybeSingle();
+.eq('user_id', user.id)
+            .maybeSingle();
+            if (memberError) {
+              console.warn('[Auth] Organization member retrieval failed:', memberError);
+              return null;
+            }
         
         // 프로필 정보 조회
-        const { data: prof } = await supabase
+        const { data: prof, error: profError } = await supabase
           .from('profiles')
-          .select('is_approved, is_super_admin, tier, trial_expires_at')
-          .eq('id', user.id)
-          .maybeSingle();
+.select('is_approved, is_super_admin, tier, trial_expires_at')
+            .eq('id', user.id)
+            .maybeSingle();
+            if (profError) {
+              console.warn('[Auth] Profile retrieval failed:', profError);
+              return null;
+            }
           
         return { member, prof };
       })(),
       timeoutPromise(3000)
     ]);
     
+    if (!authData) return null;
     memberData = authData?.member;
     profile = authData?.prof;
   } catch (e) {

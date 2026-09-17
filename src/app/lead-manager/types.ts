@@ -667,3 +667,43 @@ export interface CalendarEvent {
   status?: TaskStatus;
   callOutcome?: CallOutcome;
 }
+
+// 관리자 회원 관리 – 승인/거절 관련 타입
+export interface MemberApproval {
+  id: string;
+  email: string;
+  fullName: string | null;
+  isApproved: boolean;
+  isSuperAdmin: boolean;
+  createdAt: string;
+  tier: string | null;
+  trialExpiresAt: string | null;
+  membership: {
+    role: string;
+    organizationId: string;
+    organizationName: string | null;
+  } | null;
+  approvedAt: string | null;
+  approvedBy: string | null;
+  rejectedAt: string | null;
+  rejectReason: string | null;
+}
+
+export interface ApprovalHistoryEntry {
+  id: string;
+  userId: string;
+  action: 'APPROVED' | 'REJECTED';
+  actorName: string | null;
+  rejectReason?: string | null;
+  createdAt: string;
+}
+
+export interface MemberDetail {
+  profile: MemberApproval;
+  approvalHistory: ApprovalHistoryEntry[];
+}
+
+export interface RejectInput {
+  userId: string;
+  rejectReason: string;
+}
