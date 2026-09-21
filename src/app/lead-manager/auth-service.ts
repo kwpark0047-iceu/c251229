@@ -69,6 +69,9 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
             )
           `)
 .eq('user_id', user.id)
+            .order('role', { ascending: false })
+            .order('created_at', { ascending: true })
+            .limit(1)
             .maybeSingle();
             if (memberError) {
               console.warn('[Auth] Organization member retrieval failed:', memberError);

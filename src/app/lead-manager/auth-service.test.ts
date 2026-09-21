@@ -202,6 +202,44 @@ describe('getCurrentUser', () => {
     expect(user!.inviteCode).toBe('xyz789');
   });
 
+  it('handles multiple memberships using the highest-role organization', async () => {
+    // 다중 소속(organization_members 2건)에서 최고 권한 조직을 선택해야 한다 (PGRST116 회귀 테스트)
+    const membersBuilder = createMockBuilder({
+      data: [
+        memberRow({
+          role: 'owner',
+          organization_id: 'org-2',
+          organizations: { id: 'org-2', name: '대표 조직', invite_code: 'xyz789' },
+        }),
+        memberRow(),
+      ],
+    });
+
+    const mockFrom = vi.fn((table: string) => {
+      if (table === 'organization_members') return membersBuilder;
+      if (table === 'profiles') return createMockBuilder({ data: [profileRow()] });
+      return createMockBuilder({ data: [] });
+    });
+
+    (createClient as any).mockReturnValue({
+      from: mockFrom,
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: defaultUser }, error: null }),
+      },
+    });
+
+    const user = await getCurrentUser();
+
+    expect(user).not.toBeNull();
+    expect(user!.organizationId).toBe('org-2');
+    expect(user!.role).toBe('owner');
+    expect(user!.organizationName).toBe('대표 조직');
+    // 고정된 쿼리 체인: role desc → created_at asc → limit 1 → maybeSingle
+    expect(membersBuilder.order).toHaveBeenCalledWith('role', { ascending: false });
+    expect(membersBuilder.order).toHaveBeenCalledWith('created_at', { ascending: true });
+    expect(membersBuilder.limit).toHaveBeenCalledWith(1);
+  });
+
   it('returns organizationId null when user has no membership', async () => {
     mockGetCurrentUserFlow({ memberData: null });
     const user = await getCurrentUser();
