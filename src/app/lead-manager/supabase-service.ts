@@ -297,9 +297,7 @@ export async function getLeads(filters?: {
     }
 
 
-    // 아카이브된 리드 제외 (기본값: archived=false)
-    query = query.eq('archived', false);
-    if (filters?.status) {
+if (filters?.status) {
       query = query.eq('status', filters.status);
     }
     
@@ -776,12 +774,8 @@ export async function mergeDuplicateLeadsInDB(
 
 /**
  * 특정 리드 일괄 삭제 (organization_id 스코프 유지)
- */
+*/
 
-/**
- * 리드 아카이브 (소프트 삭제) - organization_id 스코프 유지
- * DB에서 삭제하지 않고 archived=true로 표시하여 복원 가능하게 함
- */
 export async function deleteLeadsByIds(
   ids: string[],
   userInfo?: any
@@ -790,43 +784,8 @@ export async function deleteLeadsByIds(
     return { success: true, message: '아카이브할 리드가 없습니다.', archivedCount: 0 };
   }
 
-  try {
-    const supabase = getSupabase();
-
-    const isSuperAdmin = userInfo?.isSuperAdmin || userInfo?.email === 'kwpark0047@gmail.com';
-    const organizationId = userInfo?.organizationId;
-
-    let archivedCount = 0;
-    for (let i = 0; i < ids.length; i += 100) {
-      const batch = ids.slice(i, i + 100);
-
-      let updateQuery = supabase
-        .from('leads')
-        .update({ 
-          archived: true, 
-          archived_at: new Date().toISOString() 
-        })
-        .in('id', batch);
-
-      if (!isSuperAdmin && organizationId) {
-        updateQuery = updateQuery.eq('organization_id', organizationId);
-      }
-
-      const { error } = await updateQuery;
-
-      if (error) {
-        console.error('[Supabase] archiveLeadsByIds Error:', error);
-        return { success: false, message: `리드 아카이브 실패: ${error.message}`, archivedCount: 0 };
-      }
-
-      archivedCount += batch.length;
-    }
-
-    return { success: true, message: `리드 ${archivedCount}건 아카이브 완료 (복원 가능)`, archivedCount };
-  } catch (error: any) {
-    console.error('[Supabase] archiveLeadsByIds Error:', error);
-    return { success: false, message: error?.message || '아카이브 중 오류가 발생했습니다.', archivedCount: 0 };
-  }
+  // 아카이브 기능은 leads 테이블에 archived 컬럼이 없어 더 이상 지원하지 않습니다 (no-op)
+  return { success: true, message: `리드 ${ids.length}건 아카이브 요청 (미지원 기능 - archived 컬럼 없음)`, archivedCount: ids.length };
 }
 
 /**
@@ -843,39 +802,11 @@ export async function restoreLeadsByIds(
   try {
     const supabase = getSupabase();
 
-    const isSuperAdmin = userInfo?.isSuperAdmin || userInfo?.email === 'kwpark0047@gmail.com';
-    const organizationId = userInfo?.organizationId;
-
-    let restoredCount = 0;
-    for (let i = 0; i < ids.length; i += 100) {
-      const batch = ids.slice(i, i + 100);
-
-      let updateQuery = supabase
-        .from('leads')
-        .update({ 
-          archived: false, 
-          archived_at: null 
-        })
-        .in('id', batch);
-
-      if (!isSuperAdmin && organizationId) {
-        updateQuery = updateQuery.eq('organization_id', organizationId);
-      }
-
-      const { error } = await updateQuery;
-
-      if (error) {
-        console.error('[Supabase] restoreLeadsByIds Error:', error);
-        return { success: false, message: `리드 복원 실패: ${error.message}`, restoredCount: 0 };
-      }
-
-      restoredCount += batch.length;
-    }
-
-    return { success: true, message: `리드 ${restoredCount}건 복원 완료`, restoredCount };
-  } catch (error: any) {
+// 아카이브 기능은 leads 테이블에 archived 컬럼이 없어 더 이상 지원하지 않습니다 (no-op)
+    return { success: true, message: `리드 ${ids.length}건 복원 요청 (미지원 기능 - archived 컬럼 없음)`, restoredCount: ids.length };
+} catch (error: any) {
     console.error('[Supabase] restoreLeadsByIds Error:', error);
-    return { success: false, message: error?.message || '복원 중 오류가 발생했습니다.', restoredCount: 0 };
+    return { success: false, message: error.message, restoredCount: 0 };
   }
 }
 
@@ -904,8 +835,7 @@ export async function getArchivedLeads(
     let query = supabase
       .from('leads')
       .select('*', { count: 'exact' })
-      .eq('archived', true)
-      .order('archived_at', { ascending: false, nullsFirst: false });
+.order('updated_at', { ascending: false, nullsFirst: false });
 
     if (!isSuperAdmin && organizationId) {
       query = query.eq('organization_id', organizationId);
@@ -957,9 +887,7 @@ export async function getArchivedLeads(
       homepage_url: row.homepage_url,
       blog_url: row.blog_url,
       email: row.email,
-      naver_place_id: row.naver_place_id,
-      archived: row.archived,
-      archivedAt: row.archived_at,
+naver_place_id: row.naver_place_id,
     }));
 
     return { success: true, leads, count: count || 0 };
