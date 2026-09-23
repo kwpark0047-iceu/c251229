@@ -692,7 +692,7 @@ export interface MemberApproval {
 export interface ApprovalHistoryEntry {
   id: string;
   userId: string;
-  action: 'APPROVED' | 'REJECTED';
+  action: 'APPROVED' | 'REJECTED' | 'ROLE_CHANGE';
   actorName: string | null;
   rejectReason?: string | null;
   createdAt: string;

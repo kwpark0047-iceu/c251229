@@ -9,6 +9,8 @@ import React from 'react';
 import { TrendingUp, Users, Send, Phone, CheckCircle, Zap } from 'lucide-react';
 
 import { Lead, STATUS_LABELS } from '../types';
+import { ICON_SIZE } from '@/lib/icons/size';
+import { TEXT_SIZE } from '@/lib/typography/scale';
 
 interface StatsBarProps {
   leads: Lead[];
@@ -115,7 +117,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
                 } as React.CSSProperties}
               >
                 <item.icon
-                  className="w-5 h-5 text-[--item-color]"
+                  className={ICON_SIZE.LG + ' text-[--item-color]'}
                    
    
   /* stylelint-disable-next-line */
@@ -129,7 +131,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
               </div>
               <div className="relative">
                 <p
-                  className="text-2xl font-bold tracking-tight text-[--item-color]"
+                  className={TEXT_SIZE.XL2 + ' font-bold tracking-tight text-[--item-color]'}
                    
                    
    
@@ -143,7 +145,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
                 >
                   {item.value.toLocaleString()}
                 </p>
-                <p className="text-xs text-[var(--text-muted)] font-medium">{item.label}</p>
+                <p className={TEXT_SIZE.XS + ' text-[var(--text-muted)] font-medium'}>{item.label}</p>
               </div>
             </div>
           ))}
@@ -198,11 +200,11 @@ export default function StatsBar({ leads }: StatsBarProps) {
                 '--icon-shadow': '0 4px 15px rgba(60, 181, 74, 0.3)',
               } as React.CSSProperties}
             >
-              <TrendingUp className="w-5 h-5 text-white" />
+              <TrendingUp className={ICON_SIZE.LG + ' text-white'} />
             </div>
             <div className="relative">
-              <p
-                className="text-2xl font-bold tracking-tight bg-[--text-bg] bg-clip-text text-transparent"
+<p
+                  className={TEXT_SIZE.XL2 + ' font-bold tracking-tight bg-[--text-bg] bg-clip-text text-transparent'}
                  
                  
    
@@ -216,7 +218,7 @@ export default function StatsBar({ leads }: StatsBarProps) {
               >
                 {conversionRate}%
               </p>
-              <p className="text-xs text-[var(--text-muted)] font-medium">전환율</p>
+              <p className={TEXT_SIZE.XS + ' text-[var(--text-muted)] font-medium'}>전환율</p>
             </div>
           </div>
         </div>

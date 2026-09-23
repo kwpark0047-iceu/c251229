@@ -440,12 +440,43 @@ export async function updateProfileStatus(
 
   if (error) return { success: false, message: error.message };
 
-  if (updates.isApproved && updates.isApproved === true) {
-    await sendNewMemberWelcomeEmail(userId);
-    await createNewMemberNotification(userId, '', '');
-  }
+          if (updates.isApproved && updates.isApproved === true) {
+            await sendNewMemberWelcomeEmail(userId);
+            await createNewMemberNotification(userId, '', '');
+          }
 
-  return { success: true, message: '상태가 업데이트되었습니다.' };
+          if (updates.isApproved !== undefined) {
+            let userEmail = '';
+            const { data: emailData } = await supabase
+              .from('profiles')
+              .select('email')
+              .eq('id', userId)
+              .single();
+            if (emailData) {
+              userEmail = emailData.email;
+            }
+            const { data: orgData } = await supabase
+              .from('organization_members')
+              .select('organization_id')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (orgData?.organization_id && userEmail) {
+              const { error: approvalError } = await supabase.from('approval_history').insert({
+                user_id: userId,
+                user_email: userEmail,
+                action_type: updates.isApproved ? 'APPROVED' : 'REJECTED',
+                organization_id: orgData.organization_id,
+              });
+              if (approvalError) {
+                console.error('승인 이력 기록 실패:', approvalError);
+                return { success: false, message: '승인 이력 기록에 실패했습니다.' };
+              }
+            }
+          }
+
+          return { success: true, message: '상태가 업데이트되었습니다.' };
 }
 
 /**
@@ -521,6 +552,23 @@ export async function updateUserOrganization(
     if (insertError) {
       console.error('[auth-service] updateUserOrganization 멤버십 추가 실패:', insertError);
       return { success: false, message: insertError.message };
+    }
+  }
+
+  // 5. 조직 변경 이력 기록 (ROLE_CHANGE)
+  const { data: emailData } = await supabase
+    .from('profiles')
+    .select('email')
+    .eq('id', userId)
+    .single();
+  const userEmail = emailData?.email ?? '';
+  if (userEmail) {
+    const { error: approvalError } = await supabase
+      .from('approval_history')
+      .insert({ user_id: userId, user_email: userEmail, action_type: 'ROLE_CHANGE', organization_id: organizationId });
+    if (approvalError) {
+      console.error('조직 변경 이력 기록 실패:', approvalError);
+      return { success: false, message: '조직 변경 이력 기록에 실패했습니다.' };
     }
   }
 

@@ -42,10 +42,12 @@ describe('Auth Service', () => {
           getUser: vi.fn().mockResolvedValue({ data: { user: mockUser }, error: null })
         },
         from: vi.fn().mockImplementation((table) => {
-          if (table === 'organization_members') {
-            return {
-              select: vi.fn().mockReturnThis(),
-              eq: vi.fn().mockReturnThis(),
+if (table === 'organization_members') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
               maybeSingle: vi.fn().mockResolvedValue({
                 data: {
                   role: 'member',
@@ -55,10 +57,12 @@ describe('Auth Service', () => {
               })
             };
           }
-          if (table === 'profiles') {
-            return {
-              select: vi.fn().mockReturnThis(),
-              eq: vi.fn().mockReturnThis(),
+if (table === 'profiles') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
               maybeSingle: vi.fn().mockResolvedValue({
                 data: {
                   is_approved: true,
@@ -69,7 +73,7 @@ describe('Auth Service', () => {
               })
             };
           }
-          return { select: vi.fn().mockReturnThis() };
+          return { select: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), limit: vi.fn().mockReturnThis() };
         })
       };
 
@@ -99,9 +103,11 @@ describe('Auth Service', () => {
           getUser: vi.fn().mockResolvedValue({ data: { user: mockUser }, error: null })
         },
         from: vi.fn().mockImplementation(() => ({
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          maybeSingle: vi.fn().mockResolvedValue({
+select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
             data: {
               organization_id: 'org-123',
               organizations: { id: 'org-123' }

@@ -7,6 +7,8 @@
 
 import React from 'react';
 import { Users, Package, Calendar, Map, Settings, FileText, FileImage, Shield } from 'lucide-react';
+import { ICON_SIZE } from '@/lib/icons/size';
+import { TEXT_SIZE } from '@/lib/typography/scale';
 import { MainTab } from '../types';
 import './MobileNavBar.css';
 
@@ -67,7 +69,7 @@ export default function MobileNavBar({
                     className={`relative -top-6 p-4 rounded-full shadow-lg transition-all duration-500 hover:scale-110 active:scale-95 group animate-float mobile-nav-map-btn ${activeTab === 'map' ? 'mobile-nav-map-btn-glow' : 'mobile-nav-map-btn-shadow'}`}
                 >
                     <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity blur-md" />
-                    <Map className={`w-6 h-6 text-white relative z-10 ${activeTab === 'map' ? 'scale-110' : ''} transition-transform`} />
+                    <Map className={`${ICON_SIZE.XL} text-white relative z-10 ${activeTab === 'map' ? 'scale-110' : ''} transition-transform`} />
                 </button>
                 <NavButton
                     icon={Calendar}
@@ -105,9 +107,9 @@ function NavButton({
                 }`}
         >
             <div className={`transition-all duration-500 ${isActive ? 'drop-shadow-[0_0_8px_var(--metro-line4)]' : ''}`}>
-                <Icon className={`w-6 h-6 ${isActive ? 'fill-current opacity-20' : ''}`} strokeWidth={isActive ? 2.5 : 2} />
+                <Icon className={ICON_SIZE.XL + ' fill-current ' + (isActive ? 'opacity-20' : '')} strokeWidth={2} />
             </div>
-            <span className={`text-xs font-bold transition-all ${isActive ? 'opacity-100' : 'opacity-70'}`}>{label}</span>
+            <span className={TEXT_SIZE.XS + ' font-bold transition-all ' + (isActive ? 'opacity-100' : 'opacity-70')}>{label}</span>
             {isActive && (
                 <div className="absolute -bottom-1 w-1 h-1 rounded-full bg-[var(--metro-line4)] shadow-[0_0_8px_var(--metro-line4)]" />
             )}
