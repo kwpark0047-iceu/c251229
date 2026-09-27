@@ -25,6 +25,9 @@ import { getLineDisplayName, normalizeLineCode } from './utils/subway-utils';
 // 엑셀 파싱 및 업로드
 // ============================================
 
+type RawData = any[] & { isObjectMapped?: boolean };
+const RESERVED_MARKER = '[부킹]';
+
 /**
  * 엑셀 파일에서 인벤토리 데이터 파싱
  * @param buffer - 엑셀 파일 버퍼
@@ -49,7 +52,7 @@ export async function parseInventoryExcel(
   // CSV는 별도의 매직 넘버가 없으므로 PK(xlsx)나 CF(xls)가 아니면 
   // 일단 XLSX(SheetJS) 라이브러리가 자동 감지하여 처리하도록 시도합니다.
 
-  let rawData: any[] = [];
+  let rawData: RawData = [];
 
   try {
     if (isXlsx) {
@@ -129,7 +132,7 @@ export async function parseInventoryExcel(
       });
 
       // 이미 객체화 되었으므로 rwaData 포맷 플래그 설정
-      (rawData as any).isObjectMapped = true;
+      rawData.isObjectMapped = true;
     } else {
       // .xls, .csv 및 기타 형식 처리 (SheetJS 사용)
       let workbook;
@@ -163,7 +166,7 @@ export async function parseInventoryExcel(
   }
 
   // 이미 객체화 된 경우 (ExcelJS 경로)
-  if ((rawData as any).isObjectMapped) {
+  if (rawData.isObjectMapped) {
     return rawData.map(row => {
       const getVal = (keys: string[]) => {
         for (const k of keys) {
@@ -337,7 +340,7 @@ export async function parseInventoryExcel(
     let availabilityStatus: AvailabilityStatus;
     if (statusFromExcel) {
       availabilityStatus = mapAvailabilityStatus(statusFromExcel);
-    } else if (contractInfo.includes('[부킹]')) {
+    } else if (contractInfo.includes(RESERVED_MARKER)) {
       availabilityStatus = 'RESERVED';
     } else {
       availabilityStatus = hasOccupiedDate ? 'OCCUPIED' : 'AVAILABLE';

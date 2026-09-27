@@ -19,6 +19,70 @@ import { getInventory, deleteInventory, updateInventoryStatus } from '../../inve
 import { SUBWAY_STATIONS, METRO_LINES, METRO_LINE_NAMES, METRO_LINE_COLORS, MetroLine } from '@/lib/constants';
 import { TOTAL_SUBWAY_STATIONS } from '../../data/stations';
 
+// ─── 상수 정의 ───────────────────────────────────────────────
+// 노선 번호 및 역명 정규식 / 상수
+const LINE_NUMBER_REGEX = /(\d+)호선/g;
+const HOSUN = '호선';
+const STATION_SUFFIX_REGEX = /역$/;
+
+// 삭제 확인 메시지
+const DELETE_CONFIRM_MESSAGE = '이 광고매체를 삭제하시겠습니까?';
+
+// 로딩 스피너 클래스
+const SPINNER_CLASS = 'animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600';
+
+// 빈 상태(인벤토리 없음) UI
+const EMPTY_TITLE = '등록된 광고매체가 없습니다';
+const EMPTY_DESCRIPTION = '엑셀 파일을 업로드하여 광고매체를 등록하세요.';
+const EMPTY_UPLOAD_BUTTON_CLASS =
+  'inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors';
+const EMPTY_UPLOAD_LABEL = '신규 데이터 업로드';
+
+// 검색바 UI
+const SEARCH_PLACEHOLDER = '역명 또는 위치코드 검색...';
+const SEARCH_INPUT_CLASS =
+  'w-full pl-10 pr-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent transition-all text-[var(--text-primary)]';
+const SEARCH_ARIA_LABEL = '인벤토리 검색';
+const SEARCH_ICON_CLASS = 'absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]';
+
+// 헤더 카운트/업로드 버튼 UI
+const COUNT_SUFFIX = '건 조회됨';
+const HEADER_UPLOAD_BUTTON_CLASS =
+  'px-4 py-2 bg-[var(--metro-line2)] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-[0_4px_15px_rgba(60,181,74,0.3)]';
+const HEADER_UPLOAD_LABEL = '신규 업로드';
+
+// 상태 필터 목록 및 색상 맵 (모듈 스코프 상수)
+const STATUS_FILTERS = ['AVAILABLE', 'RESERVED', 'OCCUPIED'] as AvailabilityStatus[];
+const AVAILABILITY_COLOR_MAP: Record<AvailabilityStatus, string> = {
+  AVAILABLE: 'var(--metro-line2)',
+  RESERVED: 'var(--metro-line4)',
+  OCCUPIED: 'var(--metro-line1)',
+};
+
+// 필터 버튼 공통/선택/비선택 클래스
+const FILTER_BUTTON_BASE = 'px-3 py-1.5 text-xs rounded-lg transition-all font-medium border';
+const FILTER_BUTTON_SELECTED = 'text-white shadow-sm border-transparent';
+const FILTER_BUTTON_UNSELECTED =
+  'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]';
+const TYPE_FILTER_SELECTED = 'bg-[var(--metro-line9)] text-white shadow-sm border-transparent';
+const TYPE_FILTER_UNSELECTED = FILTER_BUTTON_UNSELECTED;
+
+// 테이블 및 컬럼 헤더
+const TABLE_WRAPPER_CLASS = 'overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]';
+const COLUMN_HEADERS: { label: string; className: string }[] = [
+  { label: '역명', className: 'px-4 py-3 font-semibold' },
+  { label: '위치코드', className: 'px-4 py-3 font-semibold' },
+  { label: '광고유형', className: 'px-4 py-3 font-semibold' },
+  { label: '상태', className: 'px-4 py-3 font-semibold' },
+  { label: '작업', className: 'px-4 py-3 font-semibold text-center' },
+];
+
+// 상태 변경 select / 삭제 버튼 / 결과 없음 메시지
+const STATUS_SELECT_BASE_CLASS = 'text-xs px-2 py-1 rounded outline-none font-medium ';
+const DELETE_BUTTON_CLASS = 'p-1.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded transition-colors';
+const DELETE_TITLE = '삭제';
+const NO_RESULTS_MESSAGE = '조건에 맞는 광고매체가 없습니다.';
+
 interface InventoryTableProps {
   onRefresh?: () => void;
 }
@@ -53,14 +117,14 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
     
     // 1. 설명(description)에서 "X호선" 패턴 추출
     if (item.description) {
-      const matches = item.description.match(/(\d+)호선/g);
+      const matches = item.description.match(LINE_NUMBER_REGEX);
       if (matches) {
-        matches.forEach(m => lines.add(m.replace('호선', '')));
+        matches.forEach(m => lines.add(m.replace(HOSUN, '')));
       }
     }
 
     // 2. 역명 기준 TOTAL_SUBWAY_STATIONS 및 SUBWAY_STATIONS 조회
-    const cleanName = item.stationName.replace(/역$/, '');
+    const cleanName = item.stationName.replace(STATION_SUFFIX_REGEX, '');
     const totalStation = TOTAL_SUBWAY_STATIONS.find(s => s.name === cleanName || s.name === item.stationName);
     if (totalStation && totalStation.lines) {
       totalStation.lines.forEach(l => lines.add(l));
@@ -114,7 +178,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
 
   // Optimistic delete
   const handleDelete = async (id: string) => {
-    if (!confirm('이 광고매체를 삭제하시겠습니까?')) return;
+    if (!confirm(DELETE_CONFIRM_MESSAGE)) return;
     const previous = inventory;
     setInventory(prev => prev.filter(item => item.id !== id));
     const result = await deleteInventory(id);
@@ -128,7 +192,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className={SPINNER_CLASS} />
       </div>
     );
   }
@@ -137,14 +201,14 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
     return (
       <div className="text-center py-12">
         <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-slate-700 mb-2">등록된 광고매체가 없습니다</h3>
-        <p className="text-slate-500 mb-6">엑셀 파일을 업로드하여 광고매체를 등록하세요.</p>
+        <h3 className="text-lg font-medium text-slate-700 mb-2">{EMPTY_TITLE}</h3>
+        <p className="text-slate-500 mb-6">{EMPTY_DESCRIPTION}</p>
         <button
           onClick={() => setShowUploadModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className={EMPTY_UPLOAD_BUTTON_CLASS}
         >
           <Upload className="w-4 h-4" />
-          신규 데이터 업로드
+{EMPTY_UPLOAD_LABEL}
         </button>
         {showUploadModal && (
           <InventoryUploadModal
@@ -176,28 +240,28 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
         {/* 상단 액션 및 검색 바 */}
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="relative w-72 max-w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+            <Search className={SEARCH_ICON_CLASS} />
             <input
               id="inventory-search"
               type="text"
-              placeholder="역명 또는 위치코드 검색..."
+              placeholder={SEARCH_PLACEHOLDER}
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl text-sm focus:ring-2 focus:ring-[var(--metro-line2)] focus:border-transparent transition-all text-[var(--text-primary)]"
-              aria-label="인벤토리 검색"
+              className={SEARCH_INPUT_CLASS}
+              aria-label={SEARCH_ARIA_LABEL}
             />
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-[var(--metro-line2)]">
-              {filteredInventory.length.toLocaleString()}건 조회됨
+              {filteredInventory.length.toLocaleString()}{COUNT_SUFFIX}
             </span>
             <button
               type="button"
               onClick={() => setShowUploadModal(true)}
-              className="px-4 py-2 bg-[var(--metro-line2)] text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity flex items-center gap-1.5 shadow-[0_4px_15px_rgba(60,181,74,0.3)]"
+              className={HEADER_UPLOAD_BUTTON_CLASS}
             >
               <Upload className="w-4 h-4" />
-              신규 업로드
+{HEADER_UPLOAD_LABEL}
             </button>
           </div>
         </div>
@@ -207,13 +271,8 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-[var(--text-muted)] w-10">상태</span>
             <div className="flex items-center gap-1.5 flex-wrap">
-              {(['AVAILABLE', 'RESERVED', 'OCCUPIED'] as AvailabilityStatus[]).map(status => {
+              {STATUS_FILTERS.map(status => {
                 const isSelected = statusFilters.includes(status);
-                const colorMap = {
-                  AVAILABLE: 'var(--metro-line2)',
-                  RESERVED: 'var(--metro-line4)',
-                  OCCUPIED: 'var(--metro-line1)',
-                };
                 return (
                   <button
                     key={status}
@@ -223,8 +282,8 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
                         prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
                       );
                     }}
-                    className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium border ${isSelected ? 'text-white shadow-sm border-transparent' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'}`}
-                    style={isSelected ? { backgroundColor: colorMap[status] } : undefined}
+className={`${FILTER_BUTTON_BASE} ${isSelected ? FILTER_BUTTON_SELECTED : FILTER_BUTTON_UNSELECTED}`}
+                style={isSelected ? { backgroundColor: AVAILABILITY_COLOR_MAP[status] } : undefined}
                   >
                     {AVAILABILITY_LABELS[status]}
                   </button>
@@ -249,7 +308,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
                           prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
                         );
                       }}
-                      className={`px-3 py-1.5 text-xs rounded-lg transition-all font-medium border ${isSelected ? 'bg-[var(--metro-line9)] text-white shadow-sm border-transparent' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:text-[var(--text-secondary)]'}`}
+                      className={`${FILTER_BUTTON_BASE} ${isSelected ? TYPE_FILTER_SELECTED : TYPE_FILTER_UNSELECTED}`}
                     >
                       {AD_TYPE_LABELS[type] || type}
                     </button>
