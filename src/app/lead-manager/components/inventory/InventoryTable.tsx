@@ -70,11 +70,11 @@ const TYPE_FILTER_UNSELECTED = FILTER_BUTTON_UNSELECTED;
 // 테이블 및 컬럼 헤더
 const TABLE_WRAPPER_CLASS = 'overflow-x-auto rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]';
 const COLUMN_HEADERS: { label: string; className: string }[] = [
-  { label: '역명', className: 'px-4 py-3 font-semibold' },
-  { label: '위치코드', className: 'px-4 py-3 font-semibold' },
-  { label: '광고유형', className: 'px-4 py-3 font-semibold' },
-  { label: '상태', className: 'px-4 py-3 font-semibold' },
-  { label: '작업', className: 'px-4 py-3 font-semibold text-center' },
+  { label: '역명', className: 'px-4 py-3 font-sm sm:px-3 sm:py-2' },
+  { label: '위치코드', className: 'px-4 py-3 font-sm sm:px-3 sm:py-2' },
+  { label: '광고유형', className: 'px-4 py-3 font-sm sm:px-3 sm:py-2' },
+  { label: '상태', className: 'px-4 py-3 font-sm sm:px-3 sm:py-2' },
+  { label: '작업', className: 'px-4 py-3 font-sm sm:px-3 sm:py-2 text-center' },
 ];
 
 // 상태 변경 select / 삭제 버튼 / 결과 없음 메시지
@@ -239,7 +239,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
       <div className="space-y-4">
         {/* 상단 액션 및 검색 바 */}
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="relative w-72 max-w-full">
+          <div className="relative w-full sm:w-72 max-w-full">
             <Search className={SEARCH_ICON_CLASS} />
             <input
               id="inventory-search"
@@ -266,7 +266,7 @@ export default function InventoryTable({ onRefresh }: InventoryTableProps) {
           </div>
         </div>
         {/* 필터 그룹 */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3 p-3 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 p-3 bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-xl">
           {/* 상태 필터 */}
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-[var(--text-muted)] w-10">상태</span>
@@ -358,18 +358,18 @@ className={`${FILTER_BUTTON_BASE} ${isSelected ? FILTER_BUTTON_SELECTED : FILTER
                 <th className="px-4 py-3 font-semibold text-center">작업</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border-subtle)]">
+<tbody className="divide-y divide-[var(--border-subtle)]">
               {filteredInventory.length > 0 ? (
                 filteredInventory.map((item) => (
                   <tr key={item.id} className="hover:bg-[var(--bg-secondary)]/50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-[var(--text-primary)]">{item.stationName}</td>
-                    <td className="px-4 py-3 text-[var(--text-secondary)]">{item.locationCode}</td>
-                    <td className="px-4 py-3 text-[var(--text-secondary)]">{AD_TYPE_LABELS[item.adType] || item.adType}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 sm:px-3 sm:py-2 font-medium text-[var(--text-primary)]">{item.stationName}</td>
+                    <td className="px-4 py-3 sm:px-3 sm:py-2 text-[var(--text-secondary)]">{item.locationCode}</td>
+                    <td className="px-4 py-3 sm:px-3 sm:py-2 text-[var(--text-secondary)]">{AD_TYPE_LABELS[item.adType] || item.adType}</td>
+                    <td className="px-4 py-3 sm:px-3 sm:py-2">
                       <select title="상태 변경" aria-label="상태 변경"
                         value={item.availabilityStatus}
                         onChange={(e) => handleStatusChange(item.id, e.target.value as AvailabilityStatus)}
-                        className={`text-xs px-2 py-1 rounded outline-none font-medium ${AVAILABILITY_COLORS[item.availabilityStatus].bg} ${AVAILABILITY_COLORS[item.availabilityStatus].text} border ${AVAILABILITY_COLORS[item.availabilityStatus].border}`}
+                        className={`text-xs sm:text-sm px-2 py-1 rounded outline-none font-medium ${AVAILABILITY_COLORS[item.availabilityStatus].bg} ${AVAILABILITY_COLORS[item.availabilityStatus].text} border ${AVAILABILITY_COLORS[item.availabilityStatus].border}`}
                       >
                         {(Object.keys(AVAILABILITY_LABELS) as AvailabilityStatus[]).map((status) => (
                           <option key={status} value={status}>
@@ -378,10 +378,10 @@ className={`${FILTER_BUTTON_BASE} ${isSelected ? FILTER_BUTTON_SELECTED : FILTER
                         ))}
                       </select>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 sm:px-3 sm:py-2 text-center">
                       <button
                         onClick={() => handleDelete(item.id)}
-                        className="p-1.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
+                        className="p-1.5 sm:p-2 sm:py-1.5 text-[var(--text-muted)] sm:text-sm hover:text-red-500 hover:bg-red-500/10 rounded transition-colors"
                         title="삭제"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -391,7 +391,7 @@ className={`${FILTER_BUTTON_BASE} ${isSelected ? FILTER_BUTTON_SELECTED : FILTER
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-[var(--text-muted)]">
+                  <td colSpan={5} className="px-4 sm:px-3 py-8 sm:py-4 text-center text-[var(--text-muted)]">
                     조건에 맞는 광고매체가 없습니다.
                   </td>
                 </tr>
