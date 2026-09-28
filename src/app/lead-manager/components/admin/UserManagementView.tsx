@@ -55,6 +55,7 @@ export default function UserManagementView() {
     if (!confirm(isApproved ? '이 사용자를 승인하시겠습니까?' : '승인을 취소하시겠습니까?')) return;
     const result = await updateProfileStatus(userId, { isApproved });
     if (result.success) {
+      toast.success('사용자 승인이 완료되었습니다.');
       loadData();
     } else {
       toast.error(result.message);

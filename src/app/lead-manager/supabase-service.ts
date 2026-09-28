@@ -80,9 +80,12 @@ export async function saveLeads(
     // 조직 ID 가져오기
     const orgId = organizationId ?? await getOrganizationId();
     
+    // %22(URL-encoded double quote) 제거 - Supabase 400 에러 방지
+    const cleanOrgId = orgId?.replace(/%22/g, '') || null;
+    
     console.log('[saveLeads] Starting save process:', {
       leadCount: leads.length,
-      orgId
+      orgId: cleanOrgId
     });
 
     // 0. 비타겟 업종 필터링 (HEALTH 카테고리에만 적용)

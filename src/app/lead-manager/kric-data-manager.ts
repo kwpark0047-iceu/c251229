@@ -148,7 +148,11 @@ export class KRICSubwayDataManager {
           // KRIC에서 누락된 노선(routes에 없거나 역이 적은 경우)을 정적 데이터로 보충
           Object.entries(staticRoutes).forEach(([lineCode, data]) => {
             // KRIC 응답에 해당 노선이 없거나, 정적 데이터의 역 개수가 현저히 많은 경우 폴백
-            if (!routes[lineCode] || routes[lineCode].coords.length < data.coords.length * 0.5) {
+            // 폴백 임계값 조정: 0.5 → 0.7 (70% 미만일 경우에만 폴백, 안정성 확보)
+            // 최소 역 개수 임계값 추가: 20역 미만이면 무조건 폴백 (데이터 부족 감지)
+            const kricCount = routes[lineCode] ? routes[lineCode].coords.length : 0;
+            const staticCount = data.coords.length;
+            if (!routes[lineCode] || (kricCount < staticCount * 0.7 && staticCount >= 20)) {
               console.log(`⚠️ Line ${lineCode}: Falling back to static route data`);
               routes[lineCode] = data;
             }

@@ -478,9 +478,10 @@ useEffect(() => {
           v.user_id && a.findIndex(t => t.user_id === v.user_id) === i
         );
         
-        console.log('Realtime Presence Synced:', uniqueEntries);
+        // 실시간 동기화 상태 minimal log (과도한 로그 방지)
         setOnlineUsers(uniqueEntries);
         setOnlineUsersCount(uniqueEntries.length);
+        // 필수 피드백만 유지: 온라인 사용자 수 업데이트
       })
       .on('presence', { event: 'join' }, ({ newPresences }: { newPresences: any[] }) => {
         console.log('Admin Node Joined:', newPresences);
