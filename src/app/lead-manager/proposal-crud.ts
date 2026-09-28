@@ -223,6 +223,25 @@ export async function updateProposal(
   }
 }
 
+export async function deleteProposal(proposalId: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const supabase = getSupabase();
+
+    const { error } = await supabase
+      .from('proposals')
+      .delete()
+      .eq('id', proposalId);
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
+    return { success: true, message: '제안서가 삭제되었습니다.' };
+  } catch (error) {
+    return { success: false, message: (error as Error).message };
+  }
+}
+
 export async function markProposalSent(
   proposalId: string
 ): Promise<{ success: boolean; message: string }> {
