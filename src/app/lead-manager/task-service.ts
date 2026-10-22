@@ -14,6 +14,11 @@ import {
 } from './types';
 import { getOrganizationId } from './auth-service';
 
+// 업무 기한은 UTC 시각이 아닌 사용자의 달력 날짜로 조회한다.
+function calendarDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 // ============================================
 // Task 타입 변환 헬퍼
 // ============================================
@@ -194,7 +199,7 @@ export async function getTasksByDate(date: string): Promise<TaskWithLead[]> {
  * 오늘 업무 조회
  */
 export async function getTodayTasks(): Promise<TaskWithLead[]> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = calendarDate(new Date());
   return getTasksByDate(today);
 }
 
@@ -210,8 +215,8 @@ export async function getWeekTasks(): Promise<TaskWithLead[]> {
   endOfWeek.setDate(startOfWeek.getDate() + 6);
 
   return getTasks({
-    dateFrom: startOfWeek.toISOString().split('T')[0],
-    dateTo: endOfWeek.toISOString().split('T')[0],
+    dateFrom: calendarDate(startOfWeek),
+    dateTo: calendarDate(endOfWeek),
   });
 }
 
@@ -264,7 +269,7 @@ export async function updateTask(id: string, updates: Partial<Task>): Promise<Ta
  */
 export async function updateTaskStatus(id: string, status: TaskStatus): Promise<boolean> {
   const supabase = getSupabase();
-  const updates: Record<string, unknown> = { status };
+  const updates: Record<string, unknown> = { status, completed_at: null };
 
   if (status === 'COMPLETED') {
     updates.completed_at = new Date().toISOString();
@@ -381,8 +386,8 @@ export async function getMonthEvents(year: number, month: number): Promise<Calen
   const lastDay = new Date(year, month + 1, 0);
 
   return getCalendarEvents(
-    firstDay.toISOString().split('T')[0],
-    lastDay.toISOString().split('T')[0]
+    calendarDate(firstDay),
+    calendarDate(lastDay)
   );
 }
 
@@ -403,7 +408,7 @@ export async function getTaskStats(): Promise<{
   weekCount: number;
 }> {
   const supabase = getSupabase();
-  const today = new Date().toISOString().split('T')[0];
+  const today = calendarDate(new Date());
 
   const { data, error } = await supabase
     .from('tasks')
@@ -454,8 +459,8 @@ export async function getTaskStats(): Promise<{
 
     // 이번 주 업무
     if (
-      row.due_date >= startOfWeek.toISOString().split('T')[0] &&
-      row.due_date <= endOfWeek.toISOString().split('T')[0]
+      row.due_date >= calendarDate(startOfWeek) &&
+      row.due_date <= calendarDate(endOfWeek)
     ) {
       stats.weekCount++;
     }
