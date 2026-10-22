@@ -250,7 +250,7 @@ describe('getCurrentUser', () => {
     expect(user!.inviteCode).toBeNull();
   });
 
-  it('isApproved falls back to user_metadata tier when no profile row exists', async () => {
+  it('사용자 메타데이터만으로 승인을 부여하지 않는다', async () => {
     mockGetCurrentUserFlow({
       profileData: null,
       user: {
@@ -259,8 +259,8 @@ describe('getCurrentUser', () => {
       },
     });
     const user = await getCurrentUser();
-    expect(user!.isApproved).toBe(true);
-    expect(user!.tier).toBe('SALES');
+    expect(user!.isApproved).toBe(false);
+    expect(user!.tier).toBeNull();
   });
 
   it('isApproved is false when profile is not approved, even with a tier', async () => {
@@ -272,10 +272,15 @@ describe('getCurrentUser', () => {
     expect(user!.tier).toBe('MEDIA');
   });
 
-  it('flags the fixed super admin email', async () => {
+  it('특정 이메일만으로 최고관리자 권한을 부여하지 않는다', async () => {
     mockGetCurrentUserFlow({ user: { ...defaultUser, email: SUPER_ADMIN_EMAIL } });
     const user = await getCurrentUser();
-    expect(user!.isSuperAdmin).toBe(true);
+    expect(user!.isSuperAdmin).toBe(false);
+  });
+
+  it('DB 프로필의 최고관리자 권한을 반영한다', async () => {
+    mockGetCurrentUserFlow({ profileData: profileRow({ is_super_admin: true }) });
+    expect((await getCurrentUser())!.isSuperAdmin).toBe(true);
   });
 
   it('returns null and warns when profile/org queries fail', async () => {

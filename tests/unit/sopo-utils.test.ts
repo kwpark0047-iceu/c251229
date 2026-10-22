@@ -43,6 +43,10 @@ const item: SopoItem = {
 };
 
 describe('mapSopoToLead', () => {
+  it('does not reuse a LocalData identifier as a building identifier', async () => {
+    const { extractSopoKeyFromLead } = await import('@/app/lead-manager/utils/sopo-utils');
+    expect(extractSopoKeyFromLead(mapSopoToLead([item], { mgtNo: 'localdata-id' }))).toBeNull();
+  });
   it('maps real SOPO fields without replacing existing lead identity', () => {
     const result = mapSopoToLead([item], {
       id: 'lead-1',
@@ -67,6 +71,13 @@ describe('mapSopoToLead', () => {
 });
 
 describe('fetchSopoData', () => {
+  it('does not expose upstream bodies containing credentials', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('secret-key', { status: 503 })));
+    const { fetchSopoData } = await import('@/app/lead-manager/utils/sopo-utils');
+    const error = await fetchSopoData({ key: 'building', serviceKey: 'secret-key' }).catch(error => error);
+    expect(error.message).toBe('SOPO API 요청 실패 (503)');
+    expect(error.message).not.toContain('secret-key');
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
   });

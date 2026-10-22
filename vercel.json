@@ -5,14 +5,5 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "regions": ["icn1"],
-  "crons": [
-    {
-      "path": "/api/cron/sync",
-      "schedule": "10 6 * * *"
-    },
-    {
-      "path": "/api/cron/sales-sequence",
-      "schedule": "0 9 * * *"
-    }
-  ]
+  "crons": []
 }

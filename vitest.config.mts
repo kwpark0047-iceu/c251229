@@ -10,6 +10,12 @@ export default defineConfig({
         testTimeout: 30000, // increase timeout for long-running tests (crm-service 20s 초과 병행 케이스 대응)
         setupFiles: './vitest.setup.ts',
         exclude: [
+            'scripts/**', // 로컬 도구는 별도 node:test 작업에서 검증합니다.
+            '**/.next/**',
+            '**/.next-e2e/**',
+            '**/.omo/**',
+            '**/tmp/**',
+            '**/coverage/**',
             '**/node_modules/**',
             '**/dist/**',
             '**/cypress/**',
@@ -34,12 +40,10 @@ export default defineConfig({
                 'src/**/*.{ts,tsx}',
             ],
             thresholds: {
-                global: {
-                    branches: 70,
-                    functions: 70,
-                    lines: 70,
-                    statements: 70,
-                },
+                branches: 80,
+                functions: 80,
+                lines: 80,
+                statements: 80,
             },
         },
         alias: {

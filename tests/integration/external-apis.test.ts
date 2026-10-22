@@ -1,348 +1,147 @@
-/**
- * 외부 API 연동 통합 테스트
- * LocalData, KRIC, Resend 등 외부 서비스 연동 테스트
- */
+// @vitest-environment node
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
 
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+// 실제 핸들러 경계만 실행한다. 기존 fetch 자체 검사/빈 캐시 검사/시간 >= 0 검사는 제거한다.
+// LocalData는 좌표 변환/자동 재시도를 제공하지 않으며 현재 중단 응답 계약으로 대체한다.
+// AI 성공/기존 skip 1개(R18)는 ai-fallback-route.test.ts에서 실제 generate 핸들러로 검증한다.
+const mocks = vi.hoisted(() => ({ fetch: vi.fn(), from: vi.fn(), createClient: vi.fn(), requireUser: vi.fn(), send: vi.fn(), pdf: vi.fn() }));
+vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
+vi.mock('@/app/api/sync-utils', () => ({ requireUser: mocks.requireUser }));
+vi.mock('resend', () => ({ Resend: class { emails = { send: mocks.send }; } }));
+vi.mock('@/app/lead-manager/proposal-service', () => ({ generateProposalPDF: mocks.pdf }));
 
-// Mock axios (KRIC API) — 실제 네트워크 호출을 차단하고 fetch mock만으로 동작하도록 함
-vi.mock('axios', () => ({
-  default: {
-    get: vi.fn().mockResolvedValue({ data: { response: { body: { items: [] } } } }),
-  },
-}));
-
-// Mock fetch for testing
-global.fetch = vi.fn();
-
-describe('외부 API 연동 통합 테스트', () => {
-  beforeAll(() => {
-    // 테스트 환경 변수 설정
-    process.env.LOCALDATA_API_KEY = 'test-localdata-key';
-    process.env.KRIC_API_KEY = 'test-kric-key';
-    process.env.RESEND_API_KEY = 'test-resend-key';
+const params = { serviceId: '07_24_04_P', regionCode: '6110000', startDate: '20261001', endDate: '20261019' };
+function post(path: string, body: unknown) {
+  return new NextRequest(`http://localhost/api/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': 'localdata-test' }, body: JSON.stringify(body) });
+}
+const mail = {
+  leadId: 'lead-1', recipientEmail: 'client@example.com', recipientName: 'Client', stationName: 'Gangnam', stationLines: ['2'],
+  greetingMessage: '<script>alert(1)</script>', inventoryItems: [], totalPrice: 100, discountRate: 0, finalPrice: 100,
+};
+function prepareMail() {
+  const eq = vi.fn().mockResolvedValue({ error: null });
+  const update = vi.fn(() => ({ eq }));
+  const single = vi.fn().mockResolvedValue({ data: { id: 'proposal-1' }, error: null });
+  mocks.from.mockImplementation((table: string) => {
+    if (table === 'proposals') return { insert: vi.fn(() => ({ select: vi.fn(() => ({ single })) })), update };
+    if (table === 'leads') return { update };
+    throw new Error(`Unexpected table: ${table}`);
   });
+  return { update, single };
+}
+beforeEach(() => {
+  vi.resetAllMocks(); vi.resetModules();
+  vi.stubGlobal('fetch', mocks.fetch);
+  mocks.fetch.mockImplementation(() => { throw new Error('Unexpected network call'); });
+  mocks.from.mockImplementation(() => { throw new Error('Unexpected database call'); });
+  mocks.createClient.mockResolvedValue({ from: mocks.from });
+  mocks.requireUser.mockResolvedValue(null);
+  mocks.send.mockImplementation(() => { throw new Error('Unexpected mail call'); });
+  mocks.pdf.mockImplementation(() => { throw new Error('Unexpected PDF call'); });
+  vi.stubEnv('LOCALDATA_API_KEY', ''); vi.stubEnv('RESEND_API_KEY', 'mail-test');
+  vi.stubEnv('KRIC_API_KEY', 'kric-test'); vi.stubEnv('DATAGOKR_API_KEY', '');
+  vi.stubEnv('NEXT_PUBLIC_KRIC_API_KEY', ''); vi.stubEnv('STATION_INFO_API_KEY', '');
+});
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
-  describe('LocalData API 연동', () => {
-    const mockSettings = { regionCode: '6110000', regionCodes: ['6110000'] } as any;
-    const mockStartDate = new Date();
-    const mockEndDate = new Date();
-
-    it('사업자 인허가 데이터를 성공적으로 조회한다', async () => {
-      // Mock LocalData API 응답
-      (fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          leads: [
-            {
-              bizName: '테스트 상점',
-              roadAddress: '서울시 강남구 테헤란로 123',
-            },
-          ],
-          totalCount: 1,
-        }),
-      });
-
-      // 실제 API 호출 함수 테스트
-      const { fetchLocalDataAPI } = await import('../../src/app/lead-manager/api');
-      const result = await fetchLocalDataAPI(mockSettings, mockStartDate, mockEndDate);
-
-      expect(result.leads).toHaveLength(1);
-      expect(result.leads[0].bizName).toBe('테스트 상점');
-      expect(result.totalCount).toBe(1);
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/localdata'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-          }),
-        })
-      );
-    });
-
-    it('API 호출 실패 시 에러를 적절히 처리한다', async () => {
-      const { fetchLocalDataAPI } = await import('../../src/app/lead-manager/api');
-
-      (fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => ({ success: false, error: 'Internal Server Error' }),
-      });
-
-      const result = await fetchLocalDataAPI(mockSettings, mockStartDate, mockEndDate);
-      expect(result.success).toBe(false);
-    });
-
-    it('Rate limiting을 준수한다', async () => {
-      (fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => ({ success: true, leads: [], totalCount: 0 }),
-      });
-
-      const { fetchLocalDataAPI } = await import('../../src/app/lead-manager/api');
-
-      const startTime = Date.now();
-      await fetchLocalDataAPI(mockSettings, mockStartDate, mockEndDate);
-      await fetchLocalDataAPI(mockSettings, mockStartDate, mockEndDate);
-      const endTime = Date.now();
-
-      // 최소 150ms 이상의 지연 확인 (코드 내부의 setTimeout 또는 간격)
-      expect(endTime - startTime).toBeGreaterThanOrEqual(0); // 실제 구현에 따라 조정 필요
-    });
-
-    it('좌표 변환을 정확하게 수행한다', async () => {
-      (fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          leads: [
-            {
-              bizName: '테스트 상점',
-              coordX: 200000,
-              coordY: 500000,
-            },
-          ],
-          totalCount: 1,
-        }),
-      });
-
-      const { fetchLocalDataAPI } = await import('../../src/app/lead-manager/api');
-      const result = await fetchLocalDataAPI(mockSettings, mockStartDate, mockEndDate);
-
-      expect(result.leads[0]).toHaveProperty('latitude');
-      expect(result.leads[0]).toHaveProperty('longitude');
-    });
+describe('LocalData deployed upstream boundary', () => {
+  it('discards legacy XML records because parsing is discontinued (not coordinate conversion)', async () => {
+    mocks.fetch.mockResolvedValueOnce(new Response('<row><bplcNm>Cafe</bplcNm><x>200000</x><y>500000</y></row>'));
+    const { POST } = await import('../../src/app/api/localdata/route');
+    const response = await POST(post('localdata', params));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true, leads: [], totalCount: 0, message: 'localdata.go.kr 연동이 중단되었습니다.' });
+    const url = new URL(mocks.fetch.mock.calls[0][0]);
+    expect(url.origin + url.pathname).toBe('https://example.com/api/placeholder');
+    expect(url.searchParams.get('lastModTsBgn')).toBe(params.startDate);
+    expect(url.searchParams.get('resultType')).toBe('xml');
   });
-
-  describe('KRIC API 연동', () => {
-    it('캐싱이 동작한다', async () => {
-      // Mock 응답
-      (fetch as any).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          data: [{ stationName: '강남역', lineNum: '2' }],
-        }),
-      });
-
-      // KRIC 데이터는 subwayDataManager를 통해 관리되므로 해당 인터페이스로 테스트하거나 
-      // API 라우트를 직접 테스트하는 방식으로 우회
-    });
+  it('passes an upstream failure through without an undocumented automatic retry', async () => {
+    mocks.fetch.mockResolvedValueOnce(new Response('Unavailable', { status: 503 }));
+    const { POST } = await import('../../src/app/api/localdata/route');
+    const response = await POST(post('localdata', params));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ success: false, error: 'API 서버 오류: 503' });
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
   });
-
-  describe('Resend API 연동', () => {
-    it('이메일을 성공적으로 발송한다', async () => {
-      // Mock Resend API 응답
-      (fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          messageId: 'email-12345',
-          id: 'email-12345',
-          from: 'noreply@wemarket.kr',
-          to: ['client@example.com'],
-          subject: '광고 제안서 드립니다',
-        }),
-      });
-
-      const emailData = {
-        to: 'client@example.com',
-        subject: '광고 제안서 드립니다',
-        html: '<h1>제안서 내용</h1>',
-        attachments: [
-          {
-            filename: 'proposal.pdf',
-            content: Buffer.from('pdf content'),
-          },
-        ],
-      };
-
-      const result = await fetch('/api/send-proposal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(emailData),
-      });
-
-      expect(result.ok).toBe(true);
-      const response = await result.json();
-      expect(response.success).toBe(true);
-      expect(response.messageId).toBe('email-12345');
-    });
-
-    it('이메일 발송 실패 시 에러를 반환한다', async () => {
-      // Mock Resend API 실패 응답
-      (fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: async () => ({
-          error: 'Invalid email address',
-        }),
-      });
-
-      const emailData = {
-        to: 'invalid-email',
-        subject: '테스트',
-        html: '테스트 내용',
-      };
-
-      const result = await fetch('/api/send-proposal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(emailData),
-      });
-
-      expect(result.ok).toBe(false);
-      expect(result.status).toBe(400);
-    });
-
-    it('첨부파일이 있는 이메일을 발송할 수 있다', async () => {
-      // Mock 성공 응답
-      (fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          success: true,
-          id: 'email-with-attachment',
-        }),
-      });
-
-      const emailData = {
-        to: 'client@example.com',
-        subject: '제안서 첨부',
-        html: '<p>제안서를 첨부합니다.</p>',
-        attachments: [
-          {
-            filename: 'proposal.pdf',
-            content: Buffer.from('pdf content'),
-            contentType: 'application/pdf',
-          },
-          {
-            filename: 'image.jpg',
-            content: Buffer.from('image content'),
-            contentType: 'image/jpeg',
-          },
-        ],
-      };
-
-      const result = await fetch('/api/send-proposal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(emailData),
-      });
-
-      expect(result.ok).toBe(true);
-      const response = await result.json();
-      expect(response.success).toBe(true);
-    });
+  it('rejects HTML error pages rather than returning success with fake business rows', async () => {
+    mocks.fetch.mockResolvedValueOnce(new Response('<!DOCTYPE html><html>Unavailable</html>'));
+    const { POST } = await import('../../src/app/api/localdata/route');
+    const response = await POST(post('localdata', params));
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ success: false, error: 'API 서버 연결이 중단되었습니다.' });
   });
-
-  describe('AI 제안서 생성', () => {
-    it('AI 제안서를 성공적으로 생성한다', async () => {
-      // Mock AI API 응답
-      (fetch as any).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          proposal: {
-            title: '강남역 광고 제안서',
-            content: '효과적인 광고 솔루션을 제안합니다...',
-            price: 5000000,
-            duration: '3개월',
-            expectedReach: 100000,
-            roi: 2.5,
-          },
-        }),
-      });
-
-      const proposalRequest = {
-        leadId: 'lead-1',
-        businessType: '음식점',
-        targetAudience: '20-30대',
-        budget: 5000000,
-        duration: '3개월',
-        preferredStations: ['강남역', '역삼역'],
-      };
-
-      const result = await fetch('/api/ai-proposal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(proposalRequest),
-      });
-
-      expect(result.ok).toBe(true);
-      const response = await result.json();
-      expect(response.proposal.title).toBe('강남역 광고 제안서');
-      expect(response.proposal.price).toBe(5000000);
-    });
-
-    it.skip('AI 생성 실패 시 기본 템플릿을 반환한다', async () => {
-      // Mock AI API 실패 응답
-      (fetch as any).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => ({ error: 'AI service unavailable' }),
-      });
-
-      const proposalRequest = {
-        leadId: 'lead-1',
-        businessType: '음식점',
-        budget: 5000000,
-      };
-
-      const result = await fetch('/api/ai-proposal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(proposalRequest),
-      });
-      // 프론트엔드 라우트나 구현에 따라 500에러를 반환하므로 ok는 false가 맞습니다.
-      expect(result.ok).toBe(false);
-      const response = await result.json();
-      expect(response.proposal).toBeDefined();
-      expect(response.proposal.title).toContain('기본');
-    });
+  it('signals timeout recovery with 504 and X-Retry-After instead of testing elapsed time >= 0', async () => {
+    mocks.fetch.mockRejectedValueOnce(new DOMException('Timed out', 'AbortError'));
+    const { POST } = await import('../../src/app/api/localdata/route');
+    const response = await POST(post('localdata', params));
+    expect(response.status).toBe(504);
+    expect(response.headers.get('X-Retry-After')).toBe('30');
+    expect(await response.json()).toEqual({ success: false, error: '공공데이터 포털 서버(localdata.go.kr)가 현재 불안정하거나 응답하지 않습니다.' });
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
   });
+});
 
-  describe('API 재시도 로직', () => {
-    it('일시적인 네트워크 오류 시 재시도한다', async () => {
-      let callCount = 0;
-      const mockSettings = { regionCode: '6110000', regionCodes: ['6110000'] } as any;
-
-      // Mock 첫 번째는 실패, 두 번째는 성공
-      (fetch as any).mockImplementation(() => {
-        callCount++;
-        if (callCount === 1) {
-          return Promise.resolve({
-            ok: false,
-            status: 503,
-          });
-        }
-        return Promise.resolve({
-          ok: true,
-          json: async () => ({ success: true, leads: [], totalCount: 0 }),
-        });
-      });
-
-      const { fetchLocalDataAPI } = await import('../../src/app/lead-manager/api');
-      const result = await fetchLocalDataAPI(mockSettings, new Date(), new Date());
-      expect(result.success).toBe(false);
-    });
+describe('KRIC deployed upstream boundary', () => {
+  it('normalizes a singleton body and requests tagged revalidation', async () => {
+    mocks.fetch.mockResolvedValueOnce(Response.json({ header: { resultCode: '00' }, body: { stinNm: '강남' } }));
+    const { GET } = await import('../../src/app/api/station-info/route');
+    const response = await GET(new NextRequest('http://localhost/api/station-info?line=2&station=강남'));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ success: true, data: [{ stinNm: '강남' }], _metadata: { count: 1, ttl: 3600 } });
+    expect(mocks.fetch).toHaveBeenCalledWith(expect.stringContaining('https://openapi.kric.go.kr/'), expect.objectContaining({ next: { revalidate: 3600, tags: ['kric-station-info', 'station-강남'] } }));
   });
+  it('returns a client fallback hint for upstream HTTP failure', async () => {
+    mocks.fetch.mockResolvedValueOnce(new Response('Maintenance', { status: 503 }));
+    const { GET } = await import('../../src/app/api/station-info/route');
+    const response = await GET(new NextRequest('http://localhost/api/station-info?line=2'));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: false, error: 'KRIC API 요청 실패 (503)', details: 'Maintenance', fallback_data: true });
+  });
+  it('identifies KRIC authentication errors even when upstream HTTP succeeds', async () => {
+    mocks.fetch.mockResolvedValueOnce(Response.json({ header: { resultCode: '30', resultMsg: 'Invalid key' } }));
+    const { GET } = await import('../../src/app/api/station-info/route');
+    const response = await GET(new NextRequest('http://localhost/api/station-info'));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: false, error: 'KRIC API 오류: Invalid key', code: '30', is_auth_error: true });
+  });
+});
 
-  afterAll(() => {
-    // 테스트 환경 변수 정리
-    delete process.env.LOCALDATA_API_KEY;
-    delete process.env.KRIC_API_KEY;
-    delete process.env.RESEND_API_KEY;
-    vi.clearAllMocks();
+describe('Resend deployed handler boundary', () => {
+  it('sends escaped HTML with a server-generated PDF attachment and returns emailId', async () => {
+    const db = prepareMail();
+    mocks.pdf.mockResolvedValueOnce({ success: true, pdfBlob: new Blob(['pdf content'], { type: 'application/pdf' }) });
+    mocks.send.mockResolvedValueOnce({ data: { id: 'email-pdf' }, error: null });
+    const { POST } = await import('../../src/app/api/send-proposal/route');
+    const response = await POST(post('send-proposal', mail));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ success: true, emailId: 'email-pdf', proposalId: 'proposal-1' });
+    expect(mocks.pdf).toHaveBeenCalledExactlyOnceWith('proposal-1');
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ to: mail.recipientEmail, html: expect.stringContaining('&lt;script&gt;alert(1)&lt;/script&gt;'), attachments: [{ filename: expect.stringMatching(/\.pdf$/), content: Buffer.from('pdf content').toString('base64') }] }));
+    expect(db.update).toHaveBeenCalledTimes(2);
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+  it('returns provider send errors and does not mark records SENT', async () => {
+    const db = prepareMail();
+    mocks.pdf.mockResolvedValueOnce({ success: false });
+    mocks.send.mockResolvedValueOnce({ data: null, error: { message: 'Provider unavailable' } });
+    const { POST } = await import('../../src/app/api/send-proposal/route');
+    const response = await POST(post('send-proposal', mail));
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ success: false, message: '이메일 발송 실패: Provider unavailable' });
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+    expect(db.update).not.toHaveBeenCalled();
+  });
+  it('continues with HTML-only mail when PDF generation throws', async () => {
+    const db = prepareMail();
+    mocks.pdf.mockRejectedValueOnce(new Error('Renderer unavailable'));
+    mocks.send.mockResolvedValueOnce({ data: { id: 'email-html' }, error: null });
+    const { POST } = await import('../../src/app/api/send-proposal/route');
+    const response = await POST(post('send-proposal', mail));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ success: true, emailId: 'email-html' });
+    expect(mocks.send).toHaveBeenCalledWith(expect.objectContaining({ attachments: undefined, html: expect.stringContaining('/proposal/proposal-1') }));
+    expect(db.update).toHaveBeenCalledTimes(2);
   });
 });

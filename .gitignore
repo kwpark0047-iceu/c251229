@@ -67,3 +67,7 @@ test_output.*
 
 # 임시 데이터 파일 (git 추적 제외)
 /seoul_clinic_data.csv
+/.next-e2e/
+/.local-state/
+/tmp/
+/.next-admin-isolated/

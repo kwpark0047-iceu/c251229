@@ -6,7 +6,23 @@ on:
   pull_request:
     branches: [master, main, develop]
 
+env:
+  NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54999
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: isolated-ci-not-a-real-key
+  NEXT_TELEMETRY_DISABLED: '1'
+
 jobs:
+  local-tools:
+    name: Local Tool Contracts (No Docker Access)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/release-safety.mjs check
+      - run: node --test scripts/local-vector.test.mjs scripts/release-safety.test.mjs
+
   lint:
     name: Lint Check
     runs-on: ubuntu-latest
@@ -50,10 +66,54 @@ jobs:
           name: test-report
           path: coverage/
 
+  isolated-db:
+    name: Isolated Database Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.106.0
+      - name: Start dedicated local database
+        run: |
+          mkdir -p tmp/ci-db/supabase
+          printf 'project_id = "sopo-isolated"\n' > tmp/ci-db/supabase/config.toml
+          supabase start --workdir tmp/ci-db --exclude edge-runtime > tmp/ci-db-start.log 2>&1
+      - name: Verify database and isolation contracts
+        run: npm run test -- tests/integration/database.test.ts tests/unit/isolated-db-safety.test.ts --maxWorkers=1 --pool=threads
+        env:
+          RUN_ISOLATED_DB_TESTS: '1'
+          TEST_DATABASE_PROJECT_ID: sopo-isolated
+          TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+  e2e:
+    name: Browser Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npx playwright test --config playwright.isolated.config.ts --project=chromium
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-smoke-report
+          path: playwright-report/
+
   build:
     name: Build Check
     runs-on: ubuntu-latest
-    needs: [lint, type-check, test] # 테스트 통과 후 빌드 진행
+    needs: [lint, type-check, test, isolated-db, e2e, local-tools] # 모든 검증 통과 후 빌드 진행
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -62,6 +122,3 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

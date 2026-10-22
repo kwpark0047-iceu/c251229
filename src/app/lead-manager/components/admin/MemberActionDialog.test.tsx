@@ -1,0 +1,96 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+vi.mock('../../auth-service', () => ({ updateProfileStatus: vi.fn(), deleteUserProfile: vi.fn() }));
+import { updateProfileStatus, deleteUserProfile } from '../../auth-service';
+import MemberActionDialog from './MemberActionDialog';
+
+afterEach(() => { cleanup(); vi.clearAllMocks(); });
+const target = { id: 'member', email: 'member@example.com' };
+describe('회원 처리 확인창', () => {
+  it('서버 문의번호를 표시하고 실패한 승인을 자동 재시도하지 않는다', async () => {
+    const message = '회원 승인 저장 설정을 확인해야 합니다. (문의번호: synthetic-trace)';
+    vi.mocked(updateProfileStatus).mockResolvedValue({ success: false, message });
+    const close = vi.fn(), completed = vi.fn();
+    render(<MemberActionDialog target={{ ...target, action: 'approve' }} onClose={close} onComplete={completed} />);
+    await userEvent.click(screen.getByRole('button', { name: '신규 회원가입 승인' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(updateProfileStatus).toHaveBeenCalledTimes(1);
+    expect(completed).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
+  });
+  it('keeps Tab inside when focus returns to the dialog container and restores the opener', async () => {
+    const opener = document.createElement('button');
+    document.body.append(opener);
+    opener.focus();
+    const close = vi.fn();
+    const view = render(<MemberActionDialog target={{ ...target, action: 'approve' }} onClose={close} onComplete={vi.fn()} />);
+    const dialog = screen.getByRole('dialog');
+    const cancel = screen.getByRole('button', { name: '취소' });
+    const submit = screen.getByRole('button', { name: '신규 회원가입 승인' });
+    expect(cancel).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    expect(submit).toHaveFocus();
+    await userEvent.tab();
+    expect(cancel).toHaveFocus();
+    dialog.focus();
+    await userEvent.tab({ shift: true });
+    expect(submit).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(close).toHaveBeenCalledTimes(1);
+    view.unmount();
+    expect(opener).toHaveFocus();
+    opener.remove();
+  });
+  it('삭제 성공 후 목록 갱신 실패는 재삭제 대신 목록만 재시도한다', async () => {
+    vi.mocked(deleteUserProfile).mockResolvedValue({ success: true, message: '삭제 완료' });
+    const completed = vi.fn().mockRejectedValueOnce(new Error('목록 조회 실패')).mockResolvedValueOnce(undefined);
+    render(<MemberActionDialog target={{ ...target, action: 'delete' }} onClose={vi.fn()} onComplete={completed} />);
+    await userEvent.type(screen.getByLabelText(/확인을 위해/), target.email);
+    await userEvent.click(screen.getByRole('button', { name: '회원 계정 삭제' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('삭제 완료');
+    expect(screen.queryByRole('button', { name: '회원 계정 삭제' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '목록 다시 불러오기' }));
+    expect(deleteUserProfile).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(completed).toHaveBeenCalledTimes(2));
+  });
+  it('삭제 이메일이 일치할 때만 계정을 삭제한다', async () => {
+    vi.mocked(deleteUserProfile).mockResolvedValue({ success: true, message: '삭제 완료' });
+    const completed = vi.fn().mockResolvedValue(undefined), close = vi.fn();
+    render(<MemberActionDialog target={{ ...target, action: 'delete' }} onClose={close} onComplete={completed} />);
+    const button = screen.getByRole('button', { name: '회원 계정 삭제' });
+    expect(button).toBeDisabled();
+    await userEvent.type(screen.getByLabelText(/확인을 위해/), target.email);
+    await userEvent.click(button);
+    await waitFor(() => expect(completed).toHaveBeenCalledWith('삭제 완료'));
+    expect(deleteUserProfile).toHaveBeenCalledWith(target.id, target.email);
+    expect(close).toHaveBeenCalled();
+  });
+  it('실패 메시지를 표시하고 확인창을 유지한다', async () => {
+    vi.mocked(updateProfileStatus).mockResolvedValue({ success: false, message: '권한이 없습니다.' });
+    const close = vi.fn();
+    render(<MemberActionDialog target={{ ...target, action: 'approve' }} onClose={close} onComplete={vi.fn()} />);
+    await userEvent.click(screen.getByRole('button', { name: '신규 회원가입 승인' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('권한이 없습니다.');
+    expect(close).not.toHaveBeenCalled();
+  });
+  it('요청 중 중복 클릭과 취소를 막는다', async () => {
+    let resolve!: (value: { success: boolean; message: string }) => void;
+    vi.mocked(updateProfileStatus).mockReturnValue(new Promise(done => { resolve = done; }));
+    const close = vi.fn();
+    render(<MemberActionDialog target={{ ...target, action: 'approve' }} onClose={close} onComplete={vi.fn().mockResolvedValue(undefined)} />);
+    await userEvent.click(screen.getByRole('button', { name: '신규 회원가입 승인' }));
+    expect(screen.getByRole('button', { name: '처리 중...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '취소' })).toBeDisabled();
+    expect(updateProfileStatus).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('dialog')).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.getByRole('dialog')).toHaveFocus();
+    await userEvent.tab({ shift: true });
+    expect(screen.getByRole('dialog')).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(close).not.toHaveBeenCalled();
+    resolve({ success: true, message: '승인 완료' });
+    await waitFor(() => expect(screen.queryByText('처리 중...')).not.toBeInTheDocument());
+  });
+});

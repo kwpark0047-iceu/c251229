@@ -1,25 +1,7 @@
 import { vi } from 'vitest';
 import '@testing-library/jest-dom';
-import fs from 'fs';
-import path from 'path';
 
-// .env.local manually
-try {
-  const envPath = path.resolve(process.cwd(), '.env.local');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    envContent.split('\n').forEach(line => {
-      const match = line.match(/^([^=]+)=(.*)$/);
-      if (match) {
-        const key = match[1].trim();
-        const value = match[2].trim().replace(/^["']|["']$/g, '');
-        process.env[key] = value;
-      }
-    });
-  }
-} catch (err) {
-  console.error('Failed to load .env.local manually:', err);
-}
+// 테스트 환경은 실행 시 명시한 값만 사용하며 운영 설정 파일을 읽지 않습니다.
 
 // Mock Next.js router
 vi.mock('next/navigation', () => ({
