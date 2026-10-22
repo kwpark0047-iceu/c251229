@@ -182,6 +182,17 @@ export default function OptimizedImage({
     onError?.();
   }, [onError]);
 
+  useEffect(() => {
+    const image = imgRef.current;
+    if (!image) return;
+    image.addEventListener('load', handleLoad);
+    image.addEventListener('error', handleError);
+    return () => {
+      image.removeEventListener('load', handleLoad);
+      image.removeEventListener('error', handleError);
+    };
+  }, [handleLoad, handleError]);
+
   // 플레이스홀더 이미지 생성
   const placeholderSrc = blurDataURL || 
     (width && height ? generateBlurDataURL(width, height) : null);
@@ -212,8 +223,6 @@ export default function OptimizedImage({
         sizes={sizes}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"
-        onLoad={handleLoad}
-        onError={handleError}
         className={cn(
           'w-full h-full object-cover transition-opacity duration-300',
           isLoaded ? 'opacity-100' : 'opacity-0'

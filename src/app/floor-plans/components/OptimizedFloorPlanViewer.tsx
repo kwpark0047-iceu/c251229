@@ -146,8 +146,8 @@ export default function OptimizedFloorPlanViewer({
   }, [render]);
 
   // 마우스 클릭 시 마커 체크
-  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
-    if (isDragging) return;
+  const handleCanvasClick = useCallback((e: MouseEvent) => {
+    if (e.target !== canvasRef.current || isDragging) return;
 
     const canvas = canvasRef.current;
     if (!canvas || !imageRef.current) return;
@@ -175,13 +175,13 @@ export default function OptimizedFloorPlanViewer({
     }
   }, [adPositions, zoom, pan, isDragging, onPositionClick]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+  const handleMouseDown = (e: MouseEvent) => {
+    if (e.target !== canvasRef.current || e.button !== 0) return;
     setIsDragging(true);
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = (e: MouseEvent) => {
     lastMousePos.current = { x: e.clientX, y: e.clientY };
     if (!isDragging) return;
     setPan({
@@ -192,7 +192,8 @@ export default function OptimizedFloorPlanViewer({
 
   const handleMouseUp = () => setIsDragging(false);
 
-  const handleWheel = (e: React.WheelEvent) => {
+  const handleWheel = (e: WheelEvent) => {
+    if (e.target !== canvasRef.current) return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * delta));
@@ -223,6 +224,26 @@ export default function OptimizedFloorPlanViewer({
     }
     setIsFullscreen(!isFullscreen);
   };
+
+  // 캔버스에서 발생한 이벤트만 처리하고 키보드 마커 버튼은 별도로 제공합니다.
+  useEffect(() => {
+    const viewport = containerRef.current;
+    if (!viewport) return;
+    viewport.addEventListener('mousedown', handleMouseDown);
+    viewport.addEventListener('mousemove', handleMouseMove);
+    viewport.addEventListener('mouseup', handleMouseUp);
+    viewport.addEventListener('mouseleave', handleMouseUp);
+    viewport.addEventListener('wheel', handleWheel, { passive: false });
+    viewport.addEventListener('click', handleCanvasClick);
+    return () => {
+      viewport.removeEventListener('mousedown', handleMouseDown);
+      viewport.removeEventListener('mousemove', handleMouseMove);
+      viewport.removeEventListener('mouseup', handleMouseUp);
+      viewport.removeEventListener('mouseleave', handleMouseUp);
+      viewport.removeEventListener('wheel', handleWheel);
+      viewport.removeEventListener('click', handleCanvasClick);
+    };
+  });
 
   if (!plan) return null;
 
@@ -276,14 +297,22 @@ export default function OptimizedFloorPlanViewer({
       <div
         ref={containerRef}
         className="flex-1 relative cursor-grab active:cursor-grabbing"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-        onClick={handleCanvasClick}
       >
         <canvas ref={canvasRef} className="w-full h-full" />
+        {onPositionClick && (
+          <div className="sr-only focus-within:not-sr-only focus-within:absolute focus-within:top-2 focus-within:left-2 focus-within:z-30 focus-within:bg-[var(--bg-secondary)]">
+            {adPositions.map((pos) => (
+              <button
+                type="button"
+                key={pos.id}
+                className="p-2 focus-visible:outline-2"
+                onClick={() => onPositionClick(pos)}
+              >
+                {pos.label || pos.adCode || '광고 위치'}
+              </button>
+            ))}
+          </div>
+        )}
 
         {isLoading && (
           <div className="absolute inset-0 bg-[var(--bg-tertiary)]/80 backdrop-blur-sm flex items-center justify-center z-20">

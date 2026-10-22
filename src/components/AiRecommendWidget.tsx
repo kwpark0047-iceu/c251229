@@ -113,11 +113,11 @@ export default function AiRecommendWidget() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in-up">
             <div className="space-y-6">
               <div>
-                <label className="metro-input-label flex items-center gap-2">
+                <label htmlFor="recommend-business" className="metro-input-label flex items-center gap-2">
                   <Building className="w-3.5 h-3.5 text-blue-400" />
                   업종 선택
                 </label>
-                <select 
+                <select id="recommend-business"
                   className="metro-input appearance-none bg-void/50"
                   value={formData.businessType}
                   onChange={(e) => setFormData({...formData, businessType: e.target.value})}
@@ -128,11 +128,11 @@ export default function AiRecommendWidget() {
               </div>
 
               <div>
-                <label className="metro-input-label flex items-center gap-2">
+                <label htmlFor="recommend-budget" className="metro-input-label flex items-center gap-2">
                   <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
                   월간 예산
                 </label>
-                <select 
+                <select id="recommend-budget"
                   className="metro-input appearance-none bg-void/50"
                   value={formData.budget}
                   onChange={(e) => setFormData({...formData, budget: e.target.value})}
@@ -143,11 +143,11 @@ export default function AiRecommendWidget() {
               </div>
 
               <div>
-                <label className="metro-input-label flex items-center gap-2">
+                <label htmlFor="recommend-address" className="metro-input-label flex items-center gap-2">
                   <MapPin className="w-3.5 h-3.5 text-orange-400" />
                   희망 지역
                 </label>
-                <select 
+                <select id="recommend-address"
                   className="metro-input appearance-none bg-void/50"
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}

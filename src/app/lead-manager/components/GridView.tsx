@@ -92,7 +92,7 @@ export default function GridView({
 
       {totalCount > pageSize && (
         <div className="mt-8 mb-4 flex items-center justify-center gap-2">
-          <button
+          <button type="button"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage <= 1}
             title="이전 페이지"
@@ -112,7 +112,7 @@ export default function GridView({
               if (pageNum > totalPages) return null;
 
               return (
-                <button
+                <button type="button"
                   key={pageNum}
                   onClick={() => onPageChange(pageNum)}
                   className={`w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300 border border-[var(--glass-border)] ${
@@ -127,7 +127,7 @@ export default function GridView({
             })}
           </div>
 
-          <button
+          <button type="button"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage >= Math.ceil(totalCount / pageSize)}
             title="다음 페이지"
@@ -193,11 +193,10 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
         style={{
           '--delay': `${index * 20}ms`,
         } as React.CSSProperties}
-        onClick={(e) => {
-          if ((e.target as HTMLElement).closest('button, a')) return;
-          onSelect();
-        }}
+
       >
+        <button type="button" aria-label={`${lead.bizName} 상세 보기`} onClick={onSelect}
+          className="pointer-events-auto absolute inset-0 z-0 rounded-pro focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--metro-line4)]" />
         <div
           style={{
             '--glow-gradient': `radial-gradient(circle at 50% 0%, ${statusColor.glow} 0%, transparent 70%)`,
@@ -206,7 +205,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
         />
 
         <div
-          className="relative px-4 py-3 border-b bg-[--status-bg] border-[--status-border]"
+          className="relative pointer-events-none px-4 py-3 border-b bg-[--status-bg] border-[--status-border]"
           style={{
             '--status-bg': statusColor.bg,
             '--status-border': statusColor.border,
@@ -239,14 +238,14 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
               <ProgressDots leadId={lead.id} progress={progress} />
             </div>
             <div className="relative">
-              <button
+              <button type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsStatusOpen(!isStatusOpen);
                 }}
                 title="상태 변경 메뉴 열기"
                 aria-label="상태 변경 메뉴 열기"
-                className="p-1.5 rounded-lg transition-colors hover:bg-white/10 text-[--status-text]"
+                className="relative z-10 pointer-events-auto p-1.5 rounded-lg transition-colors hover:bg-white/10 text-[--status-text]"
                 style={{ '--status-text': statusColor.text } as React.CSSProperties}
               >
                 <ChevronDown className="w-4 h-4" />
@@ -265,15 +264,15 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
           </div>
         </div>
 
-        <div className="relative p-4">
-          <button
+        <div className="relative pointer-events-none p-4">
+          <button type="button"
             onClick={(e) => {
               e.stopPropagation();
               onMapView?.();
             }}
             title={`${lead.bizName} 지도에서 보기`}
             aria-label={`${lead.bizName} 지도에서 보기`}
-            className="font-bold text-[var(--text-primary)] mb-2 line-clamp-1 text-left w-full hover:text-[var(--metro-line4)] hover:underline transition-colors"
+            className="relative z-10 pointer-events-auto font-bold text-[var(--text-primary)] mb-2 line-clamp-1 text-left w-full hover:text-[var(--metro-line4)] hover:underline transition-colors"
           >
             <HighlightText text={lead.bizName} searchQuery={searchQuery} />
           </button>
@@ -358,46 +357,46 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
         </div>
 
         <div
-          className={`relative px-4 border-t flex gap-4 ${isFieldMode ? 'py-4' : 'py-3'} border-[var(--border-subtle)] bg-[var(--bg-tertiary)]`}
+          className={`relative pointer-events-none px-4 border-t flex gap-4 ${isFieldMode ? 'py-4' : 'py-3'} border-[var(--border-subtle)] bg-[var(--bg-tertiary)]`}
         >
           {lead.phone && (
-            <button
+            <button type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowCallModal(true);
               }}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line2)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
+              className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line2)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
             >
               <Phone className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
               통화
             </button>
           )}
-          <button
+          <button type="button"
             onClick={(e) => {
               e.stopPropagation();
               onSelect();
             }}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line4)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
+            className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line4)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
           >
             <FileText className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
 제안
           </button>
-          <button
+          <button type="button"
             onClick={(e) => {
               e.stopPropagation();
               onDeleteLead?.(lead.id);
             }}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-red-500/80 ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
+            className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-red-500/80 ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
           >
             <Trash2 className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />삭제
           </button>
           {onSopoClick && (
-            <button
+            <button type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onSopoClick(lead);
               }}
-              className={`flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line5)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
+              className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line5)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
               title="SOPO 상가정보 조회"
             >
               <MapPin className="w-4 h-4" /> SOPO
@@ -423,14 +422,14 @@ function StatusDropdown({ currentStatus, onSelect, onClose }: { currentStatus: L
 
   return (
     <>
-      <div className="fixed inset-0 z-10" onClick={onClose} />
+      <button type="button" aria-label="상태 변경 메뉴 닫기" className="pointer-events-auto fixed inset-0 z-10" onClick={onClose} />
       <div
-        className="absolute right-0 top-full mt-2 w-40 rounded-xl border py-2 z-20 bg-[var(--glass-bg)] border-[var(--glass-border)] backdrop-blur-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
+        className="pointer-events-auto absolute right-0 top-full mt-2 w-40 rounded-xl border py-2 z-20 bg-[var(--glass-bg)] border-[var(--glass-border)] backdrop-blur-[20px] shadow-[0_10px_30px_rgba(0,0,0,0.4)]"
       >
         {statuses.map(status => {
           const color = STATUS_METRO_COLORS[status];
           return (
-            <button
+            <button type="button"
               key={status}
               onClick={() => onSelect(status)}
               className={`w-full px-4 py-2.5 text-left text-sm flex items-center gap-3 transition-colors ${status === currentStatus ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}`}

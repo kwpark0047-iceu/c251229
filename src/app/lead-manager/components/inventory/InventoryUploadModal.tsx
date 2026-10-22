@@ -4,7 +4,7 @@
  * 인벤토리 엑셀 업로드 모달
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { ExcelUploadResult } from '../../types';
@@ -37,10 +37,10 @@ export default function InventoryUploadModal({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [result, setResult] = useState<ExcelUploadResult | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
+    e.target.value = '';
     if (selectedFile) {
       // 업로드 가능한 파일 확장자 및 타입 정의
       const validExtensions = ['.xlsx', '.xls', '.csv'];
@@ -106,7 +106,9 @@ export default function InventoryUploadModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 배경 */}
-      <div
+      <button
+        type="button"
+        aria-label="배경 닫기"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
@@ -133,10 +135,7 @@ export default function InventoryUploadModal({
         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
           {/* 드래그 앤 드롭 영역 */}
           <div
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${file
+            className={`relative border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-blue-500 ${file
               ? 'border-green-300 bg-green-50'
               : 'border-slate-300 hover:border-blue-400 hover:bg-blue-50'
               }`}
@@ -146,11 +145,12 @@ export default function InventoryUploadModal({
               name="file"
               title="인벤토리 엑셀 템플릿 업로드"
               aria-label="인벤토리 엑셀 템플릿 업로드"
-              ref={fileInputRef}
               type="file"
               accept=".xlsx,.xls,.csv"
               onChange={handleFileChange}
-              className="hidden"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
             />
 
             {file ? (
@@ -176,9 +176,9 @@ export default function InventoryUploadModal({
 
           {/* 매체 유형 선택 */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">
+            <h3 className="text-sm font-medium text-slate-700">
               매체 유형 선택
-            </label>
+            </h3>
             <div className="grid grid-cols-4 gap-2">
               {MEDIA_TYPES.map((type) => (
                 <button
@@ -225,10 +225,11 @@ export default function InventoryUploadModal({
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                  <label htmlFor="inventory-available-from" className="block text-xs font-medium text-slate-700 mb-1">
                     사용 가능일 (available_from)
                   </label>
                   <input
+                    id="inventory-available-from"
                     type="date"
                     value={availableFrom}
                     onChange={(e) => setAvailableFrom(e.target.value)}
@@ -237,10 +238,11 @@ export default function InventoryUploadModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">
+                  <label htmlFor="inventory-available-to" className="block text-xs font-medium text-slate-700 mb-1">
                     계약 만료일 (available_to)
                   </label>
                   <input
+                    id="inventory-available-to"
                     type="date"
                     value={availableTo}
                     onChange={(e) => setAvailableTo(e.target.value)}

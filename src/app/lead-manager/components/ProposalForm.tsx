@@ -445,7 +445,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <button type="button" aria-label="제안서 작성 닫기" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <div
         className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border bg-[var(--glass-bg)] border-[var(--glass-border)] shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
@@ -526,7 +526,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
           {proposalType === 'AUTO' ? (
             <>
               <div>
-                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                <label htmlFor="recipient-email" className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                   <Mail className="w-4 h-4 inline mr-2" />
                   이메일 유효성 검사
                 </label>
@@ -553,7 +553,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               </div>
 
               <div>
-<label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+<label htmlFor="selected-station" className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                   <MapPin className="w-4 h-4 inline mr-2" />
                   <span>광고 매체 선택</span>
                 </label>
@@ -562,8 +562,8 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                   name="selectedStation"
                   value={selectedStation?.name || ''}
                   onChange={(e) => handleStationChange(e.target.value)}
-                   aria-label="??궗 ?좏깮"
-                   title="??궗 ?좏깮"
+                   aria-label="역사 선택"
+                   title="역사 선택"
                    className="w-full px-4 py-3 bg-[var(--bg-secondary)] border-[var(--border-subtle)] rounded-xl border text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)]"
                 >
                   <option value="">역사를 선택하세요</option>
@@ -617,11 +617,11 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                <p id="inventory-heading" className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                   <MapPin className="w-4 h-4 inline mr-2" />
                   愿묎퀬 留ㅼ껜 ?좏깮
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                </p>
+                <div role="group" aria-labelledby="inventory-heading" className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {loadingInventory ? (
                     <div className="col-span-full py-8 flex flex-col items-center justify-center text-[var(--text-muted)]">
                       <Loader2 className="w-6 h-6 animate-spin mb-2" />
@@ -664,17 +664,17 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
               {/* 怨좊룄?? 留ㅼ껜 ?쒖븞??異붽? 泥⑤? ?뱀뀡 */}
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-3">
+                <p id="attachment-heading" className="block text-sm font-semibold text-[var(--text-secondary)] mb-3">
                   <FilePlus className="w-4 h-4 inline mr-2 text-[var(--metro-line2)]" />
                   留ㅼ껜 ?쒖븞??異붽? 泥⑤? (湲곗〈 ?낅줈???뚯씪)
-                </label>
-                <div className="bg-[var(--bg-tertiary)] p-4 rounded-2xl border border-[var(--border-subtle)] space-y-3">
+                </p>
+                <div role="group" aria-labelledby="attachment-heading" className="bg-[var(--bg-tertiary)] p-4 rounded-2xl border border-[var(--border-subtle)] space-y-3">
                   {isLoadingAttachments ? (
                     <div className="py-4 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-[var(--metro-line2)]" /></div>
                   ) : externalProposals.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2">
                       {externalProposals.map(prop => (
-                        <div 
+                        <button type="button" aria-pressed={selectedAttachmentIds.includes(prop.id)}
                           key={prop.id}
                           onClick={() => {
                             if (selectedAttachmentIds.includes(prop.id)) {
@@ -689,19 +689,19 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                             : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--text-muted)]'
                           }`}
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`p-1.5 rounded-lg ${selectedAttachmentIds.includes(prop.id) ? 'bg-[var(--metro-line2)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'}`}>
+                          <span className="flex items-center gap-3">
+                            <span className={`p-1.5 rounded-lg ${selectedAttachmentIds.includes(prop.id) ? 'bg-[var(--metro-line2)] text-white' : 'bg-[var(--bg-tertiary)] text-[var(--text-muted)]'}`}>
                               <Check className="w-3.5 h-3.5" />
-                            </div>
-                            <div className="flex flex-col">
+                            </span>
+                            <span className="flex flex-col">
                               <span className="text-sm font-bold text-[var(--text-primary)]">{prop.title}</span>
                               <span className="text-xs text-[var(--text-muted)]">{prop.originalFilename}</span>
-                            </div>
-                          </div>
-                          <div className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)] font-medium">
+                            </span>
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-muted)] font-medium">
                             {prop.fileType || 'PDF'}
-                          </div>
-                        </div>
+                          </span>
+                        </button>
                       ))}
                     </div>
                   ) : (
@@ -720,7 +720,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
               {/* ?몄궗留??낅젰 */}
               <div>
-                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
+                <label htmlFor="greeting-message" className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                   <FileText className="w-4 h-4 inline mr-2" />
 <span className="font-bold">인사말 및 제안 내용</span>
                 </label>
@@ -935,9 +935,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
               {/* ?쒕ぉ ?낅젰 ?꾨뱶 異붽? */}
               <div>
-                <label className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
-                  ?쒖븞???쒕ぉ
-                </label>
+                <label htmlFor="upload-title" className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">제안서 제목</label>
                 <input
                   id="upload-title"
                   name="uploadTitle"
@@ -950,16 +948,31 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               </div>
 
               {/* ?쒕옒洹????쒕∼ ?곸뿭 */}
-              <div className={`text-center p-8 border-2 border-dashed rounded-2xl transition-colors group overflow-hidden ${
+              <div className={`relative text-center p-8 border-2 border-dashed rounded-2xl transition-colors group overflow-hidden focus-within:ring-2 focus-within:ring-[var(--metro-line4)] ${
                   dragActive ? 'border-[var(--metro-line4)] bg-[var(--bg-tertiary)]' : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)]'
                 }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
               >
+                <input
+                  type="file"
+                  id="file-upload"
+                  aria-label="제안서 파일 선택"
+                  className="absolute inset-0 h-full w-full opacity-0 cursor-pointer"
+                  accept=".pdf,.ppt,.pptx"
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      const file = e.target.files[0];
+                      setUploadFile(file);
+                      setUploadTitle(file.name.split('.')[0]);
+                      e.currentTarget.value = '';
+                    }
+                  }}
+                />
                 {!uploadFile ? (
-                  <div className="flex flex-col items-center animate-float">
+                  <div className="relative pointer-events-none flex flex-col items-center animate-float">
                     <div className="w-16 h-16 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                       <FileUp className="w-8 h-8 text-[var(--metro-line4)]" />
                     </div>
@@ -969,19 +982,6 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     <p className="text-sm text-[var(--text-muted)] mb-6">
                       PDF, PPT, PPTX ?뚯씪 吏??(理쒕? 100MB)
                     </p>
-                    <input
-                      type="file"
-                      id="file-upload"
-                      className="hidden"
-                      accept=".pdf,.ppt,.pptx"
-                      onChange={(e) => {
-                        if (e.target.files?.[0]) {
-                          const file = e.target.files[0];
-                          setUploadFile(file);
-                          setUploadTitle(file.name.split('.')[0]);
-                        }
-                      }}
-                    />
                     <label
                       htmlFor="file-upload"
                       className="px-6 py-2.5 rounded-xl bg-[var(--metro-line4)] text-white font-bold cursor-pointer hover:shadow-lg hover:shadow-[var(--metro-line4)]/20 transition-all active:scale-95"
@@ -990,7 +990,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     </label>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center animate-float">
+                  <div className="relative pointer-events-none flex flex-col items-center animate-float">
                     <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mb-4">
                       <CheckCircle className="w-8 h-8 text-green-500" />
                     </div>
@@ -1003,7 +1003,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                         setUploadFile(null);
                         setUploadTitle('');
                       }}
-                      className="text-sm text-red-400 hover:text-red-300 transition-colors font-medium flex items-center gap-1"
+                      className="relative pointer-events-auto text-sm text-red-400 hover:text-red-300 transition-colors font-medium flex items-center gap-1"
                     >
                       <XCircle className="w-4 h-4" />
                       ?ㅻⅨ ?뚯씪 ?좏깮
@@ -1014,10 +1014,10 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
               {/* ?낅줈?????곹깭 ?좏깮 */}
               <div className="flex flex-col gap-3">
-                <label className="text-sm font-semibold text-[var(--text-secondary)]">?낅줈?????곹깭 ?ㅼ젙</label>
-                <div className="flex gap-2">
+                <p id="upload-status-heading" className="text-sm font-semibold text-[var(--text-secondary)]">?낅줈?????곹깭 ?ㅼ젙</p>
+                <div role="group" aria-labelledby="upload-status-heading" className="flex gap-2">
                   <button
-                    onClick={() => setUploadStatus('SENT')}
+                    type="button" aria-pressed={uploadStatus === 'SENT'} onClick={() => setUploadStatus('SENT')}
                     className={`flex-1 p-4 rounded-xl border text-center transition-all ${
                       uploadStatus === 'SENT'
                         ? 'border-blue-500 bg-blue-500/10 text-blue-500'
@@ -1028,7 +1028,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     <div className="text-xs opacity-70">?쒖뒪?쒖뿉???쒖븞??諛쒖넚 ?꾨즺濡?泥섎━?⑸땲??</div>
                   </button>
                   <button
-                    onClick={() => setUploadStatus('DRAFT')}
+                    type="button" aria-pressed={uploadStatus === 'DRAFT'} onClick={() => setUploadStatus('DRAFT')}
                     className={`flex-1 p-4 rounded-xl border text-center transition-all ${
                       uploadStatus === 'DRAFT'
                         ? 'border-amber-500 bg-amber-500/10 text-amber-500'
@@ -1112,7 +1112,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
       {showConfirmSend && (
         <div className="fixed inset-0 z-[55] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setShowConfirmSend(false)} />
+          <button type="button" aria-label="발송 확인 닫기" className="absolute inset-0 bg-black/70" onClick={() => setShowConfirmSend(false)} />
           <div className="relative w-full max-w-md rounded-2xl border p-6 bg-[var(--bg-primary)] border-[var(--border-subtle)] animate-float">
             <div className="text-center mb-6">
               <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">?대찓??諛쒖넚 ?뺤씤</h3>

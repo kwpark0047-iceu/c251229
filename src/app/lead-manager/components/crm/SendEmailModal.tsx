@@ -63,7 +63,7 @@ export default function SendEmailModal({
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label htmlFor="email-to" className="block text-sm font-medium text-slate-700 mb-1">
                             받는 사람 <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -79,7 +79,7 @@ export default function SendEmailModal({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label htmlFor="email-subject" className="block text-sm font-medium text-slate-700 mb-1">
                             제목 <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -95,7 +95,7 @@ export default function SendEmailModal({
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                        <label htmlFor="email-body" className="block text-sm font-medium text-slate-700 mb-1">
                             내용
                         </label>
                         <textarea

@@ -31,7 +31,6 @@ export default function AdPositionDetailModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div 
         className="bg-[var(--bg-secondary)] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-[var(--border-subtle)] animate-in fade-in zoom-in duration-200"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[var(--border-subtle)]">
@@ -51,6 +50,8 @@ export default function AdPositionDetailModal({
             </p>
           </div>
           <button
+            type="button"
+            aria-label="상세 모달 닫기"
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >

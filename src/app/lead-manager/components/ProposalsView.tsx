@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   FileText, 
   Download, 
@@ -19,12 +19,16 @@ import {
   Plus,
   Users as UsersIcon,
   Loader2,
-  Eye
+  Eye,
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import { Proposal, ProposalStatus, Lead, STATUS_METRO_COLORS } from '../types';
 import { getProposals, getProposalLogs } from '../proposal-service';
 import { getLeads } from '../supabase-service';
 import ProposalForm from './ProposalForm';
+import ProposalDeleteDialog from './ProposalDeleteDialog';
+import { getCurrentUser } from '../auth-service';
 
 interface ProposalsViewProps {
   defaultOpenUpload?: boolean;
@@ -33,6 +37,11 @@ interface ProposalsViewProps {
 export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps) {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const loadSequence = useRef(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProposalStatus | 'ALL'>('ALL');
   
@@ -57,17 +66,31 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
     }
   }, [defaultOpenUpload]);
 
-  useEffect(() => {
-    const fetchProposals = async () => {
-      setIsLoading(true);
+  const loadProposals = useCallback(async () => {
+    const sequence = ++loadSequence.current;
+    setIsLoading(true);
+    setLoadError('');
+    try {
       const result = await getProposals();
-      if (result.success) {
-        setProposals(result.proposals);
-      }
-      setIsLoading(false);
-    };
-    fetchProposals();
+      if (sequence !== loadSequence.current) return;
+      if (!result.success) { setLoadError(result.message || '제안서 목록을 불러오지 못했습니다.'); return; }
+      setProposals(result.proposals);
+    } catch {
+      if (sequence === loadSequence.current) setLoadError('제안서 목록을 불러오지 못했습니다. 다시 시도해주세요.');
+    } finally {
+      if (sequence === loadSequence.current) setIsLoading(false);
+    }
   }, []);
+
+  const invalidateLoads = useCallback(() => { ++loadSequence.current; }, []);
+
+  useEffect(() => {
+    let active = true;
+    void loadProposals();
+    getCurrentUser().then(user => { if (active) setIsSuperAdmin(user?.isSuperAdmin === true); })
+      .catch(() => { if (active) setIsSuperAdmin(false); });
+    return () => { active = false; invalidateLoads(); };
+  }, [loadProposals, invalidateLoads]);
 
   const fetchLeadsForSelect = async (query: string) => {
     setIsLeadsLoading(true);
@@ -138,6 +161,15 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      {loadError && <p role="alert" className="rounded-xl border border-rose-500 p-4 text-rose-500">{loadError}</p>}
+      {feedback && <p role="status" className="rounded-xl border border-[var(--border-subtle)] p-4 text-[var(--text-primary)]">{feedback}</p>}
+      {deleteTarget && <ProposalDeleteDialog key={deleteTarget.id} proposal={deleteTarget} onClose={() => setDeleteTarget(null)}
+        onDeleted={(id, message, warnings) => {
+          invalidateLoads();
+          setProposals(previous => previous.filter(proposal => proposal.id !== id));
+          setFeedback([message, ...warnings].join(' '));
+          if (selectedLogProposal?.id === id) { setShowLogModal(false); setSelectedLogProposal(null); setLogs([]); }
+        }} />}
       {/* 필터 및 검색 헤더 */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--bg-secondary)] p-4 rounded-2xl border border-[var(--border-subtle)] shadow-sm">
         <div className="flex items-center gap-3 flex-1 max-w-md">
@@ -157,7 +189,7 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
 
         <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
           <Filter className="w-4 h-4 text-[var(--text-muted)] mr-1 shrink-0" />
-          {(['ALL', 'DRAFT', 'SENT', 'VIEWED', 'ACCEPTED'] as const).map(status => (
+          {(['ALL', 'DRAFT', 'SENT', 'VIEWED', 'ACCEPTED', 'REJECTED'] as const).map(status => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
@@ -173,6 +205,8 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
           ))}
           
           <div className="h-6 w-px bg-[var(--border-subtle)] mx-2 hidden md:block" />
+          <button type="button" onClick={loadProposals} title="제안서 목록 새로고침" aria-label="제안서 목록 새로고침"
+            className="rounded-xl border border-[var(--border-subtle)] p-2 text-[var(--text-secondary)]"><RefreshCw className="h-4 w-4" /></button>
           
           <button
             onClick={() => {
@@ -229,7 +263,7 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
                       <span className={`px-2 py-1 rounded-md text-xs font-bold uppercase ${
                         proposal.isExternal ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
                       }`}>
-                        {proposal.isExternal ? (proposal.fileType || 'FILE') : 'GENERATED'}
+                        {proposal.isExternal ? (proposal.fileType || '업로드 파일') : '자동 생성'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -247,7 +281,7 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity">
                         {proposal.pdfUrl && (
                           <>
                             <a 
@@ -276,6 +310,11 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
                         >
                           <History className="w-4 h-4" />
                         </button>
+                        {isSuperAdmin && <button type="button" onClick={() => { setFeedback(''); setDeleteTarget(proposal); }}
+                          title="제안서 삭제" aria-label={`${proposal.title} 제안서 삭제`}
+                          className="rounded-lg border border-rose-500/30 p-2 text-rose-500 hover:bg-rose-500/10 focus-visible:outline-2 focus-visible:outline-rose-500">
+                          <Trash2 className="inline h-4 w-4" aria-hidden="true" /> <span>삭제</span>
+                        </button>}
                       </div>
                     </td>
                   </tr>
@@ -435,10 +474,7 @@ export default function ProposalsView({ defaultOpenUpload }: ProposalsViewProps)
             setShowUploadModal(false);
             setSelectedLead(null);
           }}
-          onSuccess={async () => {
-            const result = await getProposals();
-            if (result.success) setProposals(result.proposals);
-          }}
+          onSuccess={loadProposals}
         />
       )}
     </div>

@@ -390,21 +390,15 @@ export function ResponsiveCard({
 
   return (
     <div
-      className={`bg-white ${cardShadow} ${cardRounded} ${cardPadding} ${className}`}
-      onClick={onClick}
-      {...(onClick ? { 
-        role: "button",
-        tabIndex: 0,
-        "aria-label": typeof children === 'string' ? children : '카드 선택'
-      } : {})}
-      onKeyDown={onClick ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick();
-        }
-      } : undefined}
+      className={`relative isolate bg-white ${cardShadow} ${cardRounded} ${cardPadding} ${className}`}
     >
-      {children}
+      {onClick ? <>
+        <button type="button" onClick={onClick} aria-label={typeof children === 'string' ? children : '카드 선택'}
+          className="absolute inset-0 z-0 rounded-[inherit] focus-visible:outline-2 focus-visible:outline-offset-2" />
+        <div className="pointer-events-none [&_button]:pointer-events-auto [&_button]:relative [&_button]:z-10 [&_a]:pointer-events-auto [&_a]:relative [&_a]:z-10 [&_input]:pointer-events-auto [&_input]:relative [&_input]:z-10 [&_select]:pointer-events-auto [&_select]:relative [&_select]:z-10 [&_textarea]:pointer-events-auto [&_textarea]:relative [&_textarea]:z-10">
+          {children}
+        </div>
+      </> : children}
     </div>
   );
 }

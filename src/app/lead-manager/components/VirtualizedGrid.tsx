@@ -44,22 +44,23 @@ const LeadCard = React.memo(({
 
   return (
     <div
-      className={`glass-card p-4 cursor-pointer transition-all duration-200 ${isSelected ? 'ring-2 ring-blue-500' : 'hover:shadow-lg'
+      className={`glass-card relative p-4 cursor-pointer transition-all duration-200 ${isSelected ? 'ring-2 ring-blue-500' : 'hover:shadow-lg'
         }`}
-      onClick={onSelect}
     >
-      <div className="flex justify-between items-start mb-2">
+      <button type="button" aria-label={`${lead.bizName} 선택`} aria-pressed={isSelected} onClick={onSelect}
+        className="pointer-events-auto absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500" />
+      <div className="pointer-events-none flex justify-between items-start mb-2">
         <h3 className="font-semibold text-gray-900 truncate flex-1">
           {lead.bizName}
         </h3>
         <div className="relative">
-          <button
+          <button type="button"
             onClick={(e) => {
               e.stopPropagation();
               setIsMenuOpen(!isMenuOpen);
             }}
             title="메뉴 열기"
-            className="p-1 hover:bg-gray-100 rounded"
+            className="relative z-10 pointer-events-auto p-1 hover:bg-gray-100 rounded"
           >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -68,33 +69,33 @@ const LeadCard = React.memo(({
 
           {isMenuOpen && (
             <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg z-10">
-              <button
+              <button type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEdit();
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                className="relative z-10 pointer-events-auto w-full text-left px-4 py-2 hover:bg-gray-100"
               >
                 수정
               </button>
-              <button
+              <button type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onCall();
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                className="relative z-10 pointer-events-auto w-full text-left px-4 py-2 hover:bg-gray-100"
               >
                 통화
               </button>
-              <button
+              <button type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete();
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                className="relative z-10 pointer-events-auto w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
               >
                 삭제
               </button>
@@ -103,7 +104,7 @@ const LeadCard = React.memo(({
         </div>
       </div>
 
-      <div className="space-y-1 text-sm">
+      <div className="pointer-events-none space-y-1 text-sm">
         <p className="text-gray-600 truncate">{lead.roadAddress}</p>
         <p className="text-gray-500">{lead.bizType}</p>
         <div className="flex items-center justify-between">
@@ -119,7 +120,7 @@ const LeadCard = React.memo(({
         </div>
       </div>
 
-      <div className="mt-3 flex gap-2">
+      <div className="pointer-events-none mt-3 flex gap-2">
         <select
           value={lead.status}
           onChange={(e) => {
@@ -127,7 +128,7 @@ const LeadCard = React.memo(({
             onUpdateStatus(e.target.value as LeadStatus);
           }}
           title="리드 상태 변경"
-          className="text-xs px-2 py-1 border rounded"
+          className="relative z-10 pointer-events-auto text-xs px-2 py-1 border rounded"
           onClick={(e) => e.stopPropagation()}
         >
           <option value="NEW">신규</option>

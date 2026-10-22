@@ -15,6 +15,7 @@ import RoleGuard from '@/components/RoleGuard';
 import { applyThemeVariables, ThemeType } from '../utils/design-tokens';
 import { toast } from 'sonner';
 import SuperAdminDashboard from '../components/admin/SuperAdminDashboard';
+import { useOnlinePresence } from '../use-online-presence';
 
 interface ActivityLog {
     id: string;
@@ -35,6 +36,7 @@ interface MemberWithPermissions {
 export default function AdminDashboardPage() {
     const router = useRouter();
     const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+    const { accounts: onlineAccounts, connection: presenceConnection } = useOnlinePresence(currentUser?.id);
     const [logs, setLogs] = useState<ActivityLog[]>([]);
     const [members, setMembers] = useState<MemberWithPermissions[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -150,7 +152,7 @@ export default function AdminDashboardPage() {
 
     // 슈퍼 어드민인 경우 전용 대시보드 표시
     if (currentUser?.isSuperAdmin) {
-        return <SuperAdminDashboard user={currentUser} />;
+        return <SuperAdminDashboard user={currentUser} onlineAccounts={onlineAccounts} presenceConnection={presenceConnection} />;
     }
 
     return (

@@ -38,7 +38,7 @@ export default function NotificationCenter() {
                 onClick={() => setIsOpen(!isOpen)}
                 className={`p-2 rounded-lg transition-all relative ${isOpen ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                     }`}
-                title="알림 센터"
+                title="알림 센터" aria-label="알림 센터"
             >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
@@ -92,14 +92,14 @@ export default function NotificationCenter() {
                         {notifications.length > 0 ? (
                             <div className="divide-y divide-[var(--border-subtle)]/30">
                                 {notifications.map((n) => (
-                                    <div
+                                    <button type="button"
                                         key={n.id}
                                         onClick={() => markAsRead(n.id)}
-                                        className={`px-5 py-4 flex gap-4 transition-colors cursor-pointer group ${n.isRead ? 'opacity-60 grayscale-[0.5]' : 'bg-white/5'
+                                        className={`w-full text-left px-5 py-4 flex gap-4 transition-colors cursor-pointer group ${n.isRead ? 'opacity-60 grayscale-[0.5]' : 'bg-white/5'
                                             } hover:bg-white/10`}
                                     >
-                                        <div className="flex-shrink-0 mt-1">
-                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
+                                        <span className="flex-shrink-0 mt-1">
+                                            <span className="w-8 h-8 rounded-lg flex items-center justify-center" style={{
                                                 background: n.type === 'success' ? 'rgba(60, 181, 74, 0.15)' :
                                                     n.type === 'error' ? 'rgba(239, 68, 68, 0.15)' :
                                                         'rgba(50, 164, 206, 0.15)'
@@ -107,13 +107,13 @@ export default function NotificationCenter() {
                                                 {n.type === 'success' && <CheckCircle className="w-4 h-4 text-[var(--metro-line2)]" />}
                                                 {n.type === 'error' && <AlertCircle className="w-4 h-4 text-red-400" />}
                                                 {n.type === 'info' && <Zap className="w-4 h-4 text-[var(--metro-line4)]" />}
-                                            </div>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className={`text-sm leading-snug break-words ${n.isRead ? 'text-[var(--text-secondary)]' : 'text-[var(--text-primary)] font-medium'}`}>
+                                            </span>
+                                        </span>
+                                        <span className="flex-1 min-w-0">
+                                            <span className={`text-sm leading-snug break-words ${n.isRead ? 'text-[var(--text-secondary)]' : 'text-[var(--text-primary)] font-medium'}`}>
                                                 {n.message}
-                                            </p>
-                                            <div className="flex items-center gap-3 mt-2">
+                                            </span>
+                                            <span className="flex items-center gap-3 mt-2">
                                                 <span className="text-xs text-[var(--text-muted)] flex items-center gap-1">
                                                     <Clock className="w-3 h-3" />
                                                     {formatTime(n.timestamp)}
@@ -121,9 +121,9 @@ export default function NotificationCenter() {
                                                 {!n.isRead && (
                                                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--metro-line2)]" />
                                                 )}
-                                            </div>
-                                        </div>
-                                    </div>
+                                            </span>
+                                        </span>
+                                    </button>
                                 ))}
                             </div>
                         ) : (

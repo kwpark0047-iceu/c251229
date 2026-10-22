@@ -199,14 +199,20 @@ export default function DuplicateManager({
             <div
               key={index}
               className={`
-                border rounded-lg p-4 cursor-pointer transition-colors
+                relative border rounded-lg p-4 transition-colors
                 ${selectedGroups.has(index)
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-200 hover:border-gray-300'
                 }
               `}
-              onClick={() => toggleGroupSelection(index)}
             >
+              <button
+                type="button"
+                aria-label={`그룹 ${index + 1} 선택: ${group.representative}`}
+                aria-pressed={selectedGroups.has(index)}
+                onClick={() => toggleGroupSelection(index)}
+                className="absolute inset-0 w-full h-full rounded-lg cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+              />
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <input
@@ -214,10 +220,9 @@ export default function DuplicateManager({
                     name={`duplicateGroup-${index}`}
                     type="checkbox"
                     checked={selectedGroups.has(index)}
-                    onChange={() => { }}
+                    onChange={() => toggleGroupSelection(index)}
                     aria-label={`그룹 ${index + 1} 선택`}
-                    className="w-4 h-4 text-blue-600 rounded"
-                    onClick={(e) => e.stopPropagation()}
+                    className="relative z-10 w-4 h-4 text-blue-600 rounded"
                   />
 
                   <div>

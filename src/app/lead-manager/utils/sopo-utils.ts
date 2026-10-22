@@ -97,7 +97,7 @@ function asJsonObject(value: unknown): JsonObject | null {
 
 function readText(record: JsonObject, key: string): string {
   const value = record[key];
-  return typeof value === 'string' ? value : '';
+  return typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '';
 }
 
 function readNumber(record: JsonObject, key: string): number {
@@ -117,7 +117,7 @@ function parseSopoItem(value: unknown): SopoItem | null {
   const bizesId = readText(record, 'bizesId');
   const bizesNm = readText(record, 'bizesNm');
   const lnoCd = readText(record, 'lnoCd');
-  if (!bizesId || !bizesNm || !lnoCd) return null;
+  if (!bizesId || !bizesNm) return null;
 
   return {
     bizesId, bizesNm,
@@ -145,7 +145,8 @@ function parseSopoResponse(value: unknown): SopoResponse {
   const root = asJsonObject(value);
   const header = root ? asJsonObject(root.header) : null;
   const body = root ? asJsonObject(root.body) : null;
-  const rawItems = body?.items;
+  const rawItems = body?.items === '' || body?.items == null ? [] : body.items;
+  if (header && header.resultCode !== '00') throw new Error('SOPO 제공기관에서 요청을 처리하지 못했습니다. 인증키와 이용 한도를 확인해 주세요.');
   if (!header || !body || typeof header.resultCode !== 'string' || !Array.isArray(rawItems)) {
     throw new Error('SOPO API 응답 형식이 올바르지 않습니다.');
   }
@@ -257,37 +258,20 @@ export async function fetchSopoData(params: SopoRequestParams): Promise<SopoItem
     // 외부 공공 API가 멈춰도 애플리케이션 요청이 무기한 대기하지 않도록 제한합니다.
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
-    let response: Response;
     try {
-      response = await fetch(url, {
+      const response = await fetch(url, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
         signal: controller.signal,
       });
+      if (!response.ok) throw new Error(`SOPO API 요청 실패 (${response.status})`);
+      const data = parseSopoResponse(await response.json());
+      return data.body.items.length ? data.body.items : null;
     } finally {
       clearTimeout(timeout);
     }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`SOPO API 요청 실패 (${response.status}): ${errorText}`);
-    }
-
-    const data = parseSopoResponse(await response.json());
-
-    // 결과 코드 확인
-    if (data.header.resultCode !== '00') {
-      throw new Error(`SOPO API 오류: ${data.header.resultMsg} (코드: ${data.header.resultCode})`);
-    }
-
-    // items가 있으면 반환, 없으면 null 반환
-    if (data.body.items && data.body.items.length > 0) {
-      return data.body.items;
-    }
-
-    return null;
   } catch (error) {
-    console.error('SOPO API wrapper error:', error);
+    if (error instanceof Error && error.name === 'AbortError') throw new Error('상가정보 조회 시간이 초과되었습니다. 다시 시도해 주세요.');
     throw error;
   }
 }
@@ -348,7 +332,8 @@ export function mapSopoToLead(
  * @returns SOPO key 값 또는 null
  */
 export function extractSopoKeyFromLead(lead: Lead): string | null {
-  return lead.mgtNo || null;
+  void lead;
+  return null;
 }
 
 export default fetchSopoData;

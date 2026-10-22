@@ -69,7 +69,9 @@ export default function CallLogModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 배경 */}
-      <div
+      <button
+        type="button"
+        aria-label="배경 닫기"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
@@ -109,10 +111,10 @@ export default function CallLogModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* 통화 결과 */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-3">
+            <h3 className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-3">
               <Phone className="w-4 h-4" />
               통화 결과
-            </label>
+            </h3>
             <div className="grid grid-cols-2 gap-2">
               {(Object.keys(CALL_OUTCOME_LABELS) as CallOutcome[]).map((key) => (
                 <button
@@ -132,7 +134,7 @@ export default function CallLogModal({
 
           {/* 통화 시간 */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="call-duration" className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
               <Clock className="w-4 h-4" />
               통화 시간 (분)
             </label>
@@ -150,7 +152,7 @@ export default function CallLogModal({
 
           {/* 담당자명 */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="contact-person" className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
               <User className="w-4 h-4" />
               담당자명
             </label>
@@ -167,7 +169,7 @@ export default function CallLogModal({
 
           {/* 메모 */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="call-notes" className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
               <FileText className="w-4 h-4" />
               통화 메모
             </label>
@@ -184,7 +186,7 @@ export default function CallLogModal({
 
           {/* 다음 액션 */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="next-action" className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
               다음 액션
             </label>
             <input
@@ -200,7 +202,7 @@ export default function CallLogModal({
 
           {/* 다음 연락일 */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+            <label htmlFor="next-contact-date" className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
               <Calendar className="w-4 h-4" />
               다음 연락 예정일
             </label>

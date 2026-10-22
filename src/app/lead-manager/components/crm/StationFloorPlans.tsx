@@ -60,26 +60,20 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                 </h3>
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
                     {floorPlans.map((plan) => (
-                        <div
+                        <button
+                            type="button"
                             key={plan.id}
-                            role="button"
-                            tabIndex={0}
                             data-testid="floor-plan-thumbnail"
                             aria-label={`${plan.stationName} ${plan.floorName || ''} 도면`}
                             className="flex-shrink-0 w-40 h-40 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 cursor-pointer hover:border-blue-500 transition-all relative group"
                             onClick={() => setSelectedFloorPlan(plan)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    setSelectedFloorPlan(plan);
-                                }
-                            }}
+                            onErrorCapture={() => handleImageError(plan.id)}
                         >
                             {!imageErrors[plan.id] ? (
                                 <img
                                     src={plan.thumbnailUrl || plan.imageUrl}
                                     alt={`${plan.stationName} ${plan.floorName || ''}`}
                                     className="w-full h-full object-cover"
-                                    onError={() => handleImageError(plan.id)}
                                 />
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
@@ -91,18 +85,19 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                             <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent text-white text-xs font-medium truncate">
                                 {plan.floorName || '도면'}
                             </div>
-                        </div>
+                        </button>
                     ))}
                 </div>
             </section>
 
             {/* 도면 확대 모달 */}
             {selectedFloorPlan && (
-                <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4" onClick={() => {
+                <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+                    <button type="button" aria-label="도면 배경 닫기" className="absolute inset-0" onClick={() => {
                     setSelectedFloorPlan(null);
                     setSelectedMarker(null);
-                }}>
-                    <div className="relative max-w-5xl w-full max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+                }} />
+                    <div className="relative max-w-5xl w-full max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-2xl flex flex-col">
                         <div className="flex items-center justify-between px-6 py-4 border-b">
                             <div>
                                 <h3 className="font-semibold text-lg text-slate-800">{selectedFloorPlan.stationName} {selectedFloorPlan.floorName}</h3>
@@ -126,7 +121,9 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                                 
                                 {/* 인벤토리 마커 표시 */}
                                 {currentInventory.map((item) => (
-                                    <div
+                                    <button
+                                        type="button"
+                                        aria-label={`${item.locationCode || item.adType} 광고 위치`}
                                         key={item.id}
                                          
                                          
@@ -150,7 +147,7 @@ export default function StationFloorPlans({ floorPlans, inventory = [] }: Statio
                                         }`}>
                                             <Tag className="w-4 h-4 text-white" />
                                         </div>
-                                    </div>
+                                    </button>
                                 ))}
                             </div>
 

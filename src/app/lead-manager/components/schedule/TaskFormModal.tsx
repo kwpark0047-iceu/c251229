@@ -122,7 +122,9 @@ export default function TaskFormModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 백드롭 */}
-      <div
+      <button
+        type="button"
+        aria-label="배경 닫기"
         className="absolute inset-0 backdrop-blur-md task-form-overlay"
         onClick={onClose}
       />
@@ -156,10 +158,10 @@ export default function TaskFormModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* 업무 유형 */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-2">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-2">
               <FileText className="w-4 h-4 text-[var(--metro-line4)]" />
               업무 유형
-            </label>
+            </h3>
             <div className="grid grid-cols-3 gap-2">
               {(Object.entries(TASK_TYPE_LABELS) as [TaskType, string][]).map(
                 ([type, label]) => (
@@ -182,7 +184,7 @@ export default function TaskFormModal({
 
           {/* 제목 */}
           <div>
-            <label className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
+            <label htmlFor="task-title" className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
               제목 <span className="text-red-400">*</span>
             </label>
             <input
@@ -199,7 +201,7 @@ export default function TaskFormModal({
 
           {/* 설명 */}
           <div>
-            <label className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
+            <label htmlFor="task-description" className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
               설명
             </label>
             <textarea
@@ -247,9 +249,9 @@ export default function TaskFormModal({
 
           {/* 우선순위 */}
           <div>
-            <label className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
+            <h3 className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
               우선순위
-            </label>
+            </h3>
             <div className="grid grid-cols-4 gap-2">
               {(Object.entries(TASK_PRIORITY_LABELS) as [TaskPriority, string][]).map(
                 ([priority, label]) => (
@@ -301,7 +303,7 @@ export default function TaskFormModal({
 
           {/* 담당자 */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-2">
+            <label htmlFor="task-assignee" className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-2">
               <User className="w-4 h-4 text-[var(--metro-line7)]" />
               담당자
             </label>
@@ -318,7 +320,7 @@ export default function TaskFormModal({
 
           {/* 연결 리드 */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-2">
+            <label htmlFor="lead-search-query" className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-2">
               <MapPin className="w-4 h-4 text-[var(--metro-line2)]" />
               연결 리드
             </label>
@@ -377,7 +379,7 @@ export default function TaskFormModal({
 
           {/* 메모 */}
           <div>
-            <label className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
+            <label htmlFor="task-notes" className="text-sm font-semibold text-[var(--text-secondary)] mb-2 block">
               메모
             </label>
             <textarea

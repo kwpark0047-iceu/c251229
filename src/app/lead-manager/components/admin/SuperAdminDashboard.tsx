@@ -1,17 +1,17 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Users, Shield, CheckCircle, XCircle, Building, 
+import {
+  Users, Shield, CheckCircle, XCircle, Building,
   Search, Filter, Activity,
   Settings, History, Download, FileText, Calendar,
   BarChart3, UserCheck, X, AlertCircle, Trash2, GraduationCap, Utensils,
   Coffee, Truck, Plus, Edit
 } from 'lucide-react';
-import { 
-  getAllProfiles, 
-  updateProfileStatus, 
-  updateUserOrganization, 
+import {
+  getAllProfiles,
+  updateProfileStatus,
+  updateUserOrganization,
   getAllOrganizations,
   createOrganization,
   getAllUserLogs,
@@ -27,6 +27,9 @@ import {
 import { Bell, Check, Info, Mail } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { presenceLabels, type OnlineAccount, type PresenceConnection } from '../../online-presence';
+import MemberActionDialog, { type MemberAction } from './MemberActionDialog';
+import { getActionLabel, getRoleLabel, getSourceLabel } from './admin-labels';
 import { textSizeClass, colorClass } from '@/lib/ui';
 
 interface Profile {
@@ -47,6 +50,8 @@ interface Profile {
 
 interface Props {
   user?: UserInfo | null;
+  onlineAccounts?: OnlineAccount[];
+  presenceConnection?: PresenceConnection;
 }
 
 interface SyncCardProps {
@@ -67,35 +72,35 @@ function SyncCard({
   title, subtitle, description, icon: Icon, colorName, features, apiPath, sectorKey, syncingSector, onSync
 }: SyncCardProps) {
   const isSyncing = syncingSector === sectorKey;
-  
+
   const colorMap: Record<string, any> = {
-    emerald: { 
-      from: 'from-emerald-500/5', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-400', 
+    emerald: {
+      from: 'from-emerald-500/5', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-400',
       check: 'text-emerald-500', btn: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/20',
       syncBtn: 'bg-emerald-800'
     },
-    indigo: { 
-      from: 'from-indigo-500/5', iconBg: 'bg-indigo-500/20', iconColor: 'text-indigo-400', 
+    indigo: {
+      from: 'from-indigo-500/5', iconBg: 'bg-indigo-500/20', iconColor: 'text-indigo-400',
       check: 'text-indigo-500', btn: 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/20',
       syncBtn: 'bg-indigo-800'
     },
-    rose: { 
-      from: 'from-rose-500/5', iconBg: 'bg-rose-500/20', iconColor: 'text-rose-400', 
+    rose: {
+      from: 'from-rose-500/5', iconBg: 'bg-rose-500/20', iconColor: 'text-rose-400',
       check: 'text-rose-500', btn: 'bg-rose-600 hover:bg-rose-500 shadow-rose-900/20',
       syncBtn: 'bg-rose-800'
     },
-    amber: { 
-      from: 'from-amber-500/5', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-400', 
+    amber: {
+      from: 'from-amber-500/5', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-400',
       check: 'text-amber-500', btn: 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20',
       syncBtn: 'bg-amber-800'
     },
-    orange: { 
-      from: 'from-orange-500/5', iconBg: 'bg-orange-500/20', iconColor: 'text-orange-400', 
+    orange: {
+      from: 'from-orange-500/5', iconBg: 'bg-orange-500/20', iconColor: 'text-orange-400',
       check: 'text-orange-500', btn: 'bg-orange-600 hover:bg-orange-500 shadow-orange-900/20',
       syncBtn: 'bg-orange-800'
     },
-    cyan: { 
-      from: 'from-cyan-500/5', iconBg: 'bg-cyan-500/20', iconColor: 'text-cyan-400', 
+    cyan: {
+      from: 'from-cyan-500/5', iconBg: 'bg-cyan-500/20', iconColor: 'text-cyan-400',
       check: 'text-cyan-500', btn: 'bg-cyan-600 hover:bg-cyan-500 shadow-cyan-900/20',
       syncBtn: 'bg-cyan-800'
     }
@@ -117,7 +122,7 @@ function SyncCard({
           </div>
         </div>
         <p className="text-sm text-slate-400 leading-relaxed mb-6">{description}</p>
-        
+
         <div className="space-y-3 mb-8">
           {features.map((f, i) => (
             <div key={i} className="flex items-center gap-2 text-xs text-slate-500">
@@ -127,8 +132,8 @@ function SyncCard({
           ))}
         </div>
       </div>
-      
-      <button 
+
+      <button
         onClick={() => onSync(sectorKey, apiPath, title)}
         disabled={isSyncing}
         className={`relative z-10 flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl ${
@@ -142,14 +147,14 @@ function SyncCard({
   );
 }
 
-export default function SuperAdminDashboard({ user }: Props) {
+export default function SuperAdminDashboard({ user, onlineAccounts = [], presenceConnection = 'connecting' }: Props) {
   const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'data'>('users');
-  
+
   // Data States
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [orgs, setOrgs] = useState<any[]>([]);
   const [allLogs, setAllLogs] = useState<any[]>([]);
-  
+
   // Scoring Config States
   const [selectedScoreOrg, setSelectedScoreOrg] = useState('');
   const [scoreConfig, setScoreConfig] = useState<{
@@ -158,18 +163,21 @@ export default function SuperAdminDashboard({ user }: Props) {
     completeness: { max: number; phone: number; address: number; businessName: number };
   } | null>(null);
   const [savingScoreConfig, setSavingScoreConfig] = useState(false);
-  
+
   const [loading, setLoading] = useState(true);
   const [logsLoading, setLogsLoading] = useState(false);
   const [isLive, setIsLive] = useState(false);
-  const [onlineUsers, setOnlineUsers] = useState<any[]>([]);
-  const [onlineUsersCount, setOnlineUsersCount] = useState(0);
-  
+  const onlineUsers = presenceConnection === 'connected' ? onlineAccounts : [];
+  const onlineUsersCount = onlineUsers.length;
+
   // Filtering States
   const [searchQuery, setSearchQuery] = useState('');
+  const [memberAction, setMemberAction] = useState<MemberAction | null>(null);
+  const [resendingEmail, setResendingEmail] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'PENDING'>('ALL');
   const [tierFilter, setTierFilter] = useState<'ALL' | 'FREE' | 'DEMO' | 'MEDIA' | 'SALES'>('ALL');
-  
+
   // Modal States
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
@@ -272,6 +280,7 @@ export default function SuperAdminDashboard({ user }: Props) {
 
     setApiConfigs(updatedConfigs);
     localStorage.setItem('antigravity_api_configs', JSON.stringify(updatedConfigs));
+    toast.success(editingConfig ? 'API 설정이 수정되었습니다.' : 'API 설정이 추가되었습니다.');
     setShowConfigModal(false);
     setEditingConfig(null);
   };
@@ -281,10 +290,11 @@ export default function SuperAdminDashboard({ user }: Props) {
     const updatedConfigs = apiConfigs.filter(c => c.id !== id);
     setApiConfigs(updatedConfigs);
     localStorage.setItem('antigravity_api_configs', JSON.stringify(updatedConfigs));
-    
+
     const newResults = { ...testResults };
     delete newResults[id];
     setTestResults(newResults);
+    toast.success('API 설정이 삭제되었습니다.');
   };
 
   const handleTestConnection = async (id: string, type: string, apiKey: string, sigunNm?: string) => {
@@ -331,24 +341,24 @@ export default function SuperAdminDashboard({ user }: Props) {
   };
 
   const loadData = useCallback(async () => {
-    // 최초 로딩 시에만 스피너 표시
-    if (profiles.length === 0) setLoading(true);
-    
-    const [pResult, oData, nResult] = await Promise.all([
-      getAllProfiles(),
-      getAllOrganizations(),
-      getAdminNotifications(10)
-    ]);
-    if (pResult.success) setProfiles(pResult.profiles);
-    setOrgs(oData);
-    
-    if (nResult.success) {
-      setNotifications(nResult.notifications);
-      setUnreadCount(nResult.notifications.filter((n: any) => !n.is_read).length);
-    }
-    
-    setLoading(false);
-  }, [profiles.length]);
+    setLoadError('');
+    try {
+      const [pResult, oData, nResult] = await Promise.all([
+        getAllProfiles(), getAllOrganizations(), getAdminNotifications(20),
+      ]);
+      if (!pResult.success) throw new Error('회원 목록을 불러오지 못했습니다. 권한과 연결 상태를 확인해주세요.');
+      setProfiles(pResult.profiles);
+      setOrgs(oData);
+      if (nResult.success) {
+        setNotifications(nResult.notifications);
+        setUnreadCount(nResult.notifications.filter((n: { is_read: boolean }) => !n.is_read).length);
+      }
+      return true;
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : '회원 정보를 불러오지 못했습니다.');
+      return false;
+    } finally { setLoading(false); }
+  }, []);
 
   const loadScoringConfig = useCallback(async (orgId: string) => {
     if (!orgId) return;
@@ -376,12 +386,12 @@ export default function SuperAdminDashboard({ user }: Props) {
         .update({ scoring_config: scoreConfig })
         .eq('id', selectedScoreOrg);
       if (error) {
-        alert(`저장 실패: ${error.message}`);
+        toast.error(`저장 실패: ${error.message}`);
       } else {
-        alert('스코어링 가중치가 저장되었습니다. 다음 동기화부터 적용됩니다.');
+        toast.success('스코어링 가중치가 저장되었습니다. 다음 동기화부터 적용됩니다.');
       }
     } catch (err) {
-      alert('네트워크 오류로 저장하지 못했습니다.');
+      toast.error('네트워크 오류로 저장하지 못했습니다.');
     } finally {
       setSavingScoreConfig(false);
     }
@@ -393,11 +403,11 @@ export default function SuperAdminDashboard({ user }: Props) {
 
   const handleSync = async (sector: string, apiPath: string, title: string) => {
     if (!confirm(`${title} 동기화를 시작하시겠습니까?\n이 작업은 수 분이 소요될 수 있습니다.`)) return;
-    
+
     setSyncingSector(sector);
     try {
       let finalPath = `${apiPath}${apiPath.includes('?') ? '&' : '?'}sync=true`;
-      
+
       // sectorKey 매핑하여 활성 API 키 주입
       const typeMap: Record<string, string> = {
         academy: 'gg-academy',
@@ -410,10 +420,10 @@ export default function SuperAdminDashboard({ user }: Props) {
         'coffee-shops': 'gg-coffee-shops',
         'seoul-clinic': 'seoul-clinic'
       };
-      
+
       const mappedType = typeMap[sector] || sector;
       const activeConfig = apiConfigs.find(c => c.type === mappedType && c.isActive);
-      
+
       if (activeConfig && activeConfig.apiKey) {
         finalPath += `&apiKey=${encodeURIComponent(activeConfig.apiKey)}`;
         if (activeConfig.sigunNm) {
@@ -448,54 +458,12 @@ useEffect(() => {
     // 실시간 구독 설정 (최종 안정화 버전)
     const supabase = createClient();
 
-    // 채널 생성 및 존재감 구독
     const channel = supabase
-      .channel('antigravity-admin-global-presence', {
-        config: {
-          presence: {
-            key: user.id,
-          },
-        },
+      .channel('admin-profile-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        loadData();
       })
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'profiles'
-        },
-        () => {
-          setIsLive(true);
-          loadData();
-          setTimeout(() => setIsLive(false), 2000);
-        }
-      )
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        // 중복 제거 (user_id 기반으로 더욱 정확하게)
-        const entries = Object.values(state).flat() as any[];
-        const uniqueEntries = entries.filter((v, i, a) => 
-          v.user_id && a.findIndex(t => t.user_id === v.user_id) === i
-        );
-        
-        // 실시간 동기화 상태 minimal log (과도한 로그 방지)
-        setOnlineUsers(uniqueEntries);
-        setOnlineUsersCount(uniqueEntries.length);
-        // 필수 피드백만 유지: 온라인 사용자 수 업데이트
-      })
-      .on('presence', { event: 'join' }, ({ newPresences }: { newPresences: any[] }) => {
-        console.log('Admin Node Joined:', newPresences);
-        setIsLive(true);
-        setTimeout(() => setIsLive(false), 3000);
-      })
-      .on('presence', { event: 'leave' }, ({ leftPresences }: { leftPresences: any[] }) => {
-        console.log('Admin Node Left:', leftPresences);
-        setTimeout(() => {
-          loadData();
-        }, 200);
-      })
-      .subscribe((status: string, err: any) => {
-      });
+      .subscribe();
 
     // 관리자 알림 실시간 구독
     const notificationChannel = supabase
@@ -510,17 +478,17 @@ useEffect(() => {
         (payload: { new: any }) => {
           console.log('New Notification Received:', payload.new);
           const newNotif = payload.new;
-          
+
           // 상태 업데이트
           setNotifications(prev => [newNotif, ...prev].slice(0, 20));
           setUnreadCount(prev => prev + 1);
-          
+
           // 토스트 팝업 표시
           setToastNotification(newNotif);
-          
+
           // 8초 후 토스트 자동 소멸
           setTimeout(() => setToastNotification(null), 8000);
-          
+
           // 사용자 목록 데이터도 갱신 (신규 가입 알림인 경우)
           if (newNotif.type === 'SIGNUP') {
             loadData();
@@ -534,7 +502,7 @@ useEffect(() => {
       supabase.removeChannel(channel);
       supabase.removeChannel(notificationChannel);
     };
-  }, [user?.id, activeTab, loadData]); 
+  }, [user?.id, activeTab, loadData]);
 
   const loadAllLogs = useCallback(async () => {
     setLogsLoading(true);
@@ -551,19 +519,15 @@ useEffect(() => {
     }
   }, [activeTab, allLogs.length, loadAllLogs]);
 
-  const handleApproval = async (userId: string, isApproved: boolean) => {
-    if (!confirm(isApproved ? '이 사용자를 승인하시겠습니까?' : '승인을 취소하시겠습니까?')) return;
-    const result = await updateProfileStatus(userId, { isApproved });
-    if (result.success) {
-      loadData();
-    } else {
-      toast.error(result.message);
-    }
+  const handleApproval = (userId: string, isApproved: boolean) => {
+    const profile = profiles.find(p => p.id === userId);
+    if (profile) setMemberAction({ id: userId, email: profile.email, action: isApproved ? 'approve' : 'revoke' });
   };
 
   const handleOrgUpdate = async (userId: string, orgId: string | null, role: any) => {
     const result = await updateUserOrganization(userId, orgId, role);
     if (result.success) {
+      toast.success('조직 정보가 저장되었습니다.');
       setShowOrgModal(false);
       loadData();
     } else {
@@ -600,24 +564,15 @@ useEffect(() => {
     setUserLogsLoading(false);
   };
 
-  const handleDeleteProfile = async (userId: string, email: string) => {
-    if (!window.confirm(`[주의] ${email} 회원을 시스템에서 삭제하시겠습니까?\n이 작업은 되돌릴 수 없으며 모든 소속 정보가 함께 삭제됩니다.`)) return;
-    
-    setLoading(true);
-    const result = await deleteUserProfile(userId);
-    if (result.success) {
-      loadData();
-    } else {
-      toast.error(result.message);
-      setLoading(false);
-    }
+  const handleDeleteProfile = (userId: string, email: string) => {
+    setMemberAction({ id: userId, email, action: 'delete' });
   };
 
   const filteredProfiles = profiles.filter(p => {
-    const matchesSearch = p.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = p.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (p.fullName || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || 
-                         (statusFilter === 'APPROVED' && p.isApproved) || 
+    const matchesStatus = statusFilter === 'ALL' ||
+                         (statusFilter === 'APPROVED' && p.isApproved) ||
                          (statusFilter === 'PENDING' && !p.isApproved);
     const matchesTier = tierFilter === 'ALL' || p.tier === tierFilter;
     return matchesSearch && matchesStatus && matchesTier;
@@ -632,11 +587,12 @@ useEffect(() => {
   const handleTierChange = async (userId: string, email: string, tier: string) => {
     const result = await updateUserTier(userId, email, tier);
     if (result.success) {
+      toast.success('사용자 등급이 변경되었습니다.');
       setIsLive(true);
       loadData();
       setTimeout(() => setIsLive(false), 2000);
     } else {
-      toast.error(`Tier 변경 실패: ${result.error}`);
+      toast.error(`등급 변경 실패: ${result.error}`);
     }
   };
 
@@ -646,6 +602,17 @@ useEffect(() => {
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
+  };
+
+  const handleResendEmail = async (id: string, email: string) => {
+    if (resendingEmail) return;
+    setResendingEmail(id);
+    try {
+      const result = await sendWelcomeEmailResend(id, email);
+      if (result.success) toast.success(result.message);
+      else toast.error(result.message);
+    } catch { toast.error('이메일을 다시 보내지 못했습니다.'); }
+    finally { setResendingEmail(null); }
   };
 
   const handleMarkAllAsRead = async () => {
@@ -659,6 +626,9 @@ useEffect(() => {
 
   return (
     <div className="flex flex-col h-full bg-[#050505] text-slate-200">
+      {loadError && <p role="alert" className="m-4 rounded-xl border border-rose-500 bg-rose-950 p-4 text-rose-200">{loadError}</p>}
+      {memberAction && <MemberActionDialog key={memberAction.id + memberAction.action} target={memberAction}
+        onClose={() => setMemberAction(null)} onComplete={async message => { if (!await loadData()) throw new Error('목록 갱신 실패'); toast.success(message); }} />}
       {/* 최고 관리자 헤더 (Premium Antigravity Style) */}
       <div className="relative px-8 py-10 overflow-hidden border-b border-white/5">
         {/* 다이내믹 배경 효과 */}
@@ -674,11 +644,11 @@ useEffect(() => {
               </div>
               <div>
                 <h1 className="text-3xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-500">
-                  <span className="text-indigo-400/80 font-medium">슈어</span> <span className="hidden sm:inline">Admin</span> <span className="block">대시보드</span>
+                  <span className="text-indigo-400/80 font-medium">최고관리자</span> <span className="block">대시보드</span>
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                  <p className="text-xs font-bold text-emerald-400/80 tracking-[0.2em] uppercase">시스템 핵심 무결성 활성</p>
+                  <p className="text-xs font-bold text-emerald-400/80">회원 승인과 서비스 운영 현황을 관리합니다.</p>
                 </div>
               </div>
             </div>
@@ -698,18 +668,18 @@ useEffect(() => {
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-black text-white tracking-tight">{user.email.split('@')[0]}</span>
-                    <span className="px-1.5 py-0.5 bg-indigo-500 text-xs font-black rounded uppercase tracking-tighter shadow-lg shadow-indigo-500/20">ROOT</span>
+                    <span className="px-1.5 py-0.5 bg-indigo-500 text-xs font-black rounded uppercase tracking-tighter shadow-lg shadow-indigo-500/20">최고관리자</span>
                   </div>
                   <span className="text-xs text-slate-500 font-medium">{user.email}</span>
                 </div>
                 <div className="ml-4 pl-4 border-l border-white/5 flex flex-col items-end">
-                  <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">Master Auth</p>
-                  <p className="text-xs font-black text-indigo-400/80 uppercase tracking-tighter">Verified Session</p>
+                  <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">관리자 인증</p>
+                  <p className="text-xs font-black text-indigo-400/80 uppercase tracking-tighter">인증된 세션</p>
                 </div>
 
                 {/* 알림 센터 벨 (NEW) */}
                 <div className="relative ml-4 pl-4 border-l border-white/5">
-                  <button 
+                  <button
                     onClick={() => setShowNotificationList(!showNotificationList)}
                     className={`p-2.5 rounded-xl border transition-all duration-300 relative group ${
                       showNotificationList ? 'bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
@@ -730,55 +700,56 @@ useEffect(() => {
                       <div className="flex justify-between items-center px-5 py-4 border-b border-white/5">
                         <h4 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-2">
                           <Activity className="w-3.5 h-3.5 text-indigo-400" />
-                          Security Alerts
+                          시스템 알림
                         </h4>
-                        <button 
+                        <button
                           onClick={handleMarkAllAsRead}
                           className="text-xs font-black text-indigo-400 hover:text-indigo-300 uppercase tracking-tighter"
                         >
-                          Clear All
+                          모두 읽음
                         </button>
                       </div>
                       <div className="max-h-96 overflow-y-auto custom-scrollbar">
                         {notifications.length > 0 ? (
                           notifications.map((notif) => (
-                            <div 
-                              key={notif.id} 
+                            <button
+                              type="button"
+                              key={notif.id}
                               onClick={() => handleMarkAsRead(notif.id)}
-                              className={`p-4 border-b border-white/5 cursor-pointer transition-all hover:bg-white/5 group relative ${!notif.is_read ? 'bg-indigo-500/[0.03]' : ''}`}
+                              className={`block w-full text-left p-4 border-b border-white/5 cursor-pointer transition-all hover:bg-white/5 group relative ${!notif.is_read ? 'bg-indigo-500/[0.03]' : ''}`}
                             >
                               {!notif.is_read && (
-                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+                                <span className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></span>
                               )}
-                              <div className="flex gap-3">
-                                <div className={`mt-1 p-1.5 rounded-lg border ${
+                              <span className="flex gap-3">
+                                <span className={`mt-1 p-1.5 rounded-lg border ${
                                   notif.type === 'SIGNUP' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
                                 }`}>
                                   {notif.type === 'SIGNUP' ? <UserCheck className="w-3.5 h-3.5" /> : <Info className="w-3.5 h-3.5" />}
-                                </div>
-                                <div className="flex-1">
-                                  <p className={`text-xs leading-relaxed ${notif.is_read ? 'text-slate-400' : 'text-slate-200 font-bold'}`}>
+                                </span>
+                                <span className="flex-1">
+                                  <span className={`block text-xs leading-relaxed ${notif.is_read ? 'text-slate-400' : 'text-slate-200 font-bold'}`}>
                                     {notif.message}
-                                  </p>
-                                  <p className="text-xs text-slate-600 mt-1 font-medium italic">
-                                    {new Date(notif.created_at).toLocaleString()}
-                                  </p>
-                                </div>
+                                  </span>
+                                  <span className="block text-xs text-slate-600 mt-1 font-medium italic">
+                                    {new Date(notif.created_at).toLocaleString('ko-KR')}
+                                  </span>
+                                </span>
                                 {!notif.is_read && (
-                                  <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shadow-[0_0_8px_rgba(99,102,241,0.5)]"></div>
+                                  <span className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shadow-[0_0_8px_rgba(99,102,241,0.5)]"></span>
                                 )}
-                              </div>
-                            </div>
+                              </span>
+                            </button>
                           ))
                         ) : (
                           <div className="p-10 text-center flex flex-col items-center gap-3">
                             <Shield className="w-8 h-8 text-slate-800" />
-                            <p className="text-xs text-slate-600 font-black uppercase tracking-widest">No Active Alerts</p>
+                            <p className="text-xs text-slate-600 font-black uppercase tracking-widest">새로운 알림이 없습니다</p>
                           </div>
                         )}
                       </div>
                       <div className="p-3 bg-white/[0.02] border-t border-white/5 text-center">
-                        <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">System Integrity Verified</p>
+                        <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">시스템 알림 확인</p>
                       </div>
                     </div>
                   )}
@@ -798,12 +769,12 @@ useEffect(() => {
                 <Users className="w-6 h-6" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-xs font-black text-blue-500/60 tracking-widest uppercase mb-1">Scale</span>
-                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs font-black rounded-full border border-blue-500/20">TOTAL</span>
+                <span className="text-xs font-black text-blue-500/60 tracking-widest uppercase mb-1">회원 규모</span>
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs font-black rounded-full border border-blue-500/20">전체</span>
               </div>
             </div>
             <div>
-              <h3 className="text-3xl font-black text-white tracking-tighter leading-none">{allMembersCount.toLocaleString()}</h3>
+              <h3 className="text-3xl font-black text-white tracking-tighter leading-none">{allMembersCount.toLocaleString('ko-KR')}</h3>
               <p className="text-slate-500 text-xs font-bold mt-2 uppercase tracking-wide">시스템 전체 회원</p>
             </div>
           </div>
@@ -815,22 +786,22 @@ useEffect(() => {
                 <Activity className="w-6 h-6 animate-pulse" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-xs font-black text-emerald-500/60 tracking-widest uppercase mb-1">Status</span>
-                <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 text-xs font-black rounded-full border border-emerald-500/20">
-                  <span className="w-1 h-1 bg-emerald-500 rounded-full animate-ping"></span>
-                  ONLINE
+                <span className="text-xs font-black text-emerald-500/60 tracking-widest uppercase mb-1">접속 현황</span>
+                <span className={`flex items-center gap-1 px-2 py-0.5 text-xs font-black rounded-full border ${presenceConnection === 'connected' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
+                  <span className={`w-1 h-1 rounded-full ${presenceConnection === 'connected' ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'}`}></span>
+                  {presenceLabels[presenceConnection]}
                 </span>
               </div>
             </div>
             <div>
-              <h3 className="text-3xl font-black text-emerald-400 tracking-tighter leading-none">{onlineUsersCount.toLocaleString()}</h3>
+              <h3 aria-live="polite" className="text-3xl font-black text-emerald-400 tracking-tighter leading-none">{presenceConnection === 'connected' ? onlineUsersCount.toLocaleString('ko-KR') : '—'}</h3>
               <div className="flex -space-x-2 mt-2">
                 {onlineUsers.slice(0, 5).map((u, i) => (
                   <div
-                    key={u.id}
+                    key={u.user_id}
                     className={`w-5 h-5 rounded-full bg-emerald-500 border border-white/20 flex items-center justify-center text-[10px] font-bold animate-fade-in animate-float-subtle opacity-90 delay-${i * 100}`}
                   >
-                    {(u.email || '?')[0].toUpperCase()}
+                    {i + 1}
                   </div>
                 ))}
                 {onlineUsersCount > 5 && <div className="w-5 h-5 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-[10px] font-bold">+ {onlineUsersCount - 5}</div>}
@@ -846,12 +817,12 @@ useEffect(() => {
                 <Shield className="w-6 h-6" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-xs font-black text-indigo-500/60 tracking-widest uppercase mb-1">Trust</span>
-                <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 text-xs font-black rounded-full border border-indigo-500/20">REGS</span>
+                <span className="text-xs font-black text-indigo-500/60 tracking-widest uppercase mb-1">등록 현황</span>
+                <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 text-xs font-black rounded-full border border-indigo-500/20">등록 회원</span>
               </div>
             </div>
             <div>
-              <h3 className="text-3xl font-black text-white tracking-tighter leading-none">{registeredUsersCount.toLocaleString()}</h3>
+              <h3 className="text-3xl font-black text-white tracking-tighter leading-none">{registeredUsersCount.toLocaleString('ko-KR')}</h3>
               <p className="text-slate-500 text-xs font-bold mt-2 uppercase tracking-wide">정식 승인 회원</p>
             </div>
           </div>
@@ -863,15 +834,15 @@ useEffect(() => {
                 <UserCheck className="w-6 h-6" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-xs font-black text-amber-500/60 tracking-widest uppercase mb-1">Action</span>
+                <span className="text-xs font-black text-amber-500/60 tracking-widest uppercase mb-1">승인 관리</span>
                 <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-500/10 text-amber-400 text-xs font-black rounded-full border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
                   <span className="w-1 h-1 bg-amber-500 rounded-full animate-ping"></span>
-                  LIVE PENDING
+                  승인 대기
                 </span>
               </div>
             </div>
             <div>
-              <h3 className={`text-3xl font-black text-amber-400 tracking-tighter leading-none transition-all duration-500 ${isLive ? 'scale-110 translate-x-2 text-amber-300 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]' : ''}`}>{pendingUsersCount.toLocaleString()}</h3>
+              <h3 className={`text-3xl font-black text-amber-400 tracking-tighter leading-none transition-all duration-500 ${isLive ? 'scale-110 translate-x-2 text-amber-300 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)]' : ''}`}>{pendingUsersCount.toLocaleString('ko-KR')}</h3>
               <p className="text-slate-500 text-xs font-bold mt-2 uppercase tracking-wide">검토 대기 중인 계정</p>
             </div>
           </div>
@@ -883,12 +854,12 @@ useEffect(() => {
                 <Calendar className="w-6 h-6" />
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-xs font-black text-purple-500/60 tracking-widest uppercase mb-1">Trial</span>
-                <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs font-black rounded-full border border-purple-500/20">DEMO</span>
+                <span className="text-xs font-black text-purple-500/60 tracking-widest uppercase mb-1">체험</span>
+                <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs font-black rounded-full border border-purple-500/20">체험</span>
               </div>
             </div>
             <div>
-              <h3 className="text-3xl font-black text-purple-400 tracking-tighter leading-none">{demoUsersCount.toLocaleString()}</h3>
+              <h3 className="text-3xl font-black text-purple-400 tracking-tighter leading-none">{demoUsersCount.toLocaleString('ko-KR')}</h3>
               <p className="text-slate-500 text-xs font-bold mt-2 uppercase tracking-wide">데모 라이선스 활성</p>
             </div>
           </div>
@@ -945,7 +916,7 @@ useEffect(() => {
                   <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
                   <input
                     type="text"
-                    placeholder="Search by Identity..."
+                    placeholder="이름 또는 이메일 검색"
                     className="pl-11 pr-5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-sm text-white placeholder:text-slate-600 focus:bg-black/60 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 outline-none w-80 transition-all shadow-inner"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -958,9 +929,9 @@ useEffect(() => {
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as any)}
                   >
-                    <option value="ALL">All Status</option>
-                    <option value="APPROVED">Trusted</option>
-                    <option value="PENDING">Review</option>
+                    <option value="ALL">전체 승인 상태</option>
+                    <option value="APPROVED">승인 완료</option>
+                    <option value="PENDING">승인 대기 ({pendingUsersCount}명)</option>
                   </select>
                   <select
                     aria-label="등급 필터"
@@ -968,29 +939,29 @@ useEffect(() => {
                     value={tierFilter}
                     onChange={(e) => setTierFilter(e.target.value as any)}
                   >
-                    <option value="ALL">All Tiers</option>
-                    <option value="FREE">Standard</option>
-                    <option value="DEMO">Trial</option>
-                    <option value="MEDIA">Publisher</option>
-                    <option value="SALES">Enterprise</option>
+                    <option value="ALL">전체 서비스 등급</option>
+                    <option value="FREE">일반</option>
+                    <option value="DEMO">체험</option>
+                    <option value="MEDIA">매체사</option>
+                    <option value="SALES">영업</option>
                   </select>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="h-8 w-px bg-white/5 mx-2 hidden lg:block"></div>
-                <button 
+                <button
                   onClick={() => setShowCreateOrgModal(true)}
                   className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
                 >
                   <Plus className="w-4 h-4" />
-                  Create Organization
+                  조직 만들기
                 </button>
-                <button 
+                <button
                   onClick={loadAllLogs}
                   className="flex items-center gap-2 px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
                 >
                   <Activity className="w-4 h-4" />
-                  Refresh System
+                  회원 목록 새로고침
                 </button>
               </div>
             </div>
@@ -1001,19 +972,19 @@ useEffect(() => {
                   <div className="w-16 h-16 border-4 border-indigo-500/10 border-t-indigo-500 rounded-full animate-spin"></div>
                   <div className="absolute inset-0 blur-xl bg-indigo-500/20 rounded-full animate-pulse"></div>
                 </div>
-                <p className="text-slate-500 font-black text-xs uppercase tracking-[0.3em] animate-pulse">Synchronizing Core Data...</p>
+                <p className="text-slate-500 font-black text-xs uppercase tracking-[0.3em] animate-pulse">회원 정보를 불러오는 중...</p>
               </div>
             ) : filteredProfiles.length > 0 ? (
-              <div className="bg-white/[0.01] backdrop-blur-sm rounded-3xl border border-white/5 shadow-2xl overflow-hidden mb-12">
+              <div className="bg-white/[0.01] backdrop-blur-sm rounded-3xl border border-white/5 shadow-2xl overflow-x-auto mb-12">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-white/[0.03] border-b border-white/5 text-slate-400 text-xs font-black uppercase tracking-[0.2em]">
-                      <th className="px-8 py-5">Identity Profile</th>
-                      <th className="px-8 py-5">Organization & Access</th>
-                      <th className="px-8 py-5">Security Tier</th>
-                      <th className="px-8 py-5">Trust Status</th>
-                      <th className="px-8 py-5">Node Entry</th>
-                      <th className="px-8 py-5 text-right">System Actions</th>
+                      <th className="px-8 py-5">회원 정보</th>
+                      <th className="px-8 py-5">소속 조직 및 역할</th>
+                      <th className="px-8 py-5">서비스 등급</th>
+                      <th className="px-8 py-5">승인 상태</th>
+                      <th className="px-8 py-5">가입일</th>
+                      <th className="px-8 py-5 text-right">회원 관리</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -1029,7 +1000,7 @@ useEffect(() => {
                               <p className="text-xs text-slate-500 font-medium group-hover:text-indigo-400 transition-colors">{p.email}</p>
                             </div>
                             {p.isSuperAdmin && (
-                              <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded text-xs font-black tracking-widest shadow-lg shadow-indigo-500/10">ROOT</span>
+                              <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded text-xs font-black tracking-widest shadow-lg shadow-indigo-500/10">최고관리자</span>
                             )}
                           </div>
                         </td>
@@ -1040,10 +1011,10 @@ useEffect(() => {
                             </div>
                             <div>
                               <p className="text-slate-300 font-bold text-xs">
-                                {p.membership?.organizationName || <span className="text-slate-600 italic font-medium">No Domain</span>}
+                                {p.membership?.organizationName || <span className="text-slate-600 italic font-medium">소속 없음</span>}
                               </p>
                               <p className="text-xs uppercase font-black text-indigo-500/60 tracking-wider">
-                                {p.membership?.role || 'Guest'}
+                                {getRoleLabel(p.membership?.role)}
                               </p>
                             </div>
                           </div>
@@ -1052,7 +1023,8 @@ useEffect(() => {
                           <div className="flex flex-col gap-2">
                             <select
                               aria-label="회원 등급 변경"
-                              value={p.tier || 'FREE'}
+                              value={p.tier || ''}
+                              disabled={p.isSuperAdmin || p.id === user?.id}
                               onChange={(e) => handleTierChange(p.id, p.email, e.target.value)}
                               className={`inline-flex items-center w-fit px-2.5 py-1 rounded text-xs font-black uppercase tracking-[0.15em] shadow-lg cursor-pointer outline-none transition-all ${
                                 p.tier === 'DEMO' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
@@ -1061,15 +1033,16 @@ useEffect(() => {
                                 'bg-slate-800/40 text-slate-500 border border-white/5'
                               }`}
                             >
-                              <option value="FREE" className="bg-[#0f172a] text-slate-400">FREE</option>
-                              <option value="DEMO" className="bg-[#0f172a] text-purple-400">DEMO</option>
-                              <option value="MEDIA" className="bg-[#0f172a] text-blue-400">MEDIA</option>
-                              <option value="SALES" className="bg-[#0f172a] text-amber-400">SALES</option>
+                              <option value="FREE" className="bg-[#0f172a] text-slate-400">일반</option>
+                              <option value="" disabled>미지정</option>
+                              <option value="DEMO" className="bg-[#0f172a] text-purple-400">체험</option>
+                              <option value="MEDIA" className="bg-[#0f172a] text-blue-400">매체사</option>
+                              <option value="SALES" className="bg-[#0f172a] text-amber-400">영업</option>
                             </select>
                             {p.tier === 'DEMO' && p.trialExpiresAt && (
                               <p className="text-xs font-bold text-slate-500 flex items-center gap-1">
                                 <span className="w-1 h-1 bg-purple-500 rounded-full"></span>
-                                {Math.max(0, Math.ceil((new Date(p.trialExpiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} Days Remaining
+                                {Math.max(0, Math.ceil((new Date(p.trialExpiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} 일 남음
                               </p>
                             )}
                           </div>
@@ -1077,24 +1050,24 @@ useEffect(() => {
                         <td className="px-8 py-6 text-sm font-medium">
                           {p.isApproved ? (
                             <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-black uppercase tracking-widest border border-emerald-500/20 shadow-lg shadow-emerald-500/5">
-                              <CheckCircle className="w-3.5 h-3.5" /> Trusted
+                              <CheckCircle className="w-3.5 h-3.5" /> 승인 완료
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-400 rounded-xl text-xs font-black uppercase tracking-widest border border-amber-500/20 shadow-lg shadow-amber-500/5">
-                              <AlertCircle className="w-3.5 h-3.5" /> Verification
+                              <AlertCircle className="w-3.5 h-3.5" /> 승인 대기
                             </span>
                           )}
                         </td>
                         <td className="px-8 py-6">
-                            <p className="text-slate-500 text-xs font-black uppercase tracking-widest">Entry Date</p>
-                            <p className="text-slate-300 text-xs font-bold mt-0.5">{new Date(p.createdAt).toLocaleDateString()}</p>
+                            <p className="text-slate-500 text-xs font-black uppercase tracking-widest">가입일</p>
+                            <p className="text-slate-300 text-xs font-bold mt-0.5">{new Date(p.createdAt).toLocaleDateString('ko-KR')}</p>
                         </td>
                         <td className="px-8 py-6">
                           <div className="flex items-center justify-end gap-3">
                             <button
                               onClick={() => handleViewUserLogs(p)}
                               className="p-2.5 bg-white/[0.03] text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 border border-white/5 rounded-xl transition-all shadow-xl active:scale-90"
-                              title="Audit History"
+                              title="활동 이력 보기"
                             >
                               <History className="w-4 h-4" />
                             </button>
@@ -1104,12 +1077,13 @@ useEffect(() => {
                                 setShowOrgModal(true);
                               }}
                               className="p-2.5 bg-white/[0.03] text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 border border-white/5 rounded-xl transition-all shadow-xl active:scale-90"
-                              title="Domain Access Control"
+                              title="조직 및 역할 수정"
                             >
                               <Settings className="w-4 h-4" />
                             </button>
                             {!p.isApproved ? (
                               <button
+                                disabled={p.isSuperAdmin || p.id === user?.id}
                                 onClick={() => handleApproval(p.id, true)}
                                 className="p-2.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 rounded-xl transition-all shadow-xl active:scale-90"
                                 title="회원 승인"
@@ -1118,6 +1092,7 @@ useEffect(() => {
                               </button>
                             ) : (
                             <button
+                                disabled={p.isSuperAdmin || p.id === user?.id}
                                 onClick={() => handleApproval(p.id, false)}
                                 className="p-2.5 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/20 rounded-xl transition-all shadow-xl active:scale-90"
                                 title="접근 철회"
@@ -1125,24 +1100,17 @@ useEffect(() => {
                                 <XCircle className="w-4 h-4" />
                               </button>
                             )}
-{p.isApproved ? (
-                              <button
-                                onClick={() => sendWelcomeEmailResend(p.id, p.email)}
-                                className="p-2.5 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500 hover:text-white border border-indigo-500/20 rounded-xl transition-all shadow-xl active:scale-90"
-                                title="환영 이메일 재전송"
-                              >
-                                <Mail className="w-4 h-4" />
-                                <span className="text-xs ml-1">재전송</span>
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleDeleteProfile(p.id, p.email)}
-                                className="p-2.5 bg-white/[0.03] text-slate-700 hover:text-red-500 hover:bg-red-500/10 border border-white/5 rounded-xl transition-all shadow-xl active:scale-90"
-                                title="프로필 제거"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
+{p.isApproved && <button disabled={resendingEmail !== null || p.isSuperAdmin || p.id === user?.id}
+                              onClick={() => handleResendEmail(p.id, p.email)}
+                              className="rounded-xl border border-indigo-500/20 p-2.5 text-indigo-400" title="승인 안내 이메일 재전송">
+                              <Mail className="w-4 h-4" />
+                            </button>}
+                            <button disabled={p.isSuperAdmin || p.id === user?.id}
+                              onClick={() => handleDeleteProfile(p.id, p.email)}
+                              className="rounded-xl border border-rose-500/20 p-2.5 text-rose-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                              title={p.isSuperAdmin || p.id === user?.id ? '보호된 계정은 삭제할 수 없습니다' : '회원 계정 삭제'}>
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1155,7 +1123,7 @@ useEffect(() => {
                 <div className="w-20 h-20 bg-slate-800/40 rounded-full flex items-center justify-center mb-6">
                   <Search className="w-10 h-10 text-slate-600 animate-pulse" />
                 </div>
-                <p className="text-slate-500 font-black text-sm uppercase tracking-[0.2em]">No matching nodes identified.</p>
+                <p className="text-slate-500 font-black text-sm uppercase tracking-[0.2em]">검색 조건에 맞는 회원이 없습니다.</p>
               </div>
             )}
           </div>
@@ -1171,39 +1139,39 @@ useEffect(() => {
                   <div className="p-2 bg-indigo-500/20 rounded-lg">
                     <Activity className="w-5 h-5 text-indigo-400 animate-pulse" />
                   </div>
-                  <h3 className="font-black text-white text-xl uppercase tracking-tighter">System Audit Node Flow</h3>
+                  <h3 className="font-black text-white text-xl uppercase tracking-tighter">시스템 활동 이력</h3>
                 </div>
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-tight ml-10">Real-time telemetry and trajectory tracking of all administrative nodes.</p>
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-tight ml-10">관리자의 회원 관리와 시스템 작업 이력을 확인합니다.</p>
               </div>
-              <button 
-                onClick={loadAllLogs} 
+              <button
+                onClick={loadAllLogs}
                 className="relative z-10 flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 text-slate-300 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all active:scale-95 border border-white/10 shadow-2xl"
               >
                 <Activity className="w-4 h-4" />
-                Rescan System
+                활동 이력 새로고침
               </button>
             </div>
-            
+
             {logsLoading ? (
               <div className="flex flex-col items-center justify-center py-32 gap-6">
                 <div className="w-12 h-12 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-                <p className="text-xs font-black text-slate-600 uppercase tracking-widest animate-pulse">Syncing Audit Stream...</p>
+                <p className="text-xs font-black text-slate-600 uppercase tracking-widest animate-pulse">활동 이력을 불러오는 중...</p>
               </div>
             ) : allLogs.length > 0 ? (
               <div className="relative space-y-6 before:absolute before:left-[19px] before:top-2 before:bottom-2 before:w-px before:bg-gradient-to-b before:from-indigo-500/50 before:via-purple-500/20 before:to-transparent">
                 {allLogs.map((log, idx) => (
-                  <div 
-                    key={log.id} 
-                    className="relative pl-12 group animate-in fade-in slide-in-from-left-4" 
-                     
-   
+                  <div
+                    key={log.id}
+                    className="relative pl-12 group animate-in fade-in slide-in-from-left-4"
+
+
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
   // NOSONAR
-  style={{ 
+  style={{
                       '--delay': `${idx * 0.05}s`,
-                       
+
                     } as React.CSSProperties}
                   >
                     {/* Node Dot with Pulse */}
@@ -1212,8 +1180,8 @@ useEffect(() => {
                       log.action_type.includes('LEAD') ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400' :
                       'bg-slate-800 border-white/10 text-slate-500'
                     }`}>
-                      {log.action_type.includes('PROPOSAL') ? <FileText className="w-5 h-5" /> : 
-                       log.action_type.includes('LEAD') ? <Users className="w-5 h-5" /> : 
+                      {log.action_type.includes('PROPOSAL') ? <FileText className="w-5 h-5" /> :
+                       log.action_type.includes('LEAD') ? <Users className="w-5 h-5" /> :
                        <Activity className="w-5 h-5" />}
                     </div>
 
@@ -1231,34 +1199,34 @@ useEffect(() => {
                                       log.action_type.includes('LEAD') ? 'bg-indigo-500/20 text-indigo-400' :
                                       'bg-slate-800 text-slate-500'
                                    }`}>
-                                      {log.action_type}
+                                      {getActionLabel(log.action_type)}
                                    </span>
                                    <span className="text-xs text-slate-600 font-bold uppercase tracking-tighter flex items-center gap-1">
-                                      <Calendar className="w-3 h-3" /> {new Date(log.created_at).toLocaleString()}
+                                      <Calendar className="w-3 h-3" /> {new Date(log.created_at).toLocaleString('ko-KR')}
                                    </span>
                                 </div>
                              </div>
                           </div>
-                          
+
                           {log.details?.client_context && (
                              <div className="group/meta relative">
                                 <AlertCircle className="w-4 h-4 text-slate-700 cursor-help hover:text-slate-400 transition-colors" />
                                 <div className="absolute right-0 top-full mt-2 w-48 p-3 bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl opacity-0 group-hover/meta:opacity-100 transition-opacity z-30 pointer-events-none">
-                                   <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Node Metadata</p>
+                                   <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">접속 환경</p>
                                    <p className="text-xs text-slate-400 break-all leading-relaxed">{log.details.client_context.userAgent}</p>
                                 </div>
                              </div>
                           )}
                        </div>
-                       
+
                        <div className="pl-11">
                           <p className="text-sm text-slate-300 font-medium leading-relaxed">
-                            {log.details?.message || `${log.action_type} 작업이 수행되었습니다.`}
+                            {log.details?.message || `${getActionLabel(log.action_type)} 작업이 수행되었습니다.`}
                           </p>
                           {log.entity_id && (
                              <div className="mt-3 flex items-center gap-2">
                                 <div className="px-2 py-1 bg-black/40 border border-white/5 rounded-lg text-xs text-slate-600 font-bold font-mono">
-                                   ENTITY_ID: {log.entity_id}
+                                   대상 식별자: {log.entity_id}
                                 </div>
                              </div>
                           )}
@@ -1270,7 +1238,7 @@ useEffect(() => {
             ) : (
               <div className="bg-white/[0.01] rounded-3xl border border-white/5 border-dashed p-32 flex flex-col items-center justify-center text-slate-600">
                 <Activity className="w-12 h-12 mb-4 opacity-20" />
-                <p className="text-xs font-black uppercase tracking-widest">No audit particles detected.</p>
+                <p className="text-xs font-black uppercase tracking-widest">조회된 활동 이력이 없습니다.</p>
               </div>
             )}
           </div>
@@ -1287,10 +1255,10 @@ useEffect(() => {
                     <div className="p-2 bg-indigo-500/20 rounded-lg">
                       <Settings className="w-5 h-5 text-indigo-400" />
                     </div>
-                    <h3 className="font-black text-white text-xl uppercase tracking-tighter">API KEY VAULT (설정 관리 센터)</h3>
+                    <h3 className="font-black text-white text-xl uppercase tracking-tighter">공공데이터 연동 설정</h3>
                   </div>
                   <p className="text-xs text-slate-500 font-bold uppercase tracking-tight ml-10">
-                    공공데이터 API 통신을 위한 엔드포인트 커스텀 키 등록, 수정, 삭제 및 실시간 연결 유효성을 검증합니다.
+                    공공데이터 연동 인증 키를 등록·수정·삭제하고 연결 상태를 확인합니다.
                   </p>
                 </div>
                 <button
@@ -1301,7 +1269,7 @@ useEffect(() => {
                   className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-[0.1em] transition-all active:scale-95 shadow-lg shadow-indigo-500/20"
                 >
                   <Plus className="w-4 h-4" />
-                  새 API 키 추가
+                  인증 키 추가
                 </button>
               </div>
 
@@ -1310,9 +1278,9 @@ useEffect(() => {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/[0.02] text-slate-400 font-bold uppercase tracking-wider">
-                      <th className="p-4">API 이름</th>
-                      <th className="p-4">연동 엔드포인트</th>
-                      <th className="p-4">API KEY</th>
+                      <th className="p-4">연동 이름</th>
+                      <th className="p-4">연동 대상</th>
+                      <th className="p-4">인증 키</th>
                       <th className="p-4">시군/세부조건</th>
                       <th className="p-4">상태</th>
                       <th className="p-4 text-right">관리 / 검증</th>
@@ -1322,18 +1290,18 @@ useEffect(() => {
                     {apiConfigs.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-slate-500 font-bold uppercase tracking-wider">
-                          등록된 API 키 설정이 없습니다. 신규 설정을 추가해주세요.
+                          등록된 인증 키 설정이 없습니다. 신규 설정을 추가해주세요.
                         </td>
                       </tr>
                     ) : (
                       apiConfigs.map((config) => {
                         const isTesting = testingId === config.id;
                         const result = testResults[config.id];
-                        
+
                         return (
                           <tr key={config.id} className="hover:bg-white/[0.01] transition-colors">
                             <td className="p-4 font-black text-white">{config.name}</td>
-                            <td className="p-4 font-mono text-slate-400 uppercase">{config.type}</td>
+                            <td className="p-4 font-mono text-slate-400 uppercase">{getSourceLabel(config.type)}</td>
                             <td className="p-4 font-mono text-slate-500">
                               {config.apiKey ? `${config.apiKey.slice(0, 6)}****************${config.apiKey.slice(-4)}` : '-'}
                             </td>
@@ -1354,7 +1322,7 @@ useEffect(() => {
                                   {result.success ? `SUCCESS (${result.duration}ms)` : `ERROR: ${result.error}`}
                                 </span>
                               )}
-                              
+
                               <button
                                 onClick={() => handleTestConnection(config.id, config.type, config.apiKey, config.sigunNm)}
                                 disabled={isTesting}
@@ -1364,7 +1332,7 @@ useEffect(() => {
                               >
                                 {isTesting ? '확인 중...' : '연결 확인'}
                               </button>
-                              
+
                               <button
                                 onClick={() => {
                                   setEditingConfig(config);
@@ -1375,7 +1343,7 @@ useEffect(() => {
                               >
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
-                              
+
                               <button
                                 onClick={() => handleDeleteConfig(config.id)}
                                 className="p-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-rose-400 hover:text-rose-300 transition-colors"
@@ -1407,8 +1375,8 @@ useEffect(() => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">조직 선택</label>
-                  <select
+                  <label htmlFor="admin-score-org" className="block text-sm text-gray-400 mb-2">조직 선택</label>
+                  <select id="admin-score-org"
                     value={selectedScoreOrg}
                     onChange={async (e) => {
                       const orgId = e.target.value;
@@ -1452,7 +1420,7 @@ useEffect(() => {
                           onChange={(e) => updateScoreField('category', 'max', Number(e.target.value))}
                           className="w-full accent-amber-400"
                         />
-                        <p className="mt-2 text-xs text-gray-500">의원(HEALTH) 업종 리드의 만점 배점</p>
+                        <p className="mt-2 text-xs text-gray-500">의원 업종 잠재고객의 만점 배점</p>
                       </div>
 
                       <div className="bg-white/[0.03] rounded-2xl p-5 border border-white/5">
@@ -1488,68 +1456,68 @@ useEffect(() => {
             {/* Sync cards grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 서울열린광장 의원 데이터 */}
-              <SyncCard 
+              <SyncCard
                 sectorKey="seoul-clinic"
                 id="sync-seoul-clinic-btn"
                 title="서울열린광장 의원 데이터"
-                subtitle="Seoul Open Data Integration"
-                description="서울 열린데이터 광장(Seoul Open Data) API를 통해 서울시 관내 의원급 의료기관 정보를 실시간 동기화합니다. GRS80/TM 중부원점 좌표계를 WGS84 위경도로 자동 변환하고 인근 역사 도면과 매칭합니다."
+                subtitle="서울시 공공데이터 연동"
+                description="서울 열린데이터 광장 공공데이터를 통해 서울시 관내 의원급 의료기관 정보를 실시간 동기화합니다. 중부원점 평면 좌표계를 국제 표준 위경도로 자동 변환하고 인근 역사 도면과 매칭합니다."
                 icon={Activity}
                 colorName="cyan"
-                features={["서울시 25개 자치구 전체 데이터 연계", "GRS80/TM 중부원점 좌표계 자동 변환", "업종 자동 분류 및 역세권 리드 생성 (HEALTH)"]}
+                features={["서울시 25개 자치구 전체 데이터 연계", "중부원점 평면 좌표계 자동 변환", "업종 자동 분류 및 역세권 리드 생성"]}
                 apiPath="/api/seoul-clinics"
                 syncingSector={syncingSector}
                 onSync={handleSync}
               />
 
-              <SyncCard 
+              <SyncCard
                 sectorKey="academy"
                 id="sync-gg-btn"
                 title="경기도 학원 데이터"
-                subtitle="External Integration"
-                description="경기도 데이터 드림(Gyeonggi Data Dream) API를 통해 도내 학원 및 교습소 정보를 실시간으로 동기화합니다. 좌표를 기반으로 가장 가까운 지하철역을 자동으로 매칭하여 리드 데이터로 변환합니다."
+                subtitle="외부 데이터 연동"
+                description="경기도 데이터 드림 공공데이터를 통해 도내 학원 및 교습소 정보를 실시간으로 동기화합니다. 좌표를 기반으로 가장 가까운 지하철역을 자동으로 매칭하여 리드 데이터로 변환합니다."
                 icon={Building}
                 colorName="emerald"
-                features={["경기도 내 31개 시/군 전역 데이터", "WGS84 좌표 기반 역세권 자동 분석", "업종 자동 분류 (EDUCATION)"]}
+                features={["경기도 내 31개 시/군 전역 데이터", "위경도 좌표 기반 역세권 자동 분석", "업종 자동 분류"]}
                 apiPath="/api/gg-data"
                 syncingSector={syncingSector}
                 onSync={handleSync}
               />
 
-              <SyncCard 
+              <SyncCard
                 sectorKey="clinic"
                 id="sync-gg-clinic-btn"
                 title="경기도 의원 데이터"
-                subtitle="Healthcare Integration"
-                description="경기도 의원 인허가 상세 현황 API를 통해 도내 의료 시설 정보를 동기화합니다. 진료 과목 정보를 포함하여 마케팅 타겟팅에 활용 가능한 리드로 변환합니다."
+                subtitle="의료기관 데이터 연동"
+                description="경기도 의원 인허가 상세 현황 공공데이터를 통해 도내 의료 시설 정보를 동기화합니다. 진료 과목 정보를 포함하여 마케팅 타겟팅에 활용 가능한 리드로 변환합니다."
                 icon={Activity}
                 colorName="indigo"
-                features={["도내 의원급 의료기관 전체 데이터", "진료 과목(피부과, 내과 등) 상세 분석", "업종 자동 분류 (HEALTH)"]}
+                features={["도내 의원급 의료기관 전체 데이터", "진료 과목(피부과, 내과 등) 상세 분석", "업종 자동 분류"]}
                 apiPath="/api/gg-clinics"
                 syncingSector={syncingSector}
                 onSync={handleSync}
               />
 
-              <SyncCard 
+              <SyncCard
                 sectorKey="hospital"
                 id="sync-gg-hospital-btn"
                 title="경기도 병원 데이터"
-                subtitle="Healthcare Expansion"
-                description="경기도 병원 상세 현황 API를 통해 도내 중대형 의료 시설 정보를 동기화합니다. 요양병원, 종합병원 등을 포함한 상세 시설 정보를 수집합니다."
+                subtitle="병원 데이터 연동"
+                description="경기도 병원 상세 현황 공공데이터를 통해 도내 중대형 의료 시설 정보를 동기화합니다. 요양병원, 종합병원 등을 포함한 상세 시설 정보를 수집합니다."
                 icon={Shield}
                 colorName="rose"
-                features={["도내 병원/종합병원/요양병원 전체", "시설 규모 및 병상 수 정보 연동 예정", "업종 자동 분류 (HEALTH)"]}
+                features={["도내 병원/종합병원/요양병원 전체", "시설 규모 및 병상 수 정보 연동 예정", "업종 자동 분류"]}
                 apiPath="/api/gg-hospitals"
                 syncingSector={syncingSector}
                 onSync={handleSync}
               />
 
-              <SyncCard 
+              <SyncCard
                 sectorKey="univ"
                 id="sync-gg-univ-btn"
                 title="대학교 데이터"
-                subtitle="Education Network"
-                description="경기데이터드림 및 공공데이터포털 API를 통해 전국 대학교 및 대학원 정보를 동기화합니다. 학교 홈페이지 및 연락처 정보를 포함하여 캠퍼스 광고 영업용 리드로 활용합니다."
+                subtitle="교육기관 데이터 연동"
+                description="경기데이터드림 및 공공데이터포털 공공데이터를 통해 전국 대학교 및 대학원 정보를 동기화합니다. 학교 홈페이지 및 연락처 정보를 포함하여 캠퍼스 광고 영업용 리드로 활용합니다."
                 icon={GraduationCap}
                 colorName="amber"
                 features={["대학교, 전문대학, 대학원 통합 데이터", "홈페이지 및 대표 연락처 정보 검색 최적화", "캠퍼스별 위치 정보 및 역세권 분석"]}
@@ -1558,57 +1526,57 @@ useEffect(() => {
                 onSync={handleSync}
               />
 
-              <SyncCard 
+              <SyncCard
                 sectorKey="restaurant"
                 id="sync-gg-rest-btn"
                 title="경기도 음식점 데이터"
-                subtitle="Food & Beverage"
-                description="경기데이터드림 일반음식점 현황 API(GENRESTRT)를 통해 지역 내 식음료 업장 정보를 동기화합니다. 업종별 영업 상태를 실시간으로 파악하여 영업 리드로 전환합니다."
+                subtitle="음식점 데이터 연동"
+                description="경기데이터드림 일반음식점 현황 공공데이터를 통해 지역 내 식음료 업장 정보를 동기화합니다. 업종별 영업 상태를 실시간으로 파악하여 영업 리드로 전환합니다."
                 icon={Utensils}
                 colorName="orange"
-                features={["도내 일반음식점 인허가 데이터", "영업/폐업 상태 실시간 업데이트 반영", "업종 자동 분류 (FOOD)"]}
+                features={["도내 일반음식점 인허가 데이터", "영업/폐업 상태 실시간 업데이트 반영", "업종 자동 분류"]}
                 apiPath="/api/gg-restaurants"
                 syncingSector={syncingSector}
                 onSync={handleSync}
               />
 
-              <SyncCard 
+              <SyncCard
                 sectorKey="food-trucks"
                 id="sync-gg-food-truck-btn"
                 title="경기도 푸드트럭 데이터"
-                subtitle="Mobile Dining"
-                description="경기데이터드림 식품접객업(푸드트럭) 현황 API(Resrestrtfodtuck)를 통해 이동식 음식 판매 업장 정보를 동기화합니다."
+                subtitle="푸드트럭 데이터 연동"
+                description="경기데이터드림 식품접객업(푸드트럭) 현황 공공데이터를 통해 이동식 음식 판매 업장 정보를 동기화합니다."
                 icon={Truck}
                 colorName="lime"
-                features={["이동식 음식 판매업(푸드트럭) 인허가 데이터", "영업 상태 실시간 반영", "업종 자동 분류 (FOOD)"]}
+                features={["이동식 음식 판매업(푸드트럭) 인허가 데이터", "영업 상태 실시간 반영", "업종 자동 분류"]}
                 apiPath="/api/gg-food-trucks"
                 syncingSector={syncingSector}
                 onSync={handleSync}
               />
 
-              <SyncCard 
+              <SyncCard
                 sectorKey="coffee-shops"
                 id="sync-gg-coffee-shop-btn"
                 title="경기도 커피숍 데이터"
-                subtitle="Coffee Culture"
-                description="경기데이터드림 식품접객업(커피숍) 현황 API(RESRESTRT)를 통해 도내 커피숍 업장 정보를 동기화합니다."
+                subtitle="커피숍 데이터 연동"
+                description="경기데이터드림 식품접객업(커피숍) 현황 공공데이터를 통해 도내 커피숍 업장 정보를 동기화합니다."
                 icon={Coffee}
                 colorName="teal"
-                features={["커피숍 인허가 데이터", "업종명 기준 업소 식별", "업종 자동 분류 (FOOD)"]}
+                features={["커피숍 인허가 데이터", "업종명 기준 업소 식별", "업종 자동 분류"]}
                 apiPath="/api/gg-coffee-shops"
                 syncingSector={syncingSector}
                 onSync={handleSync}
               />
 
-              <SyncCard 
+              <SyncCard
                 sectorKey="jncl"
                 id="sync-gg-jncl-univ-btn"
                 title="전문 및 대학교 현황"
-                subtitle="Academic Status"
+                subtitle="대학 현황 연동"
                 description="경기도 내 전문대학 및 대학교의 최신 인허가 및 영업 현황 정보를 동기화합니다. 신규 개설 학교 및 캠퍼스 정보를 실시간으로 관리합니다."
                 icon={GraduationCap}
                 colorName="cyan"
-                features={["전문대학, 대학교, 각종학교 통합 현황", "인허가 기반 최신 영업 상태 및 위치 정보", "교육 서비스 리드 자동 생성 (EDUCATION)"]}
+                features={["전문대학, 대학교, 각종학교 통합 현황", "인허가 기반 최신 영업 상태 및 위치 정보", "교육 서비스 리드 자동 생성"]}
                 apiPath="/api/gg-jncl-univ"
                 syncingSector={syncingSector}
                 onSync={handleSync}
@@ -1639,56 +1607,56 @@ useEffect(() => {
                 </h3>
                 <p className="text-xs text-slate-500 mt-1 uppercase tracking-tight">공공데이터 통신 노드 추가 및 매개변수 바인딩</p>
               </div>
-              <button 
+              <button
                 onClick={() => {
                   setShowConfigModal(false);
                   setEditingConfig(null);
-                }} 
+                }}
                 className="p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
                 aria-label="모달 닫기"
               >
                 <X className="w-5 h-5"/>
               </button>
             </div>
-            
+
             <form onSubmit={handleSaveConfig}>
               <div className="p-6 space-y-4 text-xs">
                 <div className="space-y-1.5">
-                  <label className="font-black text-slate-400 uppercase tracking-widest block">API 설정 이름 *</label>
-                  <input
+                  <label htmlFor="admin-config-name" className="font-black text-slate-400 uppercase tracking-widest block">연동 설정 이름 *</label>
+                  <input id="admin-config-name"
                     type="text"
                     name="name"
                     required
-                    placeholder="예: 서울시 의원 인허가 API"
+                    placeholder="예: 서울시 의원 인허가 데이터 연동"
                     defaultValue={editingConfig?.name || ''}
                     className="w-full bg-[#151515] border border-white/10 rounded-xl p-3 text-white outline-none focus:border-indigo-500 transition-colors font-medium"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-black text-slate-400 uppercase tracking-widest block">API 연동 유형 *</label>
-                  <select
+                  <label htmlFor="admin-config-type" className="font-black text-slate-400 uppercase tracking-widest block">데이터 연동 유형 *</label>
+                  <select id="admin-config-type"
                     name="type"
                     required
                     defaultValue={editingConfig?.type || 'seoul-clinic'}
                     className="w-full bg-[#151515] border border-white/10 rounded-xl p-3 text-white outline-none focus:border-indigo-500 transition-colors font-medium"
                   >
-                    <option value="seoul-clinic">서울시 의원 인허가 정보 (LOCALDATA_010102)</option>
-                    <option value="seoul-hospital">서울시 병원 인허가 정보 (LOCALDATA_010101)</option>
-                    <option value="gg-clinic">경기도 의원 상세 현황 (AsembyStus)</option>
-                    <option value="gg-hospital">경기도 병원 상세 현황 (GgMedctnstus)</option>
-                    <option value="gg-academy">경기도 학원/교습소 현황 (GenmstClassStus)</option>
-                    <option value="gg-restaurant">경기도 일반음식점 현황 (GENRESTRT)</option>
-                    <option value="gg-food-trucks">경기도 푸드트럭 현황 (Resrestrtfodtuck)</option>
-                    <option value="gg-coffee-shops">경기도 커피숍 현황 (RESRESTRT)</option>
-                    <option value="gg-jncl-univ">경기도 전문대학 현황 (GgJnclUnivStus)</option>
-                    <option value="gg-univ">경기도 대학교 현황 (GgUnivStus)</option>
+                    <option value="seoul-clinic">서울시 의원 인허가 정보</option>
+                    <option value="seoul-hospital">서울시 병원 인허가 정보</option>
+                    <option value="gg-clinic">경기도 의원 상세 현황</option>
+                    <option value="gg-hospital">경기도 병원 상세 현황</option>
+                    <option value="gg-academy">경기도 학원/교습소 현황</option>
+                    <option value="gg-restaurant">경기도 일반음식점 현황</option>
+                    <option value="gg-food-trucks">경기도 푸드트럭 현황</option>
+                    <option value="gg-coffee-shops">경기도 커피숍 현황</option>
+                    <option value="gg-jncl-univ">경기도 전문대학 현황</option>
+                    <option value="gg-univ">경기도 대학교 현황</option>
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-black text-slate-400 uppercase tracking-widest block">공공데이터 API KEY *</label>
-                  <input
+                  <label htmlFor="admin-config-api-key" className="font-black text-slate-400 uppercase tracking-widest block">공공데이터 인증 키 *</label>
+                  <input id="admin-config-api-key"
                     type="text"
                     name="apiKey"
                     required
@@ -1699,8 +1667,8 @@ useEffect(() => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-black text-slate-400 uppercase tracking-widest block">시군명 (경기도 전용 / 선택)</label>
-                  <input
+                  <label htmlFor="admin-config-city" className="font-black text-slate-400 uppercase tracking-widest block">시군명 (경기도 전용 / 선택)</label>
+                  <input id="admin-config-city"
                     type="text"
                     name="sigunNm"
                     placeholder="예: 수원시, 성남시 (미입력 시 전체)"
@@ -1711,31 +1679,31 @@ useEffect(() => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-black text-slate-400 uppercase tracking-widest block">활성화 여부 *</label>
-                  <select
+                  <label htmlFor="admin-config-active" className="font-black text-slate-400 uppercase tracking-widest block">활성화 여부 *</label>
+                  <select id="admin-config-active"
                     name="isActive"
                     required
                     defaultValue={editingConfig?.isActive ? 'true' : 'false'}
                     className="w-full bg-[#151515] border border-white/10 rounded-xl p-3 text-white outline-none focus:border-indigo-500 transition-colors font-medium"
                   >
-                    <option value="true">활성화 (ACTIVE)</option>
-                    <option value="false">비활성화 (INACTIVE)</option>
+                    <option value="true">활성화</option>
+                    <option value="false">비활성화</option>
                   </select>
                 </div>
               </div>
               <div className="p-6 bg-white/[0.02] border-t border-white/5 flex gap-3">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => {
                     setShowConfigModal(false);
                     setEditingConfig(null);
-                  }} 
+                  }}
                   className="flex-1 py-3 border border-white/10 rounded-xl font-bold uppercase tracking-wider text-slate-400 hover:text-white transition-colors"
                 >
                   취소
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl uppercase tracking-wider transition-colors shadow-lg shadow-indigo-500/20"
                 >
                   저장하기
@@ -1765,8 +1733,8 @@ useEffect(() => {
             <form onSubmit={handleCreateOrg}>
               <div className="p-6 space-y-4 text-sm">
                 <div className="space-y-1.5">
-                  <label className="font-semibold block text-slate-700">조직 이름</label>
-                  <input
+                  <label htmlFor="admin-new-org-name" className="font-semibold block text-slate-700">조직 이름</label>
+                  <input id="admin-new-org-name"
                     type="text"
                     value={newOrgName}
                     onChange={(e) => setNewOrgName(e.target.value)}
@@ -1811,18 +1779,18 @@ useEffect(() => {
             }}>
               <div className="p-6 space-y-4 text-sm">
                 <div className="space-y-1.5">
-                  <label className="font-semibold block text-slate-700">소속 조직</label>
-                  <select name="orgId" aria-label="소속 조직 선택" className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" defaultValue={selectedProfile.membership?.organizationId || ''}>
+                  <label htmlFor="admin-member-org" className="font-semibold block text-slate-700">소속 조직</label>
+                  <select id="admin-member-org" name="orgId" aria-label="소속 조직 선택" className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" defaultValue={selectedProfile.membership?.organizationId || ''}>
                     <option value="">소속 없음</option>
                     {orgs.map(org => <option key={org.id} value={org.id}>{org.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="font-semibold block text-slate-700">역할 (Role)</label>
-                  <select name="role" aria-label="역할 선택" className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" defaultValue={selectedProfile.membership?.role || 'member'}>
-                    <option value="member">일반 멤버 (Member)</option>
-                    <option value="admin">관리자 (Admin)</option>
-                    <option value="owner">소유자 (Owner)</option>
+                  <label htmlFor="admin-member-role" className="font-semibold block text-slate-700">역할</label>
+                  <select id="admin-member-role" name="role" aria-label="역할 선택" className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" defaultValue={selectedProfile.membership?.role || 'member'}>
+                    <option value="member">일반 회원</option>
+                    <option value="admin">관리자</option>
+                    <option value="owner">조직 소유자</option>
                   </select>
                 </div>
               </div>
@@ -1853,7 +1821,7 @@ useEffect(() => {
                 <X className="w-5 h-5"/>
               </button>
             </div>
-            
+
             <div className="p-6 max-h-[500px] overflow-y-auto">
               {userLogsLoading ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-3">
@@ -1868,18 +1836,18 @@ useEffect(() => {
                       <span className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full border-4 border-white ${
                         log.action_type === 'DOWNLOAD' ? 'bg-blue-500' : 'bg-purple-500'
                       }`}></span>
-                      
+
                       <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl">
                         <div className="flex items-center justify-between mb-2">
                           <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold uppercase ${
                             log.action_type === 'DOWNLOAD' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
                           }`}>
                             {log.action_type === 'DOWNLOAD' ? <Download className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-                            {log.action_type}
+                            {getActionLabel(log.action_type)}
                           </span>
                           <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
                             <Calendar className="w-3 h-3"/>
-                            {new Date(log.created_at).toLocaleString()}
+                            {new Date(log.created_at).toLocaleString('ko-KR')}
                           </span>
                         </div>
                         <p className="text-sm text-slate-700">
@@ -1910,9 +1878,9 @@ useEffect(() => {
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">New Deployment</span>
-                  <button 
-                    onClick={() => setToastNotification(null)} 
+                  <span className="text-xs font-black text-emerald-500 uppercase tracking-widest">신규 회원가입 알림</span>
+                  <button
+                    onClick={() => setToastNotification(null)}
                     className="text-slate-600 hover:text-white transition-colors"
                     title="알림 닫기"
                     aria-label="알림 닫기"
@@ -1926,15 +1894,15 @@ useEffect(() => {
                 </p>
               </div>
               <div className="absolute -bottom-1 left-0 right-0 h-1 bg-emerald-500/40 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-emerald-500 animate-[shimmer_8s_linear_forwards] origin-left" 
-                   
-   
+                <div
+                  className="h-full bg-emerald-500 animate-[shimmer_8s_linear_forwards] origin-left"
+
+
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
   // NOSONAR
-  style={{  
+  style={{
                   '--shimmer-fallback': 'left' } as React.CSSProperties}
                 ></div>
               </div>

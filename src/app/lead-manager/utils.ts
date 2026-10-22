@@ -10,6 +10,7 @@ const projFunc: any = typeof proj4 === 'function' ? proj4 : (proj4 as any).defau
 
 import { PROJ4_DEFS, SUBWAY_STATIONS } from './constants';
 import { SubwayStation } from './types';
+import { isValidCoordinates } from './utils/coordinates';
 
 // proj 좌표계 등록
 if (typeof projFunc.defs === 'function') {
@@ -184,7 +185,7 @@ export function findNearestStation(
   lng: number,
   address?: string | null
 ): { station: SubwayStation; distance: number } | null {
-  if (!lat || !lng) return null;
+  if (!isValidCoordinates(lat, lng)) return null;
 
   let bestMatch: { station: SubwayStation; distance: number; score: number } | null = null;
   
@@ -192,7 +193,7 @@ export function findNearestStation(
   const bizNeighborhood = extractNeighborhood(address);
 
   for (const station of SUBWAY_STATIONS) {
-    if (!station.lat || !station.lng) continue;
+    if (!isValidCoordinates(station.lat, station.lng)) continue;
 
     const physicalDistance = calculateDistance(lat, lng, station.lat, station.lng);
     

@@ -10,6 +10,36 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { findNearestStation, convertGRS80ToWGS84 } from '@/app/lead-manager/utils';
 import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 
+// 본문 수신까지 제한하고 키가 포함될 수 있는 외부 오류 본문/URL은 전달하지 않습니다.
+export async function fetchSyncJson(url: string, label: string, deadline = Date.now() + 180_000) {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw new Error(`[${label}] 수집 제한 시간이 지났습니다. 지역을 좁혀 다시 시도해 주세요.`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), Math.min(15_000, remaining));
+  try {
+    const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    if (!response.ok) throw new Error(`[${label}] 제공기관 응답 오류 (HTTP ${response.status})`);
+    let data;
+    try { data = await response.json(); }
+    catch { throw new Error(`[${label}] 제공기관의 JSON 응답을 읽지 못했습니다.`); }
+    if (!data || typeof data !== 'object') throw new Error(`[${label}] 제공기관 응답 형식이 올바르지 않습니다.`);
+    const code = data.RESULT?.CODE;
+    if (code && !['INFO-000', 'INFO-200'].includes(code)) {
+      const safeCode = /^[A-Z]+-\d+$/.test(String(code)) ? code : 'UNKNOWN';
+      throw new Error(`[${label}] 제공기관 오류 (${safeCode}). API 키 권한과 서비스 상태를 확인해 주세요.`);
+    }
+    return data;
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error(`[${label}] 응답 대기 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.`);
+    if (error instanceof Error && error.message.startsWith(`[${label}]`)) throw error;
+    throw new Error(`[${label}] 제공기관에 연결하지 못했습니다.`);
+  } finally { clearTimeout(timer); }
+}
+
+function resolveGGKey(envKey: string, overrides: Record<string, string> = {}) {
+  return overrides[envKey]?.trim() || overrides.GG_API_KEY?.trim() || process.env[envKey]?.trim() || process.env.GG_API_KEY?.trim() || '';
+}
+
 // ============================================================
 // 경기도 API 소스 설정 정의
 // ============================================================
@@ -33,6 +63,7 @@ interface GGSourceConfig {
   envKey: string;           // 환경변수 키 이름
   label: string;            // UI 표시명
   mgtPrefix: string;        // mgt_no 접두사
+  supportsSigun?: boolean;
   disabled?: boolean;       // 공공 API 서비스 중지 등으로 사용 불가
   disabledReason?: string;  // 비활성 사유
 }
@@ -92,10 +123,13 @@ const GG_SOURCES: Record<GGSourceKey, GGSourceConfig> = {
     envKey: 'GG_COFFEE_SHOP_API_KEY',
     label: '경기도 커피숍',
     mgtPrefix: 'GG_COFFEE',
+    disabled: true,
+    disabledReason: '원본 API에 업소명이 없어 정확한 리드 저장 불가 (대체 데이터셋 확인 필요)',
   },
   'gg-univ': {
     endpoint: 'https://openapi.gg.go.kr/Univ',
     dataKey: 'Univ',
+    supportsSigun: false,
     category: 'EDUCATION',
     service_name: '대학교',
     nameField: 'FACLT_NM',
@@ -109,6 +143,7 @@ const GG_SOURCES: Record<GGSourceKey, GGSourceConfig> = {
   'gg-jncl-univ': {
     endpoint: 'https://openapi.gg.go.kr/Jnclluniv',
     dataKey: 'Jnclluniv',
+    supportsSigun: false,
     category: 'EDUCATION',
     service_name: '전문대학',
     nameField: 'FACLT_NM',
@@ -128,84 +163,28 @@ export async function fetchGGAllPages(
   apiKey: string,
   sigunNm?: string,
   pageSize: number = 1000
-): Promise<{ total: number; rows: any[] }> {
-  // 1페이지로 총 건수 파악
-  const firstUrl = buildGGUrl(config.endpoint, apiKey, 1, pageSize, sigunNm);
-  const firstRes = await fetch(firstUrl, { cache: 'no-store' });
-  if (!firstRes.ok) {
-    // HTTP 오류 응답 본문에 실제 사유(ERROR-xxx 등)가 담겨 있으면 함께 전달한다
-    let detail = '';
-    try {
-      const errText = await firstRes.text();
-      if (errText) {
-        const snippet = errText.slice(0, 200).replace(/\s+/g, ' ');
-        try {
-          const errJson = JSON.parse(errText);
-          detail = errJson.RESULT?.CODE
-            ? ` [${errJson.RESULT.CODE}] ${errJson.RESULT.MESSAGE || ''}`
-            : ` (${snippet})`;
-        } catch {
-          detail = ` (${snippet})`;
-        }
-      }
-    } catch {
-      // 본문 읽기 실패는 무시
-    }
-    throw new Error(`[${config.label}] API 응답 오류: HTTP ${firstRes.status}${detail}`);
+): Promise<{ total: number; rows: any[]; truncated?: boolean }> {
+  const deadline = Date.now() + 180_000;
+  async function readPage(page: number) {
+    const data = await fetchSyncJson(buildGGUrl(config.endpoint, apiKey, page, pageSize, config.supportsSigun === false ? undefined : sigunNm), config.label, deadline);
+    if (data.RESULT?.CODE === 'INFO-200') return { total: 0, rows: [] };
+    const entries = data[config.dataKey];
+    if (!Array.isArray(entries)) throw new Error(`[${config.label}] 제공기관 응답 형식을 확인해 주세요.`);
+    const head = entries.find((item: any) => item.head)?.head;
+    const result = head?.find((item: any) => item.RESULT)?.RESULT;
+    if (result?.CODE && result.CODE !== 'INFO-000') throw new Error(`[${config.label}] 제공기관 오류 (${/^[A-Z]+-\d+$/.test(String(result.CODE)) ? result.CODE : 'UNKNOWN'})`);
+    const rows = entries.find((item: any) => item.row)?.row;
+    if (!Array.isArray(rows)) throw new Error(`[${config.label}] 페이지 ${page} 데이터가 누락되었습니다.`);
+    return { total: Number(head?.find((item: any) => item.list_total_count !== undefined)?.list_total_count) || 0, rows };
   }
-
-  const firstText = await firstRes.text();
-  let firstData: any;
-  try {
-    firstData = JSON.parse(firstText);
-  } catch {
-    // 경기도 오픈API는 서비스 종료 시 HTTP 200 + EUC-KR HTML 안내문을 반환하므로
-    // 비JSON 응답에서 정책 종료 문구를 감지해 실제 사유를 명확히 던진다
-    const snippet = firstText.slice(0, 300).replace(/\s+/g, ' ');
-    if (/서비스가 종료|정책이 변경|서비스 종료|<html|EUC-KR/i.test(snippet)) {
-      throw new Error(`[${config.label}] 경기데이터드림 정책 변경으로 해당 API 서비스가 종료되었습니다 (응답: ${snippet.slice(0, 120)})`);
-    }
-    throw new Error(`[${config.label}] API 응답 파싱 실패 - 서비스 중지 또는 잘못된 엔드포인트일 수 있음 (응답: ${snippet.slice(0, 120)})`);
-  }
-  if (!firstData[config.dataKey]) {
-    const code = firstData.RESULT?.CODE || 'UNKNOWN';
-    const msg = firstData.RESULT?.MESSAGE || '데이터 없음';
-    throw new Error(`[${config.label}] [${code}] ${msg}`);
-  }
-
-  const headItem = Array.isArray(firstData[config.dataKey])
-    ? firstData[config.dataKey].find((item: any) => item.head)
-    : null;
-  const rowItem = Array.isArray(firstData[config.dataKey])
-    ? firstData[config.dataKey].find((item: any) => item.row)
-    : null;
-
-  const total: number = headItem?.head?.find((h: any) => h.list_total_count)?.list_total_count || 0;
-  const MAX_PAGES = 20;
-  const totalPages = Math.min(Math.ceil(total / pageSize), MAX_PAGES);
-
-  let allRows: any[] = rowItem?.row || [];
-
-  // 나머지 페이지 순회
+  const first = await readPage(1);
+  const totalPages = Math.min(Math.ceil(first.total / pageSize), 20);
+  let allRows = first.rows;
   for (let page = 2; page <= totalPages; page++) {
-    const url = buildGGUrl(config.endpoint, apiKey, page, pageSize, sigunNm);
-    try {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) {
-        console.warn(`[${config.label}] 페이지 ${page} 실패: ${res.status}`);
-        continue;
-      }
-      const data = await res.json();
-      const ri = Array.isArray(data[config.dataKey])
-        ? data[config.dataKey].find((item: any) => item.row)
-        : null;
-      if (ri?.row) allRows = allRows.concat(ri.row);
-    } catch (e) {
-      console.warn(`[${config.label}] 페이지 ${page} 예외:`, e);
-    }
+    const next = await readPage(page);
+    allRows = allRows.concat(next.rows);
   }
-
-  return { total, rows: allRows };
+  return { total: first.total, rows: allRows, truncated: first.total > 20 * pageSize };
 }
 
 function buildGGUrl(endpoint: string, apiKey: string, page: number, pageSize: number, sigunNm?: string): string {
@@ -303,17 +282,16 @@ function isWithinLastThreeMonths(lastModTs: string | null | undefined): boolean 
 export async function fetchSeoulAllPages(
   config: SeoulSourceConfig,
   apiKey: string
-): Promise<{ total: number; rows: any[] }> {
+): Promise<{ total: number; rows: any[]; truncated?: boolean }> {
   // 총 건수 파악 (1건)
   const countUrl = `${SEOUL_BASE}/${apiKey}/json/${config.serviceCode}/1/1`;
-  const countRes = await fetch(countUrl, { cache: 'no-store' });
-  if (!countRes.ok) throw new Error(`[${config.label}] API 응답 오류: ${countRes.status}`);
-
-  const countData = await countRes.json();
+  const deadline = Date.now() + 180_000;
+  const countData = await fetchSyncJson(countUrl, config.label, deadline);
+  if (countData.RESULT?.CODE === 'INFO-200') return { total: 0, rows: [] };
   if (!countData[config.serviceCode]) {
     const code = countData.RESULT?.CODE || 'UNKNOWN';
-    const msg = countData.RESULT?.MESSAGE || '데이터 없음';
-    throw new Error(`[${config.label}] [${code}] ${msg}`);
+    void code;
+    throw new Error(`[${config.label}] 서울 데이터 응답 형식과 서비스 상태를 확인해 주세요.`);
   }
 
   const total = parseInt(countData[config.serviceCode].list_total_count) || 0;
@@ -337,14 +315,12 @@ export async function fetchSeoulAllPages(
       const end = page * SEOUL_PAGE_SIZE;
       const url = `${SEOUL_BASE}/${apiKey}/json/${config.serviceCode}/${start}/${end}`;
       
-      const fetchPromise = fetch(url, { cache: 'no-store' })
-        .then(async res => {
-          if (!res.ok) {
-            console.warn(`[${config.label}] 페이지 ${page} 실패: ${res.status}`);
-            return [];
-          }
-          const data = await res.json();
-          const rows = data[config.serviceCode]?.row || [];
+      const fetchPromise = fetchSyncJson(url, config.label, deadline)
+        .then(data => {
+          const payload = data[config.serviceCode];
+          if (payload?.RESULT?.CODE && payload.RESULT.CODE !== 'INFO-000') throw new Error(`[${config.label}] 페이지 ${page} 조회에 실패했습니다.`);
+          const rows = payload?.row;
+          if (!Array.isArray(rows)) throw new Error(`[${config.label}] 페이지 ${page} 데이터가 누락되었습니다.`);
           // 영업중(또는 영업/정상)이면서 최종수정일자가 최근 3개월 이내인 업소만 유효 처리
           const valid: any[] = [];
           for (const r of rows) {
@@ -365,10 +341,6 @@ export async function fetchSeoulAllPages(
             valid.push(r);
           }
           return valid;
-        })
-        .catch(e => {
-          console.warn(`[${config.label}] 페이지 ${page} 예외:`, e);
-          return [];
         });
         
       pagePromises.push(fetchPromise);
@@ -391,7 +363,7 @@ export async function fetchSeoulAllPages(
     console.warn(`[${config.label}] 유효 건수가 전체의 10% 미만입니다 (${allRows.length}/${total}건) - API 키 갱신 또는 필터 조건 재검토 필요`);
   }
 
-  return { total, rows: allRows };
+  return { total, rows: allRows, truncated: total > SEOUL_MAX_PAGES * SEOUL_PAGE_SIZE };
 }
 
 /** 서울 API 행 데이터를 leads 테이블 형식으로 변환 */
@@ -452,6 +424,7 @@ export interface SyncSourceResult {
   skipped?: number;     // UNIQUE 충돌 등 건너뜀
   failed?: number;      // 저장 실패
   error?: string;
+  warning?: string;
 }
 
 export interface SyncSourceOptions {
@@ -500,17 +473,17 @@ export async function syncSource(
   if (sourceKey in GG_SOURCES) {
     const config = GG_SOURCES[sourceKey as GGSourceKey];
     if (config.disabled) {
-      await logSyncSource(supabase, orgId, sourceKey, config.label, { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `비활성: ${config.disabledReason}` });
+      if (sync) await logSyncSource(supabase, orgId, sourceKey, config.label, { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `비활성: ${config.disabledReason}` });
       return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `비활성: ${config.disabledReason}` };
     }
-    const apiKey = apiKeys[config.envKey] || process.env[config.envKey] || '';
+    const apiKey = resolveGGKey(config.envKey, apiKeys);
     if (!apiKey) {
-      await logSyncSource(supabase, orgId, sourceKey, config.label, { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` });
+      if (sync) await logSyncSource(supabase, orgId, sourceKey, config.label, { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` });
       return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` };
     }
     try {
       console.log(`[sync-engine] ${config.label} 시작...`);
-      const { total, rows } = await fetchGGAllPages(config, apiKey, sigunNm);
+      const { total, rows, truncated } = await fetchGGAllPages(config, apiKey, sigunNm);
       const leads = rows.map(row => mapGGRow(row, config, orgId));
       let saved = 0;
       let inserted = 0, updated = 0, skipped = 0, failed = 0;
@@ -525,13 +498,13 @@ export async function syncSource(
       } else if (sync) {
         saved = leads.length;
       }
-      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed };
-      await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
+      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed, ...(truncated ? { warning: '페이지 제한으로 일부 데이터만 수집했습니다. 지역 범위를 좁혀 확인해 주세요.' } : {}) };
+      if (sync) await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
       console.log(`[sync-engine] ${config.label} 완료: ${leads.length}/${total}건 (저장: ${saved}건)`);
       return syncResult;
     } catch (e: any) {
       const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message };
-      await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
+      if (sync) await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
       console.error(`[sync-engine] ${config.label} 오류:`, e);
       return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message };
     }
@@ -545,12 +518,12 @@ export async function syncSource(
       process.env.SEOUL_DATA_API_KEY ||
       '';
     if (!apiKey) {
-      await logSyncSource(supabase, orgId, sourceKey, config.label, { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` });
+      if (sync) await logSyncSource(supabase, orgId, sourceKey, config.label, { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` });
       return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: `API 키 없음 (${config.envKey})` };
     }
     try {
       console.log(`[sync-engine] ${config.label} 시작...`);
-      const { total, rows } = await fetchSeoulAllPages(config, apiKey);
+      const { total, rows, truncated } = await fetchSeoulAllPages(config, apiKey);
       const leads = rows.map(row => mapSeoulRow(row, config, orgId));
       let saved = 0;
       let inserted = 0, updated = 0, skipped = 0, failed = 0;
@@ -565,13 +538,13 @@ export async function syncSource(
       } else if (sync) {
         saved = leads.length;
       }
-      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed };
-      await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
+      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed, ...(truncated ? { warning: '페이지 제한으로 일부 데이터만 수집했습니다. 지역 범위를 좁혀 확인해 주세요.' } : {}) };
+      if (sync) await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
       console.log(`[sync-engine] ${config.label} 완료: ${leads.length}/${total}건 (저장: ${saved}건)`);
       return syncResult;
     } catch (e: any) {
       const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message };
-      await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
+      if (sync) await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
       console.error(`[sync-engine] ${config.label} 오류:`, e);
       return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error: e.message };
     }
@@ -588,7 +561,8 @@ export function getSourceList() {
       label: cfg.label,
       region: '경기도',
       category: cfg.category,
-      hasKey: !!process.env[cfg.envKey],
+      hasKey: !!resolveGGKey(cfg.envKey),
+      envKey: cfg.envKey,
       ...(cfg.disabled ? { disabled: true, disabledReason: cfg.disabledReason } : {}),
     })),
     ...Object.entries(SEOUL_SOURCES).map(([key, cfg]) => ({
@@ -597,6 +571,7 @@ export function getSourceList() {
       region: '서울',
       category: cfg.category,
       hasKey: !!(process.env[cfg.envKey] || process.env.SEOUL_DATA_API_KEY),
+      envKey: cfg.envKey,
     })),
   ];
 }

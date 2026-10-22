@@ -71,8 +71,7 @@ import { getDefaultGreeting } from './proposal-greeting';export async function c
       return { success: false, message: error.message };
     }
 
-    // 리드 상태를 '제안 발송'으로 변경
-    await updateLeadStatus(leadId, 'PROPOSAL_SENT');
+    // 초안 생성은 발송이 아니므로 리드 상태를 변경하지 않는다.
 
     // 활동 로그 기록
     ActivityService.trackProposalCreate(data.id, leadId, leadData?.biz_name || '리드', title);
@@ -223,40 +222,47 @@ export async function updateProposal(
   }
 }
 
-export async function deleteProposal(proposalId: string): Promise<{ success: boolean; message: string }> {
+export async function deleteProposal(
+  proposalId: string,
+  confirmationTitle: string,
+  expectedUpdatedAt?: string
+): Promise<{ success: boolean; message: string; warnings?: string[] }> {
   try {
-    const supabase = getSupabase();
-
-    const { error } = await supabase
-      .from('proposals')
-      .delete()
-      .eq('id', proposalId);
-
-    if (error) {
-      return { success: false, message: error.message };
-    }
-
-    return { success: true, message: '제안서가 삭제되었습니다.' };
-  } catch (error) {
-    return { success: false, message: (error as Error).message };
+    const response = await fetch('/api/admin/proposals/' + encodeURIComponent(proposalId), {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmationTitle, expectedUpdatedAt }),
+    });
+    const result = await response.json();
+    return { success: response.ok && result.success === true,
+      message: result.message || '제안서 삭제 요청을 처리하지 못했습니다.', warnings: result.warnings };
+  } catch {
+    return { success: false, message: '서버에 연결하지 못했습니다. 목록을 새로고침해 삭제 여부를 확인해주세요.' };
   }
 }
-
 export async function markProposalSent(
   proposalId: string
 ): Promise<{ success: boolean; message: string }> {
   const supabase = getSupabase();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('proposals')
     .update({
       status: 'SENT',
       sent_at: new Date().toISOString(),
     })
-    .eq('id', proposalId);
+    .eq('id', proposalId)
+    .select('lead_id')
+    .single();
 
   if (error) {
     return { success: false, message: error.message };
+  }
+
+  if (data?.lead_id) {
+    const result = await updateLeadStatus(data.lead_id, 'PROPOSAL_SENT');
+    if (!result.success) {
+      return { success: false, message: `발송 완료 후 리드 상태 갱신 실패: ${result.message}` };
+    }
   }
 
   // 활동 로그 기록

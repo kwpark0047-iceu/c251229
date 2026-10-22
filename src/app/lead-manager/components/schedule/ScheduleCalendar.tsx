@@ -162,7 +162,7 @@ export default function ScheduleCalendar({
         className="flex items-center justify-between px-6 py-4 border-b calendar-header-border"
       >
         <div className="flex items-center gap-4">
-          <button
+          <button type="button"
             onClick={handlePrevMonth}
             title="이전 달"
             className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
@@ -172,7 +172,7 @@ export default function ScheduleCalendar({
           <h2 className="text-lg font-bold text-[var(--text-primary)]">
             {year}년 {month + 1}월
           </h2>
-          <button
+          <button type="button"
             onClick={handleNextMonth}
             title="다음 달"
             className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
@@ -180,7 +180,7 @@ export default function ScheduleCalendar({
             <ChevronRight className="w-5 h-5 text-[var(--text-secondary)]" />
           </button>
         </div>
-        <button
+        <button type="button"
           onClick={handleToday}
           className="px-4 py-2 text-sm font-medium rounded-lg transition-colors calendar-secondary-btn"
         >
@@ -224,7 +224,6 @@ export default function ScheduleCalendar({
             return (
               <div
                 key={index}
-                onClick={() => handleDateClick(date)}
                  
    
   /* stylelint-disable-next-line */
@@ -240,11 +239,14 @@ export default function ScheduleCalendar({
                   : 'bg-[var(--bg-tertiary)] opacity-30'
                   } ${isSelected ? 'bg-[var(--metro-line4)]/5 !border-[var(--metro-line4)]/30' : ''}`}
               >
+                <button type="button" aria-label={`${dateStr} 날짜 선택`} aria-pressed={isSelected}
+                  onClick={() => handleDateClick(date)}
+                  className="pointer-events-auto absolute inset-0 z-0 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--metro-line4)]" />
                 {/* 호버 배경 효과 */}
                 <div className="absolute inset-0 bg-gradient-to-br from-[var(--metro-line4)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
                 {/* 날짜 */}
-                <div className="flex items-center justify-between mb-2 relative z-10">
+                <div className="flex items-center justify-between mb-2 relative z-10 pointer-events-none">
                   <span
                     className={`text-sm font-bold transition-all ${isTodayDate
                       ? 'w-8 h-8 flex items-center justify-center rounded-xl bg-gradient-to-br from-[var(--metro-line2)] to-[#00c55a] text-white shadow-lg shadow-green-500/30 scale-110'
@@ -260,13 +262,14 @@ export default function ScheduleCalendar({
                     {date.getDate()}
                   </span>
                   {isCurrentMonth && onAddTask && (
-                    <button
+                    <button type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         onAddTask(dateStr);
                       }}
                       title="업무 추가"
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-[var(--bg-tertiary)] transition-all"
+                      aria-label={`${dateStr} 업무 추가`}
+                      className="relative z-10 pointer-events-auto opacity-0 focus-visible:opacity-100 group-hover:opacity-100 p-1 rounded hover:bg-[var(--bg-tertiary)] transition-all"
                     >
                       <Plus className="w-4 h-4 text-[var(--text-muted)]" />
                     </button>
@@ -274,20 +277,20 @@ export default function ScheduleCalendar({
                 </div>
 
                 {/* 이벤트 목록 */}
-                <div className="space-y-1">
+                <div className="pointer-events-none space-y-1">
                   {dayEvents.slice(0, 3).map((event) => {
                     const typeColors = event.taskType
                       ? TASK_TYPE_COLORS[event.taskType]
                       : { bg: 'bg-gray-100', text: 'text-gray-700' };
 
                     return (
-                      <div
+                      <button type="button"
                         key={event.id}
                         onClick={(e) => {
                           e.stopPropagation();
                           onEventClick?.(event);
                         }}
-                        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium truncate cursor-pointer hover:scale-105 active:scale-95 transition-all animate-float-subtle border ${event.type === 'callback'
+                        className={`relative z-10 pointer-events-auto w-full text-left flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium truncate cursor-pointer hover:scale-105 active:scale-95 transition-all animate-float-subtle border ${event.type === 'callback'
                           ? 'bg-amber-100/10 text-amber-500 border-amber-500/20'
                           : `${typeColors.bg.replace('100', '100/10')} ${typeColors.text} border-${typeColors.text.split('-')[1]}-500/20`
                           }`}
@@ -309,7 +312,7 @@ export default function ScheduleCalendar({
                         {event.type === 'callback' && <Phone className="shrink-0 w-3 h-3" />}
                         <span className="truncate flex-1">{event.title}</span>
                         {getPriorityDot(event.priority)}
-                      </div>
+                      </button>
                     );
                   })}
                   {dayEvents.length > 3 && (

@@ -89,7 +89,9 @@ export default function BatchDownloadModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 배경 오버레이 */}
-      <div
+      <button
+        type="button"
+        aria-label="다운로드 모달 닫기"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
@@ -112,6 +114,8 @@ export default function BatchDownloadModal({
             </div>
           </div>
           <button
+            type="button"
+            aria-label="다운로드 창 닫기"
             onClick={onClose}
             className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
           >

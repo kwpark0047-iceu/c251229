@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { syncSource, getAllSourceKeys, getSourceList } from '@/app/api/sync-engine';
 import { getOrgScoringConfig, isSupabaseAuthError } from '@/app/api/sync-utils';
+import { isAuthorizedCronRequest } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 // Cron 작업은 오래 걸릴 수 있으므로 타임아웃 연장
@@ -33,7 +34,8 @@ function getSupabase() {
 export async function GET(request: Request) {
   // 1. Vercel Cron 요청 검증
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!isAuthorizedCronRequest(authHeader, cronSecret)) {
     console.warn('[Cron] Unauthorized request to sync endpoint');
     return new NextResponse('Unauthorized', { status: 401 });
   }

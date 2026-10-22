@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X, RefreshCw, CheckCircle2, XCircle, Loader2,
   ChevronDown, ChevronUp, Database, MapPin,
@@ -16,7 +16,9 @@ interface SourceConfig {
   region: '경기도' | '서울';
   category: string;
   hasKey: boolean;
+  envKey?: string;
   disabled?: boolean;
+  disabledReason?: string;
 }
 
 type SyncStatus = 'idle' | 'running' | 'success' | 'error';
@@ -28,6 +30,7 @@ interface SourceResult {
   fetched: number;
   saved: number;
   error?: string;
+  warning?: string;
 }
 
 interface SyncRequestBody {
@@ -69,6 +72,8 @@ interface DataSyncModalProps {
 }
 
 export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModalProps) {
+  const syncLock = useRef(false);
+  const [loadError, setLoadError] = useState('');
   const [sources, setSources] = useState<SourceConfig[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const [sigunNm, setSigunNm] = useState<string>('');
@@ -82,7 +87,7 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
   // 사용 가능한 소스 목록 로드
   useEffect(() => {
     fetch('/api/sync-all')
-      .then(r => r.json())
+      .then(async r => { if (!r.ok) throw new Error('소스 목록을 불러오지 못했습니다.'); return r.json(); })
       .then(data => {
         setSources(data.sources || []);
         // API 키가 있고 비활성(disabled)이 아닌 소스만 기본 선택
@@ -91,7 +96,7 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
           .map((s: SourceConfig) => s.key);
         setSelectedSources(defaultSelected);
       })
-      .catch(e => console.error('[DataSyncModal] 소스 목록 로드 실패:', e));
+      .catch(() => setLoadError('동기화 소스 목록을 불러오지 못했습니다. 다시 열어 주세요.'));
   }, []);
 
   const toggleSource = (key: string) => {
@@ -101,7 +106,8 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
   };
 
   const selectAllByRegion = (region: '경기도' | '서울') => {
-    const regionKeys = sources.filter(s => s.region === region).map(s => s.key);
+    if (syncLock.current) return;
+    const regionKeys = sources.filter(s => s.region === region && s.hasKey && !s.disabled).map(s => s.key);
     const allSelected = regionKeys.every(k => selectedSources.includes(k));
     if (allSelected) {
       setSelectedSources(prev => prev.filter(k => !regionKeys.includes(k)));
@@ -111,7 +117,8 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
   };
 
   const startSync = async () => {
-    if (selectedSources.length === 0) return;
+    if (selectedSources.length === 0 || syncLock.current) return;
+    syncLock.current = true;
 
     setSyncState('syncing');
     setTotalSaved(0);
@@ -129,6 +136,8 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
       setCurrentSource(sourceKey);
       setSourceStates(prev => ({ ...prev, [sourceKey]: { status: 'running' } }));
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 270_000);
       try {
         const body: SyncRequestBody = {
           sources: [sourceKey],
@@ -139,6 +148,7 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
 
         const res = await fetch('/api/sync-all', {
           method: 'POST',
+          signal: controller.signal,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
@@ -166,7 +176,9 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
           },
         }));
       } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : '동기화 요청 중 알 수 없는 오류가 발생했습니다.';
+        const message = controller.signal.aborted
+          ? '응답 대기 시간이 초과되었습니다. 서버 작업이 진행 중일 수 있으니 저장 결과를 확인한 뒤 다시 시도해 주세요.'
+          : '동기화 응답을 받지 못했습니다. 로그인 상태와 서버 연결을 확인해 주세요.';
         setSourceStates(prev => ({
           ...prev,
           [sourceKey]: {
@@ -174,9 +186,10 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
             result: { source: sourceKey, label: sourceKey, total: 0, fetched: 0, saved: 0, error: message },
           },
         }));
-      }
+      } finally { clearTimeout(timeout); }
     }
 
+    syncLock.current = false;
     setCurrentSource('');
     setTotalSaved(totalSavedCount);
     setSyncState('done');
@@ -188,8 +201,8 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
 
   const ggSources = sources.filter(s => s.region === '경기도');
   const seoulSources = sources.filter(s => s.region === '서울');
-  const ggAllSelected = ggSources.every(s => selectedSources.includes(s.key));
-  const seoulAllSelected = seoulSources.every(s => selectedSources.includes(s.key));
+  const ggAllSelected = ggSources.some(s => s.hasKey && !s.disabled) && ggSources.filter(s => s.hasKey && !s.disabled).every(s => selectedSources.includes(s.key));
+  const seoulAllSelected = seoulSources.some(s => s.hasKey && !s.disabled) && seoulSources.filter(s => s.hasKey && !s.disabled).every(s => selectedSources.includes(s.key));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -203,14 +216,15 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
             </div>
             <div>
               <h2 className="text-base font-bold text-[var(--text-primary)]">공공데이터 동기화</h2>
-              <p className="text-xs text-[var(--text-muted)]">경기도 / 서울 열린광장 데이터를 DB에 저장합니다</p>
+              <p className="text-xs text-[var(--text-muted)]">경기도 / 서울 열린데이터광장 데이터를 DB에 저장합니다</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] transition-colors">
+          <button disabled={syncState === 'syncing'} onClick={onClose} className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {loadError && <p role="alert" className="px-6 py-2 text-red-500">{loadError}</p>}
         {/* 본문 - 스크롤 가능 */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
 
@@ -286,10 +300,10 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
             {showAdvanced && (
               <div className="px-4 pb-4 space-y-3 border-t border-[var(--border-subtle)]">
                 <div className="mt-3">
-                  <label className="text-xs font-medium text-[var(--text-muted)] block mb-1.5">
+                  <label htmlFor="sync-city-filter" className="text-xs font-medium text-[var(--text-muted)] block mb-1.5">
                     경기도 시군구 필터 (빈칸 = 전체)
                   </label>
-                  <select
+                  <select id="sync-city-filter"
                     value={sigunNm}
                     onChange={e => setSigunNm(e.target.value)}
                     className="w-full text-sm rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[var(--metro-line3)]"
@@ -299,7 +313,7 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
                   </select>
                 </div>
                 <p className="text-xs text-[var(--text-muted)]">
-                  API 키를 별도로 입력하면 환경변수 키를 덮어씁니다. 통상적으로 입력 불필요합니다.
+                  API 키는 서버 환경변수에서 읽습니다. 키 등록은 이용 권한 검증을 의미하지 않습니다. 서울 데이터는 영업 중이며 최근 3개월 내 수정된 업소만 수집합니다.
                 </p>
               </div>
             )}
@@ -325,7 +339,7 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
           </span>
           <div className="flex gap-2">
             <button
-              onClick={onClose}
+              disabled={syncState === 'syncing'} onClick={onClose}
               className="px-4 py-2 text-sm rounded-lg border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
             >
               {syncState === 'done' ? '닫기' : '취소'}
@@ -380,7 +394,7 @@ function SourceCard({ source, selected, state, onToggle, isCurrent }: SourceCard
   return (
     <button
       onClick={onToggle}
-      disabled={isRunning || isSuccess || isError}
+      disabled={source.disabled || !source.hasKey || isRunning || isSuccess || isError}
       className={`text-left p-3 rounded-xl border transition-all text-sm ${
         isError
           ? 'border-red-500/50 bg-red-500/10'
@@ -419,6 +433,7 @@ function SourceCard({ source, selected, state, onToggle, isCurrent }: SourceCard
         </p>
       )}
 
+      {state?.result?.warning && <p className="text-xs text-amber-500">{state.result.warning}</p>}
       {/* 실패 결과 */}
       {isError && state?.result?.error && (
         <p className="text-xs text-red-400 truncate" title={state.result.error}>
@@ -429,7 +444,7 @@ function SourceCard({ source, selected, state, onToggle, isCurrent }: SourceCard
       {/* 기본 상태 */}
       {!isRunning && !isSuccess && !isError && (
         <p className="text-xs text-[var(--text-muted)]">
-          {source.hasKey ? '✓ API 키 설정됨' : '⚠ API 키 미설정'}
+          {source.disabled ? `사용 중지: ${source.disabledReason || '제공기관 서비스 확인 필요'}` : source.hasKey ? '✓ API 키 설정됨 (권한 미검증)' : `⚠ API 키 미설정${source.envKey ? ` (${source.envKey})` : ''}`}
         </p>
       )}
     </button>

@@ -144,54 +144,49 @@ export default function ListView({
               >
                 <th
                   className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
-                  onClick={() => handleSort('bizName')}
                 >
-                  <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => handleSort('bizName')} className="flex items-center gap-1.5">
                     병원명
                     <SortIcon field="bizName" sortField={sortField} sortOrder={sortOrder} />
-                  </div>
+                  </button>
                 </th>
                 <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
                   주소
                 </th>
                 <th
                   className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors min-w-[8rem] w-32"
-                  onClick={() => handleSort('nearestStation')}
                 >
-                  <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => handleSort('nearestStation')} className="flex items-center gap-1.5">
                     인근역
                     <SortIcon field="nearestStation" sortField={sortField} sortOrder={sortOrder} />
-                  </div>
+                  </button>
                 </th>
                 <th
                   className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors whitespace-nowrap hidden md:table-cell"
-                  onClick={() => handleSort('stationDistance')}
                 >
-                  <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => handleSort('stationDistance')} className="flex items-center gap-1.5">
                     거리
                     <SortIcon field="stationDistance" sortField={sortField} sortOrder={sortOrder} />
-                  </div>
+                  </button>
                 </th>
                 <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell">
                   전화번호
                 </th>
                 <th
                   className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
-                  onClick={() => handleSort('leadScore')}
                 >
-                  <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => handleSort('leadScore')} className="flex items-center gap-1.5">
                     등급
                     <SortIcon field="leadScore" sortField={sortField} sortOrder={sortOrder} />
-                  </div>
+                  </button>
                 </th>
                 <th
                   className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
-                  onClick={() => handleSort('licenseDate')}
                 >
-                  <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => handleSort('licenseDate')} className="flex items-center gap-1.5">
                     인허가일
                     <SortIcon field="licenseDate" sortField={sortField} sortOrder={sortOrder} />
-                  </div>
+                  </button>
                 </th>
                 <th className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] hidden md:table-cell w-24">
                   진행
@@ -201,12 +196,11 @@ export default function ListView({
                 </th>
                 <th
                   className="px-5 py-4 text-left text-sm font-semibold text-[var(--text-secondary)] cursor-pointer hover:text-[var(--text-primary)] transition-colors"
-                  onClick={() => handleSort('status')}
                 >
-                  <div className="flex items-center gap-1.5">
+                  <button type="button" onClick={() => handleSort('status')} className="flex items-center gap-1.5">
                     상태
                     <SortIcon field="status" sortField={sortField} sortOrder={sortOrder} />
-                  </div>
+                  </button>
                 </th>
                 <th className="px-5 py-4 text-center text-sm font-semibold text-[var(--text-secondary)]">
                   액션
@@ -239,13 +233,14 @@ export default function ListView({
             return (
               <div
                 key={lead.id}
-                className="p-4 active:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
-                onClick={() => setSelectedLeadId(lead.id)}
+                className="relative p-4 active:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
               >
-                <div className="flex justify-between items-start mb-2">
+                <button type="button" aria-label={`${lead.bizName} 상세 보기`} onClick={() => setSelectedLeadId(lead.id)}
+                  className="pointer-events-auto absolute inset-0 z-0 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--metro-line4)]" />
+                <div className="pointer-events-none flex justify-between items-start mb-2">
                   <div>
-                    <h3 
-                      className="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--metro-line4)] hover:underline inline-block"
+                    <button type="button"
+                      className="relative z-10 pointer-events-auto font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--metro-line4)] hover:underline inline-block"
                       onClick={(e) => {
                         e.stopPropagation();
                         onMapView?.(lead);
@@ -253,7 +248,7 @@ export default function ListView({
                       title="지도에서 보기"
                     >
                       <HighlightText text={lead.bizName} searchQuery={searchQuery} />
-                    </h3>
+                    </button>
                     <p className="text-xs text-[var(--text-muted)] mt-0.5">
                       <HighlightText text={lead.medicalSubject || ''} searchQuery={searchQuery} />
                     </p>
@@ -293,7 +288,7 @@ export default function ListView({
                   )}
                 </div>
 
-                <div className="space-y-1.5 text-xs text-[var(--text-secondary)]">
+                <div className="pointer-events-none space-y-1.5 text-xs text-[var(--text-secondary)]">
                   <div className="flex items-center gap-1.5">
                     <span className="w-4 flex justify-center">📍</span>
                     <span className="line-clamp-1">{lead.roadAddress || lead.lotAddress}</span>
@@ -309,33 +304,33 @@ export default function ListView({
                   )}
                 </div>
 
-                <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-dashed border-[var(--border-subtle)]">
+                <div className="pointer-events-none flex items-center justify-end gap-3 mt-4 pt-3 border-t border-dashed border-[var(--border-subtle)]">
                   {lead.phone && (
                     <a
                       href={`tel:${lead.phone}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="flex items-center gap-1.5 text-[var(--metro-line2)] font-bold text-xs"
+                      className="relative z-10 pointer-events-auto flex items-center gap-1.5 text-[var(--metro-line2)] font-bold text-xs"
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
                       전화
                     </a>
                   )}
-                  <button
+                  <button type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedLeadId(lead.id);
                     }}
-                    className="flex items-center gap-1.5 text-[var(--metro-line4)] font-bold text-xs"
+                    className="relative z-10 pointer-events-auto flex items-center gap-1.5 text-[var(--metro-line4)] font-bold text-xs"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     제안
                   </button>
-                  <button
+                  <button type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       onDeleteLead?.(lead.id);
                     }}
-                    className="p-2 rounded-lg transition-all duration-300 hover:scale-105 text-red-500 bg-[rgba(239,68,68,0.15)]"
+                    className="relative z-10 pointer-events-auto p-2 rounded-lg transition-all duration-300 hover:scale-105 text-red-500 bg-[rgba(239,68,68,0.15)]"
                     title="리드 삭제"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -360,7 +355,7 @@ export default function ListView({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <button type="button"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage <= 1}
               title="이전 페이지"
@@ -379,7 +374,7 @@ export default function ListView({
                   pages.push(i);
                 }
                 return pages.map((pageNum) => (
-                  <button
+                  <button type="button"
                     key={pageNum}
                     onClick={() => onPageChange(pageNum)}
                     className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-all duration-200 ${
@@ -394,7 +389,7 @@ export default function ListView({
               })()}
             </div>
 
-            <button
+            <button type="button"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage >= Math.ceil(totalCount / pageSize)}
               title="다음 페이지"
@@ -441,15 +436,14 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick
 
   return (
     <tr
-      className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
-      onClick={(e) => {
-        if ((e.target as HTMLElement).closest('button, a, select')) return;
-        onSelect();
-      }}
+      className="relative border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+
     >
-      <td className="px-5 py-4">
-        <div 
-          className="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--metro-line4)] hover:underline inline-block"
+      <td className="pointer-events-none px-5 py-4">
+        <button type="button" aria-label={`${lead.bizName} 상세 보기`} onClick={onSelect}
+          className="pointer-events-auto absolute inset-0 z-0 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--metro-line4)]" />
+        <button type="button"
+          className="relative z-10 pointer-events-auto font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--metro-line4)] hover:underline inline-block"
           onClick={(e) => {
             e.stopPropagation();
             onMapView?.();
@@ -457,7 +451,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick
           title="지도에서 보기"
         >
           <HighlightText text={lead.bizName} searchQuery={searchQuery} />
-        </div>
+        </button>
         {lead.medicalSubject && (
           <div className="text-xs text-[var(--text-muted)] mt-0.5">
             <HighlightText text={lead.medicalSubject} searchQuery={searchQuery} />
@@ -465,13 +459,13 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick
         )}
       </td>
 
-      <td className="px-5 py-4 hidden md:table-cell">
+      <td className="pointer-events-none px-5 py-4 hidden md:table-cell">
         <span className="text-sm text-[var(--text-secondary)] line-clamp-1" title={lead.roadAddress || lead.lotAddress}>
           <HighlightText text={truncateString(lead.roadAddress || lead.lotAddress || '-', 30)} searchQuery={searchQuery} />
         </span>
       </td>
 
-        <td className="px-5 py-4 max-w-[12rem] overflow-visible whitespace-normal">
+        <td className="pointer-events-none px-5 py-4 max-w-[12rem] overflow-visible whitespace-normal">
           <div className="text-sm font-medium text-[var(--text-primary)]">
             {(() => {
               const station =
@@ -489,15 +483,15 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick
           </div>
         </td>
 
-      <td className="px-5 py-4 hidden md:table-cell">
+      <td className="pointer-events-none px-5 py-4 hidden md:table-cell">
         <span className="text-sm text-[var(--text-secondary)]">
           {computedDistance ? formatDistance(computedDistance) : '-'}
         </span>
       </td>
 
-      <td className="px-5 py-4 hidden md:table-cell">
+      <td className="pointer-events-none px-5 py-4 hidden md:table-cell">
         {lead.phone ? (
-          <a href={`tel:${lead.phone}`} className="text-sm font-medium hover:underline transition-colors text-[var(--metro-line4)]" onClick={(e) => e.stopPropagation()} title="전화 걸기">
+          <a href={`tel:${lead.phone}`} className="relative z-10 pointer-events-auto text-sm font-medium hover:underline transition-colors text-[var(--metro-line4)]" onClick={(e) => e.stopPropagation()} title="전화 걸기">
             <HighlightText text={formatPhoneNumber(lead.phone)} searchQuery={searchQuery} />
           </a>
         ) : (
@@ -506,7 +500,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick
       </td>
 
       {/* 등급 */}
-      <td className="px-5 py-4 hidden md:table-cell">
+      <td className="pointer-events-none px-5 py-4 hidden md:table-cell">
         {lead.leadGrade ? (
           <span
             className={`inline-block text-xs font-bold px-1.5 py-0.5 rounded-md leading-none ${
@@ -528,17 +522,17 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick
       </td>
 
       {/* 인허가일 */}
-      <td className="px-5 py-4 hidden md:table-cell">
+      <td className="pointer-events-none px-5 py-4 hidden md:table-cell">
         <span className="text-sm text-[var(--text-secondary)]">{lead.licenseDate || '-'}</span>
       </td>
 
       {/* 진행 상태 */}
-      <td className="px-5 py-4 hidden md:table-cell">
+      <td className="pointer-events-none px-5 py-4 hidden md:table-cell">
         <ProgressDots leadId={lead.id} progress={salesProgressMap?.get(lead.id)} />
       </td>
 
       {/* 담당자 */}
-      <td className="px-5 py-4 hidden md:table-cell">
+      <td className="pointer-events-none px-5 py-4 hidden md:table-cell">
         {lead.assignedToName ? (
           <div className="flex items-center gap-1.5">
             <User className="w-3.5 h-3.5 text-[var(--metro-line9)]" />
@@ -552,7 +546,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick
       </td>
 
       {/* 상태 */}
-      <td className="px-5 py-4">
+      <td className="pointer-events-none px-5 py-4">
         <select
           id={`status-select-${lead.id}`}
           name="status"
@@ -563,7 +557,7 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick
           }}
           onClick={(e) => e.stopPropagation()}
           title="상태 변경"
-          className="text-sm px-3 py-1.5 rounded-lg border font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)] appearance-none bg-[--status-bg] text-[--status-text] border-[--status-border]"
+          className="relative z-10 pointer-events-auto text-sm px-3 py-1.5 rounded-lg border font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)] appearance-none bg-[--status-bg] text-[--status-text] border-[--status-border]"
            
    
   /* stylelint-disable-next-line */
@@ -586,48 +580,48 @@ function LeadRow({ lead, index, onStatusChange, onSelect, onCallLog, onSopoClick
       </td>
 
       {/* 액션 */}
-      <td className="px-5 py-4">
+      <td className="pointer-events-none px-5 py-4">
         <div className="flex items-center justify-center gap-2">
           {lead.phone && (
-            <button
+            <button type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onCallLog();
               }}
-              className="p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-[var(--metro-line2)] bg-[rgba(60,181,74,0.15)]"
+              className="relative z-10 pointer-events-auto p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-[var(--metro-line2)] bg-[rgba(60,181,74,0.15)]"
               title="통화 기록"
             >
               <MessageSquare className="w-4 h-4" />
             </button>
           )}
-          <button
+          <button type="button"
             onClick={(e) => {
               e.stopPropagation();
               onSelect();
             }}
-            className="p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-[var(--metro-line4)] bg-[rgba(50,164,206,0.15)]"
+            className="relative z-10 pointer-events-auto p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-[var(--metro-line4)] bg-[rgba(50,164,206,0.15)]"
             title="제안서 보내기"
           >
             <FileText className="w-4 h-4" />
           </button>
-<button
+<button type="button"
             onClick={(e) => {
               e.stopPropagation();
               onDeleteLead?.(lead.id);
             }}
-            className="p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-red-500 bg-[rgba(239,68,68,0.15)]"
+            className="relative z-10 pointer-events-auto p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-red-500 bg-[rgba(239,68,68,0.15)]"
             title="리드 삭제"
           >
             <Trash2 className="w-4 h-4" />
             삭제
           </button>
           {onSopoClick && (
-            <button
+            <button type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onSopoClick(lead);
               }}
-              className="p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-[var(--metro-line5)] bg-[rgba(99,102,241,0.15)]"
+              className="relative z-10 pointer-events-auto p-2.5 rounded-lg transition-all duration-300 hover:scale-110 text-[var(--metro-line5)] bg-[rgba(99,102,241,0.15)]"
               title="SOPO 상가정보 조회"
             >
               <MapPin className="w-3.5 h-3.5" /> SOPO

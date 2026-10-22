@@ -623,10 +623,10 @@ export default function ContactPage() {
                 {/* 기본 정보 */}
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <label htmlFor="contact-name" className="block text-sm font-medium text-gray-600 mb-2">
                       담당자명 <span className="text-red-400">*</span>
                     </label>
-                    <input
+                    <input id="contact-name"
                       type="text"
                       name="name"
                       value={form.name}
@@ -637,10 +637,10 @@ export default function ContactPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <label htmlFor="contact-company" className="block text-sm font-medium text-gray-600 mb-2">
                       회사명
                     </label>
-                    <input
+                    <input id="contact-company"
                       type="text"
                       name="company"
                       value={form.company}
@@ -654,10 +654,10 @@ export default function ContactPage() {
                 {/* 연락처 */}
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-600 mb-2">
                       연락처 <span className="text-red-400">*</span>
                     </label>
-                    <input
+                    <input id="contact-phone"
                       type="tel"
                       name="phone"
                       value={form.phone}
@@ -668,10 +668,10 @@ export default function ContactPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <label htmlFor="contact-email" className="block text-sm font-medium text-gray-600 mb-2">
                       이메일 <span className="text-red-400">*</span>
                     </label>
-                    <input
+                    <input id="contact-email"
                       type="email"
                       name="email"
                       value={form.email}
@@ -686,10 +686,10 @@ export default function ContactPage() {
                 {/* 주소 & 업종 */}
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <label htmlFor="contact-address" className="block text-sm font-medium text-gray-600 mb-2">
                       주소
                     </label>
-                    <input
+                    <input id="contact-address"
                       type="text"
                       name="address"
                       value={form.address}
@@ -699,10 +699,10 @@ export default function ContactPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <label htmlFor="contact-business" className="block text-sm font-medium text-gray-600 mb-2">
                       업종
                     </label>
-                    <select
+                    <select id="contact-business"
                       name="businessType"
                       value={form.businessType}
                       onChange={handleChange}
@@ -720,10 +720,10 @@ export default function ContactPage() {
                 {/* 광고 정보 */}
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <label htmlFor="contact-ad" className="block text-sm font-medium text-gray-600 mb-2">
                       희망 광고 유형
                     </label>
-                    <select
+                    <select id="contact-ad"
                       name="adType"
                       value={form.adType}
                       onChange={handleChange}
@@ -737,10 +737,10 @@ export default function ContactPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-600 mb-2">
+                    <label htmlFor="contact-budget" className="block text-sm font-medium text-gray-600 mb-2">
                       예상 예산
                     </label>
-                    <select
+                    <select id="contact-budget"
                       name="budget"
                       value={form.budget}
                       onChange={handleChange}
@@ -757,10 +757,10 @@ export default function ContactPage() {
 
                 {/* 문의 내용 */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                  <label htmlFor="contact-message" className="block text-sm font-medium text-gray-600 mb-2">
                     추가 요청사항
                   </label>
-                  <textarea
+                  <textarea id="contact-message"
                     name="message"
                     value={form.message}
                     onChange={handleChange}

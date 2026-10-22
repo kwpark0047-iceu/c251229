@@ -13,13 +13,9 @@ import { createClient } from '@/lib/supabase/server';
 import { findNearestStation } from '@/app/lead-manager/utils';
 import { upsertLeadsByMgtNo, requireSyncAuth, requireUser, getOrgScoringConfig } from './sync-utils';
 
-const PAGE_SIZE = 1000;
+import { fetchSyncJson } from './sync-engine';
 
-/** openapi.gg.go.kr WAF 우회용 브라우저 헤더 (Accept 미포함 — Accept: application/json은 HTTP 500 유발) */
-const BROWSER_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36',
-  'Referer': 'https://data.gg.go.kr/',
-};
+const PAGE_SIZE = 1000;
 
 export interface GGRouteConfig {
   endpoint: string;         // openapi.gg.go.kr 엔드포인트 URL
@@ -80,10 +76,9 @@ async function fetchAllLeads(
   orgId: string | null,
   sigunNm?: string
 ): Promise<{ total: number; leads: any[] } | { errorResponse: NextResponse }> {
-  const firstRes = await fetch(buildUrl(config, 1, 1, apiKey, sigunNm), { cache: 'no-store', headers: BROWSER_HEADERS });
-  if (!firstRes.ok) throw new Error(`API 응답 오류: ${firstRes.status}`);
-
-  const firstData = await firstRes.json();
+  const deadline = Date.now() + 180_000;
+  const firstData = await fetchSyncJson(buildUrl(config, 1, 1, apiKey, sigunNm), config.label, deadline);
+  if (firstData.RESULT?.CODE === 'INFO-200') return { total: 0, leads: [] };
   if (!firstData[config.dataKey]) {
     const code = firstData.RESULT?.CODE || 'UNKNOWN';
     const msg = firstData.RESULT?.MESSAGE || '데이터 없음';
@@ -98,10 +93,9 @@ async function fetchAllLeads(
 
   let leads: any[] = [];
   for (let page = 1; page <= totalPages; page++) {
-    const res = await fetch(buildUrl(config, page, PAGE_SIZE, apiKey, sigunNm), { cache: 'no-store', headers: BROWSER_HEADERS });
-    if (!res.ok) { console.warn(`[${config.label}] 페이지 ${page} 실패`); continue; }
-    const data = await res.json();
-    const rows = data[config.dataKey]?.find((i: any) => i.row)?.row || [];
+    const data = await fetchSyncJson(buildUrl(config, page, PAGE_SIZE, apiKey, sigunNm), config.label, deadline);
+    const rows = data[config.dataKey]?.find((i: any) => i.row)?.row;
+    if (!Array.isArray(rows)) throw new Error(`[${config.label}] 페이지 ${page} 데이터가 누락되었습니다.`);
     leads = leads.concat(rows.map((r: any) => mapRow(r, config, orgId)));
   }
 
@@ -113,7 +107,7 @@ export function createGGSyncHandlers(config: GGRouteConfig) {
     const sp = request.nextUrl.searchParams;
     return {
       sigunNm: sp.get('sigunNm') || undefined,
-      apiKey: sp.get('apiKey') || process.env[config.envKey] || '',
+      apiKey: sp.get('apiKey') || process.env[config.envKey] || process.env.GG_API_KEY || '',
       wantsSync: sp.get('sync') === 'true',
     };
   }

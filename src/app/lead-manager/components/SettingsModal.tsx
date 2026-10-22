@@ -215,7 +215,9 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* 백드롭 */}
-      <div
+      <button
+        type="button"
+        aria-label="배경 닫기"
         className="absolute inset-0 backdrop-blur-md bg-[#08080C]/80"
         onClick={onClose}
       />
@@ -274,7 +276,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
             <div className="space-y-6">
               {/* CORS 프록시 */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
+                <label htmlFor="cors-proxy-select" className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
                   <Globe className="w-4 h-4 text-[var(--metro-line2)]" />
                   CORS 프록시 설정
                 </label>
@@ -312,10 +314,10 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
 
               {/* 검색 기준 */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
+                <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
                   <Search className="w-4 h-4 text-[var(--metro-line3)]" />
                   실시간 수집 검색 기준
-                </label>
+                </h3>
                 <div className="flex gap-4">
                   <label
                     className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-all duration-300 ${formData.searchType === 'license_date' ? 'bg-[#32A4CE]/10 border-[var(--metro-line4)] shadow-[0_0_15px_rgba(50,164,206,0.15)]' : 'bg-[var(--bg-tertiary)] border-[var(--border-subtle)]'}`}
@@ -356,7 +358,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
 
               {/* 지역 코드 */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
+                <label htmlFor="region-code-select" className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
                   <MapPin className="w-4 h-4 text-[var(--metro-line7)]" />
                   기본 동기화 지역
                 </label>
@@ -379,10 +381,10 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
               {/* 데이터 관리 - 관리자/오너 전용 */}
               <RoleGuard allowedRoles={['owner', 'admin']}>
                 <div className="border-t border-[var(--border-subtle)] pt-5">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)] mb-3">
                     <Trash2 className="w-4 h-4 text-red-400" />
                     데이터 무결성 관리
-                  </label>
+                  </h3>
                   <button
                     type="button"
                     onClick={handleRemoveDuplicates}
@@ -442,13 +444,14 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-[var(--metro-line2)] shadow-[0_0_8px_var(--metro-line2)]" />
-                      <span className="text-sm font-bold text-[var(--text-primary)]">서울시 열린데이터 광장 키</span>
+                      <label htmlFor="settings-seoul-key" className="text-sm font-bold text-[var(--text-primary)]">서울시 열린데이터 광장 키</label>
                     </div>
                     <span className="text-xs text-[var(--text-muted)]">서울 지역 실시간 신규 의원 데이터</span>
                   </div>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <input
+                        id="settings-seoul-key"
                         type={showKeys.seoul ? 'text' : 'password'}
                         value={apiKeys.seoul}
                         onChange={(e) => handleRegisterKey('seoul', e.target.value)}
@@ -458,6 +461,7 @@ export default function SettingsModal({ settings, onSave, onClose, onDataChanged
                       <button
                         type="button"
                         onClick={() => setShowKeys(prev => ({ ...prev, seoul: !prev.seoul }))}
+                        aria-label={showKeys.seoul ? 'API 키 숨기기' : 'API 키 표시'}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                       >
                         {showKeys.seoul ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

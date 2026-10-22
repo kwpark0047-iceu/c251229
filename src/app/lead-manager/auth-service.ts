@@ -5,8 +5,6 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup'
-import { sendEmail } from '../../lib/email-service'
-import { ApprovalHistoryEntry } from './types'
 
 export interface UserInfo {
   id: string;
@@ -102,7 +100,7 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
   }
 
   const org = memberData?.organizations as { id: string; name: string; invite_code: string } | null
-  const isSuperAdminAccount = user.email === 'kwpark0047@gmail.com'
+  const isSuperAdminAccount = profile?.is_super_admin === true;
 
   return {
     id: user.id,
@@ -113,13 +111,10 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     inviteCode: org?.invite_code || null,
     permissions: { ...DEFAULT_PERMISSIONS, ...((memberData as any)?.permissions || {}) },
     isApproved: 
-      user.email === 'kwpark0047@gmail.com' || 
-      (profile ? 
-        (profile.is_approved && (!profile.trial_expires_at || new Date(profile.trial_expires_at) > new Date())) :
-        (['FREE', 'DEMO', 'MEDIA', 'SALES'].includes(user.user_metadata?.tier || ''))
-      ),
+      isSuperAdminAccount || Boolean(profile?.is_approved &&
+        (!profile.trial_expires_at || new Date(profile.trial_expires_at) > new Date())),
     isSuperAdmin: !!(profile?.is_super_admin || isSuperAdminAccount),
-    tier: (profile?.tier as UserInfo['tier']) || (user.user_metadata?.tier as UserInfo['tier']) || (isSuperAdminAccount ? 'MEDIA' : null),
+    tier: (profile?.tier as UserInfo['tier']) || null,
     trialExpiresAt: profile?.trial_expires_at || null,
   }
 }
@@ -416,67 +411,25 @@ export async function getAllProfiles(): Promise<{
 /**
  * [슈퍼 어드민 전용] 사용자 승인 및 권한 상태 업데이트
  */
+async function requestMemberAction(userId: string, method: 'PATCH' | 'DELETE' | 'POST', body: object): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetch('/api/admin/users/' + encodeURIComponent(userId), {
+      method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const result = await response.json();
+    return { success: response.ok && result.success === true,
+      message: [result.message || '요청을 처리하지 못했습니다.', ...(result.warnings || [])].join(' ') };
+  } catch {
+    return { success: false, message: '서버에 연결하지 못했습니다. 목록을 새로고침해 처리 결과를 확인해주세요.' };
+  }
+}
+
 export async function updateProfileStatus(
   userId: string,
   updates: { isApproved?: boolean; isSuperAdmin?: boolean; tier?: string }
 ): Promise<{ success: boolean; message: string }> {
-  const supabase = createClient();
-  const currentUser = await getCurrentUser();
-
-  if (!currentUser?.isSuperAdmin) {
-    return { success: false, message: '권한이 없습니다.' };
-  }
-
-  const payload: any = {};
-  if (updates.isApproved !== undefined) payload.is_approved = updates.isApproved;
-  if (updates.isSuperAdmin !== undefined) payload.is_super_admin = updates.isSuperAdmin;
-  if (updates.tier !== undefined) payload.tier = updates.tier;
-  payload.updated_at = new Date().toISOString();
-
-  const { error } = await supabase
-    .from('profiles')
-    .update(payload)
-    .eq('id', userId);
-
-  if (error) return { success: false, message: error.message };
-
-          if (updates.isApproved && updates.isApproved === true) {
-            await sendNewMemberWelcomeEmail(userId);
-            await createNewMemberNotification(userId, '', '');
-          }
-
-          if (updates.isApproved !== undefined) {
-            let userEmail = '';
-            const { data: emailData } = await supabase
-              .from('profiles')
-              .select('email')
-              .eq('id', userId)
-              .single();
-            if (emailData) {
-              userEmail = emailData.email;
-            }
-            const { data: orgData } = await supabase
-              .from('organization_members')
-              .select('organization_id')
-              .eq('user_id', userId)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            if (orgData?.organization_id && userEmail) {
-              const { error: approvalError } = await supabase.from('approval_history').insert({
-                user_id: userId,
-                user_email: userEmail,
-                action_type: updates.isApproved ? 'APPROVED' : 'REJECTED',
-                organization_id: orgData.organization_id,
-              });
-              if (approvalError) {
-                console.error('승인 이력 기록 실패:', approvalError);
-                return { success: false, message: '승인 이력 기록에 실패했습니다.' };
-              }
-            }
-          }
-
-          return { success: true, message: '상태가 업데이트되었습니다.' };
+  if (updates.isSuperAdmin !== undefined) return { success: false, message: '최고관리자 권한은 이 화면에서 변경할 수 없습니다.' };
+  return requestMemberAction(userId, 'PATCH', updates);
 }
 
 /**
@@ -648,37 +601,13 @@ export async function getAllOrganizations(): Promise<any[]> {
 /**
  * 사용자의 서비스 티어 업데이트 (Super Admin 전용)
  */
-export async function updateUserTier(userId: string, targetEmail: string, tier: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('profiles')
-      .update({ 
-        tier,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId);
-
-    if (error) throw error;
-
-    // 활동 로그 기록
-    await logActivity('ADMIN_TIER_CHANGE', {
-      target_user_id: userId,
-      target_email: targetEmail,
-      new_tier: tier,
-      message: `관리자가 ${targetEmail}의 티어를 ${tier}(으)로 변경했습니다.`
-    });
-
-    return { success: true };
-  } catch (err: any) {
-    console.error('Tier update failed:', err);
-    return { success: false, error: err.message };
-  }
+export async function updateUserTier(userId: string, _targetEmail: string, tier: string): Promise<{ success: boolean; error?: string }> {
+  const result = await updateProfileStatus(userId, { tier });
+  return result.success ? { success: true } : { success: false, error: result.message };
 }
 
-/**
- * [슈퍼 어드민 전용] 모든 사용자 활동 로그 조회
- */
+
+
 export async function getAllUserLogs(limit = 100) {
   try {
     const supabase = createClient();
@@ -732,29 +661,8 @@ export async function getUserLogs(userId: string, limit = 50) {
 /**
  * [슈퍼 어드민 전용] 사용자 프로필 영구 삭제
  */
-export async function deleteUserProfile(userId: string): Promise<{ success: boolean; message: string }> {
-  const supabase = createClient();
-  const currentUser = await getCurrentUser();
-
-  if (!currentUser?.isSuperAdmin) {
-    return { success: false, message: '권한이 없습니다.' };
-  }
-
-  if (currentUser.id === userId) {
-    return { success: false, message: '자신의 계정은 삭제할 수 없습니다.' };
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .delete()
-    .eq('id', userId);
-
-  if (error) {
-    console.error('Failed to delete profile:', error);
-    return { success: false, message: error.message };
-  }
-
-  return { success: true, message: '사용자 프로필이 성공적으로 삭제되었습니다.' };
+export async function deleteUserProfile(userId: string, confirmationEmail: string): Promise<{ success: boolean; message: string }> {
+  return requestMemberAction(userId, 'DELETE', { confirmationEmail });
 }
 
 /**
@@ -790,106 +698,15 @@ export async function getAdminNotifications(limit = 20): Promise<{
  * [슈퍼 어드민 전용] 새로운 회원 가입 환영 이메일 발송
  */
 export async function sendNewMemberWelcomeEmail(userId: string): Promise<{ success: boolean; message: string; data?: unknown }> {
-  const supabase = createClient();
-
-  // 회원 프로필에서 이메일 및 이름 조회
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('email, full_name')
-    .eq('id', userId)
-    .single();
-
-  if (profileError || !profile?.email) {
-    console.error('[auth-service] 회원 프로필 이메일 조회 실패:', profileError);
-    return { success: false, message: '회원 프로필 이메일을 찾을 수 없습니다.' };
-  }
-
-  const fullName = profile.full_name || '회원';
-
-  const subject = `[위마켓] 회원 가입을 축하합니다!`;
-  const html = `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-      <h2 style="color: #00A84D;">회원 가입 축하합니다!</h2>
-      <p>안녕하세요, <strong>${fullName}</strong>님!</p>
-      <p>귀하의 회원 가입이 승인되었습니다. 이제 위마켓의 모든 기능을 이용하실 수 있습니다.</p>
-      <div style="margin: 30px 0; text-align: center;">
-        <a href="https://wemarket.subway/lead-manager" style="background-color: #00A5DE; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">대시보드로 이동하기</a>
-      </div>
-      <p style="color: #666; font-size: 12px;">문의 사항은 고객센터를 이용해 주세요.</p>
-    </div>
-  `;
-
-  try {
-    const { data, error } = await sendEmail({
-      to: profile.email,
-      subject,
-      html,
-    });
-
-    if (error) {
-      console.error('[auth-service] 환영 이메일 발송 실패:', error);
-      return { success: false, message: (error as Error).message };
-    }
-
-    return { success: true, message: '환영 이메일을 성공적으로 전송했습니다.', data };
-  } catch (error) {
-    console.error('[auth-service] 환영 이메일 발송 예외 발생:', error);
-    return { success: false, message: '이메일 발송 중 오류가 발생했습니다.' };
-  }
+  return requestMemberAction(userId, 'POST', {});
 }
 
 /**
  * [슈퍼 어드민 전용] 승인된 회원에게 환영 이메일 재전송
  */
- export async function sendWelcomeEmailResend(userId: string, email: string): Promise<{ success: boolean; message: string; data?: unknown }> {
-   const supabase = createClient();
-
-   // 이미 가입된 회원인지 확인 (프로필 조회)
-   const { data: profile, error: profileError } = await supabase
-     .from("profiles")
-     .select("id, email, full_name")
-     .eq("id", userId)
-     .single();
-
-   if (profileError || !profile?.email) {
-     console.error("[auth-service] 프로필 조회 실패:", profileError);
-     return { success: false, message: "회원 프로필을 찾을 수 없습니다." };
-   }
-
-   const fullName = profile.full_name || "회원";
-
-   const subject = `[위마켓] 회원 가입을 축하합니다!`;
-   const html = `
-     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-       <h2 style="color: #00A84D;">회원 가입 축하합니다!</h2>
-       <p>안녕하세요, <strong>${fullName}</strong>님!</p>
-       <p>귀하의 회원 가입이 승인되었습니다. 이제 위마켓의 모든 기능을 이용하실 수 있습니다.</p>
-       <div style="margin: 30px 0; text-align: center;">
-         <a href="https://wemarket.subway/lead-manager" style="background-color: #00A5DE; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">대시보드로 이동하기</a>
-       </div>
-       <p style="color: #666; font-size: 12px;">문의 사항은 고객센터를 이용해 주세요.</p>
-     </div>
-   `;
-
-   try {
-     const { data, error } = await sendEmail({
-       to: email,
-       subject,
-       html,
-     });
-
-     if (error) {
-       console.error("[auth-service] 환영 이메일 재전송 실패:", error);
-return { success: false, message: (error as Error).message };
-     }
-
-return { success: true, message: "환영 이메일이 성공적으로 재전송되었습니다.", data };
-    } catch (error) {
-      console.error("[auth-service] 환영 이메일 재전송 예외 발생:", error);
-     return { success: false, message: "이메일 발송 중 오류가 발생했습니다." };
-   }
- }
-
+ export async function sendWelcomeEmailResend(userId: string, _email: string): Promise<{ success: boolean; message: string; data?: unknown }> {
+  return requestMemberAction(userId, 'POST', {});
+}
 
 /**
  * [슈퍼 어드민 전용] 새로운 회원 가입 알림 생성

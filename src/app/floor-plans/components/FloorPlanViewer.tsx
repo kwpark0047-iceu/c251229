@@ -35,6 +35,7 @@ export default function FloorPlanViewer({
   onAddPosition,
 }: FloorPlanViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -55,14 +56,15 @@ export default function FloorPlanViewer({
   }, []);
 
   // 드래그 시작
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = useCallback((e: MouseEvent) => {
+    if (e.target instanceof Element && e.target.closest('button:not([data-add-position])')) return;
     if (e.button !== 0) return; // 좌클릭만
     setIsDragging(true);
     setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
   }, [position]);
 
   // 드래그 중
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     setPosition({
       x: e.clientX - dragStart.x,
@@ -76,19 +78,19 @@ export default function FloorPlanViewer({
   }, []);
 
   // 휠 줌
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.1 : 0.1;
     handleZoom(delta);
   }, [handleZoom]);
 
   // 이미지 클릭 (편집 모드에서 마커 추가)
-  const handleImageClick = useCallback((e: React.MouseEvent<HTMLImageElement>) => {
+  const handleImageClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     if (!isEditing || !onAddPosition) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const x = e.detail === 0 ? 50 : ((e.clientX - rect.left) / rect.width) * 100;
+    const y = e.detail === 0 ? 50 : ((e.clientY - rect.top) / rect.height) * 100;
 
     onAddPosition(x, y);
   }, [isEditing, onAddPosition]);
@@ -117,6 +119,24 @@ export default function FloorPlanViewer({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleZoom, handleReset, isFullscreen, toggleFullscreen]);
+
+  // 뷰포트에만 네이티브 이벤트를 연결하여 툴바 동작과 분리합니다.
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    viewport.addEventListener('mousedown', handleMouseDown);
+    viewport.addEventListener('mousemove', handleMouseMove);
+    viewport.addEventListener('mouseup', handleMouseUp);
+    viewport.addEventListener('mouseleave', handleMouseUp);
+    viewport.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      viewport.removeEventListener('mousedown', handleMouseDown);
+      viewport.removeEventListener('mousemove', handleMouseMove);
+      viewport.removeEventListener('mouseup', handleMouseUp);
+      viewport.removeEventListener('mouseleave', handleMouseUp);
+      viewport.removeEventListener('wheel', handleWheel);
+    };
+  }, [plan, handleMouseDown, handleMouseMove, handleMouseUp, handleWheel]);
 
   if (!plan) {
     return (
@@ -205,11 +225,8 @@ export default function FloorPlanViewer({
       {/* 뷰어 영역 */}
       <div
         className="flex-1 relative overflow-hidden cursor-move"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
+        ref={viewportRef}
+        data-floor-plan-viewport
       >
         {/* 드래그 가이드 */}
         {isDragging && (
@@ -234,11 +251,20 @@ export default function FloorPlanViewer({
               alt={`${plan.stationName} ${plan.planType}`}
               className={`max-w-none ${isEditing ? 'cursor-crosshair' : ''}`}
               draggable={false}
-              onClick={handleImageClick}
               style={{
                 maxHeight: '80vh',
               }}
             />
+
+            {isEditing && onAddPosition && (
+              <button
+                type="button"
+                data-add-position
+                aria-label="광고 위치 추가"
+                className="absolute inset-0 w-full h-full cursor-crosshair focus-visible:outline-2 focus-visible:outline-blue-500"
+                onClick={handleImageClick}
+              />
+            )}
 
             {/* 광고 위치 마커 */}
             {adPositions.map((pos) => (

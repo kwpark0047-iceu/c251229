@@ -4,7 +4,7 @@
  * 도면 업로드 모달
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useId } from 'react';
 import { X, Upload, FileImage, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import {
   MetroLine,
@@ -35,7 +35,7 @@ export default function FloorPlanUploadModal({
   onSuccess,
   defaultLine = '2',
 }: FloorPlanUploadModalProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fieldId = useId();
   const [files, setFiles] = useState<File[]>([]);
   const [lineNumber, setLineNumber] = useState<MetroLine>(defaultLine);
   const [planType, setPlanType] = useState<PlanType>('station_layout');
@@ -59,7 +59,7 @@ export default function FloorPlanUploadModal({
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent<HTMLInputElement>) => {
     e.preventDefault();
     const droppedFiles = Array.from(e.dataTransfer.files);
     const imageFiles = droppedFiles.filter(f =>
@@ -156,10 +156,11 @@ export default function FloorPlanUploadModal({
         <div className="grid grid-cols-2 gap-4 mb-6">
           {/* 노선 선택 */}
           <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+            <label htmlFor={`${fieldId}-line`} className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
               노선
             </label>
             <select
+              id={`${fieldId}-line`}
               value={lineNumber}
               onChange={(e) => setLineNumber(e.target.value as MetroLine)}
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--metro-line2)]"
@@ -176,10 +177,11 @@ export default function FloorPlanUploadModal({
 
           {/* 도면 유형 선택 */}
           <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+            <label htmlFor={`${fieldId}-type`} className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
               도면 유형
             </label>
             <select
+              id={`${fieldId}-type`}
               value={planType}
               onChange={(e) => setPlanType(e.target.value as PlanType)}
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--metro-line2)]"
@@ -194,18 +196,16 @@ export default function FloorPlanUploadModal({
 
         {/* 파일 드롭존 */}
         <div
-          onDrop={handleDrop}
-          onDragOver={(e) => e.preventDefault()}
-          onClick={() => fileInputRef.current?.click()}
-          className="border-2 border-dashed border-[var(--border-subtle)] rounded-xl p-8 text-center cursor-pointer hover:border-[var(--metro-line2)] hover:bg-[var(--bg-tertiary)] transition-colors mb-4"
+          className="relative border-2 border-dashed border-[var(--border-subtle)] rounded-xl p-8 text-center cursor-pointer hover:border-[var(--metro-line2)] hover:bg-[var(--bg-tertiary)] transition-colors mb-4"
         >
           <input
-            ref={fileInputRef}
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
             type="file"
             accept="image/*"
             multiple
             onChange={handleFileSelect}
-            className="hidden"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer focus-visible:opacity-100"
             title="파일 업로드"
             aria-label="파일 업로드"
             placeholder="파일 업로드"

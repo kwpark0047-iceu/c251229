@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+import { saveSopoLead } from './sopo-service';
+
 /**
  * 서울 지하철 광고 영업 시스템 (Lead Manager)
  * 메인 대시보드 페이지 - Neo-Seoul Transit Design
@@ -80,6 +83,8 @@ import ProposalsView from './components/ProposalsView';
 import FloorPlansView from './components/FloorPlansView';
 import ContractsView from './components/ContractsView';
 import SuperAdminDashboard from './components/admin/SuperAdminDashboard';
+import { useOnlinePresence } from './use-online-presence';
+import PresenceIndicator from './components/PresenceIndicator';
 import { TaskWithLead } from './types';
 import CallbackNotification from './components/CallbackNotification';
 import RoleGuard from '@/components/RoleGuard';
@@ -250,7 +255,7 @@ function LeadManagerContent() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [copiedInviteCode, setCopiedInviteCode] = useState(false);
-  const [onlineUsersCount, setOnlineUsersCount] = useState(0);
+  const { accounts: onlineAccounts, connection: presenceConnection } = useOnlinePresence(userInfo?.id);
 
   // 날짜 범위 (기본값: 최근 6개월)
   const [dateRange, setDateRange] = useState(getThreeMonthsDateRange);
@@ -420,28 +425,6 @@ function LeadManagerContent() {
     }
   };
 
-  // 실시간 접속자
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase.channel('online-users', {
-      config: { presence: { key: userInfo?.email || 'anonymous' } }
-    });
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        setOnlineUsersCount(Object.keys(state).length);
-      })
-      .subscribe(async (status: string) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ online_at: new Date().toISOString() });
-        }
-      });
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [userInfo]);
 
   const copyInviteCode = () => {
     if (userInfo?.inviteCode) {
@@ -693,7 +676,7 @@ function LeadManagerContent() {
       <header className={`header-blur border-b border-[var(--glass-border)] sticky top-0 z-40 backdrop-blur-xl transition-all duration-300 ${isScrolled ? 'header-scrolled bg-[var(--bg-primary)]/95 h-14' : 'h-16 bg-[var(--bg-primary)]/80'}`}>
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3 group cursor-pointer" onClick={() => router.push('/')}>
+            <Link href="/" className="flex items-center gap-3 group cursor-pointer">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 bg-gradient-to-br from-[var(--metro-line2)] to-[var(--metro-line4)] shadow-[0_4px_15px_rgba(60,181,74,0.25)]">
                 <Train className="w-5 h-5 text-white" />
               </div>
@@ -701,7 +684,7 @@ function LeadManagerContent() {
                 <h1 className="text-lg font-bold text-[var(--text-primary)] leading-tight">지하철 광고</h1>
                 <p className="text-xs text-[var(--text-muted)] font-medium tracking-wider uppercase">리드 매니저</p>
               </div>
-            </div>
+            </Link>
 
             <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg-tertiary)]/80 border border-[var(--border-subtle)]">
               {[
@@ -730,9 +713,7 @@ function LeadManagerContent() {
 
             <div className="flex items-center gap-2">
               <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-tertiary)]" title="실시간 활성 계정">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs text-[var(--text-muted)]">활성 계정</span>
-                <span className="text-xs font-semibold text-[var(--text-primary)]">{onlineUsersCount}명</span>
+                <PresenceIndicator count={onlineAccounts.length} connection={presenceConnection} />
               </div>
               <NotificationCenter />
               <ThemeToggle />
@@ -1078,7 +1059,7 @@ function LeadManagerContent() {
         ) : mainTab === 'contracts' ? (
           <ContractsView />
         ) : (
-          <SuperAdminDashboard user={userInfo} />
+          <SuperAdminDashboard user={userInfo} onlineAccounts={onlineAccounts} presenceConnection={presenceConnection} />
         )}
       </main>
 
@@ -1088,11 +1069,12 @@ function LeadManagerContent() {
         <SopoLookupModal
           lead={selectedLead}
           onClose={() => setSopoModalOpen(false)}
-          onSave={(updatedLead) => {
-            // 로컬 상태 업데이트
-            setLeads(prev => prev.map(l => l.id === updatedLead.id ? { ...l, ...updatedLead } : l));
-            showNotification('success', 'SOPO 데이터가 저장되었습니다.');
-            setSopoModalOpen(false);
+          onSave={async (updatedLead) => {
+            await saveSopoLead(updatedLead);
+            // DB 저장 성공 후 로컬 상태 반영
+            const enrichment = Object.fromEntries(Object.entries(updatedLead).filter(([key]) => key.startsWith('sopo')));
+            setLeads(prev => prev.map(l => l.id === updatedLead.id ? { ...l, ...enrichment } : l));
+            setSelectedLead(prev => prev?.id === updatedLead.id ? { ...prev, ...enrichment } : prev);
           }}
         />
       )}

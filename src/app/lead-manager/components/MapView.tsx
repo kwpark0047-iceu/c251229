@@ -20,6 +20,7 @@ import 'leaflet/dist/leaflet.css';
 import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS, STATUS_METRO_COLORS } from '../types';
 import { SUBWAY_STATIONS } from '../constants';
 import { formatDistance, formatPhoneNumber } from '../utils';
+import { isValidCoordinates } from '../utils/coordinates';
 // StationLabels은 하단에서 동적 임포트 처리
 import { MessageSquare, ChevronDown } from 'lucide-react';
 import {
@@ -109,7 +110,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   const mapKey = useMemo(() => `map-root-${Math.random().toString(36).substring(2, 9)}`, []);
 
   // 지도 초기 줌 레벨
-  const defaultZoom = focusLead?.latitude && focusLead?.longitude ? 17 : 14;
+  const defaultZoom = focusLead?.latitude && focusLead?.longitude && isValidCoordinates(focusLead.latitude, focusLead.longitude) ? 17 : 14;
 
   // 현재 지도 줌 레벨 추적용 상태
   const [currentZoom, setCurrentZoom] = useState(defaultZoom);
@@ -206,10 +207,10 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   }, [showHeatmap, isClient, subwayData, leads]);
 
   // 유효한 좌표가 있는 리드만 필터링
-  const validLeads = leads.filter(lead => lead.latitude && lead.longitude);
+  const validLeads = leads.filter(lead => lead.latitude && lead.longitude && isValidCoordinates(lead.latitude, lead.longitude));
 
   // 지도 중심점 계산 (focusLead가 있으면 해당 위치, 없으면 평균)
-  const center = focusLead?.latitude && focusLead?.longitude
+  const center = focusLead?.latitude && focusLead?.longitude && isValidCoordinates(focusLead.latitude, focusLead.longitude)
     ? { lat: focusLead.latitude, lng: focusLead.longitude }
     : validLeads.length > 0
       ? {
@@ -417,7 +418,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
           }
 
           // 2. 리드(업체) 검색
-          const leadMatch = leads.find(l => 
+          const leadMatch = validLeads.find(l =>
             l.bizName.toLowerCase().includes(lowerQuery) || 
             (l.roadAddress || '').toLowerCase().includes(lowerQuery)
           );

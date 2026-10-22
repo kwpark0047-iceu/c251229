@@ -91,14 +91,19 @@ function TaskCard({
 
   return (
     <div
-      onClick={onClick}
       // @ts-ignore
       style={{
         '--card-shadow': isOverdue ? '0 8px 32px rgba(239, 68, 68, 0.1)' : 'var(--shadow-md)',
       } as React.CSSProperties}
-      className={`p-4 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl animate-float shadow-[--card-shadow] ${isOverdue ? 'border-red-400/50 bg-red-400/5' : 'bg-[var(--bg-secondary)] border-[var(--border-subtle)]'
+      className={`relative isolate p-4 rounded-xl border cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl animate-float shadow-[--card-shadow] ${isOverdue ? 'border-red-400/50 bg-red-400/5' : 'bg-[var(--bg-secondary)] border-[var(--border-subtle)]'
         }`}
     >
+      <button
+        type="button"
+        aria-label={`${task.title} 상세 보기`}
+        onClick={onClick}
+        className="absolute inset-0 z-0 rounded-xl cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--metro-line4)]"
+      />
       {/* 상단 */}
       <div className="flex items-start justify-between mb-3">
         <div
@@ -107,7 +112,7 @@ function TaskCard({
           {TASK_ICONS[task.taskType]}
           {TASK_TYPE_LABELS[task.taskType]}
         </div>
-        <div className="relative">
+        <div className="relative z-10">
           <button
             onClick={(e) => {
               e.stopPropagation();

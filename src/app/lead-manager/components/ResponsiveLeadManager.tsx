@@ -87,13 +87,14 @@ export default function ResponsiveLeadManager({
   // 리드 카드 컴포넌트 (Premium Antigravity Style)
   const LeadCard = ({ lead }: { lead: Lead }) => (
     <div
-      onClick={() => onSelectLead(lead.id)}
       className="group relative animate-float-subtle transition-all duration-500 cursor-pointer"
     >
+      <button type="button" aria-label={`${lead.bizName} 선택`} aria-pressed={selectedLeads.has(lead.id)} onClick={() => onSelectLead(lead.id)}
+        className="pointer-events-auto absolute inset-0 z-0 rounded-2xl focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500" />
       {/* 카드 글로우 효과 */}
-      <div className="absolute -inset-0.5 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
+      <div className="pointer-events-none absolute -inset-0.5 bg-gradient-to-br from-indigo-500/20 to-purple-600/20 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500"></div>
       
-      <div className="relative bg-white/[0.03] backdrop-blur-xl border border-white/5 p-5 rounded-2xl shadow-2xl hover:bg-white/[0.06] hover:border-white/10 transition-all flex flex-col h-full">
+      <div className="pointer-events-none relative bg-white/[0.03] backdrop-blur-xl border border-white/5 p-5 rounded-2xl shadow-2xl hover:bg-white/[0.06] hover:border-white/10 transition-all flex flex-col h-full">
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1">
             <h3 className="text-white font-black text-lg tracking-tight group-hover:text-indigo-400 transition-colors truncate">
@@ -128,7 +129,7 @@ export default function ResponsiveLeadManager({
                 onUpdateStatus(lead.id, e.target.value as LeadStatus);
               }}
               title="노드 상태 선택"
-              className="appearance-none bg-black/60 text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer hover:bg-black/80 transition-all"
+              className="relative z-10 pointer-events-auto appearance-none bg-black/60 text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer hover:bg-black/80 transition-all"
               onClick={(e) => e.stopPropagation()}
             >
               <option value="NEW">New Node</option>
@@ -200,7 +201,7 @@ export default function ResponsiveLeadManager({
             <div className="flex items-center space-x-6">
               {/* 모바일 메뉴 버튼 */}
               <ResponsiveWrapper breakpoint="md">
-                <button
+                <button type="button"
                   onClick={() => setIsSidebarOpen(true)}
                   className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] transition-all text-slate-400 active:scale-90"
                   title="메뉴 열기"
@@ -236,7 +237,7 @@ export default function ResponsiveLeadManager({
               {/* 액션 버튼 */}
               <div className="flex items-center gap-2">
                 <ResponsiveWrapper breakpoint="lg">
-                  <button
+                  <button type="button"
                     onClick={onAddLead}
                     className="p-2.5 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
                     title="Add Node"
@@ -246,7 +247,7 @@ export default function ResponsiveLeadManager({
                 </ResponsiveWrapper>
 
                 <ResponsiveWrapper breakpoint="md">
-                  <button
+                  <button type="button"
                     onClick={onExportData}
                     className="p-2.5 bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition-all border border-white/5 active:scale-95"
                     title="Export Sequence"
@@ -261,7 +262,7 @@ export default function ResponsiveLeadManager({
           {/* 뷰 모드 전환 및 서브 액션 */}
           <div className="flex items-center justify-between py-3 border-t border-white/5">
             <div className="flex items-center gap-2 bg-black/40 p-1 rounded-xl border border-white/10">
-              <button
+              <button type="button"
                 onClick={() => setViewMode('grid')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                   viewMode === 'grid' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
@@ -272,7 +273,7 @@ export default function ResponsiveLeadManager({
                 <LayoutGrid className="w-4 h-4" />
                 Grid
               </button>
-              <button
+              <button type="button"
                 onClick={() => setViewMode('list')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                   viewMode === 'list' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
@@ -283,7 +284,7 @@ export default function ResponsiveLeadManager({
                 <LayoutList className="w-4 h-4" />
                 List
               </button>
-              <button
+              <button type="button"
                 onClick={() => setViewMode('map')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                   viewMode === 'map' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
@@ -298,7 +299,7 @@ export default function ResponsiveLeadManager({
 
             {/* 필터 버튼 (모바일) */}
             <ResponsiveWrapper breakpoint="md">
-              <button
+              <button type="button"
                 onClick={toggleFilterPanel}
                 className={`p-2.5 rounded-xl border transition-all ${
                   isFilterPanelOpen ? 'bg-indigo-500/10 border-indigo-500/50 text-indigo-400' : 'bg-black/40 border-white/10 text-slate-400'
@@ -333,7 +334,7 @@ export default function ResponsiveLeadManager({
                     <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-black' }} className="text-white uppercase tracking-tight">
                       Filter Node
                     </ResponsiveText>
-                    <button
+                    <button type="button"
                       onClick={() => setIsFilterPanelOpen(false)}
                       className="p-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-400 hover:text-white transition-all shadow-lg"
                       title="필터 패널 닫기"
@@ -399,10 +400,11 @@ export default function ResponsiveLeadManager({
                 {leads.map((lead) => (
                   <div
                     key={lead.id}
-                    onClick={() => onSelectLead(lead.id)}
                     className="group relative bg-white/[0.03] backdrop-blur-xl border border-white/5 p-4 rounded-2xl hover:bg-white/[0.06] hover:border-white/10 transition-all cursor-pointer flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4"
                   >
-                    <div className="flex-1">
+                    <button type="button" aria-label={`${lead.bizName} 선택`} aria-pressed={selectedLeads.has(lead.id)} onClick={() => onSelectLead(lead.id)}
+                      className="pointer-events-auto absolute inset-0 z-0 rounded-2xl focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500" />
+                    <div className="pointer-events-none flex-1">
                       <ResponsiveText size={{ sm: 'text-lg' }} weight={{ sm: 'font-black' }} className="text-white group-hover:text-indigo-400 transition-colors">
                         {lead.bizName}
                       </ResponsiveText>
@@ -410,7 +412,7 @@ export default function ResponsiveLeadManager({
                         {lead.roadAddress}
                       </ResponsiveText>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="pointer-events-none flex flex-wrap items-center gap-3">
                       <span className="text-xs font-black uppercase tracking-widest bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-lg border border-indigo-500/20">
                         {lead.nearestStation}
                       </span>
@@ -425,7 +427,7 @@ export default function ResponsiveLeadManager({
                             onUpdateStatus(lead.id, e.target.value as LeadStatus);
                           }}
                           title="노드 상태 선택"
-                          className="appearance-none bg-black/60 text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer"
+                          className="relative z-10 pointer-events-auto appearance-none bg-black/60 text-white text-xs font-black uppercase tracking-widest px-3 py-1.5 pr-8 rounded-lg border border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <option value="NEW">New Node</option>
@@ -461,14 +463,14 @@ export default function ResponsiveLeadManager({
             {/* 플로팅 액션 버튼 (Mobile Antigravity FAB) */}
             <ResponsiveWrapper breakpoint="md">
               <div className="fixed bottom-8 right-8 flex flex-col space-y-4 z-50">
-                <button
+                <button type="button"
                   onClick={onAddLead}
                   className="w-16 h-16 bg-indigo-500 text-white rounded-2xl shadow-2xl shadow-indigo-500/40 hover:bg-indigo-600 flex items-center justify-center animate-float group transition-transform active:scale-90"
                   title="새로운 노드 추가"
                 >
                   <Plus className="w-8 h-8 group-hover:rotate-90 transition-transform duration-500" />
                 </button>
-                <button
+                <button type="button"
                   onClick={onExportData}
                   className="w-14 h-14 bg-slate-800 text-slate-300 rounded-2xl shadow-2xl border border-white/10 hover:bg-slate-700 flex items-center justify-center animate-float delay-300 transition-transform active:scale-90"
                   title="데이터 내보내기"
@@ -496,7 +498,7 @@ export default function ResponsiveLeadManager({
               </div>
               <span className="text-xl font-black text-white uppercase tracking-tight">Menu</span>
             </div>
-            <button
+            <button type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="p-2 rounded-xl bg-white/[0.03] border border-white/5 text-slate-400 hover:text-white transition-all"
               title="사이드바 닫기"
@@ -513,7 +515,7 @@ export default function ResponsiveLeadManager({
               { label: 'Analytics', icon: Download },
               { label: 'System Settings', icon: Settings }
             ].map((item, idx) => (
-              <button 
+              <button type="button"
                 key={idx} 
                 className={`flex items-center w-full gap-4 p-4 rounded-2xl transition-all group ${
                   item.active 

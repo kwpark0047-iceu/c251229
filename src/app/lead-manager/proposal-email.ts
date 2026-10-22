@@ -95,7 +95,10 @@ import { ActivityService } from './activity-service';export async function sendP
     if (!result.success) return { success: false, message: result.message };
 
     // 4. 발송 상태 업데이트
-    await markProposalSent(proposalId);
+    const sentResult = await markProposalSent(proposalId);
+    if (!sentResult.success) {
+      return { success: false, message: `이메일은 발송되었으나 상태 저장에 실패했습니다. 재발송하지 말고 상태를 확인해주세요. ${sentResult.message}` };
+    }
     await supabase.from('proposals').update({
        email_recipient: emailData.to 
     }).eq('id', proposalId);

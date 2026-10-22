@@ -53,14 +53,14 @@ export default function RegionFilter({
         </div>
         
         <div className="flex items-center space-x-2">
-          <button
+          <button type="button"
             onClick={handleSelectAll}
             disabled={disabled}
             className="text-xs px-2 py-1 text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             전체
           </button>
-          <button
+          <button type="button"
             onClick={handleClearAll}
             disabled={disabled}
             className="text-xs px-2 py-1 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -76,7 +76,7 @@ export default function RegionFilter({
           const regionInfo = REGIONS[region.code];
 
           return (
-            <button
+            <button type="button"
               key={region.code}
               onClick={() => handleRegionToggle(region.code)}
               disabled={disabled}
@@ -232,7 +232,7 @@ export function RegionDropdown({
 
   return (
     <div className={`relative ${className}`}>
-      <button
+      <button type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={`
@@ -262,7 +262,7 @@ export function RegionDropdown({
 
       {isOpen && (
         <>
-          <div
+          <button type="button" aria-label="지역 선택 닫기"
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
@@ -273,7 +273,7 @@ export function RegionDropdown({
                 const regionInfo = REGIONS[region.code];
 
                 return (
-                  <button
+                  <button type="button"
                     key={region.code}
                     onClick={() => {
                       handleRegionToggle(region.code);

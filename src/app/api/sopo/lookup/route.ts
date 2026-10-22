@@ -26,6 +26,10 @@ function getClientKey(request: Request): string {
 
 function isRateLimited(clientKey: string, now = Date.now()): boolean {
   const windowStart = now - RATE_WINDOW_MS;
+  for (const [key, times] of requestLog) {
+    if (!times.length || times[times.length - 1] <= windowStart) requestLog.delete(key);
+  }
+  if (!requestLog.has(clientKey) && requestLog.size >= 5000) return true;
   const recentRequests = (requestLog.get(clientKey) ?? []).filter((timestamp) => timestamp > windowStart);
 
   if (recentRequests.length >= MAX_REQUESTS_PER_WINDOW) {
@@ -76,13 +80,13 @@ export async function GET(request: Request) {
       data: sopoItems,
     });
   } catch (error) {
-    console.error('[SOPO Lookup API Error]:', error);
+    console.error('[SOPO Lookup API Error]:', error instanceof Error ? error.name : 'UnknownError');
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'SOPO 조회 중 오류가 발생했습니다.',
+        error: '상가정보 제공기관에 연결하지 못했습니다. 인증키 설정과 이용 한도를 확인한 후 다시 시도해 주세요.',
       },
-      { status: 500 }
+      { status: 502 }
     );
   }
 }

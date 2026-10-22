@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 const handlers = createGGSyncHandlers({
   endpoint: 'https://openapi.gg.go.kr/Univ',
   dataKey: 'Univ',
-  envKey: 'GG_UNIV_API_KEY',
+  envKey: 'GG_API_KEY',
   label: 'GG Univ',
   mgtPrefix: 'GG_UNIV',
   serviceName: '대학교',

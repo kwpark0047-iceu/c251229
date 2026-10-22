@@ -8,11 +8,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PendingBadge } from './PendingBadge';
-import { 
-  getAllProfiles, 
-  updateProfileStatus, 
-  updateUserOrganization, 
-  getAllOrganizations 
+import MemberActionDialog, { type MemberAction } from './MemberActionDialog';
+import { getRoleLabel } from './admin-labels';
+import {
+  getAllProfiles,
+  updateProfileStatus,
+  updateUserOrganization,
+  getAllOrganizations
 } from '../../auth-service';
 
 interface Profile {
@@ -21,7 +23,7 @@ interface Profile {
   fullName: string | null;
   isApproved: boolean;
   isSuperAdmin: boolean;
-  tier: string;
+  tier: string | null;
   trialExpiresAt: string | null;
   createdAt: string;
   membership: {
@@ -35,12 +37,14 @@ export default function UserManagementView() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [orgs, setOrgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'PENDING'>('ALL');
   const [tierFilter, setTierFilter] = useState<string>('ALL');
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [memberAction, setMemberAction] = useState<MemberAction | null>(null);
 
   useEffect(() => {
     loadData();
@@ -51,20 +55,15 @@ export default function UserManagementView() {
     setPendingCount(count);
   }, [profiles]);
 
-  const handleApproval = async (userId: string, isApproved: boolean) => {
-    if (!confirm(isApproved ? '이 사용자를 승인하시겠습니까?' : '승인을 취소하시겠습니까?')) return;
-    const result = await updateProfileStatus(userId, { isApproved });
-    if (result.success) {
-      toast.success('사용자 승인이 완료되었습니다.');
-      loadData();
-    } else {
-      toast.error(result.message);
-    }
+  const handleApproval = (userId: string, isApproved: boolean) => {
+    const profile = profiles.find(p => p.id === userId);
+    if (profile) setMemberAction({ id: userId, email: profile.email, action: isApproved ? 'approve' : 'revoke' });
   };
 
   const handleTierChange = async (userId: string, tier: string) => {
     const result = await updateProfileStatus(userId, { tier });
     if (result.success) {
+      toast.success('사용자 등급이 변경되었습니다.');
       loadData();
     } else {
       toast.error(result.message);
@@ -74,6 +73,7 @@ export default function UserManagementView() {
   const handleOrgUpdate = async (userId: string, orgId: string | null, role: any) => {
     const result = await updateUserOrganization(userId, orgId, role);
     if (result.success) {
+      toast.success('조직 정보가 저장되었습니다.');
       setShowOrgModal(false);
       loadData();
     } else {
@@ -83,26 +83,26 @@ export default function UserManagementView() {
 
   const filteredProfiles = profiles.filter(p => {
     // 최고관리자 본인은 목록에서 제외 (요청 사항: kwpark0047@gmail.com 이외)
-    if (p.email === 'kwpark0047@gmail.com') return false;
+    if (p.isSuperAdmin) return false;
 
-    const matchesSearch = p.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch = p.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (p.fullName || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' || 
-                         (statusFilter === 'APPROVED' && p.isApproved) || 
+    const matchesStatus = statusFilter === 'ALL' ||
+                         (statusFilter === 'APPROVED' && p.isApproved) ||
                          (statusFilter === 'PENDING' && !p.isApproved);
     const matchesTier = tierFilter === 'ALL' || p.tier === tierFilter;
-    
+
     return matchesSearch && matchesStatus && matchesTier;
   });
 
-  const getTierBadge = (tier: string) => {
+  const getTierBadge = (tier: string | null) => {
     const tierConfig: Record<string, { label: string; class: string }> = {
-      'FREE': { label: '일반(FREE)', class: 'bg-slate-100 text-slate-700 border-slate-200' },
-      'DEMO': { label: '데모(DEMO)', class: 'bg-blue-50 text-blue-700 border-blue-100' },
-      'MEDIA': { label: '매체사(MEDIA)', class: 'bg-purple-50 text-purple-700 border-purple-100' },
-      'SALES': { label: '영업(SALES)', class: 'bg-amber-50 text-amber-700 border-amber-100' },
+      'FREE': { label: '일반', class: 'bg-slate-100 text-slate-700 border-slate-200' },
+      'DEMO': { label: '체험', class: 'bg-blue-50 text-blue-700 border-blue-100' },
+      'MEDIA': { label: '매체사', class: 'bg-purple-50 text-purple-700 border-purple-100' },
+      'SALES': { label: '영업', class: 'bg-amber-50 text-amber-700 border-amber-100' },
     };
-    const config = tierConfig[tier] || { label: tier, class: 'bg-gray-100 text-gray-700 border-gray-200' };
+    const config = tierConfig[tier || ''] || { label: '미지정', class: 'bg-gray-100 text-gray-700 border-gray-200' };
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold border ${config.class}`}>
         {config.label}
@@ -111,7 +111,8 @@ export default function UserManagementView() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50">
+    <><div className="flex flex-col h-full bg-slate-50">
+      {loadError && <p role="alert" className="rounded-lg border border-rose-400 p-4 text-rose-600">{loadError}</p>}
       {/* 헤더 */}
       <div className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div>
@@ -151,14 +152,14 @@ export default function UserManagementView() {
             className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">등급 필터 (전체)</option>
-            <option value="FREE">FREE (일반)</option>
-            <option value="DEMO">DEMO (데모)</option>
-            <option value="MEDIA">MEDIA (매체사)</option>
-            <option value="SALES">SALES (영업)</option>
+            <option value="FREE">일반</option>
+            <option value="DEMO">체험</option>
+            <option value="MEDIA">매체사</option>
+            <option value="SALES">영업</option>
           </select>
           <div className="flex items-center gap-2">
             <PendingBadge count={pendingCount} />
-            <button 
+            <button
               onClick={loadData}
               className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1.5 border"
               title="데이터 새로고침"
@@ -201,7 +202,7 @@ export default function UserManagementView() {
                           <p className="text-xs text-slate-500">{p.email}</p>
                         </div>
                         {p.isSuperAdmin && (
-                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-bold">SUPER</span>
+                          <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-bold">최고관리자</span>
                         )}
                       </div>
                     </td>
@@ -211,13 +212,14 @@ export default function UserManagementView() {
                         <select
                           title="사용자 서비스 등급 변경"
                           className="text-xs border-none bg-slate-100 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-                          value={p.tier}
+                          value={p.tier || ''}
                           onChange={(e) => handleTierChange(p.id, e.target.value)}
                         >
-                          <option value="FREE">FREE 변경</option>
-                          <option value="DEMO">DEMO 변경</option>
-                          <option value="MEDIA">MEDIA 변경</option>
-                          <option value="SALES">SALES 변경</option>
+                          <option value="FREE">일반으로 변경</option>
+                          <option value="" disabled>미지정</option>
+                          <option value="DEMO">체험으로 변경</option>
+                          <option value="MEDIA">매체사로 변경</option>
+                          <option value="SALES">영업으로 변경</option>
                         </select>
                       </div>
                     </td>
@@ -227,7 +229,7 @@ export default function UserManagementView() {
                           {p.membership?.organizationName || '소속 없음'}
                         </span>
                         <span className="text-xs text-slate-400 uppercase font-bold">
-                          {p.membership?.role || '정의되지 않음'}
+                          {getRoleLabel(p.membership?.role)}
                         </span>
                       </div>
                     </td>
@@ -245,7 +247,7 @@ export default function UserManagementView() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-slate-500 whitespace-nowrap text-xs">
-                      {new Date(p.createdAt).toLocaleDateString()}
+                      {new Date(p.createdAt).toLocaleDateString('ko-KR')}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -276,6 +278,8 @@ export default function UserManagementView() {
                         >
                           <Building className="w-4 h-4" />
                         </button>
+                        <button onClick={() => setMemberAction({ id: p.id, email: p.email, action: 'delete' })}
+                          title="회원 계정 삭제" className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-50"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -306,15 +310,15 @@ export default function UserManagementView() {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               handleOrgUpdate(
-                selectedProfile.id, 
+                selectedProfile.id,
                 formData.get('orgId') as string || null,
                 formData.get('role') as any
               );
             }}>
               <div className="p-6 space-y-4 text-sm text-slate-700">
                 <div className="space-y-1.5">
-                  <label className="font-semibold block">소속 조직</label>
-                  <select 
+                  <label htmlFor="edit-org-id" className="font-semibold block">소속 조직</label>
+                  <select
                     id="edit-org-id"
                     title="소속 조직 수정"
                     name="orgId"
@@ -328,17 +332,17 @@ export default function UserManagementView() {
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="font-semibold block">역할</label>
-                  <select 
+                  <label htmlFor="edit-role" className="font-semibold block">역할</label>
+                  <select
                     id="edit-role"
                     title="멤버 역할 수정"
                     name="role"
                     className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
                     defaultValue={selectedProfile.membership?.role || 'member'}
                   >
-                    <option value="member">일반 멤버 (Member)</option>
-                    <option value="admin">관리자 (Admin)</option>
-                    <option value="owner">소유자 (Owner)</option>
+                    <option value="member">일반 회원</option>
+                    <option value="admin">관리자</option>
+                    <option value="owner">조직 소유자</option>
                   </select>
                 </div>
               </div>
@@ -362,17 +366,25 @@ export default function UserManagementView() {
         </div>
       )}
     </div>
+    {memberAction && <MemberActionDialog key={memberAction.id + memberAction.action} target={memberAction} onClose={() => setMemberAction(null)}
+      onComplete={async message => { if (!await loadData()) throw new Error('목록 갱신 실패'); toast.success(message); }} />}
+    </>
   );
 
   async function loadData() {
     setLoading(true);
+    setLoadError('');
     try {
-const { profiles } = await getAllProfiles();
-    setProfiles(profiles);
+      const result = await getAllProfiles();
+      if (!result.success) throw new Error('회원 목록을 불러오지 못했습니다. 권한과 연결 상태를 확인해주세요.');
+      setProfiles(result.profiles);
       const orgs = await getAllOrganizations();
       setOrgs(orgs);
+      return true;
     } catch (error) {
+      setLoadError(error instanceof Error ? error.message : '회원 정보를 불러오지 못했습니다.');
       console.error('사용자 데이터 로드 실패:', error);
+      return false;
     } finally {
       setLoading(false);
     }

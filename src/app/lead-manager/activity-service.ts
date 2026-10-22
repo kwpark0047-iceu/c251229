@@ -93,6 +93,15 @@ export const ActivityService = {
     }, proposalId);
   },
 
+  trackProposalDelete: async (proposalId: string, orgId: string | null, actor: 'super-admin' | 'organization') => {
+    await logActivity('PROPOSAL_DELETE', {
+      message: actor === 'super-admin' ? '슈퍼어드민 제안서 삭제' : '조직 제안서 삭제',
+      proposalId,
+      orgId,
+      actor
+    }, proposalId);
+  },
+
   // --- 시스템 관련 액션 ---
   trackSettingsUpdate: async (userId: string) => {
     await logActivity('SETTINGS_UPDATE', { 
