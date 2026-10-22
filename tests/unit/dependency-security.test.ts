@@ -13,6 +13,7 @@ describe('보안 의존성 잠금 및 파일 호환성', () => {
   it.each([
     ['next', '16.4.2'],
     ['axios', '1.20.0'],
+    ['follow-redirects', '1.16.1'],
     ['xlsx', '0.20.3'],
   ])('%s는 검증한 보안 버전으로 잠근다', (name, version) => {
     expect(lock.packages[`node_modules/${name}`].version).toBe(version);
