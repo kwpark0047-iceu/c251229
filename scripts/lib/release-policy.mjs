@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const WEB_ROOTS = ['src', 'public'];
 const WEB_FILES = ['package.json', 'package-lock.json', '.npmrc', 'next-env.d.ts', 'next.config.ts', 'postcss.config.mjs', 'tsconfig.json', 'vercel.json'];
-export const VERCEL_IGNORE = ['/*', ...WEB_ROOTS.flatMap(p => [`!/${p}/`, `!/${p}/**`]), ...WEB_FILES.map(p => `!/${p}`), '**/.env*', '**/*.test.*', '**/*.spec.*', '**/*.pem', '**/*.log', '**/*.tar', ''].join('\n');
+export const VERCEL_IGNORE = ['/*', ...WEB_ROOTS.flatMap(p => [`!${p}`, `!${p}/**`]), ...WEB_FILES.map(p => `!${p}`), '**/.env*', '**/*.test.*', '**/*.spec.*', '**/*.pem', '**/*.log', '**/*.tar', ''].join('\n');
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
 export function assertScriptOnlyPackage(actual, baseline, additions) {
