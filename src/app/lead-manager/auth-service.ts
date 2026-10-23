@@ -5,6 +5,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup'
+import { getAccountStatus, isAccountBlocked, type AccountStatus } from '@/lib/account-state'
 
 export interface UserInfo {
   id: string;
@@ -15,6 +16,7 @@ export interface UserInfo {
   inviteCode: string | null;
   permissions: UserPermissions;
   isApproved: boolean;
+  accountStatus?: AccountStatus;
   isSuperAdmin: boolean;
   tier: 'FREE' | 'DEMO' | 'MEDIA' | 'SALES' | null;
   trialExpiresAt: string | null;
@@ -67,6 +69,7 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
             )
           `)
 .eq('user_id', user.id)
+            .eq('is_active', true)
             .order('role', { ascending: false })
             .order('created_at', { ascending: true })
             .limit(1)
@@ -79,7 +82,7 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
         // 프로필 정보 조회
         const { data: prof, error: profError } = await supabase
           .from('profiles')
-.select('is_approved, is_super_admin, tier, trial_expires_at')
+.select('is_approved, is_super_admin, tier, trial_expires_at, account_status')
             .eq('id', user.id)
             .maybeSingle();
             if (profError) {
@@ -99,7 +102,10 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     console.warn('[Auth] Profile/Org retrieval timed out or failed:', e);
   }
 
-  const org = memberData?.organizations as { id: string; name: string; invite_code: string } | null
+  if (!profile) return null;
+  const accountStatus = getAccountStatus({ accountStatus: profile.account_status, isApproved: profile.is_approved });
+  const blocked = isAccountBlocked(accountStatus);
+  const org = (blocked ? null : memberData?.organizations) as { id: string; name: string; invite_code: string } | null
   const isSuperAdminAccount = profile?.is_super_admin === true;
 
   return {
@@ -107,13 +113,14 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     email: user.email || '',
     organizationId: org?.id || null,
     organizationName: org?.name || null,
-    role: memberData?.role as UserInfo['role'] || null,
+    role: blocked ? null : memberData?.role as UserInfo['role'] || null,
     inviteCode: org?.invite_code || null,
-    permissions: { ...DEFAULT_PERMISSIONS, ...((memberData as any)?.permissions || {}) },
-    isApproved: 
-      isSuperAdminAccount || Boolean(profile?.is_approved &&
-        (!profile.trial_expires_at || new Date(profile.trial_expires_at) > new Date())),
-    isSuperAdmin: !!(profile?.is_super_admin || isSuperAdminAccount),
+    permissions: blocked ? { can_export: false, can_delete_lead: false, can_view_sensitive: false }
+      : { ...DEFAULT_PERMISSIONS, ...((memberData as any)?.permissions || {}) },
+    accountStatus,
+    isApproved: !blocked && (isSuperAdminAccount || Boolean(profile.is_approved &&
+      (!profile.trial_expires_at || new Date(profile.trial_expires_at) > new Date()))),
+    isSuperAdmin: !blocked && !!(profile?.is_super_admin || isSuperAdminAccount),
     tier: (profile?.tier as UserInfo['tier']) || null,
     trialExpiresAt: profile?.trial_expires_at || null,
   }
@@ -163,6 +170,7 @@ export async function getOrganizationMembers(organizationId: string): Promise<{
       user_id
     `)
     .eq('organization_id', organizationId)
+    .eq('is_active', true)
 
   if (error) {
     return { success: false, members: [] }
@@ -361,6 +369,9 @@ export async function getAllProfiles(): Promise<{
       email,
       full_name,
       is_approved,
+      account_status,
+      archived_at,
+      archived_reason,
       is_super_admin,
       tier,
       trial_expires_at,
@@ -394,6 +405,9 @@ export async function getAllProfiles(): Promise<{
     email: p.email,
     fullName: p.full_name,
     isApproved: p.is_approved,
+    accountStatus: getAccountStatus({ accountStatus: p.account_status, isApproved: p.is_approved }),
+    archivedAt: p.archived_at,
+    archivedReason: p.archived_reason,
     isSuperAdmin: p.is_super_admin,
     createdAt: p.created_at,
     tier: p.tier,
@@ -411,14 +425,21 @@ export async function getAllProfiles(): Promise<{
 /**
  * [슈퍼 어드민 전용] 사용자 승인 및 권한 상태 업데이트
  */
-async function requestMemberAction(userId: string, method: 'PATCH' | 'DELETE' | 'POST', body: object): Promise<{ success: boolean; message: string }> {
+export interface MemberActionResult {
+  success: boolean;
+  message: string;
+  warnings?: string[];
+}
+
+async function requestMemberAction(userId: string, method: 'PATCH' | 'DELETE' | 'POST', body: object): Promise<MemberActionResult> {
   try {
     const response = await fetch('/api/admin/users/' + encodeURIComponent(userId), {
       method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     const result = await response.json();
-    return { success: response.ok && result.success === true,
-      message: [result.message || '요청을 처리하지 못했습니다.', ...(result.warnings || [])].join(' ') };
+    return { success: response.ok && result?.success === true,
+      message: typeof result?.message === 'string' ? result.message : '요청을 처리하지 못했습니다.',
+      warnings: Array.isArray(result?.warnings) ? result.warnings.filter((value: unknown): value is string => typeof value === 'string' && value.trim().length > 0) : [] };
   } catch {
     return { success: false, message: '서버에 연결하지 못했습니다. 목록을 새로고침해 처리 결과를 확인해주세요.' };
   }
@@ -426,8 +447,8 @@ async function requestMemberAction(userId: string, method: 'PATCH' | 'DELETE' | 
 
 export async function updateProfileStatus(
   userId: string,
-  updates: { isApproved?: boolean; isSuperAdmin?: boolean; tier?: string }
-): Promise<{ success: boolean; message: string }> {
+  updates: { isApproved?: boolean; isSuperAdmin?: boolean; tier?: string; restore?: boolean }
+): Promise<MemberActionResult> {
   if (updates.isSuperAdmin !== undefined) return { success: false, message: '최고관리자 권한은 이 화면에서 변경할 수 없습니다.' };
   return requestMemberAction(userId, 'PATCH', updates);
 }
@@ -486,8 +507,8 @@ export async function updateUserOrganization(
   if (existingMembership) {
     const { error: updateError } = await supabase
       .from('organization_members')
-      .update({ organization_id: organizationId, role })
-      .eq('user_id', userId);
+      .update({ organization_id: organizationId, role, is_active: true })
+      .eq('id', existingMembership.id);
 
     if (updateError) {
       console.error('[auth-service] updateUserOrganization 멤버십 변경 실패:', updateError);
@@ -659,10 +680,10 @@ export async function getUserLogs(userId: string, limit = 50) {
 }
 
 /**
- * [슈퍼 어드민 전용] 사용자 프로필 영구 삭제
+ * [슈퍼 어드민 전용] 사용자 권한 차단 및 보관
  */
-export async function deleteUserProfile(userId: string, confirmationEmail: string): Promise<{ success: boolean; message: string }> {
-  return requestMemberAction(userId, 'DELETE', { confirmationEmail });
+export async function deleteUserProfile(userId: string, confirmationEmail: string, archiveReason?: string): Promise<MemberActionResult> {
+  return requestMemberAction(userId, 'DELETE', { confirmationEmail, ...(archiveReason ? { archiveReason } : {}) });
 }
 
 /**

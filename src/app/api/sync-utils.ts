@@ -47,6 +47,7 @@ export async function getOrgId(supabase: SupabaseClient): Promise<string | null>
     .from('organization_members')
     .select('organization_id')
     .eq('user_id', user.id)
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -106,6 +107,7 @@ export async function requireSyncAuth(
     .from('organization_members')
     .select('organization_id, role')
     .eq('user_id', user.id)
+    .eq('is_active', true)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -159,6 +161,26 @@ export interface UpsertLeadsResult {
 const SELECT_BATCH = 500;  // .in() 조회 분할 크기 (URL 길이 제한 방지)
 const WRITE_BATCH = 25;    // 동시 쓰기 요청 수 제한
 
+function lookupBatches(values: string[]): string[][] {
+  const batches: string[][] = [];
+  let batch: string[] = [];
+  let encodedSize = 0;
+  for (const value of new Set(values)) {
+    // 한글은 URL 인코딩 후 길이가 크게 늘어난다. 따옴표·구분자 비용까지 보수적으로 계산한다.
+    const size = new URLSearchParams({ mgt_no: `in.("${value}")` }).toString().length;
+    if (size > 4000) throw new Error('관리번호가 너무 길어 중복 여부를 안전하게 확인할 수 없습니다.');
+    if (batch.length && (encodedSize + size > 4000 || batch.length >= SELECT_BATCH)) {
+      batches.push(batch);
+      batch = [];
+      encodedSize = 0;
+    }
+    batch.push(value);
+    encodedSize += size;
+  }
+  if (batch.length) batches.push(batch);
+  return batches;
+}
+
 /**
  * mgt_no (관리번호)를 기준으로 리드 데이터를 수동 병합(Upsert)하는 유틸리티
  *
@@ -185,8 +207,7 @@ export async function upsertLeadsByMgtNo(
   try {
     // 1. 기존 mgt_no 데이터 조회 (배치 분할)
     const existingMap = new Map<string, string>();
-    for (let i = 0; i < mgtNos.length; i += SELECT_BATCH) {
-      const chunk = mgtNos.slice(i, i + SELECT_BATCH);
+    for (const chunk of lookupBatches(mgtNos)) {
       const { data, error } = await supabase
         .from('leads')
         .select('id, mgt_no')

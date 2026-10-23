@@ -1,19 +1,11 @@
 import { Resend } from 'resend';
 
-// 환경 변수에서 API 키 로드 (서버 사이드에서만 직접 접근 권장)
-// Lazy initialization to prevent build errors when API key is missing
-let resendInstance: Resend | null = null;
-
-const getResendClient = () => {
-  if (!resendInstance) {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      console.warn('RESEND_API_KEY is not set. Email sending will fail.');
-    }
-    resendInstance = new Resend(apiKey || 're_123456789'); // Dummy key to prevent crash during initialization if key is missing
-  }
-  return resendInstance;
-};
+interface EmailResult {
+  success: boolean;
+  data?: { id: string } | null;
+  error?: { message: string };
+  errorCode?: 'EMAIL_CONFIGURATION' | 'EMAIL_DELIVERY_FAILED';
+}
 
 interface EmailParams {
   to: string;
@@ -24,32 +16,34 @@ interface EmailParams {
 /**
  * 이메일 발송 공통 함수
  */
-export async function sendEmail({ to, subject, html }: EmailParams) {
+export async function sendEmail({ to, subject, html }: EmailParams): Promise<EmailResult> {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const sender = process.env.RESEND_FROM_EMAIL?.trim() || '';
+  const name = process.env.RESEND_FROM_NAME?.trim() || '위마켓';
+  if (!apiKey?.startsWith('re_') || /\s/.test(apiKey)
+    || !/^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/.test(sender) || /[\r\n<>]/.test(name)) {
+    console.error('[EmailService]', { event: 'configuration_invalid' });
+    return { success: false, errorCode: 'EMAIL_CONFIGURATION', error: { message: 'EMAIL_CONFIGURATION' } };
+  }
   try {
-    const resend = getResendClient();
-
-    // API 키가 없는 경우 실제 발송 시도 전에 체크
-    if (!process.env.RESEND_API_KEY) {
-      console.error('Email send failed: RESEND_API_KEY is missing');
-      return { success: false, error: new Error('RESEND_API_KEY is missing') };
-    }
-
+    const resend = new Resend(apiKey);
     const { data, error } = await resend.emails.send({
-      from: '위마켓 <notifications@wemarket.subway>', // 실제 운영 시 인증된 도메인 필요
+      from: `${name} <${sender}>`,
       to,
       subject,
       html,
     });
 
-    if (error) {
-      console.error('Email send error:', error);
-      return { success: false, error };
+    if (error || !data?.id) {
+      // 제공기관 오류 원문에는 수신자나 인증정보가 포함될 수 있다.
+      console.error('[EmailService]', { event: 'delivery_failed' });
+      return { success: false, errorCode: 'EMAIL_DELIVERY_FAILED', error: { message: 'EMAIL_DELIVERY_FAILED' } };
     }
 
     return { success: true, data };
-  } catch (error) {
-    console.error('Email service exception:', error);
-    return { success: false, error };
+  } catch {
+    console.error('[EmailService]', { event: 'delivery_exception' });
+    return { success: false, errorCode: 'EMAIL_DELIVERY_FAILED', error: { message: 'EMAIL_DELIVERY_FAILED' } };
   }
 }
 

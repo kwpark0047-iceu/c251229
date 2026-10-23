@@ -10,8 +10,6 @@ export const DESIGN_THEMES = {
     name: 'Glassmorphism',
     className: 'theme-glass',
     variables: {
-      '--glass-bg': 'rgba(255, 255, 255, 0.1)',
-      '--glass-border': 'rgba(255, 255, 255, 0.2)',
       '--glass-blur': '15px',
       '--glass-shadow': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
       '--card-3d-transform': 'translateZ(0)',
@@ -21,7 +19,7 @@ export const DESIGN_THEMES = {
     name: 'Neumorphism',
     className: 'theme-neo',
     variables: {
-      '--neo-bg': '#e0e5ec',
+      '--neo-bg': 'var(--bg-secondary)',
       '--neo-shadow-light': '9px 9px 16px rgb(163,177,198,0.6)',
       '--neo-shadow-dark': '-9px -9px 16px rgba(255,255,255, 0.5)',
       '--card-3d-transform': 'perspective(1000px) rotateX(2deg)',
@@ -43,8 +41,14 @@ export const DESIGN_THEMES = {
  */
 export const applyThemeVariables = (theme: ThemeType) => {
   if (typeof document === 'undefined') return;
+  if (!Object.prototype.hasOwnProperty.call(DESIGN_THEMES, theme)) return;
   const root = document.documentElement;
   const tokens = DESIGN_THEMES[theme].variables;
+
+  // 색상 모드는 CSS에 맡기고 이전 디자인 효과의 인라인 값은 제거한다.
+  for (const key of ['--glass-bg', '--glass-border', ...Object.values(DESIGN_THEMES).flatMap(t => Object.keys(t.variables))]) {
+    root.style.removeProperty(key);
+  }
   
   Object.entries(tokens).forEach(([key, value]) => {
     root.style.setProperty(key, value);

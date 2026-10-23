@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireSyncAuth } from '../sync-utils';
+import { readBackupRows } from '@/lib/backup-pagination';
 
 // 백업/복원 가능한 역할 (UI의 RoleGuard allowedRoles=['owner','admin']와 일치)
 const ALLOWED_ROLES = ['owner', 'admin'];
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const requested = searchParams.get('tables')?.split(',') || ['leads', 'proposals', 'ad_inventory'];
     // 화이트리스트에 없는 테이블 요청은 필터링
-    const tables = requested.filter((t) => ALLOWED_TABLES.includes(t));
+    const tables = [...new Set(requested.filter((t) => ALLOWED_TABLES.includes(t)))];
     if (tables.length === 0) {
       return NextResponse.json(
         { success: false, message: '백업 가능한 테이블이 없습니다.' },
@@ -41,21 +42,15 @@ export async function GET(request: NextRequest) {
     }
 
     const backupData: Record<string, unknown[]> = {};
-    const errors: string[] = [];
 
     // 각 테이블 데이터 조회
     for (const table of tables) {
-      const { data, error } = await supabase
+      backupData[table] = await readBackupRows((from, to) => supabase
         .from(table)
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        errors.push(`${table}: ${error.message}`);
-        backupData[table] = [];
-      } else {
-        backupData[table] = data || [];
-      }
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(from, to));
     }
 
     // 백업 메타데이터 추가
@@ -66,7 +61,6 @@ export async function GET(request: NextRequest) {
       counts: Object.fromEntries(
         Object.entries(backupData).map(([key, value]) => [key, value.length])
       ),
-      errors: errors.length > 0 ? errors : undefined,
       data: backupData,
     };
 
@@ -86,7 +80,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Backup error:', error);
     return NextResponse.json(
-      { success: false, message: `백업 실패: ${(error as Error).message}` },
+      { success: false, message: '백업을 완료하지 못했습니다. 데이터 변경 중이거나 조회에 실패했습니다. 잠시 후 다시 시도해주세요.' },
       { status: 500 }
     );
   }

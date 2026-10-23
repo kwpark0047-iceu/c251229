@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import styles from './lead-actions.module.css';
 import {
   Phone,
   FileText,
@@ -357,7 +358,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
         </div>
 
         <div
-          className={`relative pointer-events-none px-4 border-t flex gap-4 ${isFieldMode ? 'py-4' : 'py-3'} border-[var(--border-subtle)] bg-[var(--bg-tertiary)]`}
+          className={`${styles.cardActions} relative pointer-events-none px-4 border-t ${isFieldMode ? 'py-4' : 'py-3'} border-[var(--border-subtle)] bg-[var(--bg-tertiary)]`}
         >
           {lead.phone && (
             <button type="button"
@@ -365,10 +366,10 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
                 e.stopPropagation();
                 setShowCallModal(true);
               }}
-              className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line2)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
+              className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-colors bg-[var(--metro-line2)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
             >
               <Phone className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
-              통화
+              통화 기록
             </button>
           )}
           <button type="button"
@@ -376,7 +377,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
               e.stopPropagation();
               onSelect();
             }}
-            className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line4)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
+            className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-colors bg-[var(--metro-line4)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
           >
             <FileText className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />
 제안
@@ -386,7 +387,7 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
               e.stopPropagation();
               onDeleteLead?.(lead.id);
             }}
-            className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-red-500/80 ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
+            className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-colors bg-red-500/80 ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
           >
             <Trash2 className={`${isFieldMode ? 'w-5 h-5' : 'w-4 h-4'}`} />삭제
           </button>
@@ -396,10 +397,10 @@ function LeadCard({ lead, index, onStatusChange, onSelect, onSopoClick, searchQu
                 e.stopPropagation();
                 onSopoClick(lead);
               }}
-              className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-all duration-300 hover:scale-105 bg-[var(--metro-line5)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
+              className={`relative z-10 pointer-events-auto flex-1 flex items-center justify-center gap-2 rounded-lg font-semibold text-sm text-white transition-colors bg-[var(--metro-line5)] ${isFieldMode ? 'py-3.5 text-base' : 'py-2.5'}`}
               title="SOPO 상가정보 조회"
             >
-              <MapPin className="w-4 h-4" /> SOPO
+              <MapPin className="w-4 h-4" /> 상가 조회
             </button>
           )}
         </div>

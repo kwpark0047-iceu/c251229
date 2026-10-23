@@ -319,19 +319,11 @@ if (filters?.status) {
 
     // 날짜 필터링: searchType에 따라 license_date 또는 last_modified_date 사용
     if (filters?.startDate) {
-      // last_modified_date가 null인 경우(경기도 데이터)도 표시하기 위해 OR 조건 사용
-      if (dateColumn === 'last_modified_date') {
-        query = query.or(`${dateColumn}.gte.${filters.startDate},${dateColumn}.is.null`);
-      } else {
-        query = query.gte(dateColumn, filters.startDate);
-      }
+      // 경기도 수집 데이터는 날짜가 없을 수 있으므로 날짜 미상 리드도 포함한다.
+      query = query.or(`${dateColumn}.gte.${filters.startDate},${dateColumn}.is.null`);
     }
     if (filters?.endDate) {
-      if (dateColumn === 'last_modified_date') {
-        query = query.or(`${dateColumn}.lte.${filters.endDate},${dateColumn}.is.null`);
-      } else {
-        query = query.lte(dateColumn, filters.endDate);
-      }
+      query = query.or(`${dateColumn}.lte.${filters.endDate},${dateColumn}.is.null`);
     }
 
     // 검색어 필터링

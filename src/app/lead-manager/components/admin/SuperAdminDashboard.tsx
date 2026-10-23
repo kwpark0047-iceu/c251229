@@ -1,5 +1,6 @@
 'use client';
 
+import { getAccountStatus, accountStatusLabel, type AccountStatus } from '@/lib/account-state';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Users, Shield, CheckCircle, XCircle, Building,
@@ -37,6 +38,9 @@ interface Profile {
   email: string;
   fullName: string | null;
   isApproved: boolean;
+  accountStatus?: AccountStatus;
+  archivedAt?: string | null;
+  archivedReason?: string | null;
   isSuperAdmin: boolean;
   createdAt: string;
   tier: 'FREE' | 'DEMO' | 'MEDIA' | 'SALES' | null;
@@ -175,7 +179,7 @@ export default function SuperAdminDashboard({ user, onlineAccounts = [], presenc
   const [memberAction, setMemberAction] = useState<MemberAction | null>(null);
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [loadError, setLoadError] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'PENDING'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'SUSPENDED' | 'ARCHIVED'>('ALL');
   const [tierFilter, setTierFilter] = useState<'ALL' | 'FREE' | 'DEMO' | 'MEDIA' | 'SALES'>('ALL');
 
   // Modal States
@@ -519,12 +523,16 @@ useEffect(() => {
     }
   }, [activeTab, allLogs.length, loadAllLogs]);
 
+  const isProtected = (profile: Profile) => profile.isSuperAdmin || profile.id === user?.id;
+
   const handleApproval = (userId: string, isApproved: boolean) => {
     const profile = profiles.find(p => p.id === userId);
-    if (profile) setMemberAction({ id: userId, email: profile.email, action: isApproved ? 'approve' : 'revoke' });
+    if (profile && !isProtected(profile) && getAccountStatus(profile) !== 'ARCHIVED') setMemberAction({ id: userId, email: profile.email, action: isApproved ? 'approve' : 'revoke' });
   };
 
   const handleOrgUpdate = async (userId: string, orgId: string | null, role: any) => {
+    const profile = profiles.find(p => p.id === userId);
+    if (!profile || isProtected(profile) || getAccountStatus(profile) === 'ARCHIVED') return;
     const result = await updateUserOrganization(userId, orgId, role);
     if (result.success) {
       toast.success('조직 정보가 저장되었습니다.');
@@ -565,26 +573,31 @@ useEffect(() => {
   };
 
   const handleDeleteProfile = (userId: string, email: string) => {
+    const profile = profiles.find(p => p.id === userId);
+    if (!profile || isProtected(profile) || getAccountStatus(profile) === 'ARCHIVED') return;
     setMemberAction({ id: userId, email, action: 'delete' });
   };
 
   const filteredProfiles = profiles.filter(p => {
     const matchesSearch = p.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (p.fullName || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' ||
-                         (statusFilter === 'APPROVED' && p.isApproved) ||
-                         (statusFilter === 'PENDING' && !p.isApproved);
+    const status = getAccountStatus(p);
+    const matchesStatus = statusFilter === 'ALL' ? status !== 'ARCHIVED'
+      : status === (statusFilter === 'APPROVED' ? 'ACTIVE' : statusFilter);
     const matchesTier = tierFilter === 'ALL' || p.tier === tierFilter;
     return matchesSearch && matchesStatus && matchesTier;
   });
 
   // KPI Metrics
-  const allMembersCount = profiles.length;
-  const registeredUsersCount = profiles.filter(p => p.tier !== null).length;
-  const pendingUsersCount = profiles.filter(p => !p.isApproved).length;
-  const demoUsersCount = profiles.filter(p => p.tier === 'DEMO').length;
+  const currentProfiles = profiles.filter(p => getAccountStatus(p) !== 'ARCHIVED');
+  const allMembersCount = currentProfiles.length;
+  const registeredUsersCount = currentProfiles.filter(p => p.tier !== null).length;
+  const pendingUsersCount = profiles.filter(p => getAccountStatus(p) === 'PENDING').length;
+  const demoUsersCount = currentProfiles.filter(p => p.tier === 'DEMO').length;
 
   const handleTierChange = async (userId: string, email: string, tier: string) => {
+    const profile = profiles.find(p => p.id === userId);
+    if (!profile || isProtected(profile) || getAccountStatus(profile) === 'ARCHIVED') return;
     const result = await updateUserTier(userId, email, tier);
     if (result.success) {
       toast.success('사용자 등급이 변경되었습니다.');
@@ -605,7 +618,8 @@ useEffect(() => {
   };
 
   const handleResendEmail = async (id: string, email: string) => {
-    if (resendingEmail) return;
+    const profile = profiles.find(p => p.id === id);
+    if (resendingEmail || !profile || isProtected(profile) || getAccountStatus(profile) !== 'ACTIVE') return;
     setResendingEmail(id);
     try {
       const result = await sendWelcomeEmailResend(id, email);
@@ -628,7 +642,7 @@ useEffect(() => {
     <div className="flex flex-col h-full bg-[#050505] text-slate-200">
       {loadError && <p role="alert" className="m-4 rounded-xl border border-rose-500 bg-rose-950 p-4 text-rose-200">{loadError}</p>}
       {memberAction && <MemberActionDialog key={memberAction.id + memberAction.action} target={memberAction}
-        onClose={() => setMemberAction(null)} onComplete={async message => { if (!await loadData()) throw new Error('목록 갱신 실패'); toast.success(message); }} />}
+        onClose={() => setMemberAction(null)} onComplete={async (message, hasWarnings) => { if (!await loadData()) throw new Error('목록 갱신 실패'); if (hasWarnings) toast.warning(`${message} 후속 처리 확인이 필요합니다.`); else toast.success(message); }} />}
       {/* 최고 관리자 헤더 (Premium Antigravity Style) */}
       <div className="relative px-8 py-10 overflow-hidden border-b border-white/5">
         {/* 다이내믹 배경 효과 */}
@@ -932,6 +946,8 @@ useEffect(() => {
                     <option value="ALL">전체 승인 상태</option>
                     <option value="APPROVED">승인 완료</option>
                     <option value="PENDING">승인 대기 ({pendingUsersCount}명)</option>
+                    <option value="SUSPENDED">이용 중지</option>
+                    <option value="ARCHIVED">보관함</option>
                   </select>
                   <select
                     aria-label="등급 필터"
@@ -1024,7 +1040,7 @@ useEffect(() => {
                             <select
                               aria-label="회원 등급 변경"
                               value={p.tier || ''}
-                              disabled={p.isSuperAdmin || p.id === user?.id}
+                              disabled={isProtected(p) || getAccountStatus(p) === 'ARCHIVED'}
                               onChange={(e) => handleTierChange(p.id, p.email, e.target.value)}
                               className={`inline-flex items-center w-fit px-2.5 py-1 rounded text-xs font-black uppercase tracking-[0.15em] shadow-lg cursor-pointer outline-none transition-all ${
                                 p.tier === 'DEMO' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
@@ -1048,7 +1064,9 @@ useEffect(() => {
                           </div>
                         </td>
                         <td className="px-8 py-6 text-sm font-medium">
-                          {p.isApproved ? (
+                          {getAccountStatus(p) === 'ARCHIVED' || getAccountStatus(p) === 'SUSPENDED' ? (
+                            <span className="inline-flex rounded-lg border border-slate-500 px-2 py-1 text-xs">{accountStatusLabel(getAccountStatus(p))}</span>
+                          ) : getAccountStatus(p) === 'ACTIVE' ? (
                             <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-black uppercase tracking-widest border border-emerald-500/20 shadow-lg shadow-emerald-500/5">
                               <CheckCircle className="w-3.5 h-3.5" /> 승인 완료
                             </span>
@@ -1057,6 +1075,10 @@ useEffect(() => {
                               <AlertCircle className="w-3.5 h-3.5" /> 승인 대기
                             </span>
                           )}
+                          {getAccountStatus(p) === 'ARCHIVED' && <div className="mt-2 text-xs text-slate-400">
+                            {p.archivedAt && <p>보관일: {new Date(p.archivedAt).toLocaleString('ko-KR')}</p>}
+                            {p.archivedReason && <p className="break-words">{p.archivedReason}</p>}
+                          </div>}
                         </td>
                         <td className="px-8 py-6">
                             <p className="text-slate-500 text-xs font-black uppercase tracking-widest">가입일</p>
@@ -1071,19 +1093,23 @@ useEffect(() => {
                             >
                               <History className="w-4 h-4" />
                             </button>
+                            {getAccountStatus(p) === 'ARCHIVED' ? <button type="button" disabled={isProtected(p)}
+                              onClick={() => setMemberAction({ id: p.id, email: p.email, action: 'restore' })}
+                              className="rounded-xl border border-indigo-500/20 px-3 py-2 text-indigo-400 disabled:opacity-30">복구</button> : <>
                             <button
                               onClick={() => {
                                 setSelectedProfile(p);
                                 setShowOrgModal(true);
                               }}
                               className="p-2.5 bg-white/[0.03] text-slate-500 hover:text-blue-400 hover:bg-blue-500/10 border border-white/5 rounded-xl transition-all shadow-xl active:scale-90"
+                              disabled={isProtected(p)}
                               title="조직 및 역할 수정"
                             >
                               <Settings className="w-4 h-4" />
                             </button>
-                            {!p.isApproved ? (
+                            {getAccountStatus(p) !== 'ACTIVE' ? (
                               <button
-                                disabled={p.isSuperAdmin || p.id === user?.id}
+                                disabled={isProtected(p) || getAccountStatus(p) === 'ARCHIVED'}
                                 onClick={() => handleApproval(p.id, true)}
                                 className="p-2.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 rounded-xl transition-all shadow-xl active:scale-90"
                                 title="회원 승인"
@@ -1092,7 +1118,7 @@ useEffect(() => {
                               </button>
                             ) : (
                             <button
-                                disabled={p.isSuperAdmin || p.id === user?.id}
+                                disabled={isProtected(p) || getAccountStatus(p) === 'ARCHIVED'}
                                 onClick={() => handleApproval(p.id, false)}
                                 className="p-2.5 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/20 rounded-xl transition-all shadow-xl active:scale-90"
                                 title="접근 철회"
@@ -1100,17 +1126,18 @@ useEffect(() => {
                                 <XCircle className="w-4 h-4" />
                               </button>
                             )}
-{p.isApproved && <button disabled={resendingEmail !== null || p.isSuperAdmin || p.id === user?.id}
+{getAccountStatus(p) === 'ACTIVE' && <button disabled={resendingEmail !== null || p.isSuperAdmin || p.id === user?.id}
                               onClick={() => handleResendEmail(p.id, p.email)}
                               className="rounded-xl border border-indigo-500/20 p-2.5 text-indigo-400" title="승인 안내 이메일 재전송">
                               <Mail className="w-4 h-4" />
                             </button>}
-                            <button disabled={p.isSuperAdmin || p.id === user?.id}
+                            <button disabled={isProtected(p) || getAccountStatus(p) === 'ARCHIVED'}
                               onClick={() => handleDeleteProfile(p.id, p.email)}
                               className="rounded-xl border border-rose-500/20 p-2.5 text-rose-400 disabled:opacity-30 disabled:cursor-not-allowed"
-                              title={p.isSuperAdmin || p.id === user?.id ? '보호된 계정은 삭제할 수 없습니다' : '회원 계정 삭제'}>
+                              title={p.isSuperAdmin || p.id === user?.id ? '보호된 계정은 보관할 수 없습니다' : '회원 삭제·보관'}>
                               <Trash2 className="w-4 h-4" />
                             </button>
+                            </>}
                           </div>
                         </td>
                       </tr>
@@ -1756,7 +1783,7 @@ useEffect(() => {
       )}
 
       {/* 조직 및 역할 관리 모달 (기존과 동일) */}
-      {showOrgModal && selectedProfile && (
+      {showOrgModal && selectedProfile && !isProtected(selectedProfile) && getAccountStatus(selectedProfile) !== 'ARCHIVED' && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           {/* 모달 폼 생략 방지를 위해 축소/이식 */}
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">

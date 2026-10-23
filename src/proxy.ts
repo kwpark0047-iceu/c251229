@@ -8,6 +8,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const logoutParam = request.nextUrl.searchParams.get('logout')
+  if (pathname === '/api/auth/logout') return NextResponse.next()
 
   // 환경 변수 확인 (상단으로 이동하여 로그아웃 로직에서 사용 가능하게 함)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -121,7 +122,7 @@ export async function proxy(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
 
-    console.log('[Middleware] user:', user ? user.email : 'null')
+    console.log('[Middleware] authenticated:', Boolean(user))
 
     // 보호된 라우트 목록
     const protectedRoutes = ['/lead-manager']
@@ -129,6 +130,24 @@ export async function proxy(request: NextRequest) {
 
     // 인증 페이지 (로그인된 사용자는 리다이렉트) - /auth만 포함 (랜딩 페이지 제외)
     const isAuthRoute = pathname === '/auth' || pathname.startsWith('/auth/')
+
+    // 기존 JWT가 살아 있어도 보관·중지 계정의 데이터/API 접근은 허용하지 않는다.
+    if (user && (isProtectedRoute || pathname.startsWith('/api/') || isAuthRoute)
+      && pathname !== '/api/auth/logout') {
+      const { data: profile, error } = await supabase.from('profiles').select('account_status').eq('id', user.id).maybeSingle()
+      const blocked = error || !profile || !['ACTIVE', 'PENDING'].includes(profile.account_status)
+        || (pathname.startsWith('/api/') && profile.account_status !== 'ACTIVE')
+      if (blocked) {
+        if (pathname.startsWith('/api/')) return NextResponse.json({ success: false, message: '이용이 중지되거나 보관된 계정입니다.' }, { status: 403 })
+        if (isProtectedRoute) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/auth'
+          url.search = '?error=account_disabled'
+          return NextResponse.redirect(url)
+        }
+        return supabaseResponse
+      }
+    }
 
     console.log('[Middleware] isProtectedRoute:', isProtectedRoute, 'isAuthRoute:', isAuthRoute)
 
@@ -155,6 +174,9 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse
   } catch (error) {
     console.error('[Middleware] Auth Error:', error)
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ success: false, message: '계정 이용 상태를 확인하지 못했습니다.' }, { status: 503 })
+    }
     
     // 보호된 라우트에서 오류 발생 시 로그인 페이지로 강제 이동
     const protectedRoutes = ['/lead-manager']
@@ -174,7 +196,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // API 라우트는 자체 인증 처리(server client)하므로 제외 → 세션 갱신 오버헤드 방지
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { getAccountStatus, accountStatusLabel, type AccountStatus } from '@/lib/account-state';
 import React, { useState, useEffect } from 'react';
 import {
   Users, Shield, CheckCircle, XCircle, Building,
@@ -12,6 +13,7 @@ import MemberActionDialog, { type MemberAction } from './MemberActionDialog';
 import { getRoleLabel } from './admin-labels';
 import {
   getAllProfiles,
+  getCurrentUser,
   updateProfileStatus,
   updateUserOrganization,
   getAllOrganizations
@@ -22,6 +24,9 @@ interface Profile {
   email: string;
   fullName: string | null;
   isApproved: boolean;
+  accountStatus?: AccountStatus;
+  archivedAt?: string | null;
+  archivedReason?: string | null;
   isSuperAdmin: boolean;
   tier: string | null;
   trialExpiresAt: string | null;
@@ -34,12 +39,14 @@ interface Profile {
 }
 
 export default function UserManagementView() {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [identityLoaded, setIdentityLoaded] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [orgs, setOrgs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'PENDING'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'APPROVED' | 'PENDING' | 'SUSPENDED' | 'ARCHIVED'>('ALL');
   const [tierFilter, setTierFilter] = useState<string>('ALL');
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [showOrgModal, setShowOrgModal] = useState(false);
@@ -48,19 +55,24 @@ export default function UserManagementView() {
 
   useEffect(() => {
     loadData();
+    getCurrentUser().then(current => { setCurrentUserId(current?.id || null); setIdentityLoaded(Boolean(current)); }).catch(() => setIdentityLoaded(false));
   }, []);
 
   useEffect(() => {
-    const count = profiles.filter(p => !p.isApproved).length;
+    const count = profiles.filter(p => getAccountStatus(p) === 'PENDING').length;
     setPendingCount(count);
   }, [profiles]);
 
+  const isProtected = (profile: Profile) => !identityLoaded || profile.isSuperAdmin || profile.id === currentUserId;
+
   const handleApproval = (userId: string, isApproved: boolean) => {
     const profile = profiles.find(p => p.id === userId);
-    if (profile) setMemberAction({ id: userId, email: profile.email, action: isApproved ? 'approve' : 'revoke' });
+    if (profile && !isProtected(profile) && getAccountStatus(profile) !== 'ARCHIVED') setMemberAction({ id: userId, email: profile.email, action: isApproved ? 'approve' : 'revoke' });
   };
 
   const handleTierChange = async (userId: string, tier: string) => {
+    const profile = profiles.find(p => p.id === userId);
+    if (!profile || isProtected(profile) || getAccountStatus(profile) === 'ARCHIVED') return;
     const result = await updateProfileStatus(userId, { tier });
     if (result.success) {
       toast.success('사용자 등급이 변경되었습니다.');
@@ -71,6 +83,8 @@ export default function UserManagementView() {
   };
 
   const handleOrgUpdate = async (userId: string, orgId: string | null, role: any) => {
+    const profile = profiles.find(p => p.id === userId);
+    if (!profile || isProtected(profile) || getAccountStatus(profile) === 'ARCHIVED') return;
     const result = await updateUserOrganization(userId, orgId, role);
     if (result.success) {
       toast.success('조직 정보가 저장되었습니다.');
@@ -87,9 +101,9 @@ export default function UserManagementView() {
 
     const matchesSearch = p.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (p.fullName || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'ALL' ||
-                         (statusFilter === 'APPROVED' && p.isApproved) ||
-                         (statusFilter === 'PENDING' && !p.isApproved);
+    const status = getAccountStatus(p);
+    const matchesStatus = statusFilter === 'ALL' ? status !== 'ARCHIVED'
+      : status === (statusFilter === 'APPROVED' ? 'ACTIVE' : statusFilter);
     const matchesTier = tierFilter === 'ALL' || p.tier === tierFilter;
 
     return matchesSearch && matchesStatus && matchesTier;
@@ -138,13 +152,16 @@ export default function UserManagementView() {
             />
           </div>
           <select
+            aria-label="상태 필터"
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'APPROVED' | 'PENDING')}
+            onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'APPROVED' | 'PENDING' | 'SUSPENDED' | 'ARCHIVED')}
             className="w-full p-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="ALL">승인 상태 (전체)</option>
             <option value="APPROVED">승인 완료</option>
             <option value="PENDING">승인 대기</option>
+            <option value="SUSPENDED">이용 중지</option>
+            <option value="ARCHIVED">보관함</option>
           </select>
           <select
             value={tierFilter}
@@ -210,6 +227,8 @@ export default function UserManagementView() {
                       <div className="flex flex-col gap-1.5">
                         {getTierBadge(p.tier)}
                         <select
+                          disabled={isProtected(p) || getAccountStatus(p) === 'ARCHIVED'}
+                          aria-label="사용자 서비스 등급 변경"
                           title="사용자 서비스 등급 변경"
                           className="text-xs border-none bg-slate-100 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
                           value={p.tier || ''}
@@ -234,7 +253,9 @@ export default function UserManagementView() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      {p.isApproved ? (
+                      {getAccountStatus(p) === 'ARCHIVED' || getAccountStatus(p) === 'SUSPENDED' ? (
+                        <span className="inline-flex rounded-lg border border-slate-500 px-2 py-1 text-xs">{accountStatusLabel(getAccountStatus(p))}</span>
+                      ) : getAccountStatus(p) === 'ACTIVE' ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-100">
                           <CheckCircle className="w-3 h-3" />
                           승인 완료
@@ -245,14 +266,22 @@ export default function UserManagementView() {
                           승인 대기
                         </span>
                       )}
+                      {getAccountStatus(p) === 'ARCHIVED' && <div className="mt-2 text-xs">
+                        {p.archivedAt && <p>보관일: {new Date(p.archivedAt).toLocaleString('ko-KR')}</p>}
+                        {p.archivedReason && <p className="break-words">{p.archivedReason}</p>}
+                      </div>}
                     </td>
                     <td className="px-6 py-4 text-slate-500 whitespace-nowrap text-xs">
                       {new Date(p.createdAt).toLocaleDateString('ko-KR')}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        {!p.isApproved ? (
+                        {getAccountStatus(p) === 'ARCHIVED' ? <button type="button" disabled={isProtected(p)}
+                          onClick={() => setMemberAction({ id: p.id, email: p.email, action: 'restore' })}
+                          className="rounded-lg border px-3 py-1.5 text-indigo-600 disabled:opacity-50">복구</button> : <>
+                        {getAccountStatus(p) !== 'ACTIVE' ? (
                           <button
+                            disabled={isProtected(p)}
                             onClick={() => handleApproval(p.id, true)}
                             className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                             title="승인하기"
@@ -261,6 +290,7 @@ export default function UserManagementView() {
                           </button>
                         ) : (
                           <button
+                            disabled={isProtected(p)}
                             onClick={() => handleApproval(p.id, false)}
                             className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
                             title="승인 취소"
@@ -269,6 +299,7 @@ export default function UserManagementView() {
                           </button>
                         )}
                         <button
+                          disabled={isProtected(p)}
                           onClick={() => {
                             setSelectedProfile(p);
                             setShowOrgModal(true);
@@ -278,8 +309,9 @@ export default function UserManagementView() {
                         >
                           <Building className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setMemberAction({ id: p.id, email: p.email, action: 'delete' })}
-                          title="회원 계정 삭제" className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-50"><Trash2 className="w-4 h-4" /></button>
+                        <button disabled={isProtected(p)} onClick={() => setMemberAction({ id: p.id, email: p.email, action: 'delete' })}
+                          title="회원 삭제·보관" className="rounded-lg p-1.5 text-rose-600 hover:bg-rose-50"><Trash2 className="w-4 h-4" /></button>
+                        </>}
                       </div>
                     </td>
                   </tr>
@@ -296,7 +328,7 @@ export default function UserManagementView() {
       </div>
 
       {/* 조직 및 역할 관리 모달 */}
-      {showOrgModal && selectedProfile && (
+      {showOrgModal && selectedProfile && !isProtected(selectedProfile) && getAccountStatus(selectedProfile) !== 'ARCHIVED' && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b">
@@ -367,7 +399,7 @@ export default function UserManagementView() {
       )}
     </div>
     {memberAction && <MemberActionDialog key={memberAction.id + memberAction.action} target={memberAction} onClose={() => setMemberAction(null)}
-      onComplete={async message => { if (!await loadData()) throw new Error('목록 갱신 실패'); toast.success(message); }} />}
+      onComplete={async (message, hasWarnings) => { if (!await loadData()) throw new Error('목록 갱신 실패'); if (hasWarnings) toast.warning(`${message} 후속 처리 확인이 필요합니다.`); else toast.success(message); }} />}
     </>
   );
 

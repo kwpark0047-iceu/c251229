@@ -1,0 +1,32 @@
+.cardActions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 88px), 1fr));
+  gap: 8px;
+}
+
+.cardActions > button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 8px;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 20px;
+  transition: background-color 150ms, opacity 150ms;
+}
+
+.cardActions > button:hover {
+  transform: none;
+  opacity: 0.9;
+}
+
+.cardActions > button:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 3px;
+}
+
+.cardActions > button > svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}

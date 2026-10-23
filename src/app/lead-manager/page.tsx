@@ -85,6 +85,8 @@ import ContractsView from './components/ContractsView';
 import SuperAdminDashboard from './components/admin/SuperAdminDashboard';
 import { useOnlinePresence } from './use-online-presence';
 import PresenceIndicator from './components/PresenceIndicator';
+import SavedFilters from './components/SavedFilters';
+import { filterStorageKey } from './saved-filters';
 import { TaskWithLead } from './types';
 import CallbackNotification from './components/CallbackNotification';
 import RoleGuard from '@/components/RoleGuard';
@@ -673,9 +675,9 @@ function LeadManagerContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] relative overflow-x-hidden">
       <BackgroundEffect />
-      <header className={`header-blur border-b border-[var(--glass-border)] sticky top-0 z-40 backdrop-blur-xl transition-all duration-300 ${isScrolled ? 'header-scrolled bg-[var(--bg-primary)]/95 h-14' : 'h-16 bg-[var(--bg-primary)]/80'}`}>
+      <header className={`header-blur border-b border-[var(--glass-border)] sticky top-0 z-40 backdrop-blur-xl transition-all duration-300 ${isScrolled ? 'header-scrolled bg-[var(--bg-primary)]/95' : 'bg-[var(--bg-primary)]/80'}`}>
         <div className="max-w-[1400px] mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex flex-wrap items-center justify-between min-h-16 gap-3 py-3">
             <Link href="/" className="flex items-center gap-3 group cursor-pointer">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 bg-gradient-to-br from-[var(--metro-line2)] to-[var(--metro-line4)] shadow-[0_4px_15px_rgba(60,181,74,0.25)]">
                 <Train className="w-5 h-5 text-white" />
@@ -763,7 +765,7 @@ function LeadManagerContent() {
           <div className="border-t border-[var(--border-subtle)]/50 bg-[var(--bg-secondary)]/30">
             <div className="max-w-[1400px] mx-auto px-6 py-2.5">
               <div className="flex flex-wrap items-center justify-between gap-y-3 gap-x-4">
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
                     <Calendar className="w-4 h-4 text-[var(--metro-line5)]" />
                     <input
@@ -822,7 +824,7 @@ function LeadManagerContent() {
                     <button key={mode} onClick={() => setViewMode(mode)} title={name} aria-label={name} className={`p-2 rounded-md transition-all ${viewMode === mode ? 'text-white shadow bg-[--btn-color]' : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'}`} style={{ '--btn-color': color } as React.CSSProperties}><Icon className="w-4 h-4" /></button>
                   ))}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <button onClick={checkConnection} className={`p-2 rounded-lg transition-all ${isConnected === null ? 'text-[var(--text-muted)]' : isConnected ? 'text-[var(--metro-line2)] bg-[var(--metro-line2)]/10' : 'text-red-400 bg-red-500/10'}`} title="연결 상태">{isConnected ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}</button>
                   <button onClick={refreshData} disabled={isLoading} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 bg-[var(--metro-line2)]">
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} /> {isLoading ? `${loadingProgress.current}/${loadingProgress.total}` : '새로고침'}
@@ -854,6 +856,22 @@ function LeadManagerContent() {
         <>
           <div className="max-w-[1400px] mx-auto px-6 pt-6">
             <StatsDashboard leads={leads} isExpanded={isDashboardExpanded} onToggle={() => setIsDashboardExpanded(!isDashboardExpanded)} onStatusFilter={setStatusFilter} currentStatusFilter={statusFilter} />
+            {userInfo && <SavedFilters
+              scope={filterStorageKey(userInfo.id, userInfo.organizationId)}
+              value={{ category: categoryFilter, regions: selectedRegions, status: statusFilter, view: viewMode, uncontacted: showUncontactedOnly, score: sortByScore }}
+              onApply={filter => {
+                setCategoryFilter(filter.category);
+                setSelectedRegions([...filter.regions]);
+                setStatusFilter(filter.status);
+                setViewMode(filter.view);
+                setShowUncontactedOnly(filter.uncontacted);
+                setSortByScore(filter.score);
+                setSearchQuery('');
+                setSelectedServiceIds([]);
+                setCurrentPage(1);
+                setShowStationSuggestions(false);
+              }}
+            />}
           </div>
           <div className="bg-[var(--bg-secondary)]/30 border-b border-[var(--border-subtle)]/50">
             <div className="max-w-[1400px] mx-auto px-6 py-4">
