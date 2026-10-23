@@ -194,8 +194,11 @@ describe('Deployed API handler contracts (17 restored skips)', () => {
     expect(upsert).toHaveBeenCalledExactlyOnceWith({ id: 'lead-1', biz_name: 'Cafe' }, { onConflict: 'id' });
   });
   it('R12 backup GET downloads whitelisted table data and metadata', async () => {
-    const order = vi.fn().mockResolvedValue({ data: [{ id: 'lead-1' }], error: null });
-    mocks.from.mockReturnValue({ select: vi.fn(() => ({ order })) });
+    const range = vi.fn().mockResolvedValue({ data: [{ id: 'lead-1' }], error: null, count: 1 });
+    const order = vi.fn();
+    order.mockReturnValue({ order, range });
+    const select = vi.fn(() => ({ order }));
+    mocks.from.mockReturnValue({ select });
     const { GET } = await import('../../src/app/api/backup/route');
     const response = await GET(request('backup?tables=leads,organizations'));
     expect(response.status).toBe(200);
@@ -203,6 +206,23 @@ describe('Deployed API handler contracts (17 restored skips)', () => {
     expect(await response.json()).toMatchObject({ version: '1.0', tables: ['leads'], counts: { leads: 1 }, data: { leads: [{ id: 'lead-1' }] } });
     expect(mocks.from).toHaveBeenCalledExactlyOnceWith('leads');
     expect(order).toHaveBeenCalledWith('created_at', { ascending: false });
+    expect(order).toHaveBeenCalledWith('id', { ascending: true });
+    expect(select).toHaveBeenCalledWith('*', { count: 'exact' });
+    expect(range).toHaveBeenCalledExactlyOnceWith(0, 499);
+  });
+  it('backup GET refuses partial downloads after a later page fails', async () => {
+    const range = vi.fn()
+      .mockResolvedValueOnce({ data: [{ id: 'lead-1' }], error: null, count: 2 })
+      .mockResolvedValueOnce({ data: null, error: { message: 'sensitive database detail' }, count: null });
+    const order = vi.fn();
+    order.mockReturnValue({ order, range });
+    mocks.from.mockReturnValue({ select: vi.fn(() => ({ order })) });
+    const { GET } = await import('../../src/app/api/backup/route');
+    const response = await GET(request('backup?tables=leads'));
+    expect(response.status).toBe(500);
+    expect(response.headers.has('Content-Disposition')).toBe(false);
+    expect(JSON.stringify(await response.json())).not.toContain('sensitive database detail');
+    expect(range).toHaveBeenNthCalledWith(2, 1, 500);
   });
   it('R13 backup has no DELETE and ignores unapproved restore tables', async () => {
     const route = await import('../../src/app/api/backup/route');

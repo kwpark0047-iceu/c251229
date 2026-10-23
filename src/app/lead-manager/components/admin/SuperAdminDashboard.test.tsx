@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 vi.mock('../../auth-service', () => ({
-  getAllProfiles: vi.fn(), getAllOrganizations: vi.fn().mockResolvedValue([]),
+  getCurrentUser: vi.fn().mockResolvedValue({ id: 'admin' }), getAllProfiles: vi.fn(), getAllOrganizations: vi.fn().mockResolvedValue([]),
   getAdminNotifications: vi.fn().mockResolvedValue({ success: true, notifications: [] }),
   updateProfileStatus: vi.fn(), deleteUserProfile: vi.fn(), updateUserTier: vi.fn(),
   updateUserOrganization: vi.fn(), createOrganization: vi.fn(), getAllUserLogs: vi.fn(), getUserLogs: vi.fn(),
@@ -89,17 +89,17 @@ describe('최고관리자 대시보드 회원 관리', () => {
     render(<SuperAdminDashboard />);
     await screen.findByText('신규회원');
     vi.mocked(getAllProfiles).mockResolvedValue({ success: true, profiles: [] });
-    await userEvent.click(screen.getByTitle('회원 계정 삭제'));
+    await userEvent.click(screen.getByTitle('회원 삭제·보관'));
     await userEvent.type(screen.getByLabelText(/확인을 위해/), member.email);
-    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '회원 계정 삭제' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: '회원 삭제·보관' }));
     await waitFor(() => expect(screen.queryByText('신규회원')).not.toBeInTheDocument());
-    expect(deleteUserProfile).toHaveBeenCalledWith(member.id, member.email);
+    expect(deleteUserProfile).toHaveBeenCalledWith(member.id, member.email, undefined);
   });
   it('최고관리자 계정의 승인 취소와 삭제 버튼을 잠근다', async () => {
     vi.mocked(getAllProfiles).mockResolvedValue({ success: true, profiles: [{ ...member, isSuperAdmin: true, isApproved: true }] });
     render(<SuperAdminDashboard />);
     await screen.findByText('신규회원');
-    expect(screen.getByTitle('보호된 계정은 삭제할 수 없습니다')).toBeDisabled();
+    expect(screen.getByTitle('보호된 계정은 보관할 수 없습니다')).toBeDisabled();
     expect(screen.getByTitle('접근 철회')).toBeDisabled();
   });
   it('등급은 한글로 표시하고 서버에는 기존 등급 코드를 전달한다', async () => {

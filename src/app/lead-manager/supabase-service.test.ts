@@ -26,6 +26,8 @@ const createMockBuilder = (data: any = [], count: number | null = 1, error: any 
     order: vi.fn().mockReturnThis(),
     range: vi.fn().mockResolvedValue(result),
     eq: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    lte: vi.fn().mockReturnThis(),
     not: vi.fn().mockReturnThis(),
     neq: vi.fn().mockReturnThis(),
     or: vi.fn().mockReturnThis(),
@@ -76,6 +78,14 @@ describe('Supabase 서비스 (supabase-service.ts)', () => {
   });
 
   describe('getLeads', () => {
+    it.each(['license_date', 'modified_date'] as const)('날짜가 없는 경기 리드를 %s 범위 조회에서 제외하지 않는다', async searchType => {
+      const { getLeads } = await import('./supabase-service');
+      const result = await getLeads({ startDate: '2026-07-23', endDate: '2026-10-23', searchType });
+      const column = searchType === 'license_date' ? 'license_date' : 'last_modified_date';
+      expect(result.success).toBe(true);
+      expect(defaultMockBuilder.or).toHaveBeenCalledWith(`${column}.gte.2026-07-23,${column}.is.null`);
+      expect(defaultMockBuilder.or).toHaveBeenCalledWith(`${column}.lte.2026-10-23,${column}.is.null`);
+    });
     it('필터 없이 리드 목록을 조회할 수 있다', async () => {
       const { getLeads } = await import('./supabase-service');
       const result = await getLeads();

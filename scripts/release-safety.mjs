@@ -4,11 +4,14 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
+import { assertDatabaseTests } from './lib/db-test-gate.mjs';
 import { assertBaseline, assertCronDisabled, verifyEntries, isDeployablePath, isolatedEnvironment, sha256, VERCEL_IGNORE, assertScriptOnlyPackage, assertCandidateFiles, npmCliPath, assertFileNames, assertSafeOutputTree } from './lib/release-policy.mjs';
 
 const root = fs.realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
 const overlays = ['.vercelignore', '.gitignore', 'package.json', '.github/workflows/ci.yml', 'tests/unit/isolated-ci-policy.test.ts', 'vitest.config.mts', 'release/baseline.json',
   'scripts/lib/release-policy.mjs', 'scripts/release-safety.mjs', 'scripts/release-safety.test.mjs',
+  'scripts/lib/db-test-gate.mjs', 'scripts/db-test-gate.test.mjs', 'scripts/verify-db-results.mjs',
+  'scripts/lib/source-snapshot.mjs', 'scripts/source-snapshot.mjs', 'scripts/source-snapshot.test.mjs',
   'scripts/lib/local-vector.mjs', 'scripts/local-supabase.mjs', 'scripts/local-vector.test.mjs'];
 const addedScripts = {
   'release:check': 'node scripts/release-safety.mjs check',
@@ -232,21 +235,37 @@ async function verifyUnlocked(name) {
   const env = { ...installEnv, RUN_ISOLATED_DB_TESTS: '1', TEST_DATABASE_PROJECT_ID: 'sopo-isolated', TEST_DATABASE_URL: local.DB_URL };
   if (process.platform === 'win32' && fs.existsSync('D:/DevCaches/playwright')) env.PLAYWRIGHT_BROWSERS_PATH = 'D:/DevCaches/playwright';
   const steps = [['type-check', ['run', 'type-check']], ['lint', ['run', 'lint']], ['local-tools', ['run', 'test:local-tools']],
-    ['test', ['run', 'test', '--', '--reporter=dot', '--maxWorkers=1', '--pool=threads']], ['build', ['run', 'build']],
+    ['test', ['run', 'test', '--', '--reporter=json', '--outputFile=' + path.join(logs, 'vitest.json'), '--maxWorkers=1', '--pool=threads']], ['build', ['run', 'build']],
     ['browser', ['exec', '--', 'playwright', 'test', '--config', 'playwright.isolated.config.ts', '--project=chromium']]];
   const results = [];
+  const saveResults = (verified = false) => fs.writeFileSync(path.join(logs, 'results.json'), JSON.stringify({
+    ...summary, verified, databaseVerified: results.some(x => x.step === 'db-gate' && x.exitCode === 0), results,
+  }, null, 2));
   for (const [step, args] of steps) {
     const fd = fs.openSync(path.join(logs, step + '.log'), 'wx', 0o600);
     let result;
     try { result = spawnSync(process.execPath, [npm, ...args], { cwd: target, env, stdio: ['ignore', fd, fd], timeout: 600000, windowsHide: true }); }
     finally { fs.closeSync(fd); }
     results.push({ step, exitCode: result.status });
-    fs.writeFileSync(path.join(logs, 'results.json'), JSON.stringify({ ...summary, results }, null, 2));
+    saveResults();
     console.log(JSON.stringify(results.at(-1)));
     if (result.status !== 0) throw Error('Verification failed: ' + step + '; inspect local log');
+    if (step === 'test') {
+      try {
+        assertDatabaseTests(JSON.parse(fs.readFileSync(path.join(logs, 'vitest.json'), 'utf8')));
+        results.push({ step: 'db-gate', exitCode: 0 });
+      } catch (error) {
+        results.push({ step: 'db-gate', exitCode: 1 });
+        // Vitest 종료 코드 0과 실제 DB 실검증 완료를 구분해 기록한다.
+        fs.writeFileSync(path.join(logs, 'results.json'), JSON.stringify({ ...summary, verified: false, databaseVerified: false, results }, null, 2));
+        throw error;
+      }
+      saveResults();
+    }
   }
   verifyCandidate(target, record);
   if (await dependencyHash(path.join(target, 'node_modules')) !== dependencies) throw Error('Installed dependency integrity changed during verification');
+  saveResults(true);
   return { ...summary, verified: true, logs };
 }
 

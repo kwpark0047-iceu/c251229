@@ -8,6 +8,19 @@ import MemberActionDialog from './MemberActionDialog';
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 const target = { id: 'member', email: 'member@example.com' };
 describe('회원 처리 확인창', () => {
+  it('부분 성공 경고를 유지하고 상태 변경 대신 목록만 다시 조회한다', async () => {
+    vi.mocked(updateProfileStatus).mockResolvedValue({ success: true, message: '승인 완료', warnings: ['안내 이메일 발송 실패'] });
+    const close = vi.fn(), complete = vi.fn().mockResolvedValue(undefined);
+    render(<MemberActionDialog target={{ ...target, action: 'approve' }} onClose={close} onComplete={complete} />);
+    await userEvent.click(screen.getByRole('button', { name: '신규 회원가입 승인' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('안내 이메일 발송 실패');
+    expect(screen.getByRole('status')).toHaveTextContent('승인 완료');
+    expect(close).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: '신규 회원가입 승인' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '목록 다시 불러오기' }));
+    expect(updateProfileStatus).toHaveBeenCalledTimes(1);
+    expect(close).not.toHaveBeenCalled();
+  });
   it('서버 문의번호를 표시하고 실패한 승인을 자동 재시도하지 않는다', async () => {
     const message = '회원 승인 저장 설정을 확인해야 합니다. (문의번호: synthetic-trace)';
     vi.mocked(updateProfileStatus).mockResolvedValue({ success: false, message });
@@ -47,9 +60,9 @@ describe('회원 처리 확인창', () => {
     const completed = vi.fn().mockRejectedValueOnce(new Error('목록 조회 실패')).mockResolvedValueOnce(undefined);
     render(<MemberActionDialog target={{ ...target, action: 'delete' }} onClose={vi.fn()} onComplete={completed} />);
     await userEvent.type(screen.getByLabelText(/확인을 위해/), target.email);
-    await userEvent.click(screen.getByRole('button', { name: '회원 계정 삭제' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('삭제 완료');
-    expect(screen.queryByRole('button', { name: '회원 계정 삭제' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '회원 삭제·보관' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('보관 완료');
+    expect(screen.queryByRole('button', { name: '회원 삭제·보관' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: '목록 다시 불러오기' }));
     expect(deleteUserProfile).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(completed).toHaveBeenCalledTimes(2));
@@ -58,12 +71,12 @@ describe('회원 처리 확인창', () => {
     vi.mocked(deleteUserProfile).mockResolvedValue({ success: true, message: '삭제 완료' });
     const completed = vi.fn().mockResolvedValue(undefined), close = vi.fn();
     render(<MemberActionDialog target={{ ...target, action: 'delete' }} onClose={close} onComplete={completed} />);
-    const button = screen.getByRole('button', { name: '회원 계정 삭제' });
+    const button = screen.getByRole('button', { name: '회원 삭제·보관' });
     expect(button).toBeDisabled();
     await userEvent.type(screen.getByLabelText(/확인을 위해/), target.email);
     await userEvent.click(button);
     await waitFor(() => expect(completed).toHaveBeenCalledWith('삭제 완료'));
-    expect(deleteUserProfile).toHaveBeenCalledWith(target.id, target.email);
+    expect(deleteUserProfile).toHaveBeenCalledWith(target.id, target.email, undefined);
     expect(close).toHaveBeenCalled();
   });
   it('실패 메시지를 표시하고 확인창을 유지한다', async () => {

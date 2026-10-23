@@ -156,6 +156,18 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+describe('보관 회원 권한', () => {
+  it.each(['ARCHIVED', 'SUSPENDED'])('%s는 기존 조직·역할·승인 값이 남아도 권한을 얻지 못한다', async status => {
+    mockGetCurrentUserFlow({ profileData: profileRow({ account_status: status, is_approved: true }) });
+    const user = await getCurrentUser();
+    expect(user?.isApproved).toBe(false);
+    expect(user?.isSuperAdmin).toBe(false);
+    expect(user?.organizationId).toBeNull();
+    expect(user?.role).toBeNull();
+    expect(user?.permissions.can_export).toBe(false);
+  });
+});
+
 // --- getCurrentUser ----------------------------------------------------------
 
 describe('getCurrentUser', () => {
@@ -259,8 +271,7 @@ describe('getCurrentUser', () => {
       },
     });
     const user = await getCurrentUser();
-    expect(user!.isApproved).toBe(false);
-    expect(user!.tier).toBeNull();
+    expect(user).toBeNull();
   });
 
   it('isApproved is false when profile is not approved, even with a tier', async () => {

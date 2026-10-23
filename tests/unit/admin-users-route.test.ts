@@ -31,6 +31,7 @@ describe('최고관리자 회원 처리', () => {
     remove.mockResolvedValue({ error: null });
     audit.mockResolvedValue({ error: null });
     const sessionClient = {
+      rpc: vi.fn(async () => ({ data: { user_id: targetId, archived: true, already: false }, error: owners.length && !others.some(x=>x.role==='owner') || (leadCount ?? 0)>0 ? {code:'23514'} : null })),
       auth: { getUser: vi.fn(async () => ({ data: { user: authenticated ? { id: actorId, email: 'admin@example.com' } : null }, error: null })) },
       from: vi.fn((table: string) => {
         if (table === 'activity_logs') return { insert: audit };
@@ -42,9 +43,9 @@ describe('최고관리자 회원 처리', () => {
           limit: vi.fn(() => query),
           update: vi.fn((value: unknown) => { updating = true; update(value); return query; }),
           maybeSingle: vi.fn(async () => ({
-            data: updating ? (conflict ? null : { id: targetId }) : fields === 'is_super_admin'
-              ? { is_super_admin: superAdmin }
-              : { id: targetId, email: 'member@example.com', is_approved: approved, is_super_admin: protectedTarget },
+            data: updating ? (conflict ? null : { id: targetId }) : fields.startsWith('is_super_admin')
+              ? { is_super_admin: superAdmin, account_status: 'ACTIVE' }
+              : { id: targetId, email: 'member@example.com', account_status: approved ? 'ACTIVE' : 'PENDING', is_approved: approved, is_super_admin: protectedTarget },
             error: updating ? mutationError : databaseError,
           })),
           then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: otherMembers ? others : owners, error: databaseError }).then(resolve),
@@ -53,7 +54,7 @@ describe('최고관리자 회원 처리', () => {
       }),
     };
     mocks.session.mockResolvedValue(sessionClient);
-    mocks.admin.mockReturnValue({ auth: { admin: { deleteUser: remove } }, from: (table: string) => table === 'leads' ? { select: () => ({ eq: async () => ({ count: leadCount, error: null }) }) } : sessionClient.from(table) });
+    mocks.admin.mockReturnValue({ auth: { admin: { deleteUser: remove, updateUserById: vi.fn(async () => ({error:null})) } }, from: (table: string) => table === 'leads' ? { select: () => ({ eq: async () => ({ count: leadCount, error: null }) }) } : sessionClient.from(table) });
   });
   afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
@@ -114,7 +115,7 @@ describe('최고관리자 회원 처리', () => {
     leadCount = 2;
     expect((await DELETE(request('DELETE', { confirmationEmail: 'member@example.com' }), context())).status).toBe(409);
     leadCount = null;
-    expect((await DELETE(request('DELETE', { confirmationEmail: 'member@example.com' }), context())).status).toBe(503);
+    expect((await DELETE(request('DELETE', { confirmationEmail: 'member@example.com' }), context())).status).toBe(200);
     expect(remove).not.toHaveBeenCalled();
   });
   it('승인 후 이메일 예외도 승인 성공과 구분한다', async () => {
@@ -123,12 +124,12 @@ describe('최고관리자 회원 처리', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ success: true, warnings: [expect.any(String)] });
   });
-  it('삭제 후 이력 예외는 재삭제를 유도하지 않는다', async () => {
-    audit.mockRejectedValue(new Error('audit unavailable'));
+  it('원자적 보관 이력 기록 실패 시 후속 인증 변경을 하지 않는다', async () => {
+    const client = await mocks.session();
+    client.rpc.mockResolvedValueOnce({ data: null, error: { code: '42P01' } });
     const response = await DELETE(request('DELETE', { confirmationEmail: 'member@example.com' }), context());
-    expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ success: true, warnings: [expect.any(String)] });
-    expect(remove).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(503);
+    expect(remove).not.toHaveBeenCalled();
   });
   it('비로그인 요청을 거부한다', async () => {
     authenticated = false;
@@ -193,20 +194,31 @@ describe('최고관리자 회원 처리', () => {
     others = [{ user_id: 'another', role: 'owner' }];
     expect((await DELETE(request('DELETE', { confirmationEmail: 'member@example.com' }), context())).status).toBe(200);
   });
-  it('서버 키가 없으면 프로필만 삭제하는 대체 동작 없이 중단한다', async () => {
+  it('서버 서비스 키 없이 인증된 RPC로 보관하고 영구 삭제는 하지 않는다', async () => {
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', '');
-    expect((await DELETE(request('DELETE', { confirmationEmail: 'member@example.com' }), context())).status).toBe(503);
-    expect(remove).not.toHaveBeenCalled();
-  });
-  it('실제 삭제는 서버용 인증 관리 기능을 사용한다', async () => {
     const response = await DELETE(request('DELETE', { confirmationEmail: 'member@example.com' }), context());
     expect(response.status).toBe(200);
-    expect(remove).toHaveBeenCalledWith(targetId);
+    expect(await response.json()).toMatchObject({ success: true, warnings: [] });
+    expect(remove).not.toHaveBeenCalled();
+  });
+  it('보관은 영구 삭제 기능을 호출하지 않는다', async () => {
+    const response = await DELETE(request('DELETE', { confirmationEmail: 'member@example.com' }), context());
+    expect(response.status).toBe(200);
+    expect(remove).not.toHaveBeenCalled();
   });
   it('재전송은 승인된 회원에게만 서버가 조회한 주소로 발송한다', async () => {
     expect((await POST(request('POST', {}), context())).status).toBe(409);
     approved = true;
     expect((await POST(request('POST', {}), context())).status).toBe(200);
     expect(mocks.email).toHaveBeenCalledWith(expect.objectContaining({ to: 'member@example.com' }));
+  });
+  it('발송 설정 오류는 게이트웨이 오류와 구분하며 회원 상태를 변경하지 않는다', async () => {
+    approved = true;
+    mocks.email.mockResolvedValue({ success: false, errorCode: 'EMAIL_CONFIGURATION' });
+    const response = await POST(request('POST', {}), context());
+    expect(response.status).toBe(503);
+    expect((await response.json()).message).toContain('발신 주소');
+    expect(update).not.toHaveBeenCalled();
+    expect(mocks.email).toHaveBeenCalledTimes(1);
   });
 });
