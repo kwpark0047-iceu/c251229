@@ -93,6 +93,11 @@ export async function proxy(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
       request,
     })
+    const withSessionCookies = (response: NextResponse) => {
+      supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie))
+      response.headers.set('Cache-Control', 'private, no-store')
+      return response
+    }
 
     const supabase = createServerClient(
       supabaseUrl,
@@ -134,16 +139,44 @@ export async function proxy(request: NextRequest) {
     // 기존 JWT가 살아 있어도 보관·중지 계정의 데이터/API 접근은 허용하지 않는다.
     if (user && (isProtectedRoute || pathname.startsWith('/api/') || isAuthRoute)
       && pathname !== '/api/auth/logout') {
-      const { data: profile, error } = await supabase.from('profiles').select('account_status').eq('id', user.id).maybeSingle()
-      const blocked = error || !profile || !['ACTIVE', 'PENDING'].includes(profile.account_status)
+      const lookupFailed = (code: string) => {
+        const reference = crypto.randomUUID()
+        console.error('[AccountAccess]', { code, reference })
+        if (pathname.startsWith('/api/')) return withSessionCookies(NextResponse.json({
+          success: false, message: '계정 이용 상태를 확인하지 못했습니다.', reference,
+        }, { status: 503 }))
+        if (isProtectedRoute) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/auth'
+          url.search = ''
+          url.searchParams.set('error', 'account_check_failed')
+          url.searchParams.set('reference', reference)
+          return withSessionCookies(NextResponse.redirect(url))
+        }
+        return withSessionCookies(supabaseResponse)
+      }
+      let profile
+      try {
+        const result = await supabase.from('profiles').select('account_status').eq('id', user.id).maybeSingle()
+        if (result.error) {
+          const codes: Record<string, string> = { '42703': 'SCHEMA_MISMATCH', PGRST204: 'SCHEMA_MISMATCH', '42501': 'PROFILE_PERMISSION', '42P17': 'PROFILE_POLICY' }
+          return lookupFailed(codes[result.error.code] || 'PROFILE_QUERY_FAILED')
+        }
+        profile = result.data
+      } catch {
+        return lookupFailed('PROFILE_QUERY_UNAVAILABLE')
+      }
+      if (!profile) return lookupFailed('PROFILE_NOT_VISIBLE')
+      if (!['ACTIVE', 'PENDING', 'SUSPENDED', 'ARCHIVED'].includes(profile.account_status)) return lookupFailed('PROFILE_STATUS_INVALID')
+      const blocked = ['SUSPENDED', 'ARCHIVED'].includes(profile.account_status)
         || (pathname.startsWith('/api/') && profile.account_status !== 'ACTIVE')
       if (blocked) {
-        if (pathname.startsWith('/api/')) return NextResponse.json({ success: false, message: '이용이 중지되거나 보관된 계정입니다.' }, { status: 403 })
+        if (pathname.startsWith('/api/')) return withSessionCookies(NextResponse.json({ success: false, message: '이용이 중지되거나 보관된 계정입니다.' }, { status: 403 }))
         if (isProtectedRoute) {
           const url = request.nextUrl.clone()
           url.pathname = '/auth'
           url.search = '?error=account_disabled'
-          return NextResponse.redirect(url)
+          return withSessionCookies(NextResponse.redirect(url))
         }
         return supabaseResponse
       }
@@ -157,7 +190,7 @@ export async function proxy(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = '/auth'
       url.searchParams.set('redirect', pathname)
-      return NextResponse.redirect(url)
+      return withSessionCookies(NextResponse.redirect(url))
     }
 
     // 인증 페이지에 로그인된 사용자 접근 시 → 대시보드로 (단, 로그아웃 요청 중인 경우 리다이렉트 차단)
@@ -167,13 +200,15 @@ export async function proxy(request: NextRequest) {
       const redirect = url.searchParams.get('redirect') || '/lead-manager'
       url.pathname = redirect
       url.searchParams.delete('redirect')
-      return NextResponse.redirect(url)
+      url.searchParams.delete('error')
+      url.searchParams.delete('reference')
+      return withSessionCookies(NextResponse.redirect(url))
     }
 
     console.log('[Middleware] Passing through')
     return supabaseResponse
   } catch (error) {
-    console.error('[Middleware] Auth Error:', error)
+    console.error('[Middleware] Auth Error:', { code: 'SESSION_CHECK_FAILED' })
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ success: false, message: '계정 이용 상태를 확인하지 못했습니다.' }, { status: 503 })
     }

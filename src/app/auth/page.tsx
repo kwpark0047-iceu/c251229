@@ -4,6 +4,7 @@ import { useState, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { resetSupabaseBrowserSession } from '@/lib/supabase/session-cleanup'
+import { getAuthFeedback } from '@/lib/supabase/auth-feedback'
 
 // 에러 메시지 변환 함수
 function getErrorMessage(error: Error | unknown): string {
@@ -127,7 +128,7 @@ function AuthContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(
     // 초기값으로 Supabase 설정 오류 체크
-    !isSupabaseConfigured ? '서버 설정 오류입니다. 관리자에게 문의해주세요.' : null
+    !isSupabaseConfigured ? '서버 설정 오류입니다. 관리자에게 문의해주세요.' : getAuthFeedback(searchParams.get('error'))
   )
   const [message, setMessage] = useState<string | null>(null)
   const mountedRef = useRef(false)
