@@ -47,59 +47,44 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     return null
   }
 
-  // 타임아웃 처리를 위한 헬퍼 (3초 내 응답 없으면 중단)
-  const timeoutPromise = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error('Auth Query Timeout')), ms));
-
-  let memberData: any = null;
-  let profile: any = null;
-
+  // 조직 조회 장애가 DB에서 검증한 전역 관리자 신원을 지우지 않도록 분리한다.
+  async function bounded<T>(operation: PromiseLike<T>): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        Promise.resolve(operation),
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Auth Query Timeout')), 5000); }),
+      ]);
+    } finally { if (timer !== undefined) clearTimeout(timer); }
+  }
+  let profile;
   try {
-    const authData: any = await Promise.race([
-      (async () => {
-        // 조직 정보 조회
-        const { data: member, error: memberError } = await supabase
-          .from('organization_members')
-          .select(`
-            role,
-            organization_id,
-            organizations (
-              id,
-              name,
-              invite_code
-            )
-          `)
-.eq('user_id', user.id)
-            .eq('is_active', true)
-            .order('role', { ascending: false })
-            .order('created_at', { ascending: true })
-            .limit(1)
-            .maybeSingle();
-            if (memberError) {
-              console.warn('[Auth] Organization member retrieval failed:', memberError);
-              return null;
-            }
-        
-        // 프로필 정보 조회
-        const { data: prof, error: profError } = await supabase
-          .from('profiles')
-.select('is_approved, is_super_admin, tier, trial_expires_at, account_status')
-            .eq('id', user.id)
-            .maybeSingle();
-            if (profError) {
-              console.warn('[Auth] Profile retrieval failed:', profError);
-              return null;
-            }
-          
-        return { member, prof };
-      })(),
-      timeoutPromise(3000)
-    ]);
-    
-    if (!authData) return null;
-    memberData = authData?.member;
-    profile = authData?.prof;
-  } catch (e) {
-    console.warn('[Auth] Profile/Org retrieval timed out or failed:', e);
+    const result = await bounded(supabase.from('profiles')
+      .select('is_approved, is_super_admin, tier, trial_expires_at, account_status')
+      .eq('id', user.id).maybeSingle());
+    if (result.error || !result.data) {
+      console.warn('[Auth]', { code: 'PROFILE_LOOKUP_FAILED' });
+      return null;
+    }
+    profile = result.data;
+  } catch {
+    console.warn('[Auth]', { code: 'PROFILE_LOOKUP_UNAVAILABLE' });
+    return null;
+  }
+  let memberData = null;
+  let memberLookupFailed = false;
+  try {
+    const result = await bounded(supabase.from('organization_members')
+      .select('role, organization_id, organizations (id, name, invite_code)')
+      .eq('user_id', user.id).eq('is_active', true)
+      .order('role', { ascending: false }).order('created_at', { ascending: true })
+      .limit(1).maybeSingle());
+    memberLookupFailed = Boolean(result.error);
+    if (!memberLookupFailed) memberData = result.data;
+  } catch { memberLookupFailed = true; }
+  if (memberLookupFailed) {
+    console.warn('[Auth]', { code: 'MEMBERSHIP_LOOKUP_FAILED' });
+    if (profile.is_super_admin !== true || profile.account_status !== 'ACTIVE') return null;
   }
 
   if (!profile) return null;
@@ -115,12 +100,12 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     organizationName: org?.name || null,
     role: blocked ? null : memberData?.role as UserInfo['role'] || null,
     inviteCode: org?.invite_code || null,
-    permissions: blocked ? { can_export: false, can_delete_lead: false, can_view_sensitive: false }
+    permissions: blocked || memberLookupFailed ? { can_export: false, can_delete_lead: false, can_view_sensitive: false }
       : { ...DEFAULT_PERMISSIONS, ...((memberData as any)?.permissions || {}) },
     accountStatus,
-    isApproved: !blocked && (isSuperAdminAccount || Boolean(profile.is_approved &&
+    isApproved: accountStatus === 'ACTIVE' && (isSuperAdminAccount || Boolean(profile.is_approved &&
       (!profile.trial_expires_at || new Date(profile.trial_expires_at) > new Date()))),
-    isSuperAdmin: !blocked && !!(profile?.is_super_admin || isSuperAdminAccount),
+    isSuperAdmin: accountStatus === 'ACTIVE' && isSuperAdminAccount,
     tier: (profile?.tier as UserInfo['tier']) || null,
     trialExpiresAt: profile?.trial_expires_at || null,
   }

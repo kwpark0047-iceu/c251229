@@ -48,6 +48,7 @@ import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
 import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings, mergeDuplicateLeadsInDB, deleteLeadsByIds, restoreLeadsByIds } from './supabase-service';
 import { getCurrentUser, signOut, UserInfo, logActivity } from './auth-service';
+import { memberAccessFeedback } from './member-access-feedback';
 import { getProgressBatch, getLastContactDates } from './crm-service';
 import { SalesProgress } from './types';
 import { isAddressInRegions, RegionCode } from './region-utils';
@@ -973,8 +974,8 @@ function LeadManagerContent() {
         {!userInfo?.isApproved ? (
           <div className={`rounded-3xl border border-amber-200 shadow-2xl p-12 text-center max-w-2xl mx-auto mt-20 animate-in fade-in slide-in-from-bottom-4 duration-500 ${getCardClass()}`}>
             <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg"><Shield className="w-10 h-10 animate-pulse" /></div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">승인 대기 중</h2>
-            <p className="text-slate-600 mb-10 text-lg">관리자가 승인한 후 시스템을 이용하실 수 있습니다.</p>
+            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4">{memberAccessFeedback(userInfo, initialLoading).title}</h2>
+            <p role={initialLoading && !userInfo ? 'status' : 'alert'} className="text-[var(--text-secondary)] mb-10 text-lg">{memberAccessFeedback(userInfo, initialLoading).message}</p>
             <div className="flex flex-col gap-4">
               <button onClick={() => window.location.reload()} className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"><RefreshCw className="w-5 h-5" /> 새로고침</button>
               <button onClick={handleSignOut} className="px-8 py-4 text-slate-500 hover:bg-slate-100 rounded-2xl font-medium">다른 계정 로그인</button>
