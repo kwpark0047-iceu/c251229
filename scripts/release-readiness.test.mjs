@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { assertReadiness } from './lib/release-readiness.mjs';
 const digest = 'a'.repeat(64);
-const receipt = () => ({ sourceDigest: digest, databaseVerified: true, results: ['type-check', 'lint', 'test', 'db-gate', 'build'].map(stage => ({ stage, exitCode: 0, ...(stage === 'db-gate' ? { suites: 2, passed: 20, skipped: 0 } : {}) })) });
+const receipt = () => ({ sourceDigest: digest, databaseVerified: true, results: ['type-check', 'lint', 'test', 'db-gate', 'build'].map(stage => ({ stage, exitCode: 0, ...(stage === 'db-gate' ? { suites: 2, passed: 21, skipped: 0 } : {}) })) });
 test('accepts matching sequential successful evidence without claiming deployment', () => {
   assert.deepEqual(assertReadiness(digest, receipt()), { pipelineVerified: true, deploymentVerified: false, browserVerified: false });
 });
@@ -21,6 +21,10 @@ test('rejects skipped or insufficient database evidence', () => {
     const input = receipt(); Object.assign(input.results[3], override);
     assert.throws(() => assertReadiness(digest, input), /Database/);
   }
+});
+test('old 20-case database evidence does not approve the expanded suite', () => {
+  const input = receipt(); input.results[3].passed = 20;
+  assert.throws(() => assertReadiness(digest, input), /Database/);
 });
 test('rejects malformed receipts and unexpected failed extra stages', () => {
   for (const input of [null, {}, { ...receipt(), results: null }]) assert.throws(() => assertReadiness(digest, input));

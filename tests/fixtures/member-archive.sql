@@ -13,7 +13,8 @@ CREATE TABLE __TEST_SCHEMA__.organization_members (
 CREATE TABLE __TEST_SCHEMA__.leads (id uuid PRIMARY KEY, assigned_to uuid REFERENCES __TEST_SCHEMA__.profiles(id), organization_id uuid REFERENCES __TEST_SCHEMA__.organizations(id));
 CREATE TABLE __TEST_SCHEMA__.proposals (id uuid PRIMARY KEY, organization_id uuid REFERENCES __TEST_SCHEMA__.organizations(id));
 CREATE TABLE __TEST_SCHEMA__.tasks (id uuid PRIMARY KEY, organization_id uuid REFERENCES __TEST_SCHEMA__.organizations(id));
-CREATE TABLE __TEST_SCHEMA__.objects (id uuid PRIMARY KEY);
+CREATE TABLE __TEST_SCHEMA__.objects (id uuid PRIMARY KEY, bucket_id text NOT NULL DEFAULT 'floor-plans');
+CREATE TABLE __TEST_SCHEMA__.stores (id uuid PRIMARY KEY);
 CREATE TABLE __TEST_SCHEMA__.activity_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, user_email text,
   action_type text NOT NULL, entity_id uuid, details jsonb, organization_id uuid

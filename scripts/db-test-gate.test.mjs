@@ -7,7 +7,7 @@ function report() {
   return {
     success: true, numFailedTests: 0, numPendingTests: 0, numTodoTests: 0, numFailedTestSuites: 0,
     testResults: [
-      ['database.test.ts', 11], ['member-archive.test.ts', 9],
+      ['database.test.ts', 11], ['member-archive.test.ts', 10],
     ].map(([name, count]) => ({ name: `D:/repo/tests/integration/${name}`, status: 'passed',
       assertionResults: Array.from({ length: count }, (_, index) => ({ fullName: `case ${index}`, status: 'passed' })),
     })),
@@ -15,9 +15,13 @@ function report() {
 }
 
 test('both required suites must actually execute', () => {
-  assert.deepEqual(assertDatabaseTests(report()), { suites: 2, passed: 20, skipped: 0 });
+  assert.deepEqual(assertDatabaseTests(report()), { suites: 2, passed: 21, skipped: 0 });
   const missing = report(); missing.testResults.pop();
   assert.throws(() => assertDatabaseTests(missing));
+});
+test('the new non-application isolation case cannot be omitted', () => {
+  const previous = report(); previous.testResults[1].assertionResults.pop();
+  assert.throws(() => assertDatabaseTests(previous));
 });
 
 test('pending or failed assertions cannot be approved even with a success flag', () => {
@@ -39,7 +43,7 @@ test('failed hooks, empty suites and truncated reports are rejected', () => {
 
 test('Windows paths are accepted but lookalike paths and duplicate suites are rejected', () => {
   const windows = report(); windows.testResults.forEach(suite => { suite.name = suite.name.replaceAll('/', '\\'); });
-  assert.equal(assertDatabaseTests(windows).passed, 20);
+  assert.equal(assertDatabaseTests(windows).passed, 21);
   const wrong = report(); wrong.testResults[1].name = 'D:/repo/other/member-archive.test.ts';
   assert.throws(() => assertDatabaseTests(wrong));
   const duplicate = report(); duplicate.testResults.push(duplicate.testResults[0]);

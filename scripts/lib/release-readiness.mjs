@@ -16,7 +16,7 @@ export function assertReadiness(sourceDigest, receipt) {
   const order = receipt.results.filter(r => r.stage !== 'local-tools').map(r => r.stage);
   if (JSON.stringify(order) !== JSON.stringify(required)) throw Error('Missing or unordered verification stages');
   const database = receipt.results.find(r => r.stage === 'db-gate');
-  if (database.suites !== 2 || !Number.isSafeInteger(database.passed) || database.passed < 20 || database.skipped !== 0) {
+  if (database.suites !== 2 || !Number.isSafeInteger(database.passed) || database.passed < 21 || database.skipped !== 0) {
     throw Error('Database evidence is incomplete');
   }
   return { pipelineVerified: true, deploymentVerified: false, browserVerified: false };

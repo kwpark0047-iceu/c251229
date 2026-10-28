@@ -1,6 +1,6 @@
 const required = new Map([
   ['tests/integration/database.test.ts', 11],
-  ['tests/integration/member-archive.test.ts', 9],
+  ['tests/integration/member-archive.test.ts', 10],
 ]);
 
 export function assertDatabaseTests(report) {

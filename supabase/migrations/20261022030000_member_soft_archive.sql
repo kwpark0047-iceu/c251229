@@ -254,12 +254,18 @@ BEGIN
 END $$;
 
 -- PENDING 가입의 조직 생성/초대 처리는 기존 정책에 맡긴다. 업무/스토리지는 ACTIVE만 허용한다.
--- 현재 public 일반/파티션 테이블 전체에 적용한다. 이후 추가 테이블도 같은 가드가 필요하다.
+-- 광고 영업 소유 테이블만 적용한다. 다른 서비스 테이블은 열거하거나 변경하지 않는다.
 DO $$ DECLARE t record; guard text; command text;
 BEGIN
   FOR t IN SELECT n.nspname,c.relname FROM pg_catalog.pg_class c
     JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
-    WHERE (n.nspname='public' AND c.relkind IN ('r','p'))
+    WHERE (n.nspname='public' AND c.relkind IN ('r','p') AND c.relname IN (
+      'profiles', 'organizations', 'organization_members',
+      'leads', 'proposals', 'proposal_logs', 'ad_inventory',
+      'floor_plans', 'floor_plan_ad_positions', 'excel_uploads',
+      'call_logs', 'sales_progress', 'tasks', 'user_settings',
+      'activity_logs', 'admin_notifications', 'approval_history', 'source_sync_logs'
+    ))
       OR (n.nspname='storage' AND c.relname='objects' AND c.relkind='r') LOOP
     EXECUTE format('ALTER TABLE %I.%I ENABLE ROW LEVEL SECURITY',t.nspname,t.relname);
     IF t.nspname='public' AND t.relname IN ('organizations','organization_members') THEN
@@ -283,8 +289,11 @@ BEGIN
         EXECUTE format('CREATE POLICY %I ON public.profiles AS RESTRICTIVE FOR %s TO authenticated %s','archive_profile_'||lower(command),command,guard);
       END LOOP;
     ELSE
-      guard := CASE WHEN t.nspname='public' AND t.relname IN ('organizations','organization_members')
-        THEN 'public.archive_identity_allowed()' ELSE 'public.can_access_app()' END;
+      IF t.nspname='storage' AND t.relname='objects' THEN
+        guard := '(bucket_id NOT IN (''floor-plans'',''proposals'') OR public.can_access_app())';
+      ELSE
+        guard := 'public.can_access_app()';
+      END IF;
       EXECUTE format('CREATE POLICY archive_live_access ON %I.%I AS RESTRICTIVE FOR ALL TO authenticated USING (%s) WITH CHECK (%s)',t.nspname,t.relname,guard,guard);
       IF t.nspname='public' AND EXISTS (SELECT 1 FROM pg_catalog.pg_attribute a
         JOIN pg_catalog.pg_class c ON c.oid=a.attrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace

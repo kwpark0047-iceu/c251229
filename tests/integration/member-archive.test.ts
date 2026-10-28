@@ -28,7 +28,7 @@ describe.skipIf(!config)('member archive: opt-in isolated DB only', () => {
       const migration = readFileSync(new URL('../../supabase/migrations/20261022030000_member_soft_archive.sql', import.meta.url), 'utf8')
         .replace(/^BEGIN;|COMMIT;\s*$/gm, '')
         .replaceAll('public.', `${schema}.`).replaceAll("'public'", `'${schema}'`)
-        .replaceAll("n.nspname='storage'", `n.nspname='${schema}'`);
+        .replaceAll("'storage'", `'${schema}'`);
       await db.query(migration);
       await db.query(`insert into ${table('organizations')} values ($1)`, [org]);
       await db.query(`insert into ${table('organization_members')}(organization_id,user_id,role) values ($1,$2,'member')`, [org,target]);
@@ -48,6 +48,21 @@ describe.skipIf(!config)('member archive: opt-in isolated DB only', () => {
       await expect(user(pending,`insert into ${table(name)}(id) values ($1)`,[randomUUID()])).rejects.toMatchObject({code:'42501'});
     }
     expect((await user(pending,`select * from ${table('profiles')} where id=$1`,[pending])).rowCount).toBe(1);
+  });
+  it('does not change unrelated tables or restrict another application bucket', async () => {
+    const metadata = await db.query(`select relrowsecurity from pg_class where oid=$1::regclass`, [table('stores')]);
+    expect(metadata.rows).toEqual([{relrowsecurity:false}]);
+    expect((await db.query(`select * from pg_policies where schemaname=$1 and tablename='stores'`, [schema])).rowCount).toBe(0);
+    const storeId = randomUUID(), objectId = randomUUID();
+    try {
+      await db.query(`insert into ${table('stores')}(id) values ($1)`, [storeId]);
+      expect((await user(pending, `select * from ${table('stores')}`)).rowCount).toBe(1);
+      await db.query(`insert into ${table('objects')}(id,bucket_id) values ($1,'another-app')`, [objectId]);
+      expect((await user(pending, `select * from ${table('objects')} where bucket_id='another-app'`)).rowCount).toBe(1);
+    } finally {
+      await db.query(`delete from ${table('objects')} where id=$1`, [objectId]);
+      await db.query(`delete from ${table('stores')} where id=$1`, [storeId]);
+    }
   });
   it('allows own initial PENDING insert and trusted signup inserts without allowing elevation', async () => {
     const initial=randomUUID(), elevated=randomUUID(), trusted=randomUUID();

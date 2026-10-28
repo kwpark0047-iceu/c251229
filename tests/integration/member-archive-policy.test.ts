@@ -5,6 +5,13 @@ import { describe, expect, it } from 'vitest';
 
 const migration = new URL('../../supabase/migrations/20261022030000_member_soft_archive.sql', import.meta.url);
 describe('soft archive SQL policy contract (offline)', () => {
+  it('uses explicit application tables and scopes storage to application buckets', () => {
+    const sql = readFileSync(migration, 'utf8');
+    expect(sql).toContain("c.relname IN (");
+    expect(sql).toContain("'leads', 'proposals', 'proposal_logs'");
+    expect(sql).toContain("bucket_id NOT IN (''floor-plans'',''proposals'')");
+    expect(sql).not.toMatch(/'stores'|'store_staff'|'Subscription'/);
+  });
   it('has live restrictive guards, authenticated-only RPC and atomic audit', () => {
     const sql = readFileSync(migration, 'utf8');
     for (const token of ['AS RESTRICTIVE', 'public.can_access_app()', 'SECURITY DEFINER',
