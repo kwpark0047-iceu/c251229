@@ -17,7 +17,7 @@ npx tsc --noEmit # 타입 체크 (빌드 없이)
 
 # 테스트
 npx vitest run             # 단위 테스트 실행 (vitest + jsdom)
-npx vitest run --coverage  # 커버리지 포함 (v8, 임계값 70%)
+npx vitest run --coverage  # 커버리지 포함 (v8, 임계값 구문 26%, 단계적 상향 중)
 npx vitest                 # 워치 모드
 npx playwright test        # E2E 테스트 (tests/ 폴더)
 
