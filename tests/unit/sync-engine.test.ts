@@ -97,3 +97,29 @@ describe('서울 신규 소스 (일반음식점·커피숍)', () => {
     expect(mapped).toMatchObject({ service_id: '07_24_04_P', category: 'FOOD', organization_id: 'org-a' });
   });
 });
+
+describe('동기화 상태 기록 (부분 실패 포함)', () => {
+  const oneRowFetch = () => vi.fn().mockResolvedValue(new Response(JSON.stringify({ AsembyStus: [{ head: [{ list_total_count: 1 }] }, { row: [{ BIZPLC_NM: '합성 의원' }] }] })));
+  const dbWithLogCapture = () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    return { db: { from: vi.fn(() => ({ upsert })) }, upsert };
+  };
+  it('저장 실패가 있으면 success가 아닌 partial로 기록하고 실패 건수를 남긴다', async () => {
+    vi.stubEnv('GG_CLINIC_API_KEY', 'clinic-key');
+    vi.stubGlobal('fetch', oneRowFetch());
+    vi.mocked(upsertLeadsByMgtNo).mockResolvedValue({ savedCount: 1, insertedCount: 0, updatedCount: 1, skippedCount: 0, failedCount: 2, error: null });
+    const { db, upsert } = dbWithLogCapture();
+    const result = await syncSource(db as unknown as Parameters<typeof syncSource>[0], 'gg-clinics', 'org-a');
+    expect(result.failed).toBe(2);
+    expect(result.error).toBeUndefined();
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ status: 'partial', failed_count: 2, error_message: '2건 저장 실패' }), expect.anything());
+  });
+  it('실패가 없으면 success로 기록한다', async () => {
+    vi.stubEnv('GG_CLINIC_API_KEY', 'clinic-key');
+    vi.stubGlobal('fetch', oneRowFetch());
+    vi.mocked(upsertLeadsByMgtNo).mockResolvedValue({ savedCount: 1, insertedCount: 1, updatedCount: 0, skippedCount: 0, failedCount: 0, error: null });
+    const { db, upsert } = dbWithLogCapture();
+    await syncSource(db as unknown as Parameters<typeof syncSource>[0], 'gg-clinics', 'org-a');
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ status: 'success', error_message: null }), expect.anything());
+  });
+});

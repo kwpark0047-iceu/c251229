@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  X, RefreshCw, CheckCircle2, XCircle, Loader2,
+  X, RefreshCw, CheckCircle2, XCircle, Loader2, AlertTriangle,
   ChevronDown, ChevronUp, Database, MapPin,
 } from 'lucide-react';
 
@@ -21,7 +21,7 @@ interface SourceConfig {
   disabledReason?: string;
 }
 
-type SyncStatus = 'idle' | 'running' | 'success' | 'error';
+type SyncStatus = 'idle' | 'running' | 'success' | 'partial' | 'error';
 
 interface SourceResult {
   source: string;
@@ -31,6 +31,7 @@ interface SourceResult {
   saved: number;
   error?: string;
   warning?: string;
+  failed?: number;
 }
 
 interface SyncRequestBody {
@@ -171,7 +172,7 @@ export default function DataSyncModal({ onClose, onSyncComplete }: DataSyncModal
         setSourceStates(prev => ({
           ...prev,
           [sourceKey]: {
-            status: result.error ? 'error' : 'success',
+            status: result.error ? 'error' : (result.failed ?? 0) > 0 ? 'partial' : 'success',
             result,
           },
         }));
@@ -388,16 +389,20 @@ function SourceCard({ source, selected, state, onToggle, isCurrent }: SourceCard
   const isRunning = state?.status === 'running' || isCurrent;
   const isSuccess = state?.status === 'success';
   const isError = state?.status === 'error';
+  const isPartial = state?.status === 'partial';
+  const isDone = isSuccess || isPartial || isError;
 
   const regionColor = source.region === '경기도' ? 'var(--metro-line3)' : 'var(--metro-line1)';
 
   return (
     <button
       onClick={onToggle}
-      disabled={source.disabled || !source.hasKey || isRunning || isSuccess || isError}
+      disabled={source.disabled || !source.hasKey || isRunning || isDone}
       className={`text-left p-3 rounded-xl border transition-all text-sm ${
         isError
           ? 'border-red-500/50 bg-red-500/10'
+          : isPartial
+          ? 'border-amber-500/50 bg-amber-500/10'
           : isSuccess
           ? 'border-[var(--metro-line2)]/50 bg-[var(--metro-line2)]/10'
           : isRunning
@@ -413,7 +418,8 @@ function SourceCard({ source, selected, state, onToggle, isCurrent }: SourceCard
         {isRunning && <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--metro-line4)]" />}
         {isSuccess && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--metro-line2)]" />}
         {isError && <XCircle className="w-3.5 h-3.5 text-red-400" />}
-        {!isRunning && !isSuccess && !isError && (
+        {isPartial && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+        {!isRunning && !isDone && (
           <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selected ? 'border-[--region-color] bg-[--region-color]' : 'border-[var(--border-subtle)]'}`}
             style={{ '--region-color': regionColor } as React.CSSProperties}>
             {selected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
@@ -433,6 +439,13 @@ function SourceCard({ source, selected, state, onToggle, isCurrent }: SourceCard
         </p>
       )}
 
+      {/* 일부 실패 결과: 저장된 건수와 실패 건수를 함께 표시 */}
+      {isPartial && state?.result && (
+        <p className="text-xs text-amber-500">
+          {state.result.saved.toLocaleString()}건 저장 / {(state.result.failed ?? 0).toLocaleString()}건 실패
+        </p>
+      )}
+
       {state?.result?.warning && <p className="text-xs text-amber-500">{state.result.warning}</p>}
       {/* 실패 결과 */}
       {isError && state?.result?.error && (
@@ -442,7 +455,7 @@ function SourceCard({ source, selected, state, onToggle, isCurrent }: SourceCard
       )}
 
       {/* 기본 상태 */}
-      {!isRunning && !isSuccess && !isError && (
+      {!isRunning && !isDone && (
         <p className="text-xs text-[var(--text-muted)]">
           {source.disabled ? `사용 중지: ${source.disabledReason || '제공기관 서비스 확인 필요'}` : source.hasKey ? '✓ API 키 설정됨 (권한 미검증)' : `⚠ API 키 미설정${source.envKey ? ` (${source.envKey})` : ''}`}
         </p>

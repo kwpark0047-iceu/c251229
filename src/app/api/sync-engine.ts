@@ -470,14 +470,15 @@ async function logSyncSource(supabase: SupabaseClient, organizationId: string | 
       organization_id: organizationId,
       source_key: sourceKey,
       source_label: label,
-      status: error ? 'error' : 'success',
+      // 저장 실패가 있으면 success로 기록하지 않는다 (error: 전체 실패, partial: 일부 실패)
+      status: error ? 'error' : (failed ?? 0) > 0 ? 'partial' : 'success',
       total_count: total,
       fetched_count: fetched,
       inserted_count: inserted ?? 0,
       updated_count: updated ?? 0,
       skipped_count: skipped ?? 0,
       failed_count: failed ?? 0,
-      error_message: error ?? null,
+      error_message: error ?? ((failed ?? 0) > 0 ? `${failed}건 저장 실패` : null),
       started_at: new Date(),
       finished_at: new Date(),
     }, { onConflict: 'organization_id, source_key' });
