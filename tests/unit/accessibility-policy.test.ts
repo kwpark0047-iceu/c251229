@@ -13,5 +13,6 @@ describe('접근성 경고 재발 방지', () => {
     expect(results.flatMap(file => file.messages.map(message => ({
       file: file.filePath, rule: message.ruleId, message: message.message,
     })))).toEqual([]);
-  }, 60000);
+  // WSL의 /mnt/d(Windows 파일시스템)에서 ESLint 콜드 스타트가 느려 타임아웃을 넉넉히 둡니다.
+  }, 180000);
 });

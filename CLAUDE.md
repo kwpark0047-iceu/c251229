@@ -46,7 +46,7 @@ node scripts/sync-gg-all.js         # 경기도 전체 데이터 동기화
 `@/*` → `src/*` (tsconfig.json에 정의)
 
 ### 빌드 주의사항
-`next.config.ts`에 `typescript: { ignoreBuildErrors: true }` 설정 — 빌드 시 타입 오류를 무시함. 타입 체크는 `npx tsc --noEmit`으로 별도 수행.
+`next.config.ts`에는 `ignoreBuildErrors` 설정이 없으므로 빌드 시 타입 오류가 실패로 처리됩니다. 빌드 전 `npx tsc --noEmit`으로 타입 체크를 먼저 통과시키세요.
 
 ### 주요 디렉토리
 ```

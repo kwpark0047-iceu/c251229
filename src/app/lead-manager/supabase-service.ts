@@ -799,8 +799,13 @@ export async function deleteLeadsByIds(
     return { success: true, message: '아카이브할 리드가 없습니다.', archivedCount: 0 };
   }
 
-  // 아카이브 기능은 leads 테이블에 archived 컬럼이 없어 더 이상 지원하지 않습니다 (no-op)
-  return { success: true, message: `리드 ${ids.length}건 아카이브 요청 (미지원 기능 - archived 컬럼 없음)`, archivedCount: ids.length };
+  // leads 테이블에 archived 컬럼이 없어 실제로 아무것도 저장되지 않습니다.
+  // 과거에는 success: true를 반환해 화면에서 리드가 사라진 것처럼 보였으므로, 명시적 실패로 반환합니다.
+  return {
+    success: false,
+    message: '리드 아카이브 기능은 아직 지원되지 않습니다 (leads.archived 컬럼 없음). 리드는 변경되지 않았습니다.',
+    archivedCount: 0,
+  };
 }
 
 /**
@@ -814,15 +819,12 @@ export async function restoreLeadsByIds(
     return { success: true, message: '복원할 리드가 없습니다.', restoredCount: 0 };
   }
 
-  try {
-    const supabase = getSupabase();
-
-// 아카이브 기능은 leads 테이블에 archived 컬럼이 없어 더 이상 지원하지 않습니다 (no-op)
-    return { success: true, message: `리드 ${ids.length}건 복원 요청 (미지원 기능 - archived 컬럼 없음)`, restoredCount: ids.length };
-} catch (error: any) {
-    console.error('[Supabase] restoreLeadsByIds Error:', error);
-    return { success: false, message: error.message, restoredCount: 0 };
-  }
+  // 아카이브 기능과 동일하게 archived 컬럼이 없어 복원할 상태가 존재하지 않습니다.
+  return {
+    success: false,
+    message: '리드 복원 기능은 아직 지원되지 않습니다 (leads.archived 컬럼 없음). 리드는 변경되지 않았습니다.',
+    restoredCount: 0,
+  };
 }
 
 /**

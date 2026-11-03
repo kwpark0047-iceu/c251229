@@ -6,7 +6,7 @@ import proj4 from 'proj4';
 
 // ESM/CJS 호환성을 위한 안전한 처리
 // Resolve proj4 function for both ESM and CJS environments
-const projFunc: any = typeof proj4 === 'function' ? proj4 : (proj4 as any).default || proj4;
+const projFunc: typeof proj4 = typeof proj4 === 'function' ? proj4 : ((proj4 as unknown as { default?: typeof proj4 }).default || proj4);
 
 import { PROJ4_DEFS, SUBWAY_STATIONS } from './constants';
 import { SubwayStation } from './types';
@@ -65,8 +65,9 @@ export function convertGRS80ToWGS84(x: number, y: number): { lat: number; lng: n
       lng = result[0];
       lat = result[1];
     } else if (result && typeof result === 'object') {
-      lng = (result as any).x;
-      lat = (result as any).y;
+      const point = result as { x: number; y: number };
+      lng = point.x;
+      lat = point.y;
     } else {
       throw new Error(`Unexpected return type from proj4: ${typeof result}`);
     }
@@ -122,8 +123,9 @@ export function convertKRICToWGS84(xcrd: string, ycrd: string): [number, number]
       lng = result[0];
       lat = result[1];
     } else if (result && typeof result === 'object') {
-      lng = (result as any).x;
-      lat = (result as any).y;
+      const point = result as { x: number; y: number };
+      lng = point.x;
+      lat = point.y;
     } else {
       throw new Error(`Unexpected return type from proj4: ${typeof result}`);
     }
