@@ -296,6 +296,8 @@ export async function getLeads(filters?: {
       .select('*', { count: filters?.countMode ?? 'exact' })
       .order(dateColumn, { ascending: false, nullsFirst: false })
 
+    // 아카이브된 리드 제외 (archived가 NULL인 기존 행도 포함)
+    query = query.or('archived.is.null,archived.eq.false');
     if (!isSuperAdmin && organizationId) {
       query = query.eq('organization_id', organizationId);
     }
@@ -805,13 +807,33 @@ export async function deleteLeadsByIds(
     return { success: true, message: '아카이브할 리드가 없습니다.', archivedCount: 0 };
   }
 
-  // leads 테이블에 archived 컬럼이 없어 실제로 아무것도 저장되지 않습니다.
-  // 과거에는 success: true를 반환해 화면에서 리드가 사라진 것처럼 보였으므로, 명시적 실패로 반환합니다.
-  return {
-    success: false,
-    message: '리드 아카이브 기능은 아직 지원되지 않습니다 (leads.archived 컬럼 없음). 리드는 변경되지 않았습니다.',
-    archivedCount: 0,
-  };
+  try {
+    const supabase = getSupabase();
+    const isSuperAdmin = userInfo?.isSuperAdmin || userInfo?.email === 'kwpark0047@gmail.com';
+    const organizationId = userInfo?.organizationId;
+
+    let archivedCount = 0;
+    for (let i = 0; i < ids.length; i += 100) {
+      const batch = ids.slice(i, i + 100);
+      let updateQuery = supabase
+        .from('leads')
+        .update({ archived: true, archived_at: new Date().toISOString() })
+        .in('id', batch);
+      if (!isSuperAdmin && organizationId) {
+        updateQuery = updateQuery.eq('organization_id', organizationId);
+      }
+      const { error } = await updateQuery;
+      if (error) {
+        console.error('[Supabase] archiveLeadsByIds Error:', error);
+        return { success: false, message: `리드 아카이브 실패: ${error.message}`, archivedCount: 0 };
+      }
+      archivedCount += batch.length;
+    }
+    return { success: true, message: `리드 ${archivedCount}건 아카이브 완료 (복원 가능)`, archivedCount };
+  } catch (error: any) {
+    console.error('[Supabase] archiveLeadsByIds Error:', error);
+    return { success: false, message: error?.message || '아카이브 중 오류가 발생했습니다.', archivedCount: 0 };
+  }
 }
 
 /**
@@ -825,12 +847,33 @@ export async function restoreLeadsByIds(
     return { success: true, message: '복원할 리드가 없습니다.', restoredCount: 0 };
   }
 
-  // 아카이브 기능과 동일하게 archived 컬럼이 없어 복원할 상태가 존재하지 않습니다.
-  return {
-    success: false,
-    message: '리드 복원 기능은 아직 지원되지 않습니다 (leads.archived 컬럼 없음). 리드는 변경되지 않았습니다.',
-    restoredCount: 0,
-  };
+  try {
+    const supabase = getSupabase();
+    const isSuperAdmin = userInfo?.isSuperAdmin || userInfo?.email === 'kwpark0047@gmail.com';
+    const organizationId = userInfo?.organizationId;
+
+    let restoredCount = 0;
+    for (let i = 0; i < ids.length; i += 100) {
+      const batch = ids.slice(i, i + 100);
+      let updateQuery = supabase
+        .from('leads')
+        .update({ archived: false, archived_at: null })
+        .in('id', batch);
+      if (!isSuperAdmin && organizationId) {
+        updateQuery = updateQuery.eq('organization_id', organizationId);
+      }
+      const { error } = await updateQuery;
+      if (error) {
+        console.error('[Supabase] restoreLeadsByIds Error:', error);
+        return { success: false, message: `리드 복원 실패: ${error.message}`, restoredCount: 0 };
+      }
+      restoredCount += batch.length;
+    }
+    return { success: true, message: `리드 ${restoredCount}건 복원 완료`, restoredCount };
+  } catch (error: any) {
+    console.error('[Supabase] restoreLeadsByIds Error:', error);
+    return { success: false, message: error?.message || '복원 중 오류가 발생했습니다.', restoredCount: 0 };
+  }
 }
 
 /**
@@ -858,8 +901,9 @@ export async function getArchivedLeads(
     let query = supabase
       .from('leads')
       .select('*', { count: 'exact' })
-.order('updated_at', { ascending: false, nullsFirst: false });
+.order('archived_at', { ascending: false, nullsFirst: false });
 
+    query = query.eq('archived', true);
     if (!isSuperAdmin && organizationId) {
       query = query.eq('organization_id', organizationId);
     }
