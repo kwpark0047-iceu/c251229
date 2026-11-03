@@ -71,3 +71,8 @@ test_output.*
 /.local-state/
 /tmp/
 /.next-admin-isolated/
+
+# 도구 실행 상태/테스트 산출물 (추적 제외)
+/.omo/run-continuation/
+/test-results/
+/*.log
