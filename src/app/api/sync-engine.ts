@@ -445,6 +445,7 @@ export interface SyncSourceResult {
   updated?: number;     // 기존 수정
   skipped?: number;     // UNIQUE 충돌 등 건너뜀
   failed?: number;      // 저장 실패
+  failureSamples?: string[]; // 저장 실패 원인 샘플
   error?: string;
   warning?: string;
 }
@@ -463,7 +464,10 @@ export interface SyncSourceOptions {
  * 실패 시 throw하지 않고 error 필드가 담긴 결과를 반환한다 (자동 동기화 견고성).
  */
 async function logSyncSource(supabase: SupabaseClient, organizationId: string | null, sourceKey: string, label: string, result: SyncSourceResult): Promise<void> {
-  const { total, fetched, saved, inserted, updated, skipped, failed, error } = result;
+  const { total, fetched, saved, inserted, updated, skipped, failed, error, failureSamples } = result;
+  const failureNote = (failed ?? 0) > 0
+    ? `${failed}건 저장 실패${failureSamples?.[0] ? `: ${failureSamples[0]}` : ''}`
+    : null;
   await supabase
     .from('source_sync_logs')
     .upsert({
@@ -478,7 +482,7 @@ async function logSyncSource(supabase: SupabaseClient, organizationId: string | 
       updated_count: updated ?? 0,
       skipped_count: skipped ?? 0,
       failed_count: failed ?? 0,
-      error_message: error ?? ((failed ?? 0) > 0 ? `${failed}건 저장 실패` : null),
+      error_message: error ?? failureNote,
       started_at: new Date(),
       finished_at: new Date(),
     }, { onConflict: 'organization_id, source_key' });
@@ -510,6 +514,7 @@ export async function syncSource(
       const leads = rows.map(row => mapGGRow(row, config, orgId));
       let saved = 0;
       let inserted = 0, updated = 0, skipped = 0, failed = 0;
+      let failureSamples: string[] = [];
       if (sync && leads.length > 0) {
         const result = await upsertLeadsByMgtNo(supabase, leads);
         if (result.error) throw result.error;
@@ -518,10 +523,11 @@ export async function syncSource(
         updated = result.updatedCount;
         skipped = result.skippedCount;
         failed = result.failedCount;
+        failureSamples = result.errorSamples ?? [];
       } else if (sync) {
         saved = leads.length;
       }
-      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed, ...(truncated ? { warning: '페이지 제한으로 일부 데이터만 수집했습니다. 지역 범위를 좁혀 확인해 주세요.' } : {}) };
+      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed, failureSamples, ...(truncated ? { warning: '페이지 제한으로 일부 데이터만 수집했습니다. 지역 범위를 좁혀 확인해 주세요.' } : {}) };
       if (sync) await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
       console.log(`[sync-engine] ${config.label} 완료: ${leads.length}/${total}건 (저장: ${saved}건)`);
       return syncResult;
@@ -555,6 +561,7 @@ export async function syncSource(
       const leads = rows.map(row => mapSeoulRow(row, config, orgId));
       let saved = 0;
       let inserted = 0, updated = 0, skipped = 0, failed = 0;
+      let failureSamples: string[] = [];
       if (sync && leads.length > 0) {
         const result = await upsertLeadsByMgtNo(supabase, leads, scoringConfig);
         if (result.error) throw result.error;
@@ -563,10 +570,11 @@ export async function syncSource(
         updated = result.updatedCount;
         skipped = result.skippedCount;
         failed = result.failedCount;
+        failureSamples = result.errorSamples ?? [];
       } else if (sync) {
         saved = leads.length;
       }
-      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed, ...(truncated ? { warning: '페이지 제한으로 일부 데이터만 수집했습니다. 지역 범위를 좁혀 확인해 주세요.' } : {}) };
+      const syncResult: SyncSourceResult = { source: sourceKey, label: config.label, total, fetched: leads.length, saved, inserted, updated, skipped, failed, failureSamples, ...(truncated ? { warning: '페이지 제한으로 일부 데이터만 수집했습니다. 지역 범위를 좁혀 확인해 주세요.' } : {}) };
       if (sync) await logSyncSource(supabase, orgId, sourceKey, config.label, syncResult);
       console.log(`[sync-engine] ${config.label} 완료: ${leads.length}/${total}건 (저장: ${saved}건)`);
       return syncResult;
