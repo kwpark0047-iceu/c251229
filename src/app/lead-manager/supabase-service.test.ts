@@ -130,6 +130,70 @@ describe('Supabase 서비스 (supabase-service.ts)', () => {
     });
   });
 
+  describe('아카이브·복원', () => {
+    // update → in → (eq) 체인을 흉내 내는 빌더. 마지막 await 결과로 error를 제어한다.
+    const updateBuilder = (error: any = null) => {
+      const b: any = {};
+      for (const m of ['update', 'in', 'eq']) b[m] = vi.fn(() => b);
+      b.then = (f: any, r: any) => Promise.resolve({ data: null, error }).then(f, r);
+      return b;
+    };
+
+    it('일반 사용자는 자신의 조직 리드만 아카이브 처리한다', async () => {
+      const b = updateBuilder();
+      mockSupabaseClient.from.mockReturnValueOnce(b);
+      const { deleteLeadsByIds } = await import('./supabase-service');
+      const result = await deleteLeadsByIds(['a', 'b'], { organizationId: 'org-1' });
+
+      expect(result).toMatchObject({ success: true, archivedCount: 2 });
+      expect(b.update).toHaveBeenCalledWith(expect.objectContaining({ archived: true, archived_at: expect.any(String) }));
+      expect(b.eq).toHaveBeenCalledWith('organization_id', 'org-1');
+    });
+
+    it('최고관리자는 조직 조건 없이 아카이브한다', async () => {
+      const b = updateBuilder();
+      mockSupabaseClient.from.mockReturnValueOnce(b);
+      const { deleteLeadsByIds } = await import('./supabase-service');
+      await deleteLeadsByIds(['a'], { isSuperAdmin: true, organizationId: 'org-1' });
+      expect(b.eq).not.toHaveBeenCalled();
+    });
+
+    it('DB 오류 시 실패를 반환하고 건수를 0으로 보고한다', async () => {
+      mockSupabaseClient.from.mockReturnValueOnce(updateBuilder({ message: 'denied' }));
+      const { deleteLeadsByIds } = await import('./supabase-service');
+      const result = await deleteLeadsByIds(['a'], { organizationId: 'org-1' });
+      expect(result).toMatchObject({ success: false, archivedCount: 0 });
+      expect(result.message).toContain('denied');
+    });
+
+    it('복원은 archived=false, archived_at=null로 되돌린다', async () => {
+      const b = updateBuilder();
+      mockSupabaseClient.from.mockReturnValueOnce(b);
+      const { restoreLeadsByIds } = await import('./supabase-service');
+      const result = await restoreLeadsByIds(['a'], { organizationId: 'org-1' });
+      expect(result).toMatchObject({ success: true, restoredCount: 1 });
+      expect(b.update).toHaveBeenCalledWith({ archived: false, archived_at: null });
+    });
+
+    it('빈 목록은 DB를 호출하지 않는다', async () => {
+      const { deleteLeadsByIds, restoreLeadsByIds } = await import('./supabase-service');
+      expect(await deleteLeadsByIds([])).toMatchObject({ success: true, archivedCount: 0 });
+      expect(await restoreLeadsByIds([])).toMatchObject({ success: true, restoredCount: 0 });
+      expect(mockSupabaseClient.from).not.toHaveBeenCalled();
+    });
+
+    it('일반 리드 목록은 archived가 NULL이거나 false인 행만 조회한다', async () => {
+      const { getLeads } = await import('./supabase-service');
+      await getLeads();
+      expect(defaultMockBuilder.or).toHaveBeenCalledWith('archived.is.null,archived.eq.false');
+    });
+
+    it('아카이브 목록은 archived=true 행만 조회한다', async () => {
+      const { getArchivedLeads } = await import('./supabase-service');
+      await getArchivedLeads({ userInfo: { organizationId: 'org-1' } });
+      expect(defaultMockBuilder.eq).toHaveBeenCalledWith('archived', true);
+    });
+  });
   describe('updateLeadStatus', () => {
     it('리드 상태를 업데이트할 수 있다 (NEW → PROPOSAL_SENT)', async () => {
       const { updateLeadStatus } = await import('./supabase-service');
