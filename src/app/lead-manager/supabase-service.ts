@@ -258,6 +258,7 @@ export async function getLeads(filters?: {
   startDate?: string;
   endDate?: string;
   searchType?: 'license_date' | 'modified_date'; // 날짜 필터 기준 컬럼
+  countMode?: 'exact' | 'estimated'; // 건수 계산 방식 (타임아웃 시 estimated로 재시도)
   regions?: string[];
   serviceIds?: string[];
   searchQuery?: string;
@@ -292,7 +293,7 @@ export async function getLeads(filters?: {
 
     let query = supabase
       .from('leads')
-      .select('*', { count: 'exact' })
+      .select('*', { count: filters?.countMode ?? 'exact' })
       .order(dateColumn, { ascending: false, nullsFirst: false })
 
     if (!isSuperAdmin && organizationId) {
@@ -394,6 +395,11 @@ if (filters?.status) {
 
     const { data, count, error } = await query.range(from, to);
 
+    if (error && error.code === '57014' && !filters?.countMode) {
+      // 정확한 건수 계산이 statement timeout에 걸린 경우 추정 건수로 한 번 더 조회한다.
+      console.warn('[getLeads] 건수 계산 타임아웃 → estimated 건수로 재시도');
+      return getLeads({ ...filters, countMode: 'estimated' });
+    }
     if (error) {
       console.error('리드 조회 오류:', error);
       return { success: false, leads: [], count: 0, message: error.message };

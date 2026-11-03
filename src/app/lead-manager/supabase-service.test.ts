@@ -105,6 +105,29 @@ describe('Supabase 서비스 (supabase-service.ts)', () => {
       expect(result.success).toBe(false);
       expect(result.message).toBe('Database Connection Error');
     });
+    it('건수 계산 statement timeout(57014)이면 estimated 건수로 한 번 재시도한다', async () => {
+      const timeoutBuilder = createMockBuilder([], null, { message: 'canceling statement due to statement timeout', code: '57014' });
+      const retryBuilder = createMockBuilder(mockLeadsData, null, null);
+      mockSupabaseClient.from.mockReturnValueOnce(timeoutBuilder).mockReturnValueOnce(retryBuilder);
+
+      const { getLeads } = await import('./supabase-service');
+      const result = await getLeads();
+
+      expect(result.success).toBe(true);
+      expect(result.leads).toHaveLength(1);
+      expect(timeoutBuilder.select).toHaveBeenCalledWith('*', { count: 'exact' });
+      expect(retryBuilder.select).toHaveBeenCalledWith('*', { count: 'estimated' });
+    });
+    it('재시도 후에도 실패하면 재귀 없이 실패를 반환한다', async () => {
+      const timeoutBuilder = createMockBuilder([], null, { message: 'canceling statement due to statement timeout', code: '57014' });
+      mockSupabaseClient.from.mockReturnValue(timeoutBuilder);
+
+      const { getLeads } = await import('./supabase-service');
+      const result = await getLeads({ countMode: 'estimated' });
+
+      expect(result.success).toBe(false);
+      expect(mockSupabaseClient.from).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('updateLeadStatus', () => {
