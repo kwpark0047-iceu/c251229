@@ -12,7 +12,8 @@ describe('ESLint 보안 의존 경로 제거와 검사 정책 보존', () => {
     const eslint = new ESLint();
     expect(await eslint.isPathIgnored('.next-admin-isolated/dev/server/chunks/runtime.js')).toBe(true);
     expect(await eslint.isPathIgnored('src/app/lead-manager/components/ProposalsView.tsx')).toBe(false);
-  }, 60000);
+  // WSL의 /mnt/d(Windows 파일시스템)에서 ESLint 콜드 스타트가 느려 타임아웃을 넉넉히 둡니다.
+  }, 180000);
   it('사용하지 않는 Next 린트와 취약 glob 의존 경로를 제거한다', () => {
     for (const name of ['eslint-config-next', '@next/eslint-plugin-next', 'fast-glob', 'micromatch', 'braces']) {
       expect(Object.keys(lock.packages).filter(path => path.endsWith(`/node_modules/${name}`) || path === `node_modules/${name}`), name).toEqual([]);

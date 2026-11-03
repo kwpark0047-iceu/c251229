@@ -110,7 +110,8 @@ describe('CRM 서비스', () => {
       expect(logs).toHaveLength(1);
       expect(logs[0].leadId).toBe('lead-1');
       expect(logs[0].outcome).toBe('INTERESTED');
-    }, 60000);
+    // 첫 import 시 모듈 콜드 로드가 WSL /mnt/d에서 느려 병렬 실행 부하에 따라 60초를 넘을 수 있어 여유를 둡니다.
+    }, 120000);
 
     it('새로운 통화 기록을 추가할 수 있다', async () => {
       currentMockBuilder = createMockBuilder([mockCallLogs[0]], 1);
