@@ -123,3 +123,19 @@ describe('동기화 상태 기록 (부분 실패 포함)', () => {
     expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ status: 'success', error_message: null }), expect.anything());
   });
 });
+
+describe('동기화 실패 원인 기록', () => {
+  it('실패 원인 샘플을 동기화 로그의 error_message에 포함한다', async () => {
+    vi.stubEnv('GG_CLINIC_API_KEY', 'clinic-key');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ AsembyStus: [{ head: [{ list_total_count: 1 }] }, { row: [{ BIZPLC_NM: '합성 의원' }] }] }))));
+    vi.mocked(upsertLeadsByMgtNo).mockResolvedValue({ savedCount: 0, insertedCount: 0, updatedCount: 0, skippedCount: 0, failedCount: 1, errorSamples: ['23503 violates foreign key constraint'], error: null });
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const db = { from: vi.fn(() => ({ upsert })) };
+    const result = await syncSource(db as unknown as Parameters<typeof syncSource>[0], 'gg-clinics', 'org-a');
+    expect(result.failureSamples).toEqual(['23503 violates foreign key constraint']);
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'partial',
+      error_message: '1건 저장 실패: 23503 violates foreign key constraint',
+    }), expect.anything());
+  });
+});

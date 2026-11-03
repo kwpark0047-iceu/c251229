@@ -155,11 +155,22 @@ export interface UpsertLeadsResult {
   updatedCount: number;
   skippedCount: number;    // UNIQUE 충돌(23505)로 건너뛴 건수
   failedCount: number;     // 그 외 오류로 실패한 건수
+  errorSamples?: string[]; // 실패 원인 샘플 (오류 코드와 메시지, 최대 5개, 중복 제외)
   error: { message: string } | null;
 }
 
 const SELECT_BATCH = 500;  // .in() 조회 분할 크기 (URL 길이 제한 방지)
 const WRITE_BATCH = 25;    // 동시 쓰기 요청 수 제한
+const MAX_ERROR_SAMPLES = 5;
+
+/** 실패 원인을 짧은 문자열로 모아 로그와 동기화 결과에 남긴다 (중복·개수 제한) */
+function collectErrorSample(result: { errorSamples?: string[] }, err: { code?: string; message?: string } | null | undefined) {
+  if (!err) return;
+  const samples = (result.errorSamples ??= []);
+  if (samples.length >= MAX_ERROR_SAMPLES) return;
+  const sample = [err.code, err.message].filter(Boolean).join(' ').slice(0, 200);
+  if (sample && !samples.includes(sample)) samples.push(sample);
+}
 
 function lookupBatches(values: string[]): string[][] {
   const batches: string[][] = [];
@@ -198,7 +209,7 @@ export async function upsertLeadsByMgtNo(
   scoringConfig: ScoreConfig | null = null
 ): Promise<UpsertLeadsResult> {
   const result: UpsertLeadsResult = {
-    savedCount: 0, insertedCount: 0, updatedCount: 0, skippedCount: 0, failedCount: 0, error: null,
+    savedCount: 0, insertedCount: 0, updatedCount: 0, skippedCount: 0, failedCount: 0, errorSamples: [], error: null,
   };
   if (!leads || leads.length === 0) return result;
 
@@ -269,8 +280,10 @@ export async function upsertLeadsByMgtNo(
         toUpdate.slice(i, i + WRITE_BATCH).map(u => supabase.from('leads').update(u.data).eq('id', u.id))
       );
       for (const r of results) {
-        if (r.error) result.failedCount++;
-        else result.updatedCount++;
+        if (r.error) {
+          result.failedCount++;
+          collectErrorSample(result, r.error);
+        } else result.updatedCount++;
       }
     }
 
@@ -296,7 +309,10 @@ export async function upsertLeadsByMgtNo(
           for (const r of results) {
             if (!r.error) result.insertedCount++;
             else if (r.error.code === '23505') result.skippedCount++;
-            else result.failedCount++;
+            else {
+              result.failedCount++;
+              collectErrorSample(result, r.error);
+            }
           }
         }
       }
