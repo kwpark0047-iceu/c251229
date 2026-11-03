@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/app/lead-manager/utils', () => ({ findNearestStation: vi.fn(), convertGRS80ToWGS84: vi.fn() }));
 vi.mock('@/app/api/sync-utils', () => ({ upsertLeadsByMgtNo: vi.fn() }));
-import { fetchGGAllPages, fetchSeoulAllPages, fetchSyncJson, getSourceList, syncSource } from '@/app/api/sync-engine';
+import { fetchGGAllPages, fetchSeoulAllPages, fetchSyncJson, getSourceList, mapSeoulRow, syncSource } from '@/app/api/sync-engine';
 import { upsertLeadsByMgtNo } from '@/app/api/sync-utils';
 const gg = { endpoint: 'https://openapi.gg.go.kr/AsembyStus', dataKey: 'AsembyStus', category: 'HEALTH', service_name: '의원', nameField: 'BIZPLC_NM', phoneField: '', envKey: 'GG_CLINIC_API_KEY', label: '경기도 의원', mgtPrefix: 'GG_CLINIC' };
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
@@ -61,5 +61,37 @@ describe('공공데이터 수집 회귀 검증', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ LOCALDATA_010102: { list_total_count: 1 } })))
       .mockResolvedValueOnce(new Response('bad', { status: 500 })));
     await expect(fetchSeoulAllPages({ serviceCode: 'LOCALDATA_010102', category: 'HEALTH', service_name: '의원', label: '서울 의원', envKey: 'SEOUL_DATA_API_KEY' }, 'key')).rejects.toThrow();
+  });
+});
+
+describe('서울 신규 소스 (일반음식점·커피숍)', () => {
+  it('신규 서울 소스는 기본 비활성이며 조회·저장을 시도하지 않는다', async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    const db = { from: vi.fn(() => { throw new Error('unexpected write'); }) };
+    for (const key of ['seoul-restaurants', 'seoul-coffee-shops']) {
+      const result = await syncSource(db as unknown as Parameters<typeof syncSource>[0], key, 'org', { sync: false });
+      expect(result.error).toMatch(/^비활성:/);
+    }
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(getSourceList().find(s => s.key === 'seoul-restaurants')).toMatchObject({ disabled: true, region: '서울' });
+  });
+  it('커피숍 소스는 업태명이 커피숍인 행만 수집한다', async () => {
+    vi.stubEnv('SEOUL_DATA_API_KEY', 'seoul-key');
+    const rows = [
+      { UPTAENM: '커피숍', TRDSTATENM: '영업/정상', LASTMODTS: new Date().toISOString().slice(0, 10) + ' 00:00:00', BPLCNM: '합성 카페' },
+      { UPTAENM: '편의점', TRDSTATENM: '영업/정상', LASTMODTS: new Date().toISOString().slice(0, 10) + ' 00:00:00', BPLCNM: '합성 편의점' },
+    ];
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(JSON.stringify({ LOCALDATA_072405: { list_total_count: 2, RESULT: { CODE: 'INFO-000' }, row: rows } })))));
+    const cfg = { serviceCode: 'LOCALDATA_072405', category: 'FOOD', service_name: '커피숍', label: '테스트', envKey: 'X', upTaeFilter: '커피숍' };
+    const { total, rows: collected } = await fetchSeoulAllPages(cfg, 'key');
+    expect(total).toBe(2);
+    expect(collected.map((r: any) => r.BPLCNM)).toEqual(['합성 카페']);
+  });
+  it('일반음식점 매핑은 leads.service_id를 일반음식점 코드로 설정한다', () => {
+    const mapped = mapSeoulRow({ BPLCNM: '합성 식당', TRDSTATENM: '영업/정상', UPTAENM: '한식', X: '', Y: '' }, {
+      serviceCode: 'LOCALDATA_072404', category: 'FOOD', service_name: '일반음식점', label: '테스트', envKey: 'X', serviceId: '07_24_04_P',
+    }, 'org-a');
+    expect(mapped).toMatchObject({ service_id: '07_24_04_P', category: 'FOOD', organization_id: 'org-a' });
   });
 });

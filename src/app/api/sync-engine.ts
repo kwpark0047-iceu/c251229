@@ -229,7 +229,7 @@ export function mapGGRow(row: any, config: GGSourceConfig, orgId: string | null)
 // 서울 열린광장 API 처리
 // ============================================================
 
-type SeoulSourceKey = 'seoul-clinics' | 'seoul-hospitals' | 'seoul-fitness';
+type SeoulSourceKey = 'seoul-clinics' | 'seoul-hospitals' | 'seoul-fitness' | 'seoul-restaurants' | 'seoul-coffee-shops';
 
 interface SeoulSourceConfig {
   serviceCode: string;  // LOCALDATA_010102 등
@@ -237,6 +237,10 @@ interface SeoulSourceConfig {
   service_name: string;
   label: string;
   envKey: string;
+  serviceId?: string;       // leads.service_id 매핑 (CATEGORY_SERVICE_IDS 기준)
+  upTaeFilter?: string;    // 업태명(UPTAENM) 일치 행만 수집 (같은 서비스 안의 세부 업종)
+  disabled?: boolean;       // 대용량 등 운영 검토 전 자동·수동 동기화에서 제외
+  disabledReason?: string;
 }
 
 const SEOUL_SOURCES: Record<SeoulSourceKey, SeoulSourceConfig> = {
@@ -260,6 +264,27 @@ const SEOUL_SOURCES: Record<SeoulSourceKey, SeoulSourceConfig> = {
     service_name: '체력단련장',
     label: '서울 헬스장',
     envKey: 'SEOUL_DATA_FITNESS_API_KEY',
+  },
+  'seoul-restaurants': {
+    serviceCode: 'LOCALDATA_072404',
+    category: 'FOOD',
+    service_name: '일반음식점',
+    label: '서울 일반음식점',
+    envKey: 'SEOUL_DATA_RESTAURANT_API_KEY',
+    serviceId: '07_24_04_P',
+    disabled: true,
+    disabledReason: '서울 일반음식점 원본 약 54만 건(폐업 포함). 전 페이지 순회 시 100페이지 상한에 걸려 일부만 수집되고 대량 쓰기가 발생하므로 지역 분할 수집 방식 확정 후 활성화',
+  },
+  'seoul-coffee-shops': {
+    serviceCode: 'LOCALDATA_072405',
+    category: 'FOOD',
+    service_name: '커피숍',
+    label: '서울 커피숍',
+    envKey: 'SEOUL_DATA_COFFEE_API_KEY',
+    serviceId: '07_24_05_P',
+    upTaeFilter: '커피숍',
+    disabled: true,
+    disabledReason: '서울 휴게음식점 원본 약 14.8만 건을 전부 순회해 업태 "커피숍"만 고르므로 조회량이 큼. 지역 분할 수집 방식 확정 후 활성화',
   },
 };
 
@@ -324,6 +349,7 @@ export async function fetchSeoulAllPages(
           // 영업중(또는 영업/정상)이면서 최종수정일자가 최근 3개월 이내인 업소만 유효 처리
           const valid: any[] = [];
           for (const r of rows) {
+            if (config.upTaeFilter && (r.UPTAENM || '').trim() !== config.upTaeFilter) continue;
             const trdState = (r.TRDSTATENM || '').trim();
             if (trdState !== '영업중' && trdState !== '영업/정상') {
               statNotOperating++;
@@ -390,8 +416,8 @@ export function mapSeoulRow(row: any, config: SeoulSourceConfig, orgId: string |
     phone: row.SITETEL || '',
     medical_subject: row.UPTAENM || config.service_name,
     service_name: config.service_name,
-    service_id: config.serviceCode === 'LOCALDATA_010102' ? '01_01_02_P' :
-                config.serviceCode === 'LOCALDATA_010101' ? '01_01_01_P' : undefined,
+    service_id: config.serviceId ?? (config.serviceCode === 'LOCALDATA_010102' ? '01_01_02_P' :
+                config.serviceCode === 'LOCALDATA_010101' ? '01_01_01_P' : undefined),
     category: config.category,
     latitude: lat,
     longitude: lng,
@@ -513,6 +539,11 @@ export async function syncSource(
   // ── 서울 소스 처리 ──
   if (sourceKey in SEOUL_SOURCES) {
     const config = SEOUL_SOURCES[sourceKey as SeoulSourceKey];
+    if (config.disabled) {
+      const error = `비활성: ${config.disabledReason}`;
+      if (sync) await logSyncSource(supabase, orgId, sourceKey, config.label, { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error });
+      return { source: sourceKey, label: config.label, total: 0, fetched: 0, saved: 0, error };
+    }
     const apiKey = apiKeys[config.envKey] ||
       process.env[config.envKey] ||
       process.env.SEOUL_DATA_API_KEY ||
@@ -572,6 +603,7 @@ export function getSourceList() {
       category: cfg.category,
       hasKey: !!(process.env[cfg.envKey] || process.env.SEOUL_DATA_API_KEY),
       envKey: cfg.envKey,
+      ...(cfg.disabled ? { disabled: true, disabledReason: cfg.disabledReason } : {}),
     })),
   ];
 }
