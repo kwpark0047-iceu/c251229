@@ -65,16 +65,18 @@ describe('공공데이터 수집 회귀 검증', () => {
 });
 
 describe('서울 신규 소스 (일반음식점·커피숍)', () => {
-  it('신규 서울 소스는 기본 비활성이며 조회·저장을 시도하지 않는다', async () => {
-    const fetcher = vi.fn();
+  it('신규 서울 소스는 활성 상태로 등록되어 조회를 시도한다', async () => {
+    vi.stubEnv('SEOUL_DATA_API_KEY', 'seoul-key');
+    const fetcher = vi.fn(() => Promise.resolve(new Response(JSON.stringify({ RESULT: { CODE: 'INFO-200' } }))));
     vi.stubGlobal('fetch', fetcher);
     const db = { from: vi.fn(() => { throw new Error('unexpected write'); }) };
     for (const key of ['seoul-restaurants', 'seoul-coffee-shops']) {
       const result = await syncSource(db as unknown as Parameters<typeof syncSource>[0], key, 'org', { sync: false });
-      expect(result.error).toMatch(/^비활성:/);
+      expect(result.error).toBeUndefined();
     }
-    expect(fetcher).not.toHaveBeenCalled();
-    expect(getSourceList().find(s => s.key === 'seoul-restaurants')).toMatchObject({ disabled: true, region: '서울' });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(getSourceList().find(s => s.key === 'seoul-restaurants')).toMatchObject({ region: '서울' });
+    expect(getSourceList().find(s => s.key === 'seoul-restaurants')?.disabled).toBeUndefined();
   });
   it('커피숍 소스는 업태명이 커피숍인 행만 수집한다', async () => {
     vi.stubEnv('SEOUL_DATA_API_KEY', 'seoul-key');

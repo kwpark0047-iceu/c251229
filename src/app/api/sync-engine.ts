@@ -272,8 +272,6 @@ const SEOUL_SOURCES: Record<SeoulSourceKey, SeoulSourceConfig> = {
     label: '서울 일반음식점',
     envKey: 'SEOUL_DATA_RESTAURANT_API_KEY',
     serviceId: '07_24_04_P',
-    disabled: true,
-    disabledReason: '서울 일반음식점 원본 약 54만 건(폐업 포함). 전 페이지 순회 시 100페이지 상한에 걸려 일부만 수집되고 대량 쓰기가 발생하므로 지역 분할 수집 방식 확정 후 활성화',
   },
   'seoul-coffee-shops': {
     serviceCode: 'LOCALDATA_072405',
@@ -283,8 +281,6 @@ const SEOUL_SOURCES: Record<SeoulSourceKey, SeoulSourceConfig> = {
     envKey: 'SEOUL_DATA_COFFEE_API_KEY',
     serviceId: '07_24_05_P',
     upTaeFilter: '커피숍',
-    disabled: true,
-    disabledReason: '서울 휴게음식점 원본 약 14.8만 건을 전부 순회해 업태 "커피숍"만 고르므로 조회량이 큼. 지역 분할 수집 방식 확정 후 활성화',
   },
 };
 
