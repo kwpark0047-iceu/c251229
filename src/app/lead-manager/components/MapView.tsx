@@ -1,74 +1,93 @@
-'use client';
+"use client";
 
 /**
  * 맵 뷰 컴포넌트
  * Leaflet 지도에 병원 위치 표시
  */
 
-import React, { useEffect, useState, useMemo } from 'react';
-import dynamic from 'next/dynamic';
-import { 
-  MapContainer, 
-  TileLayer, 
-  Popup, 
-  CircleMarker, 
-  Polyline, 
-  Tooltip 
-} from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import React, { useEffect, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
+import {
+  MapContainer,
+  TileLayer,
+  Popup,
+  CircleMarker,
+  Polyline,
+  Tooltip,
+  useMap,
+} from "react-leaflet";
+import type { TileErrorEvent } from "leaflet";
 
-import { Lead, LeadStatus, STATUS_LABELS, LINE_COLORS, STATUS_METRO_COLORS } from '../types';
-import { SUBWAY_STATIONS } from '../constants';
-import { formatDistance, formatPhoneNumber } from '../utils';
-import { isValidCoordinates } from '../utils/coordinates';
+import {
+  Lead,
+  LeadStatus,
+  STATUS_LABELS,
+  LINE_COLORS,
+  STATUS_METRO_COLORS,
+} from "../types";
+import { SUBWAY_STATIONS } from "../constants";
+import { formatDistance, formatPhoneNumber } from "../utils";
+import { isValidCoordinates } from "../utils/coordinates";
 // StationLabels은 하단에서 동적 임포트 처리
-import { MessageSquare, ChevronDown } from 'lucide-react';
+import { MessageSquare, ChevronDown } from "lucide-react";
 import {
   getRealtimeSubwayData,
   initializeSubwayData,
   useSubwayDataRefresh,
   KRIC_LINE_COLORS,
-  getLineDisplayName as getKRICDisplayName
-} from '../kric-data-manager';
-import { generateSubwayRoutes, SUBWAY_LINE_COLORS } from '../utils/subway-utils';
-import MapSearchBar from './MapSearchBar';
-import { getProposals } from '../proposal-service';
-import './MapView.css';
+  getLineDisplayName as getKRICDisplayName,
+} from "../kric-data-manager";
+import {
+  generateSubwayRoutes,
+  SUBWAY_LINE_COLORS,
+} from "../utils/subway-utils";
+import MapSearchBar from "./MapSearchBar";
+import { getProposals } from "../proposal-service";
+import "./MapView.css";
+
+function TileErrorLogger() {
+  const map = useMap();
+  useEffect(() => {
+    const onTileError = (e: TileErrorEvent) => {
+      console.error("[MapView] Tile load error:", e.error.message);
+    };
+    map.on("tileerror", onTileError);
+    return () => {
+      map.off("tileerror", onTileError);
+    };
+  }, [map]);
+  return null;
+}
 
 interface MapViewProps {
   leads: Lead[];
   onStatusChange: (leadId: string, status: LeadStatus) => void;
   onListView?: () => void;
-  focusLead?: Lead | null;  // 포커스할 리드
-  onFocusClear?: () => void;  // 포커스 해제 콜백
+  focusLead?: Lead | null; // 포커스할 리드
+  onFocusClear?: () => void; // 포커스 해제 콜백
 }
 
 // 신규 생성한 MapEvents 컴포넌트 동적 임포트 (이들은 내부에서 useMap을 쓰므로 dynamic 유지하거나 일반 import 가능)
 // 여기서는 안전을 위해 leafet 의존성이 있는 하위 컴포넌트들도 함께 정리합니다.
-const MapEvents = dynamic(
-  () => import('./MapEvents'),
-  { ssr: false }
-);
+const MapEvents = dynamic(() => import("./MapEvents"), { ssr: false });
 
 const StationLayer = dynamic(
-  () => import('./StationLabels').then(mod => mod.StationLayer),
-  { ssr: false }
+  () => import("./StationLabels").then((mod) => mod.StationLayer),
+  { ssr: false },
 );
 
 const StationToggle = dynamic(
-  () => import('./StationLabels').then(mod => mod.StationToggle),
-  { ssr: false }
+  () => import("./StationLabels").then((mod) => mod.StationToggle),
+  { ssr: false },
 );
 
-const MapFocusController = dynamic(
-  () => import('./MapFocusController'),
-  { ssr: false }
-);
+const MapFocusController = dynamic(() => import("./MapFocusController"), {
+  ssr: false,
+});
 
-const StationDetailPanel = dynamic(
-  () => import('./StationDetailPanel'),
-  { ssr: false }
-);
+const StationDetailPanel = dynamic(() => import("./StationDetailPanel"), {
+  ssr: false,
+});
 
 // 서울 지하철 노선 좌표 (공공데이터포털 서울교통공사 역 좌표 기준)
 // 이제 generateSubwayRoutes()를 통해 동적으로 생성됩니다.
@@ -76,30 +95,68 @@ const SUBWAY_LINE_ROUTES = {}; // 하드코딩 제거됨
 
 // 노선 표시 여부 상태
 // 노선 표시 여부 상태 (기본적으로 모든 노선 표시)
-const DEFAULT_VISIBLE_LINES = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'B', 'K', 'G', 'A', 'I1', 'I2', 'Ui', 'Si', 'Kg', 'W', 'E', 'U', 'GTX-A'];
+const DEFAULT_VISIBLE_LINES = [
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "S",
+  "B",
+  "K",
+  "G",
+  "A",
+  "I1",
+  "I2",
+  "Ui",
+  "Si",
+  "Kg",
+  "W",
+  "E",
+  "U",
+  "GTX-A",
+];
 
-export default function MapView({ leads, onStatusChange, onListView, focusLead, onFocusClear }: MapViewProps) {
+export default function MapView({
+  leads,
+  onStatusChange,
+  onListView,
+  focusLead,
+  onFocusClear,
+}: MapViewProps) {
   const [isClient, setIsClient] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [, setSelectedLead] = useState<Lead | null>(null);
-  const [visibleLines, setVisibleLines] = useState<string[]>(DEFAULT_VISIBLE_LINES);
+  const [visibleLines, setVisibleLines] = useState<string[]>(
+    DEFAULT_VISIBLE_LINES,
+  );
   const [showStationLabels, setShowStationLabels] = useState(true);
   const [subwayData, setSubwayData] = useState<any>(null);
   const [isLoadingSubwayData, setIsLoadingSubwayData] = useState(false);
-  const [searchTarget, setSearchTarget] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
+  const [searchTarget, setSearchTarget] = useState<{
+    lat: number;
+    lng: number;
+    zoom?: number;
+  } | null>(null);
   const [selectedStation, setSelectedStation] = useState<any>(null); // 클릭된 역 상태
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const [stationRevenue, setStationRevenue] = useState<{ name: string; amount: number; lat: number; lng: number; count: number }[]>([]);
+  const [stationRevenue, setStationRevenue] = useState<
+    { name: string; amount: number; lat: number; lng: number; count: number }[]
+  >([]);
   const [loadingHeatmap, setLoadingHeatmap] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    
+
     // 마운트 후 아주 짧은 지연을 주어 DOM 세팅과 이전 인스턴스 정리가 완료되도록 함
     const timer = setTimeout(() => {
       setMapReady(true);
     }, 50);
-    
+
     return () => {
       setMapReady(false);
       clearTimeout(timer);
@@ -107,10 +164,18 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
   }, []);
 
   // 지도 컴포넌트 초기화 에러 방지를 위한 고유 키 생성 (마운트 시점 고정)
-  const mapKey = useMemo(() => `map-root-${Math.random().toString(36).substring(2, 9)}`, []);
+  const mapKey = useMemo(
+    () => `map-root-${Math.random().toString(36).substring(2, 9)}`,
+    [],
+  );
 
   // 지도 초기 줌 레벨
-  const defaultZoom = focusLead?.latitude && focusLead?.longitude && isValidCoordinates(focusLead.latitude, focusLead.longitude) ? 17 : 14;
+  const defaultZoom =
+    focusLead?.latitude &&
+    focusLead?.longitude &&
+    isValidCoordinates(focusLead.latitude, focusLead.longitude)
+      ? 17
+      : 14;
 
   // 현재 지도 줌 레벨 추적용 상태
   const [currentZoom, setCurrentZoom] = useState(defaultZoom);
@@ -126,26 +191,32 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
 
         // 데이터 유효성 검증
         if (!data || !data.stations || data.stations.length === 0) {
-          throw new Error('KRIC data is empty or invalid');
+          throw new Error("KRIC data is empty or invalid");
         }
 
         setSubwayData(data);
-        console.log(`✅ KRIC subway data loaded: ${data.stations.length} stations, ${Object.keys(data.routes || {}).length} routes`);
+        console.log(
+          `✅ KRIC subway data loaded: ${data.stations.length} stations, ${Object.keys(data.routes || {}).length} routes`,
+        );
       } catch (error) {
-        console.error('❌ Failed to load KRIC subway data:', error);
+        console.error("❌ Failed to load KRIC subway data:", error);
         // 기존 TOTAL_SUBWAY_STATIONS로 fallback (더 풍부한 데이터)
-        console.log('📦 Falling back to static subway data (Full)');
+        console.log("📦 Falling back to static subway data (Full)");
 
         const routes = generateSubwayRoutes();
-        const { TOTAL_SUBWAY_STATIONS } = await import('../data/stations');
+        const { TOTAL_SUBWAY_STATIONS } = await import("../data/stations");
         setSubwayData({
           stations: TOTAL_SUBWAY_STATIONS,
-          routes: routes
+          routes: routes,
         });
 
         // 폴백 데이터의 노선들도 보이도록 자동 활성화
-        const fallbackLines = Object.keys(routes).map(line => getKRICDisplayName(line));
-        setVisibleLines(prev => Array.from(new Set([...prev, ...fallbackLines])));
+        const fallbackLines = Object.keys(routes).map((line) =>
+          getKRICDisplayName(line),
+        );
+        setVisibleLines((prev) =>
+          Array.from(new Set([...prev, ...fallbackLines])),
+        );
       } finally {
         setIsLoadingSubwayData(false);
       }
@@ -163,19 +234,24 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
 
     const loadHeatmap = async () => {
       try {
-        const result = await getProposals({ status: 'ACCEPTED' });
+        const result = await getProposals({ status: "ACCEPTED" });
         if (cancelled) return;
         if (!result.success) return;
 
         const leadMap = new Map<string, Lead>();
-        leads.forEach(l => { if (l.id) leadMap.set(l.id, l); });
+        leads.forEach((l) => {
+          if (l.id) leadMap.set(l.id, l);
+        });
 
         const stationMap = new Map<string, { amount: number; count: number }>();
-        result.proposals.forEach(p => {
+        result.proposals.forEach((p) => {
           if (!p.leadId || !p.finalPrice) return;
           const lead = leadMap.get(p.leadId);
           if (!lead?.nearestStation) return;
-          const entry = stationMap.get(lead.nearestStation) || { amount: 0, count: 0 };
+          const entry = stationMap.get(lead.nearestStation) || {
+            amount: 0,
+            count: 0,
+          };
           entry.amount += Number(p.finalPrice) || 0;
           entry.count += 1;
           stationMap.set(lead.nearestStation, entry);
@@ -183,48 +259,83 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
 
         const coords = new Map<string, { lat: number; lng: number }>();
         (subwayData.stations as any[]).forEach((s: any) => {
-          if (s.name && s.lat && s.lng) coords.set(s.name, { lat: s.lat, lng: s.lng });
+          if (s.name && s.lat && s.lng)
+            coords.set(s.name, { lat: s.lat, lng: s.lng });
         });
 
         const rows = Array.from(stationMap.entries())
           .map(([name, v]) => {
             const c = coords.get(name);
-            return c ? { name, amount: v.amount, lat: c.lat, lng: c.lng, count: v.count } : null;
+            return c
+              ? {
+                  name,
+                  amount: v.amount,
+                  lat: c.lat,
+                  lng: c.lng,
+                  count: v.count,
+                }
+              : null;
           })
-          .filter((r): r is { name: string; amount: number; lat: number; lng: number; count: number } => r !== null)
+          .filter(
+            (
+              r,
+            ): r is {
+              name: string;
+              amount: number;
+              lat: number;
+              lng: number;
+              count: number;
+            } => r !== null,
+          )
           .sort((a, b) => b.amount - a.amount);
 
         if (!cancelled) setStationRevenue(rows);
       } catch (err) {
-        console.error('❌ 히트맵 데이터 로드 실패:', err);
+        console.error("❌ 히트맵 데이터 로드 실패:", err);
       } finally {
         if (!cancelled) setLoadingHeatmap(false);
       }
     };
 
     loadHeatmap();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [showHeatmap, isClient, subwayData, leads]);
 
   // 유효한 좌표가 있는 리드만 필터링
-  const validLeads = leads.filter(lead => lead.latitude && lead.longitude && isValidCoordinates(lead.latitude, lead.longitude));
+  const validLeads = leads.filter(
+    (lead) =>
+      lead.latitude &&
+      lead.longitude &&
+      isValidCoordinates(lead.latitude, lead.longitude),
+  );
 
   // 지도 중심점 계산 (focusLead가 있으면 해당 위치, 없으면 평균)
-  const center = focusLead?.latitude && focusLead?.longitude && isValidCoordinates(focusLead.latitude, focusLead.longitude)
-    ? { lat: focusLead.latitude, lng: focusLead.longitude }
-    : validLeads.length > 0
-      ? {
-        lat: validLeads.reduce((sum, l) => sum + (l.latitude || 0), 0) / validLeads.length,
-        lng: validLeads.reduce((sum, l) => sum + (l.longitude || 0), 0) / validLeads.length,
-      }
-      : { lat: 37.5012, lng: 127.0396 }; // 강남역
+  const center =
+    focusLead?.latitude &&
+    focusLead?.longitude &&
+    isValidCoordinates(focusLead.latitude, focusLead.longitude)
+      ? { lat: focusLead.latitude, lng: focusLead.longitude }
+      : validLeads.length > 0
+        ? {
+            lat:
+              validLeads.reduce((sum, l) => sum + (l.latitude || 0), 0) /
+              validLeads.length,
+            lng:
+              validLeads.reduce((sum, l) => sum + (l.longitude || 0), 0) /
+              validLeads.length,
+          }
+        : { lat: 37.5012, lng: 127.0396 }; // 강남역
 
   if (!isClient) {
     return (
       <div className="bg-gray-100 rounded-xl h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[400px] flex items-center justify-center border border-gray-200">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-gray-300 animate-spin" />
-          <p className="text-gray-500 font-medium">지도 데이터를 동기화 중...</p>
+          <p className="text-gray-500 font-medium">
+            지도 데이터를 동기화 중...
+          </p>
         </div>
       </div>
     );
@@ -235,197 +346,221 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
 
   return (
     <div className="relative group/map">
-      <div 
-        className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden h-[calc(100vh-180px)] sm:h-[calc(100vh-240px)] md:h-[calc(100vh-280px)] lg:h-[calc(100vh-320px)] min-h-[380px]"
-      >
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden h-[calc(100vh-180px)] sm:h-[calc(100vh-240px)] md:h-[calc(100vh-280px)] lg:h-[calc(100vh-320px)] min-h-[380px]">
         {mapReady && isClient ? (
           <MapContainer
             key={mapKey}
             center={[center.lat, center.lng]}
             zoom={defaultZoom}
             scrollWheelZoom={true}
-             
-   
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{ 
-              '--map-height': '100%', 
-              '--map-width': '100%' 
-               
-            } as React.CSSProperties}
-            className="bg-[#f8f9fa] h-[--map-height] w-[--map-width]"
+            className="bg-[#f8f9fa] h-full w-full"
           >
             <MapEvents onZoomEnd={setCurrentZoom} />
             {/* 지도 포커스 컨트롤러 */}
-            <MapFocusController 
-              focusLead={focusLead} 
+            <MapFocusController
+              focusLead={focusLead}
               targetLocation={searchTarget}
               onFocusClear={() => {
                 onFocusClear?.();
                 setSearchTarget(null);
-              }} 
+              }}
             />
-  
+
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
               url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
               subdomains="abcd"
               maxZoom={20}
             />
+            <TileErrorLogger />
 
-          {/* 지하철역 레이블 */}
-          {showStationLabels && subwayData && (
-            <StationLayer
-              stations={subwayData.stations}
-              routes={subwayData.routes}
-              visibleLines={visibleLines}
-              showLabels={currentZoom >= 14}
-              size={currentZoom >= 16 ? 'medium' : 'small'}
-              maxVisible={currentZoom >= 15 ? 400 : 150}
-              onStationClick={(station) => {
-                setSelectedStation(station);
-                setSearchTarget({ lat: station.lat, lng: station.lng, zoom: 16 });
-                setSelectedLead(null);
-              }}
-            />
-          )}
-
-          {/* 지하철 노선 (본선 및 지선 모두 포함) */}
-          {subwayData?.routes && (
-            Object.entries(subwayData.routes)
-              .filter(([lineCode]) => {
-                // '2-seongsu' 등에서도 기본 노선명 '2'를 추출하여 가시성 체크
-                const baseLineCode = lineCode.split('-')[0];
-                const displayName = getKRICDisplayName(baseLineCode);
-                return visibleLines.includes(displayName);
-              })
-              .map(([lineKey, route]: [string, any]) => {
-                if (!route.coords || route.coords.length < 2) return null;
-                return (
-                  <Polyline
-                    key={lineKey}
-                    positions={route.coords}
-                    pathOptions={{
-                      color: route.color,
-                      weight: currentZoom >= 15 ? 5 : 3,
-                      opacity: 0.8,
-                      className: 'subway-line-clean',
-                    }}
-                    eventHandlers={{
-                      mouseover: (e) => {
-                        e.target.setStyle({ weight: 8, opacity: 1 });
-                      },
-                      mouseout: (e) => {
-                        e.target.setStyle({ weight: currentZoom >= 15 ? 5 : 3, opacity: 0.8 });
-                      }
-                    }}
-                  />
-                );
-              })
-          )}
-
-          {/* 병원 마커 */}
-          {validLeads.map(lead => {
-            const isFocused = focusLead?.id === lead.id;
-            return (
-              <CircleMarker
-                key={lead.id}
-                center={[lead.latitude!, lead.longitude!]}
-                radius={isFocused ? 14 : (currentZoom >= 15 ? 10 : 7)}
-                fillColor={isFocused ? '#FF0000' : getStatusColor(lead.status)}
-                fillOpacity={isFocused ? 1 : 0.8}
-                color="#FFFFFF"
-                weight={2}
-                eventHandlers={{
-                  click: () => setSelectedLead(lead),
+            {/* 지하철역 레이블 */}
+            {showStationLabels && subwayData && (
+              <StationLayer
+                stations={subwayData.stations}
+                routes={subwayData.routes}
+                visibleLines={visibleLines}
+                showLabels={currentZoom >= 14}
+                size={currentZoom >= 16 ? "medium" : "small"}
+                maxVisible={currentZoom >= 15 ? 400 : 150}
+                onStationClick={(station) => {
+                  setSelectedStation(station);
+                  setSearchTarget({
+                    lat: station.lat,
+                    lng: station.lng,
+                    zoom: 16,
+                  });
+                  setSelectedLead(null);
                 }}
-              >
-                <Tooltip
-                  direction="top"
-                  offset={[0, -10]}
-                  permanent={true}
-                  className={`lead-tooltip ${isFocused ? 'focused' : ''}`}
-                  opacity={1}
-                >
-                  <div className="lead-label-content">
-                    <span className="biz-name">{lead.bizName}</span>
-                    {currentZoom >= 17 && <span className="subject">{lead.medicalSubject}</span>}
-                  </div>
-                </Tooltip>
-                <Popup>
-                  <LeadPopup lead={lead} onStatusChange={onStatusChange} onListView={onListView} />
-                </Popup>
-              </CircleMarker>
-            );
-          })}
+              />
+            )}
 
-          {/* 역별 매출 히트맵 레이어 */}
-          {showHeatmap && stationRevenue.length > 0 && (() => {
-            const maxAmount = stationRevenue[0]?.amount || 1;
-            return stationRevenue.map((st) => {
-              const ratio = st.amount / maxAmount;
-              const radius = 6 + ratio * 14;
-              const heatColor = ratio > 0.75 ? '#DC2626' : ratio > 0.5 ? '#EA580C' : ratio > 0.25 ? '#F59E0B' : '#FBBF24';
+            {/* 지하철 노선 (본선 및 지선 모두 포함) */}
+            {subwayData?.routes &&
+              Object.entries(subwayData.routes)
+                .filter(([lineCode]) => {
+                  // '2-seongsu' 등에서도 기본 노선명 '2'를 추출하여 가시성 체크
+                  const baseLineCode = lineCode.split("-")[0];
+                  const displayName = getKRICDisplayName(baseLineCode);
+                  return visibleLines.includes(displayName);
+                })
+                .map(([lineKey, route]: [string, any]) => {
+                  if (!route.coords || route.coords.length < 2) return null;
+                  return (
+                    <Polyline
+                      key={lineKey}
+                      positions={route.coords}
+                      pathOptions={{
+                        color: route.color,
+                        weight: currentZoom >= 15 ? 5 : 3,
+                        opacity: 0.8,
+                        className: "subway-line-clean",
+                      }}
+                      eventHandlers={{
+                        mouseover: (e) => {
+                          e.target.setStyle({ weight: 8, opacity: 1 });
+                        },
+                        mouseout: (e) => {
+                          e.target.setStyle({
+                            weight: currentZoom >= 15 ? 5 : 3,
+                            opacity: 0.8,
+                          });
+                        },
+                      }}
+                    />
+                  );
+                })}
+
+            {/* 병원 마커 */}
+            {validLeads.map((lead) => {
+              const isFocused = focusLead?.id === lead.id;
               return (
                 <CircleMarker
-                  key={`heat-${st.name}`}
-                  center={[st.lat, st.lng]}
-                  radius={radius}
-                  fillColor={heatColor}
-                  fillOpacity={0.5}
-                  color="#7C2D12"
-                  weight={1.5}
-                  dashArray="4 3"
+                  key={lead.id}
+                  center={[lead.latitude!, lead.longitude!]}
+                  radius={isFocused ? 14 : currentZoom >= 15 ? 10 : 7}
+                  fillColor={
+                    isFocused ? "#FF0000" : getStatusColor(lead.status)
+                  }
+                  fillOpacity={isFocused ? 1 : 0.8}
+                  color="#FFFFFF"
+                  weight={2}
+                  eventHandlers={{
+                    click: () => setSelectedLead(lead),
+                  }}
                 >
-                  <Tooltip direction="top" offset={[0, -8]} opacity={1}>
-                    <div className="text-xs">
-                      <span className="font-semibold">{st.name}역</span>
-                      <span className="block mt-0.5">계약 매출: {st.amount.toLocaleString()}원 ({st.count}건)</span>
+                  <Tooltip
+                    direction="top"
+                    offset={[0, -10]}
+                    permanent={true}
+                    className={`lead-tooltip ${isFocused ? "focused" : ""}`}
+                    opacity={1}
+                  >
+                    <div className="lead-label-content">
+                      <span className="biz-name">{lead.bizName}</span>
+                      {currentZoom >= 17 && (
+                        <span className="subject">{lead.medicalSubject}</span>
+                      )}
                     </div>
                   </Tooltip>
+                  <Popup>
+                    <LeadPopup
+                      lead={lead}
+                      onStatusChange={onStatusChange}
+                      onListView={onListView}
+                    />
+                  </Popup>
                 </CircleMarker>
               );
-            });
-          })()}
-        </MapContainer>
-      ) : (
-        <div className="flex flex-col items-center justify-center h-full gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-slate-700 animate-spin" />
-          <p className="text-slate-400 font-medium">지반 안정화 중...</p>
-        </div>
-      )}
+            })}
+
+            {/* 역별 매출 히트맵 레이어 */}
+            {showHeatmap &&
+              stationRevenue.length > 0 &&
+              (() => {
+                const maxAmount = stationRevenue[0]?.amount || 1;
+                return stationRevenue.map((st) => {
+                  const ratio = st.amount / maxAmount;
+                  const radius = 6 + ratio * 14;
+                  const heatColor =
+                    ratio > 0.75
+                      ? "#DC2626"
+                      : ratio > 0.5
+                        ? "#EA580C"
+                        : ratio > 0.25
+                          ? "#F59E0B"
+                          : "#FBBF24";
+                  return (
+                    <CircleMarker
+                      key={`heat-${st.name}`}
+                      center={[st.lat, st.lng]}
+                      radius={radius}
+                      fillColor={heatColor}
+                      fillOpacity={0.5}
+                      color="#7C2D12"
+                      weight={1.5}
+                      dashArray="4 3"
+                    >
+                      <Tooltip direction="top" offset={[0, -8]} opacity={1}>
+                        <div className="text-xs">
+                          <span className="font-semibold">{st.name}역</span>
+                          <span className="block mt-0.5">
+                            계약 매출: {st.amount.toLocaleString()}원 (
+                            {st.count}건)
+                          </span>
+                        </div>
+                      </Tooltip>
+                    </CircleMarker>
+                  );
+                });
+              })()}
+          </MapContainer>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-t-blue-500 border-slate-700 animate-spin" />
+            <p className="text-slate-400 font-medium">지반 안정화 중...</p>
+          </div>
+        )}
       </div>
 
       {/* 상단 검색 바 */}
-      <MapSearchBar 
+      <MapSearchBar
         onSearch={(query) => {
           const lowerQuery = query.toLowerCase().trim();
-          
+
           // 1. 지하철역 검색
           if (subwayData?.stations) {
-            const stationMatch = subwayData.stations.find((s: any) => 
-              s.name.toLowerCase().includes(lowerQuery) || 
-              (s.name + '역').toLowerCase() === lowerQuery
+            const stationMatch = subwayData.stations.find(
+              (s: any) =>
+                s.name.toLowerCase().includes(lowerQuery) ||
+                (s.name + "역").toLowerCase() === lowerQuery,
             );
             if (stationMatch) {
-              console.log('Moving to station:', stationMatch.name);
-              setSearchTarget({ lat: stationMatch.lat, lng: stationMatch.lng, zoom: 16 });
+              console.log("Moving to station:", stationMatch.name);
+              setSearchTarget({
+                lat: stationMatch.lat,
+                lng: stationMatch.lng,
+                zoom: 16,
+              });
               setSelectedLead(null);
               return;
             }
           }
 
           // 2. 리드(업체) 검색
-          const leadMatch = validLeads.find(l =>
-            l.bizName.toLowerCase().includes(lowerQuery) || 
-            (l.roadAddress || '').toLowerCase().includes(lowerQuery)
+          const leadMatch = validLeads.find(
+            (l) =>
+              l.bizName.toLowerCase().includes(lowerQuery) ||
+              (l.roadAddress || "").toLowerCase().includes(lowerQuery),
           );
-          
+
           if (leadMatch) {
-            console.log('Moving to lead:', leadMatch.bizName);
-            setSearchTarget({ lat: leadMatch.latitude!, lng: leadMatch.longitude!, zoom: 17 });
+            console.log("Moving to lead:", leadMatch.bizName);
+            setSearchTarget({
+              lat: leadMatch.latitude!,
+              lng: leadMatch.longitude!,
+              zoom: 17,
+            });
             setSelectedLead(leadMatch);
           }
         }}
@@ -439,7 +574,7 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
             onToggle={setShowStationLabels}
           />
         </div>
-        
+
         {/* KRIC 데이터 로딩 상태 - 간소화 */}
         {isLoadingSubwayData && (
           <div className="bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 p-2 flex items-center gap-2 shadow-md">
@@ -451,22 +586,42 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
         {/* 지도 표시 통계 - 간소화 */}
         <div className="bg-white/90 backdrop-blur-sm rounded-lg border border-gray-200 p-2 shadow-md">
           <p className="text-xs font-mono text-gray-400 leading-tight">
-            N: <span className="text-gray-700 font-bold">{validLeads.length}</span><br />
-            L: <span className="text-gray-700 font-bold">{subwayData?.stations.length || 0}</span>
+            N:{" "}
+            <span className="text-gray-700 font-bold">{validLeads.length}</span>
+            <br />
+            L:{" "}
+            <span className="text-gray-700 font-bold">
+              {subwayData?.stations.length || 0}
+            </span>
           </p>
         </div>
 
         {/* 역별 매출 히트맵 토글 */}
         <button
-          onClick={() => setShowHeatmap(prev => !prev)}
-          className={`flex flex-col items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg border p-2 shadow-md transition-all ${showHeatmap ? 'border-orange-400 text-orange-500' : 'border-gray-200 text-gray-500 hover:text-orange-500'}`}
+          onClick={() => setShowHeatmap((prev) => !prev)}
+          className={`flex flex-col items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg border p-2 shadow-md transition-all ${showHeatmap ? "border-orange-400 text-orange-500" : "border-gray-200 text-gray-500 hover:text-orange-500"}`}
           title="계약(ACCEPTED) 제안 금액을 역별로 시각화합니다"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
           </svg>
-          <span className="text-xs font-bold">{showHeatmap ? '히트맵 ON' : '매출 히트맵'}</span>
-          {loadingHeatmap && <span className="text-xs text-gray-400 animate-pulse">로딩중...</span>}
+          <span className="text-xs font-bold">
+            {showHeatmap ? "히트맵 ON" : "매출 히트맵"}
+          </span>
+          {loadingHeatmap && (
+            <span className="text-xs text-gray-400 animate-pulse">
+              로딩중...
+            </span>
+          )}
         </button>
       </div>
 
@@ -475,69 +630,106 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
         <div className="bg-white/95 backdrop-blur-md rounded-xl border border-gray-200 p-2.5 shadow-xl flex flex-col gap-2">
           {/* 노선 필터 */}
           <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar">
-            {subwayData?.routes && (() => {
-              const sortOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'S', 'B', 'K', 'G', 'A', 'I1', 'I2', 'Ui', 'Si', 'Kg', 'W', 'E', 'U', 'GTX-A'];
-              const allLineKeys = Object.keys(subwayData.routes).map(k => k.split('-')[0]);
-              const sortedLineKeys = Array.from(new Set(allLineKeys)).sort((a, b) => {
-                const idxA = sortOrder.indexOf(getKRICDisplayName(a));
-                const idxB = sortOrder.indexOf(getKRICDisplayName(b));
-                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                return a.localeCompare(b);
-              });
-
-              return sortedLineKeys.map(baseCode => {
-                const displayName = getKRICDisplayName(baseCode);
-                const isActive = visibleLines.includes(displayName);
-                const color = SUBWAY_LINE_COLORS[baseCode] || '#999999';
-                return (
-                  <button
-                    key={baseCode}
-                    onClick={() => {
-                      setVisibleLines(prev => isActive ? prev.filter(l => l !== displayName) : [...prev, displayName]);
-                    }}
-                     
-   
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-                      '--brand-color': isActive ? color : 'transparent',
-                       
-                    } as React.CSSProperties}
-                    className={`
-                      flex-shrink-0 min-w-[26px] h-[26px] rounded-full flex items-center justify-center text-xs font-bold transition-all
-                      ${isActive ? 'text-white bg-[--brand-color]' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}
-                    `}
-                  >
-                    {displayName}
-                  </button>
+            {subwayData?.routes &&
+              (() => {
+                const sortOrder = [
+                  "1",
+                  "2",
+                  "3",
+                  "4",
+                  "5",
+                  "6",
+                  "7",
+                  "8",
+                  "9",
+                  "S",
+                  "B",
+                  "K",
+                  "G",
+                  "A",
+                  "I1",
+                  "I2",
+                  "Ui",
+                  "Si",
+                  "Kg",
+                  "W",
+                  "E",
+                  "U",
+                  "GTX-A",
+                ];
+                const allLineKeys = Object.keys(subwayData.routes).map(
+                  (k) => k.split("-")[0],
                 );
-              });
-            })()}
+                const sortedLineKeys = Array.from(new Set(allLineKeys)).sort(
+                  (a, b) => {
+                    const idxA = sortOrder.indexOf(getKRICDisplayName(a));
+                    const idxB = sortOrder.indexOf(getKRICDisplayName(b));
+                    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                    return a.localeCompare(b);
+                  },
+                );
+
+                return sortedLineKeys.map((baseCode) => {
+                  const displayName = getKRICDisplayName(baseCode);
+                  const isActive = visibleLines.includes(displayName);
+                  const color = SUBWAY_LINE_COLORS[baseCode] || "#999999";
+                  return (
+                    <button
+                      key={baseCode}
+                      onClick={() => {
+                        setVisibleLines((prev) =>
+                          isActive
+                            ? prev.filter((l) => l !== displayName)
+                            : [...prev, displayName],
+                        );
+                      }}
+
+                      /* stylelint-disable-next-line */
+                      // @ts-ignore
+                      // noinspection CssInlineStyle
+                      // NOSONAR
+                      style={
+                        {
+                          "--brand-color": isActive ? color : "transparent",
+                        } as React.CSSProperties
+                      }
+                      className={`
+                      flex-shrink-0 min-w-[26px] h-[26px] rounded-full flex items-center justify-center text-xs font-bold transition-all
+                      ${isActive ? "text-white bg-[--brand-color]" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}
+                    `}
+                    >
+                      {displayName}
+                    </button>
+                  );
+                });
+              })()}
           </div>
 
           {/* 범례 */}
           <div className="flex items-center justify-between border-t border-gray-100 pt-2 px-1">
             <div className="flex gap-4">
-              {(['NEW', 'PROPOSAL_SENT', 'CONTACTED'] as LeadStatus[]).map(status => (
-                <div key={status} className="flex items-center gap-1.5">
-                  <div 
-                    className="w-2.5 h-2.5 rounded-full border border-white bg-[--status-color]" 
-                     
-   
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{ 
-                      '--status-color': getStatusColor(status),
-                       
-                    } as React.CSSProperties} 
-                  />
-                  <span className="text-xs font-semibold text-gray-500 uppercase">{STATUS_LABELS[status].split(' ')[0]}</span>
-                </div>
-              ))}
+              {(["NEW", "PROPOSAL_SENT", "CONTACTED"] as LeadStatus[]).map(
+                (status) => (
+                  <div key={status} className="flex items-center gap-1.5">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full border border-white bg-[--status-color]"
+
+                      /* stylelint-disable-next-line */
+                      // @ts-ignore
+                      // noinspection CssInlineStyle
+                      // NOSONAR
+                      style={
+                        {
+                          "--status-color": getStatusColor(status),
+                        } as React.CSSProperties
+                      }
+                    />
+                    <span className="text-xs font-semibold text-gray-500 uppercase">
+                      {STATUS_LABELS[status].split(" ")[0]}
+                    </span>
+                  </div>
+                ),
+              )}
             </div>
             <div className="text-xs font-bold text-gray-300 uppercase tracking-widest">
               Standard Map Engine v2.0
@@ -548,10 +740,10 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
 
       {/* 역 상세 정보 사이드 패널 */}
       {selectedStation && (
-        <StationDetailPanel 
-          station={selectedStation} 
-          leads={validLeads} 
-          onClose={() => setSelectedStation(null)} 
+        <StationDetailPanel
+          station={selectedStation}
+          leads={validLeads}
+          onClose={() => setSelectedStation(null)}
         />
       )}
     </div>
@@ -561,16 +753,16 @@ export default function MapView({ leads, onStatusChange, onListView, focusLead, 
 // 상태별 색상 반환
 function getStatusColor(status: LeadStatus): string {
   switch (status) {
-    case 'NEW':
-      return '#EF4444'; // red
-    case 'PROPOSAL_SENT':
-      return '#3B82F6'; // blue
-    case 'CONTACTED':
-      return '#F97316'; // orange
-    case 'CONTRACTED':
-      return '#22C55E'; // green
+    case "NEW":
+      return "#EF4444"; // red
+    case "PROPOSAL_SENT":
+      return "#3B82F6"; // blue
+    case "CONTACTED":
+      return "#F97316"; // orange
+    case "CONTRACTED":
+      return "#22C55E"; // green
     default:
-      return '#6B7280'; // gray
+      return "#6B7280"; // gray
   }
 }
 
@@ -599,7 +791,9 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
           {lead.bizName}
         </button>
         {lead.medicalSubject && (
-          <p className="text-xs font-bold text-blue-500/80 uppercase tracking-tighter mt-0.5">{lead.medicalSubject}</p>
+          <p className="text-xs font-bold text-blue-500/80 uppercase tracking-tighter mt-0.5">
+            {lead.medicalSubject}
+          </p>
         )}
       </div>
 
@@ -607,13 +801,18 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
         {lead.roadAddress && (
           <div className="flex items-start gap-2">
             <span className="text-xs">📍</span>
-            <p className="text-xs text-slate-400 leading-relaxed font-medium">{lead.roadAddress}</p>
+            <p className="text-xs text-slate-400 leading-relaxed font-medium">
+              {lead.roadAddress}
+            </p>
           </div>
         )}
         {lead.phone && (
           <div className="flex items-center gap-2">
             <span className="text-xs">📞</span>
-            <a href={`tel:${lead.phone}`} className="text-xs font-bold text-blue-400 hover:underline">
+            <a
+              href={`tel:${lead.phone}`}
+              className="text-xs font-bold text-blue-400 hover:underline"
+            >
               {formatPhoneNumber(lead.phone)}
             </a>
           </div>
@@ -622,7 +821,9 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
           <div className="flex items-center gap-2">
             <span className="text-xs">🚉</span>
             <p className="text-xs font-semibold text-slate-300">
-              {lead.nearestStation.endsWith('역') ? lead.nearestStation : lead.nearestStation + '역'}
+              {lead.nearestStation.endsWith("역")
+                ? lead.nearestStation
+                : lead.nearestStation + "역"}
               {lead.nearestExitNo && ` ${lead.nearestExitNo}번 출구`}
               <span className="text-xs text-slate-500 font-normal ml-1">
                 ({lead.stationDistance && formatDistance(lead.stationDistance)})
@@ -637,23 +838,31 @@ function LeadPopup({ lead, onStatusChange, onListView }: LeadPopupProps) {
           id={`lead-status-popup-${lead.id}`}
           name="status"
           value={lead.status}
-          onChange={(e) => onStatusChange(lead.id, e.target.value as LeadStatus)}
+          onChange={(e) =>
+            onStatusChange(lead.id, e.target.value as LeadStatus)
+          }
           className="w-full text-xs font-bold px-3 py-2.5 rounded-lg border appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all bg-[--status-bg] text-white border-[--status-border]"
-           
-   
-  /* stylelint-disable-next-line */
-  // @ts-ignore
-  // noinspection CssInlineStyle
-  // NOSONAR
-  style={{
-            '--status-bg': statusColor.bg,
-            '--status-border': statusColor.border,
-             
-          } as React.CSSProperties}
+
+          /* stylelint-disable-next-line */
+          // @ts-ignore
+          // noinspection CssInlineStyle
+          // NOSONAR
+          style={
+            {
+              "--status-bg": statusColor.bg,
+              "--status-border": statusColor.border,
+            } as React.CSSProperties
+          }
           title="리드 상태 변경"
         >
-          {(['NEW', 'PROPOSAL_SENT', 'CONTACTED', 'CONTRACTED'] as LeadStatus[]).map(status => (
-            <option key={status} value={status} className="bg-[#0b0c10] text-white">
+          {(
+            ["NEW", "PROPOSAL_SENT", "CONTACTED", "CONTRACTED"] as LeadStatus[]
+          ).map((status) => (
+            <option
+              key={status}
+              value={status}
+              className="bg-[#0b0c10] text-white"
+            >
               {STATUS_LABELS[status]}
             </option>
           ))}

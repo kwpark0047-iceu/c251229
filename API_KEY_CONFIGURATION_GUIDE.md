@@ -4,19 +4,17 @@
 
 The following environment variables are required for the `/api/station-info` endpoint to function properly:
 
-| Variable | Priority | Description |
-|----------|----------|-------------|
-| `DATAGOKR_API_KEY` | 1st | LocalData.go.kr API key for business license data |
-| `KRIC_API_KEY` | 2nd | KRIC historical facility information API key |
-| `NEXT_PUBLIC_KRIC_API_KEY` | 3rd | Client-side KRIC API key (Next.js App Router) |
-| `STATION_INFO_API_KEY` | 4th | Station info API key (fallback) |
+| Variable               | Priority | Description                                  |
+| ---------------------- | -------- | -------------------------------------------- |
+| `KRIC_API_KEY`         | 1st      | KRIC historical facility information API key |
+| `STATION_INFO_API_KEY` | 2nd      | Station info API key (fallback)              |
 
 ## Key Priority Chain
 
 When no API keys are configured, the `/api/station-info` route returns HTTP 500. The key resolution order is:
 
 ```
-DATAGOKR_API_KEY → KRIC_API_KEY → NEXT_PUBLIC_KRIC_API_KEY → STATION_INFO_API_KEY
+KRIC_API_KEY → STATION_INFO_API_KEY
 ```
 
 ## Configuration Requirements
@@ -26,18 +24,14 @@ DATAGOKR_API_KEY → KRIC_API_KEY → NEXT_PUBLIC_KRIC_API_KEY → STATION_INFO_
 Add the above variables to your Vercel project settings:
 
 ```
-DATAGOKR_API_KEY=your_localdata_key
 KRIC_API_KEY=your_kric_key
-NEXT_PUBLIC_KRIC_API_KEY=your_public_kric_key
 STATION_INFO_API_KEY=your_station_info_key
 ```
 
 ### 2. Next.js `.env.local` (Development Only)
 
 ```
-DATAGOKR_API_KEY=your_localdata_key
 KRIC_API_KEY=your_kric_key
-NEXT_PUBLIC_KRIC_API_KEY=your_public_kric_key
 STATION_INFO_API_KEY=your_station_info_key
 ```
 
@@ -48,12 +42,10 @@ STATION_INFO_API_KEY=your_station_info_key
 Run verification curl command:
 
 ```bash
-curl -X POST http://localhost:3000/api/station-info \
-  -H "Content-Type: application/json" \
-  -d '{"keyword": "테스트"}'
+curl "http://localhost:3000/api/station-info?line=1"
 ```
 
-Expected: HTTP 200 with valid JSON when at least one API key is configured.
+Expected: HTTP 200 with valid JSON when `KRIC_API_KEY` is configured.
 
 ## Troubleshooting
 
