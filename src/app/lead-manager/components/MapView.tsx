@@ -346,7 +346,7 @@ export default function MapView({
 
   return (
     <div className="relative group/map">
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden h-[calc(100vh-180px)] sm:h-[calc(100vh-240px)] md:h-[calc(100vh-280px)] lg:h-[calc(100vh-320px)] min-h-[380px]">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden h-full min-h-[380px]">
         {mapReady && isClient ? (
           <MapContainer
             key={mapKey}
