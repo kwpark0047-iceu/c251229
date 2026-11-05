@@ -71,3 +71,7 @@ test_output.*
 /.local-state/
 /tmp/
 /.next-admin-isolated/
+
+# 프로젝트 생성 산출물 (AI 오케스트레이션 문서 등 - git 추적 제외)
+/docs/
+/.omo/

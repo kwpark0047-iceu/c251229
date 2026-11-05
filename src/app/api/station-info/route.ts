@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "../sync-utils";
 import { getKricCodes } from "@/lib/kric-codes";
 
 /**
  * KRIC 역사별 정보 API 프록시 (캐싱 지원)
  * 서비스ID: convenientInfo
  * 오퍼레이션ID: stationInfo
+ * 보안: 로그인 인증 필수 (익명 접근 차단)
  */
 
 // 캐시 유효 시간 (초) - 1시간 (3600초)
 const CACHE_TTL = 3600;
 
 export async function GET(request: NextRequest) {
+  // 1. 로그인 인증 필수 (익명 접근 차단)
+  const supabase = await createClient();
+  const authError = await requireUser(supabase);
+  if (authError) return authError;
+
   const searchParams = request.nextUrl.searchParams;
   const line = searchParams.get("line") || "1";
   const stationName = searchParams.get("station");

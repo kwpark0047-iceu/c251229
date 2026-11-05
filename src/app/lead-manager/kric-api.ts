@@ -3,137 +3,139 @@
  * 도시철도 전체노선정보 API를 활용한 실시간 노선 데이터
  */
 
-import axios from 'axios';
-import { convertKRICToWGS84 } from './utils';
-import { normalizeLineCode } from './utils/subway-utils';
+import axios from "axios";
+import { convertKRICToWGS84 } from "./utils";
+import { normalizeLineCode } from "./utils/subway-utils";
 
 // API 기본 정보
-const KRIC_API_BASE_URL = 'https://openapi.kric.go.kr/openapi/trainUseInfo/subwayRouteInfo';
-const KRIC_STATION_INFO_URL = 'https://openapi.kric.go.kr/openapi/convenientInfo/stationInfo';
+const KRIC_API_BASE_URL =
+  "https://openapi.kric.go.kr/openapi/trainUseInfo/subwayRouteInfo";
+const KRIC_STATION_INFO_URL =
+  "https://openapi.kric.go.kr/openapi/convenientInfo/stationInfo";
 
 // 제공된 서비스 키 (제거됨 - 서버 프록시 사용)
 // const KRIC_SERVICE_KEY = '...';
 
 // 권역 코드
 export const AREA_CODES = {
-  SEOUL: '01',    // 수도권
-  BUSAN: '02',    // 부산
-  DAEGU: '03',    // 대구
-  GWANGJU: '04',  // 광주
-  DAEJEON: '05',  // 대전
+  SEOUL: "01", // 수도권
+  BUSAN: "02", // 부산
+  DAEGU: "03", // 대구
+  GWANGJU: "04", // 광주
+  DAEJEON: "05", // 대전
 } as const;
 
 // 노선 코드 (철도산업정보센터 기준)
 export const LINE_CODES = {
   // 수도권
-  LINE_1: '1001',      // 1호선
-  LINE_2: '1002',      // 2호선
-  LINE_3: '1003',      // 3호선
-  LINE_4: '1004',      // 4호선
-  LINE_5: '1005',      // 5호선
-  LINE_6: '1006',      // 6호선
-  LINE_7: '1007',      // 7호선
-  LINE_8: '1008',      // 8호선
-  LINE_9: '1009',      // 9호선
+  LINE_1: "1001", // 1호선
+  LINE_2: "1002", // 2호선
+  LINE_3: "1003", // 3호선
+  LINE_4: "1004", // 4호선
+  LINE_5: "1005", // 5호선
+  LINE_6: "1006", // 6호선
+  LINE_7: "1007", // 7호선
+  LINE_8: "1008", // 8호선
+  LINE_9: "1009", // 9호선
 
   // 신분당선
-  SUIN_BUNDANG: '1085', // 수인분당선
-  SHINBUNDANG: '1077',  // 신분당선
+  SUIN_BUNDANG: "1085", // 수인분당선
+  SHINBUNDANG: "1077", // 신분당선
 
   // 경의중앙선
-  GYEONGUI_JUNGANG: '1063', // 경의중앙선
-  GYEONGCHUN: '1067',      // 경춘선
+  GYEONGUI_JUNGANG: "1063", // 경의중앙선
+  GYEONGCHUN: "1067", // 경춘선
 
   // 공항철도
-  AIRPORT_RAILROAD: '1065',  // 공항철도
+  AIRPORT_RAILROAD: "1065", // 공항철도
 
   // 기타
-  UIJEONGBU: '1099',    // 의정부경전철
-  EVERLINE: '1086',     // 에버라인
-  GIMPO_GOLD: '1087',   // 김포골드라인
-  SEOIL: '1090',        // 서해선
+  UIJEONGBU: "1099", // 의정부경전철
+  EVERLINE: "1086", // 에버라인
+  GIMPO_GOLD: "1087", // 김포골드라인
+  SEOIL: "1090", // 서해선
 
   // 인천
-  INCHEON_1: '1061',    // 인천 1호선
-  INCHEON_2: '1069',    // 인천 2호선
+  INCHEON_1: "1061", // 인천 1호선
+  INCHEON_2: "1069", // 인천 2호선
 
   // 경전철
-  UI_SINSEOL: '1092',   // 우이신설선
-  SILLIM: '1093',       // 신림선
-  GYEONGGANG: '1081',   // 경강선
+  UI_SINSEOL: "1092", // 우이신설선
+  SILLIM: "1093", // 신림선
+  GYEONGGANG: "1081", // 경강선
 } as const;
 
 // 노선 색상 (실제 운영기관 표준 색상)
 export const LINE_COLORS = {
-  [LINE_CODES.LINE_1]: '#0052A4',      // 1호선: 남색
-  [LINE_CODES.LINE_2]: '#00A84D',      // 2호선: 녹색
-  [LINE_CODES.LINE_3]: '#EF7C1C',      // 3호선: 주황색
-  [LINE_CODES.LINE_4]: '#00A5DE',      // 4호선: 하늘색
-  [LINE_CODES.LINE_5]: '#996CAC',      // 5호선: 보라색
-  [LINE_CODES.LINE_6]: '#CD7E2F',      // 6호선: 갈색
-  [LINE_CODES.LINE_7]: '#727FB8',      // 7호선: 올리브색
-  [LINE_CODES.LINE_8]: '#E6186A',      // 8호선: 분홍색
-  [LINE_CODES.LINE_9]: '#BAB135',      // 9호선: 금색
+  [LINE_CODES.LINE_1]: "#0052A4", // 1호선: 남색
+  [LINE_CODES.LINE_2]: "#00A84D", // 2호선: 녹색
+  [LINE_CODES.LINE_3]: "#EF7C1C", // 3호선: 주황색
+  [LINE_CODES.LINE_4]: "#00A5DE", // 4호선: 하늘색
+  [LINE_CODES.LINE_5]: "#996CAC", // 5호선: 보라색
+  [LINE_CODES.LINE_6]: "#CD7E2F", // 6호선: 갈색
+  [LINE_CODES.LINE_7]: "#727FB8", // 7호선: 올리브색
+  [LINE_CODES.LINE_8]: "#E6186A", // 8호선: 분홍색
+  [LINE_CODES.LINE_9]: "#BAB135", // 9호선: 금색
 
-  [LINE_CODES.SUIN_BUNDANG]: '#F5A200', // 수인분당선: 노란색
-  [LINE_CODES.SHINBUNDANG]: '#D4003A',  // 신분당선: 빨간색
-  [LINE_CODES.GYEONGUI_JUNGANG]: '#77BB4A', // 경의중앙선: 연두색
-  [LINE_CODES.GYEONGCHUN]: '#807DB8',      // 경춘선: 보라색
-  [LINE_CODES.AIRPORT_RAILROAD]: '#009D3E',  // 공항철도: 초록색
+  [LINE_CODES.SUIN_BUNDANG]: "#F5A200", // 수인분당선: 노란색
+  [LINE_CODES.SHINBUNDANG]: "#D4003A", // 신분당선: 빨간색
+  [LINE_CODES.GYEONGUI_JUNGANG]: "#77BB4A", // 경의중앙선: 연두색
+  [LINE_CODES.GYEONGCHUN]: "#807DB8", // 경춘선: 보라색
+  [LINE_CODES.AIRPORT_RAILROAD]: "#009D3E", // 공항철도: 초록색
 
-  [LINE_CODES.UIJEONGBU]: '#FDA600',     // 의정부경전철: 주황색
-  [LINE_CODES.EVERLINE]: '#6FB245',      // 에버라인: 녹색
-  [LINE_CODES.GIMPO_GOLD]: '#A17800',   // 김포골드라인: 금색
-  [LINE_CODES.SEOIL]: '#81A914',        // 서해선: 연두색
+  [LINE_CODES.UIJEONGBU]: "#FDA600", // 의정부경전철: 주황색
+  [LINE_CODES.EVERLINE]: "#6FB245", // 에버라인: 녹색
+  [LINE_CODES.GIMPO_GOLD]: "#A17800", // 김포골드라인: 금색
+  [LINE_CODES.SEOIL]: "#81A914", // 서해선: 연두색
 
-  [LINE_CODES.INCHEON_1]: '#7CA8D5',    // 인천 1호선: 하늘색
-  [LINE_CODES.INCHEON_2]: '#ED8B00',    // 인천 2호선: 주황색
+  [LINE_CODES.INCHEON_1]: "#7CA8D5", // 인천 1호선: 하늘색
+  [LINE_CODES.INCHEON_2]: "#ED8B00", // 인천 2호선: 주황색
 
-  [LINE_CODES.UI_SINSEOL]: '#B0CE18',   // 우이신설선: 라임색
-  [LINE_CODES.SILLIM]: '#6789CA',       // 신림선: 파란색
-  [LINE_CODES.GYEONGGANG]: '#003DA5',   // 경강선: 파란색
+  [LINE_CODES.UI_SINSEOL]: "#B0CE18", // 우이신설선: 라임색
+  [LINE_CODES.SILLIM]: "#6789CA", // 신림선: 파란색
+  [LINE_CODES.GYEONGGANG]: "#003DA5", // 경강선: 파란색
 } as const;
 
 // 역 정보 타입 (노선 정보 API)
 export interface KRICStation {
-  stinCd: string;        // 역코드
-  stinNm: string;        // 역명
-  lnCd: string;          // 노선코드
-  lnNm: string;          // 노선명
-  ordrNo: string;        // 순번
-  xcrd: string;          // X좌표
-  ycrd: string;          // Y좌표
-  mreaWideCd: string;    // 권역코드
-  mreaWideNm: string;    // 권역명
+  stinCd: string; // 역코드
+  stinNm: string; // 역명
+  lnCd: string; // 노선코드
+  lnNm: string; // 노선명
+  ordrNo: string; // 순번
+  xcrd: string; // X좌표
+  ycrd: string; // Y좌표
+  mreaWideCd: string; // 권역코드
+  mreaWideNm: string; // 권역명
   railOprIsttNm: string; // 운영기관명
 }
 
 // 역 정보 타입 (역사별 정보 API)
 export interface KRICStationInfo {
-  stinCd: string;           // 역코드
-  stinNm: string;           // 역명
-  lnCd: string;             // 노선코드
-  lnNm: string;             // 노선명
-  xcrd: string;            // X좌표
-  ycrd: string;            // Y좌표
-  stinAdres: string;        // 역 주소
-  stinTelno: string;        // 역 전화번호
-  railOprIsttNm: string;   // 운영기관명
-  mreaWideCd: string;      // 권역코드
-  mreaWideNm: string;      // 권역명
-  stinKndCd: string;       // 역종류코드
-  stinKndNm: string;       // 역종류명
-  stinFcty: string;       // 역시설정보
-  useDt: string;           // 사용일자
+  stinCd: string; // 역코드
+  stinNm: string; // 역명
+  lnCd: string; // 노선코드
+  lnNm: string; // 노선명
+  xcrd: string; // X좌표
+  ycrd: string; // Y좌표
+  stinAdres: string; // 역 주소
+  stinTelno: string; // 역 전화번호
+  railOprIsttNm: string; // 운영기관명
+  mreaWideCd: string; // 권역코드
+  mreaWideNm: string; // 권역명
+  stinKndCd: string; // 역종류코드
+  stinKndNm: string; // 역종류명
+  stinFcty: string; // 역시설정보
+  useDt: string; // 사용일자
 }
 
 // 노선 정보 타입
 export interface KRICLine {
-  lnCd: string;          // 노선코드
-  lnNm: string;          // 노선명
-  mreaWideCd: string;    // 권역코드
+  lnCd: string; // 노선코드
+  lnNm: string; // 노선명
+  mreaWideCd: string; // 권역코드
   railOprIsttNm: string; // 운영기관명
-  color: string;         // 노선색상
+  color: string; // 노선색상
 }
 
 // API 응답 타입
@@ -157,11 +159,11 @@ interface KRICAPIResponse<T> {
 export async function fetchSubwayRouteInfo(
   serviceKey: string,
   areaCode: string,
-  lineCode: string
+  lineCode: string,
 ): Promise<KRICStation[]> {
   try {
     // 서버 프록시 사용 (/api/subway-routes)
-    const response = await axios.get<any>('/api/subway-routes', {
+    const response = await axios.get<any>("/api/subway-routes", {
       params: {
         line: lineCode,
       },
@@ -169,7 +171,9 @@ export async function fetchSubwayRouteInfo(
 
     if (!response.data.success) {
       // API 호출 실패 시 빈 배열 반환 (지원되지 않는 노선일 수 있음)
-      console.warn(`API returned failure for line ${lineCode}: ${response.data.error}`);
+      console.warn(
+        `API returned failure for line ${lineCode}: ${response.data.error}`,
+      );
       return [];
     }
 
@@ -177,16 +181,16 @@ export async function fetchSubwayRouteInfo(
     // KRIC API 응답 구조: { body: { items: { item: [...] } } }
     const body = proxyData?.body || proxyData;
     let items = body?.items?.item;
-    
+
     // items가 undefined고 body 자체가 배열이거나 객체인 경우 처리
     if (items === undefined) {
-      items = Array.isArray(body) ? body : (body ? [body] : []);
+      items = Array.isArray(body) ? body : body ? [body] : [];
     }
 
     const result = Array.isArray(items) ? items : [items];
-    
+
     // [ { resultCode: '...', ... } ] 와 같이 에러 메시지가 아이템으로 오는 경우 필터링
-    const validStations = result.filter(item => item && item.stinNm);
+    const validStations = result.filter((item) => item && item.stinNm);
 
     return validStations;
   } catch (error) {
@@ -208,12 +212,12 @@ export async function fetchStationInfo(
   serviceKey: string,
   areaCode: string,
   lineCode?: string,
-  stationCode?: string
+  stationCode?: string,
 ): Promise<KRICStationInfo[]> {
   try {
     const params: any = {
       serviceKey,
-      format: 'json',
+      format: "json",
       mreaWideCd: areaCode,
     };
 
@@ -226,11 +230,11 @@ export async function fetchStationInfo(
     }
 
     // 서버 프록시 사용
-    const response = await axios.get<any>('/api/station-info', {
+    const response = await axios.get<any>("/api/station-info", {
       params: {
-        line: lineCode || '1', // 기본값 설정
-        station: stationCode
-      }
+        line: lineCode || "1", // 기본값 설정
+        station: stationCode,
+      },
     });
 
     if (!response.data.success) {
@@ -255,10 +259,12 @@ export async function fetchStationInfo(
  * @returns 전체 노선별 역 정보
  */
 export async function fetchAllSeoulSubwayRoutes(
-  serviceKey: string
+  serviceKey: string,
 ): Promise<Record<string, KRICStation[]>> {
   // LINE_CODES의 모든 키 중 4자리 숫자(KRIC 코드)만 추출하여 대상 노선 설정
-  const seoulLines = Object.keys(LINE_CODES).filter(key => /^\d{4}$/.test(key));
+  const seoulLines = Object.keys(LINE_CODES).filter((key) =>
+    /^\d{4}$/.test(key),
+  );
 
   const results: Record<string, KRICStation[]> = {};
 
@@ -266,18 +272,26 @@ export async function fetchAllSeoulSubwayRoutes(
   const chunkSize = 5;
   for (let i = 0; i < seoulLines.length; i += chunkSize) {
     const chunk = seoulLines.slice(i, i + chunkSize);
-    await Promise.all(chunk.map(async (lineCode) => {
-      try {
-        const stations = await fetchSubwayRouteInfo(serviceKey, AREA_CODES.SEOUL, lineCode);
-        results[lineCode] = stations;
-        if (stations.length > 0) {
-          console.log(`✅ ${lineCode} 노선: ${stations.length}개역 로드 완료`);
+    await Promise.all(
+      chunk.map(async (lineCode) => {
+        try {
+          const stations = await fetchSubwayRouteInfo(
+            serviceKey,
+            AREA_CODES.SEOUL,
+            lineCode,
+          );
+          results[lineCode] = stations;
+          if (stations.length > 0) {
+            console.log(
+              `✅ ${lineCode} 노선: ${stations.length}개역 로드 완료`,
+            );
+          }
+        } catch (error) {
+          // 에러 로그 최소화
+          results[lineCode] = [];
         }
-      } catch (error) {
-        // 에러 로그 최소화
-        results[lineCode] = [];
-      }
-    }));
+      }),
+    );
   }
 
   return results;
@@ -289,25 +303,44 @@ export async function fetchAllSeoulSubwayRoutes(
  * @returns 전체 역사 상세 정보
  */
 export async function fetchAllSeoulStationInfo(
-  serviceKey: string
+  serviceKey: string,
 ): Promise<KRICStationInfo[]> {
   // 주요 상세 정보 수집 대상 노선 (서울교통공사 및 주요 광역철도)
-  const targetLines = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'B', 'S', 'K', 'G', 'A', 'I1', 'I2'];
+  const targetLines = [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "B",
+    "S",
+    "K",
+    "G",
+    "A",
+    "I1",
+    "I2",
+  ];
 
   const allStations: KRICStationInfo[] = [];
   const seenStationKeys = new Set<string>();
 
-  console.log(`🔄 Fetching station details for ${targetLines.length} major lines...`);
+  console.log(
+    `🔄 Fetching station details for ${targetLines.length} major lines...`,
+  );
 
   // 병렬 요청 (5개씩)
   const chunkSize = 5;
   for (let i = 0; i < targetLines.length; i += chunkSize) {
     const chunk = targetLines.slice(i, i + chunkSize);
-    const results = await Promise.all(chunk.map(line =>
-      fetchStationInfo(serviceKey, AREA_CODES.SEOUL, line)
-    ));
+    const results = await Promise.all(
+      chunk.map((line) => fetchStationInfo(serviceKey, AREA_CODES.SEOUL, line)),
+    );
 
-    results.flat().forEach(station => {
+    results.flat().forEach((station) => {
       const key = `${station.stinNm}-${station.lnNm}`;
       if (!seenStationKeys.has(key)) {
         seenStationKeys.add(key);
@@ -322,7 +355,6 @@ export async function fetchAllSeoulStationInfo(
   return allStations;
 }
 
-
 // KRIC 역 정보 변환 관여 함수들
 
 /**
@@ -336,9 +368,12 @@ export function convertKRICToSubwayStation(kricStations: KRICStation[]): Array<{
   lng: number;
   lines: string[];
 }> {
-  const stationMap = new Map<string, { lat: number; lng: number; lines: Set<string> }>();
+  const stationMap = new Map<
+    string,
+    { lat: number; lng: number; lines: Set<string> }
+  >();
 
-  kricStations.forEach(station => {
+  kricStations.forEach((station) => {
     const [lat, lng] = convertKRICToWGS84(station.xcrd, station.ycrd);
 
     // 유효하지 않은 좌표(0, 0)인 경우 역 목록에서 제외 (지도 상의 고아 역 방지)
@@ -370,7 +405,9 @@ export function convertKRICToSubwayStation(kricStations: KRICStation[]): Array<{
  * @param kricStationInfos KRIC 역사 정보 배열
  * @returns 변환된 역 정보 배열
  */
-export function convertKRICStationInfoToSubwayStation(kricStationInfos: KRICStationInfo[]): Array<{
+export function convertKRICStationInfoToSubwayStation(
+  kricStationInfos: KRICStationInfo[],
+): Array<{
   name: string;
   lat: number;
   lng: number;
@@ -379,9 +416,19 @@ export function convertKRICStationInfoToSubwayStation(kricStationInfos: KRICStat
   phone?: string;
   facilities?: string;
 }> {
-  const stationMap = new Map<string, { lat: number; lng: number; lines: Set<string>; address?: string; phone?: string; facilities?: string }>();
+  const stationMap = new Map<
+    string,
+    {
+      lat: number;
+      lng: number;
+      lines: Set<string>;
+      address?: string;
+      phone?: string;
+      facilities?: string;
+    }
+  >();
 
-  kricStationInfos.forEach(info => {
+  kricStationInfos.forEach((info) => {
     const [lat, lng] = convertKRICToWGS84(info.xcrd, info.ycrd);
     const stationName = info.stinNm;
 
@@ -418,38 +465,44 @@ export function convertKRICStationInfoToSubwayStation(kricStationInfos: KRICStat
 
 // getLineName 함수는 normalizeLineCode(lineCode)로 통합됨
 
-import { LINE_SEQUENCES } from './data/line-sequences';
+import { LINE_SEQUENCES } from "./data/line-sequences";
 
 /**
  * 노선별 좌표 경로 생성
  * KRIC 데이터와 하드코딩된 시퀀스를 결합하여 최적의 경로 생성 (스파이더 웹 방지)
  */
 export function generateLineRoutes(
-  kricStations: Record<string, KRICStation[]>
+  kricStations: Record<string, KRICStation[]>,
 ): Record<string, { color: string; coords: [number, number][] }> {
-  const routes: Record<string, { color: string; coords: [number, number][] }> = {};
+  const routes: Record<string, { color: string; coords: [number, number][] }> =
+    {};
 
   Object.entries(kricStations).forEach(([lineCode, stations]) => {
     if (stations.length === 0) return;
 
     const baseLineName = normalizeLineCode(lineCode);
-    const color = LINE_COLORS[lineCode as keyof typeof LINE_COLORS] || '#888';
+    const color = LINE_COLORS[lineCode as keyof typeof LINE_COLORS] || "#888";
 
     // 해당 노선에 대한 표준 시퀀스 찾기
-    const matchingSequences = Object.entries(LINE_SEQUENCES)
-      .filter(([key]) => key.split('-')[0] === baseLineName);
+    const matchingSequences = Object.entries(LINE_SEQUENCES).filter(
+      ([key]) => key.split("-")[0] === baseLineName,
+    );
 
     if (matchingSequences.length > 0) {
       // 1호선, 2호선 등 분기가 있는 노선 처리
       matchingSequences.forEach(([seqKey, sequence]) => {
         const coords = (sequence as string[])
-          .map(name => {
-            const station = stations.find(s =>
-              s.stinNm.replace(/\s/g, '') === name.replace(/\s/g, '')
+          .map((name) => {
+            const station = stations.find(
+              (s) => s.stinNm.replace(/\s/g, "") === name.replace(/\s/g, ""),
             );
-            return station ? convertKRICToWGS84(station.xcrd, station.ycrd) : null;
+            return station
+              ? convertKRICToWGS84(station.xcrd, station.ycrd)
+              : null;
           })
-          .filter((coord): coord is [number, number] => !!coord && coord[0] !== 0);
+          .filter(
+            (coord): coord is [number, number] => !!coord && coord[0] !== 0,
+          );
 
         if (coords.length > 1) {
           routes[seqKey] = { color, coords };
@@ -457,13 +510,15 @@ export function generateLineRoutes(
       });
     } else {
       // 시퀀스가 없는 노선은 기존대로 ordrNo 기반 정렬
-      const sortedStations = stations.sort((a, b) =>
-        parseInt(a.ordrNo) - parseInt(b.ordrNo)
+      const sortedStations = stations.sort(
+        (a, b) => parseInt(a.ordrNo) - parseInt(b.ordrNo),
       );
 
       const coords = sortedStations
-        .map(station => convertKRICToWGS84(station.xcrd, station.ycrd))
-        .filter(([lat, lng]) => lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng));
+        .map((station) => convertKRICToWGS84(station.xcrd, station.ycrd))
+        .filter(
+          ([lat, lng]) => lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng),
+        );
 
       if (coords.length > 1) {
         routes[lineCode] = { color, coords };
@@ -481,7 +536,11 @@ export function generateLineRoutes(
  */
 export async function validateServiceKey(serviceKey: string): Promise<boolean> {
   try {
-    const info = await fetchSubwayRouteInfo(serviceKey, AREA_CODES.SEOUL, LINE_CODES.LINE_1);
+    const info = await fetchSubwayRouteInfo(
+      serviceKey,
+      AREA_CODES.SEOUL,
+      LINE_CODES.LINE_1,
+    );
     return info && info.length > 0;
   } catch (error) {
     return false;
@@ -500,10 +559,12 @@ export function getKRICServiceKey(): string {
   // }
 
   // 환경변수에서 API 키 찾기
-  const key = process.env.KRIC_API_KEY || process.env.NEXT_PUBLIC_KRIC_API_KEY;
+  const key = process.env.KRIC_API_KEY || process.env.STATION_INFO_API_KEY;
 
   if (!key) {
-    throw new Error('KRIC API key not found. Please set KRIC_API_KEY or NEXT_PUBLIC_KRIC_API_KEY environment variable.');
+    throw new Error(
+      "KRIC API key not found. Please set KRIC_API_KEY or STATION_INFO_API_KEY environment variable.",
+    );
   }
 
   return key;

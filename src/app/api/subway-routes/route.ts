@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "../sync-utils";
 import { getKricCodes } from "@/lib/kric-codes";
 
 /**
  * KRIC 도시철도 전체노선정보 API 프록시
  * 서비스ID: subwayRouteInfo
  * 오퍼레이션ID: subwayRouteInfo
+ * 보안: 로그인 인증 필수 (익명 접근 차단)
  */
 
 // 캐시 유효 시간 (초) - 24시간 (역사 정보는 자주 변하지 않음)
 const CACHE_TTL = 86400;
 
 export async function GET(request: NextRequest) {
+  // 1. 로그인 인증 필수 (익명 접근 차단)
+  const supabase = await createClient();
+  const authError = await requireUser(supabase);
+  if (authError) return authError;
+
   const searchParams = request.nextUrl.searchParams;
   const line = searchParams.get("line") || "1";
 
