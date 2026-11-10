@@ -30,6 +30,7 @@ node scripts/sync-gg-all.js         # 경기도 전체 데이터 동기화
 ## 아키텍처
 
 ### 기술 스택
+
 - **프레임워크**: Next.js 16 (App Router)
 - **데이터베이스**: Supabase (PostgreSQL + RLS + Storage)
 - **스타일링**: Tailwind CSS 4 + 지하철 노선 색상용 CSS 변수
@@ -43,12 +44,15 @@ node scripts/sync-gg-all.js         # 경기도 전체 데이터 동기화
 - **테스트**: Vitest + jsdom (단위), Playwright (E2E)
 
 ### 경로 별칭
+
 `@/*` → `src/*` (tsconfig.json에 정의)
 
 ### 빌드 주의사항
+
 `next.config.ts`에는 `ignoreBuildErrors` 설정이 없으므로 빌드 시 타입 오류가 실패로 처리됩니다. 빌드 전 `npx tsc --noEmit`으로 타입 체크를 먼저 통과시키세요.
 
 ### 주요 디렉토리
+
 ```
 src/app/
 ├── lead-manager/           # 메인 애플리케이션 (인증 필요)
@@ -104,7 +108,9 @@ supabase/migrations/        # DB 마이그레이션 (YYYYMMDDHHMMSS_description.
 ```
 
 ### 서비스 레이어 패턴
+
 각 기능별 `*-service.ts` 파일이 Supabase CRUD 로직을 캡슐화:
+
 - `lead-service.ts` - 리드 CRUD (신규), `supabase-service.ts` - 리드 CRUD (레거시)
 - `inventory-service.ts` - 광고 인벤토리 CRUD
 - `crm-service.ts` - 통화 기록, 영업 진행상황
@@ -119,13 +125,15 @@ supabase/migrations/        # DB 마이그레이션 (YYYYMMDDHHMMSS_description.
 - `optimized-service.ts` - 성능 최적화 쿼리 래퍼
 
 ### 인증 및 멀티테넌시
-- `middleware.ts`가 세션 관리 및 라우트 보호
+
+- `src/proxy.ts`(Next.js 16 proxy, 구 middleware)가 세션 관리 및 라우트 보호
 - `/lead-manager/*` 보호됨 → 미인증 시 `/auth`로 리다이렉트
 - 조직(organization) 기반 데이터 격리: 사용자는 `organization_id`로 그룹화
 - RLS 정책이 조직별 데이터 접근 제어
 - `get_user_organization_ids()` SQL 함수로 RLS 무한 재귀 방지
 
 ### 데이터베이스 주요 테이블
+
 - `leads` - 사업장 리드 (위치, 상태, 인근역, assigned_to, mgt_no)
 - `ad_inventory` - 광고매체 인벤토리 (역, 유형, 가격)
 - `proposals` - 리드 연결 제안서 (is_external, pdf_url 포함)
@@ -138,24 +146,29 @@ supabase/migrations/        # DB 마이그레이션 (YYYYMMDDHHMMSS_description.
 - `activity_logs` - 활동 로그
 
 ### Supabase Storage
+
 - `floor-plans` 버킷: 역사 도면 이미지 저장 (노선/역명별 폴더 구조)
 - `proposals` 버킷: 외부 제안서 PDF 파일 저장
 
 ### 데이터 흐름
+
 1. LocalData.go.kr 또는 경기도 공공 API에서 사업자 인허가 데이터 조회
 2. proj4로 EPSG:5174/5181 → WGS84 좌표 변환
 3. Haversine 공식으로 가장 가까운 지하철역 계산
 4. 중복 체크 (`mgt_no` 또는 biz_name + road_address) 후 upsert 저장
 
 ### 리드 상태 흐름
+
 `NEW` → `PROPOSAL_SENT` → `CONTACTED` → `CONTRACTED`
 
 ### 업종 카테고리
+
 HEALTH, ANIMAL, FOOD, CULTURE, LIVING, ENVIRONMENT, OTHER - 각각 `CATEGORY_SERVICE_IDS`에 LocalData API 서비스 ID 매핑됨
 
 ## 환경 변수
 
 `.env.local` 필수:
+
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=

@@ -58,7 +58,7 @@ interface StationInfo {
   characteristics: string;
 }
 
-// ?대찓???좏슚??寃??
+// 이메일 유효성 검사
 const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
@@ -70,22 +70,22 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
   const [sending, setSending] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
 
-  // ???곹깭
+  // 폼 상태
   const [recipientEmail, setRecipientEmail] = useState('');
   const [selectedStation, setSelectedStation] = useState<StationInfo | null>(null);
   const [selectedInventory, setSelectedInventory] = useState<AdInventory[]>([]);
   const [discountRate, setDiscountRate] = useState(0);
   const [greetingMessage, setGreetingMessage] = useState('');
 
-  // ?몃깽?좊━ 紐⑸줉
+  // 인벤토리 목록
   const [availableInventory, setAvailableInventory] = useState<AdInventory[]>([]);
   const [loadingInventory, setLoadingInventory] = useState(false);
 
-  // 紐⑤떖 ?곹깭
+  // 모달 상태
   const [showPreview, setShowPreview] = useState(false);
   const [showConfirmSend, setShowConfirmSend] = useState(false);
 
-  // ?쒖븞???좏삎 諛??낅줈???곹깭
+  // 제안서 유형 및 업로드 상태
   const [proposalType, setProposalType] = useState<'AUTO' | 'UPLOAD' | 'AI'>(lead ? 'AUTO' : 'UPLOAD');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadTitle, setUploadTitle] = useState('');
@@ -100,26 +100,26 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiGenerating, setAiGenerating] = useState(false);
 
-  // 怨좊룄?? ?ㅼ쨷 泥⑤? 愿???곹깭
+  // 고도화: 다중 첨부 관련 상태
   const [externalProposals, setExternalProposals] = useState<Proposal[]>([]);
   const [selectedAttachmentIds, setSelectedAttachmentIds] = useState<string[]>([]);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
 
-  // 珥덇린 ?ㅼ젙 諛?沅뚰븳 ?뺤씤
+  // 초기 설정 및 권한 확인
   useEffect(() => {
-    // 沅뚰븳 ?뺤씤
+    // 권한 확인
     getCurrentUser().then(user => {
       setCurrentUser(user);
     });
 
-    // 湲곕낯 ?몄궗留??ㅼ젙
+    // 기본 인사말 설정
     if (lead) {
       setGreetingMessage(getDefaultGreeting(lead.bizName, lead.nearestStation));
 
-      // 媛??媛源뚯슫 ???먮룞 ?좏깮
+      // 가장 가까운 역 자동 선택
       if (lead.nearestStation) {
         const stationData = SUBWAY_STATIONS.find((s) => s.name === lead.nearestStation);
-        const extraInfo = STATION_INFO[lead.nearestStation] || { trafficDaily: 50000, characteristics: '吏?섏쿋???멸렐 ?곴텒' };
+        const extraInfo = STATION_INFO[lead.nearestStation] || { trafficDaily: 50000, characteristics: '지하철역 인근 상권' };
 
         if (stationData) {
           setSelectedStation({
@@ -131,16 +131,16 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
         }
       }
     } else {
-      setUploadTitle(`留ㅼ껜??怨듭슜 ?쒖븞??(${new Date().toLocaleDateString()})`);
+      setUploadTitle(`매체사 공용 제안서 (${new Date().toLocaleDateString()})`);
     }
 
-    // 留ㅼ껜???쒖븞???몃? ?뚯씪) 濡쒕뱶
+    // 매체사 제안서(외부 파일) 로드
     const loadExternalProposals = async () => {
       setIsLoadingAttachments(true);
       const result = await getProposals();
       if (result.success) {
-        // ?꾩옱 由щ뱶???대? ?낅줈?쒕맂 ?뚯씪?대굹, 議곗쭅 ?꾩껜?먯꽌 ?щ┛ 怨듭슜 ?뚯씪?ㅼ쓣 媛?몄샂
-        // ?ш린?쒕뒗 ?몄쓽??議곗쭅 ?꾩껜???몃? ?뚯씪????곸쑝濡???
+        // 현재 리드에 이미 업로드된 파일이나, 조직 전체에서 올린 공용 파일들을 가져옴
+        // 여기서는 편의상 조직 전체의 외부 파일을 대상으로 함
         setExternalProposals(result.proposals.filter(p => p.isExternal));
       }
       setIsLoadingAttachments(false);
@@ -149,7 +149,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     loadExternalProposals();
   }, [lead]);
 
-  // ?뚯씪 ?좏깮 ??湲곕낯 ?쒕ぉ ?ㅼ젙 (珥덇린媛믪씠 湲곕낯 由щ뱶 ?쒖븞???뺤떇?닿굅??怨듭슜 ?쒖븞???뺤떇??寃쎌슦?먮쭔 ??뼱?)
+  // 파일 선택 시 기본 제목 설정 (초기값이 기본 리드 제안서 형식이거나 공용 제안서 형식인 경우에만 덮어씀)
   useEffect(() => {
     if (uploadFile) {
       const isDefaultTitle = !uploadTitle || 
@@ -158,7 +158,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
       
       if (isDefaultTitle) {
         if (lead) {
-          setUploadTitle(`${lead.bizName} 愿묎퀬 ?쒖븞??(${uploadFile.name.split('.')[0]})`);
+          setUploadTitle(`${lead.bizName} 광고 제안서 (${uploadFile.name.split('.')[0]})`);
         } else {
           setUploadTitle(`${uploadFile.name.split('.')[0]}`);
         }
@@ -166,7 +166,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     }
   }, [uploadFile, lead, uploadTitle]);
 
-  // ... (loadInventory, toggleInventory, handleStationChange, handleSave, handleSendClick, handleSend??湲곗〈 濡쒖쭅 ?좎?) ...
+  // ... (loadInventory, toggleInventory, handleStationChange, handleSave, handleSendClick, handleSend는 기존 로직 유지) ...
 
   const loadInventory = async (stationName: string) => {
     setLoadingInventory(true);
@@ -197,7 +197,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
       }
     } catch (error) {
       console.error('Failed to load inventory:', error);
-      showNotification('error', '留ㅼ껜 紐⑸줉??遺덈윭?ㅻ뒗???ㅽ뙣?덉뒿?덈떎.');
+      showNotification('error', '매체 목록을 불러오는데 실패했습니다.');
     } finally {
       setLoadingInventory(false);
     }
@@ -216,7 +216,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
   const handleStationChange = (stationName: string) => {
     const stationData = SUBWAY_STATIONS.find((s) => s.name === stationName);
-    const extraInfo = STATION_INFO[stationName] || { trafficDaily: 50000, characteristics: '吏?섏쿋???멸렐 ?곴텒' };
+    const extraInfo = STATION_INFO[stationName] || { trafficDaily: 50000, characteristics: '지하철역 인근 상권' };
 
     if (stationData) {
       setSelectedStation({
@@ -282,7 +282,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
   const handleSave = async () => {
     if (!selectedStation) {
-      showNotification('error', '??궗瑜??좏깮?댁＜?몄슂.');
+      showNotification('error', '역사를 선택해주세요.');
       return;
     }
 
@@ -303,13 +303,13 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
       if (!createResult.success) throw new Error(createResult.message);
 
-      showNotification('success', '?쒖븞?쒓? ??λ릺?덉뒿?덈떎.');
+      showNotification('success', '제안서가 저장되었습니다.');
       setTimeout(() => {
         onSuccess?.();
         onClose();
       }, 1000);
     } catch (error) {
-      showNotification('error', `????ㅽ뙣: ${(error as Error).message}`);
+      showNotification('error', `저장 실패: ${(error as Error).message}`);
     } finally {
       setSaving(false);
     }
@@ -317,15 +317,15 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
 
   const handleSendClick = () => {
     if (!recipientEmail) {
-      showNotification('error', '?섏떊???대찓?쇱쓣 ?낅젰?댁＜?몄슂.');
+      showNotification('error', '수신자 이메일을 입력해주세요.');
       return;
     }
     if (!isValidEmail(recipientEmail)) {
-      showNotification('error', '?щ컮瑜??대찓???뺤떇???꾨떃?덈떎.');
+      showNotification('error', '올바른 이메일 형식이 아닙니다.');
       return;
     }
     if (!selectedStation) {
-      showNotification('error', '??궗瑜??좏깮?댁＜?몄슂.');
+      showNotification('error', '역사를 선택해주세요.');
       return;
     }
     setShowConfirmSend(true);
@@ -336,7 +336,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
     setSending(true);
 
     try {
-      // 1. ?쒖븞???뺣낫 DB??癒쇱? ???(DRAFT濡?
+      // 1. 제안서 정보 DB에 먼저 저장 (DRAFT로)
       const supabase = createClient();
       const sendResult = await createProposal(
         lead?.id || '',
@@ -350,43 +350,43 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
       );
 
       if (!sendResult.success || !sendResult.proposal) {
-        throw new Error(`?쒖븞???앹꽦 ?ㅽ뙣: ${sendResult.message}`);
+        throw new Error(`제안서 생성 실패: ${sendResult.message}`);
       }
 
       const proposal = sendResult.proposal;
 
-      // 2. 怨좊룄?붾맂 ?대찓??諛쒖넚 ?쒕퉬???몄텧 (?ㅼ쨷 泥⑤? ?ы븿)
+      // 2. 고도화된 이메일 발송 서비스 호출 (다중 첨부 포함)
       const result = await sendProposalEmail(
         proposal.id,
         {
           to: recipientEmail,
-          subject: `[?쒖슱 吏?섏쿋 愿묎퀬 ?쒖븞] ${lead?.bizName || '怨좉컼'}?섍퍡 ?쒕━???쒖븞?쒖엯?덈떎.`,
+          subject: `[서울 지하철 광고 제안] ${lead?.bizName || '고객'}님께 드리는 제안서입니다.`,
           body: greetingMessage,
         },
         selectedAttachmentIds
       );
 
       if (result.success) {
-        showNotification('success', '?쒖븞?쒖? 泥⑤??뚯씪???깃났?곸쑝濡?諛쒖넚?섏뿀?듬땲??');
+        showNotification('success', '제안서와 첨부파일이 성공적으로 발송되었습니다!');
         setTimeout(() => {
           onSuccess?.();
           onClose();
         }, 1500);
       } else {
-        showNotification('error', `諛쒖넚 ?ㅽ뙣: ${result.message}`);
+        showNotification('error', `발송 실패: ${result.message}`);
       }
     } catch (error) {
-      showNotification('error', `諛쒖넚 ?ㅻ쪟: ${(error as Error).message}`);
+      showNotification('error', `발송 오류: ${(error as Error).message}`);
     } finally {
       setSending(false);
     }
   };
 
-  // ?뚯씪 ?낅줈??泥섎━ 怨좊룄??
+  // 파일 업로드 처리 고도화
   const handleUpload = async () => {
     if (!uploadFile) return;
     if (!uploadTitle.trim()) {
-      showNotification('error', '?쒖븞???쒕ぉ???낅젰?댁＜?몄슂.');
+      showNotification('error', '제안서 제목을 입력해주세요.');
       return;
     }
 
@@ -401,10 +401,10 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
           onClose();
         }, 1500);
       } else {
-        showNotification('error', `?낅줈???ㅽ뙣: ${result.message}`);
+        showNotification('error', `업로드 실패: ${result.message}`);
       }
     } catch (error) {
-      showNotification('error', `?낅줈???ㅻ쪟: ${(error as Error).message}`);
+      showNotification('error', `업로드 오류: ${(error as Error).message}`);
     } finally {
       setUploading(false);
     }
@@ -429,15 +429,15 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
       const ext = file.name.split('.').pop()?.toLowerCase();
       if (['pdf', 'ppt', 'pptx'].includes(ext || '')) {
         setUploadFile(file);
-        // ?뚯씪 ?쒕ぉ ?먮룞 ?ㅼ젙
+        // 파일 제목 자동 설정
         setUploadTitle(file.name.split('.')[0]);
       } else {
-        showNotification('error', 'PDF ?먮뒗 PPT ?뚯씪留??낅줈??媛?ν빀?덈떎.');
+        showNotification('error', 'PDF 또는 PPT 파일만 업로드 가능합니다.');
       }
     }
   };
 
-  // 沅뚰븳 ?뺤씤: SuperAdmin ?닿굅??Admin/Owner ??寃쎌슦?먮쭔 ?낅줈??媛??
+  // 권한 확인: SuperAdmin 이거나 Admin/Owner 인 경우에만 업로드 가능
   const canUpload = currentUser?.isSuperAdmin || currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
   const emailValid = recipientEmail && isValidEmail(recipientEmail);
@@ -454,15 +454,15 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
           className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b bg-[var(--bg-primary)] border-[var(--border-subtle)]"
         >
           <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">愿묎퀬 ?쒖븞???묒꽦</h2>
+            <h2 className="text-xl font-bold text-[var(--text-primary)]">광고 제안서 작성</h2>
             <p className="text-sm text-[var(--text-muted)]">{lead?.bizName || '공용 매체 보관함'}</p>
           </div>
-          <button onClick={onClose} title="?リ린" className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
+          <button onClick={onClose} title="닫기" className="p-2 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors">
             <X className="w-5 h-5 text-[var(--text-muted)]" />
           </button>
         </div>
 
-        {/* ?쒖븞???좏삎 ?좏깮 ??*/}
+        {/* 제안서 유형 선택 탭 */}
         <div className="flex px-6 pt-6 gap-2">
           {lead ? (
             <button
@@ -517,7 +517,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
           ) : (
             <div title="관리자 권한이 필요합니다" className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100/10 text-slate-500 cursor-not-allowed opacity-50 grayscale border-2 border-transparent">
               <FileUp className="w-5 h-5" />
-              <span className="font-bold">留ㅼ껜??沅뚰븳 ?꾩슜</span>
+              <span className="font-bold">매체사 권한 전용</span>
             </div>
           )}
         </div>
@@ -549,7 +549,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                   {emailValid && <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />}
                   {emailInvalid && <AlertCircle className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />}
                 </div>
-                {emailInvalid && <p className="mt-1 text-sm text-red-400">?щ컮瑜??대찓???뺤떇???낅젰?댁＜?몄슂.</p>}
+                {emailInvalid && <p className="mt-1 text-sm text-red-400">올바른 이메일 형식을 입력해주세요.</p>}
               </div>
 
               <div>
@@ -569,7 +569,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                   <option value="">역사를 선택하세요</option>
                   {SUBWAY_STATIONS.map((station) => (
                     <option key={station.name} value={station.name}>
-                      {station.name}??({station.lines.join(', ')}?몄꽑)
+                      {station.name}역 ({station.lines.join(', ')}호선)
                     </option>
                   ))}
                 </select>
@@ -604,7 +604,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                         <Users className="w-4 h-4 text-[var(--metro-line2)]" />
                         <span>일일 이용객: </span>
                         <span className="font-semibold text-[var(--text-primary)]">
-                          {selectedStation.trafficDaily.toLocaleString()}紐?
+                          {selectedStation.trafficDaily.toLocaleString()}명
                         </span>
                       </div>
                       <div className="flex items-start gap-2 text-[var(--text-secondary)]">
@@ -619,7 +619,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               <div>
                 <p id="inventory-heading" className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                   <MapPin className="w-4 h-4 inline mr-2" />
-                  愿묎퀬 留ㅼ껜 ?좏깮
+                  광고 매체 선택
                 </p>
                 <div role="group" aria-labelledby="inventory-heading" className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {loadingInventory ? (
@@ -662,11 +662,11 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                 </div>
               </div>
 
-              {/* 怨좊룄?? 留ㅼ껜 ?쒖븞??異붽? 泥⑤? ?뱀뀡 */}
+              {/* 고도화: 매체 제안서 추가 첨부 섹션 */}
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <p id="attachment-heading" className="block text-sm font-semibold text-[var(--text-secondary)] mb-3">
                   <FilePlus className="w-4 h-4 inline mr-2 text-[var(--metro-line2)]" />
-                  留ㅼ껜 ?쒖븞??異붽? 泥⑤? (湲곗〈 ?낅줈???뚯씪)
+                  매체 제안서 추가 첨부 (기존 업로드 파일)
                 </p>
                 <div role="group" aria-labelledby="attachment-heading" className="bg-[var(--bg-tertiary)] p-4 rounded-2xl border border-[var(--border-subtle)] space-y-3">
                   {isLoadingAttachments ? (
@@ -712,13 +712,13 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                   {selectedAttachmentIds.length > 0 && (
                     <div className="pt-2 flex items-center gap-2 text-xs text-[var(--metro-line2)] font-bold">
                       <CheckCircle className="w-3 h-3" />
-                      {selectedAttachmentIds.length}媛쒖쓽 留ㅼ껜 ?쒖븞?쒓? 異붽?濡?泥⑤??⑸땲??
+                      {selectedAttachmentIds.length}개의 매체 제안서가 추가로 첨부됩니다.
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* ?몄궗留??낅젰 */}
+              {/* 인사말 입력 */}
               <div>
                 <label htmlFor="greeting-message" className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">
                   <FileText className="w-4 h-4 inline mr-2" />
@@ -933,7 +933,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
             </div>
           ) : (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              {/* ?쒕ぉ ?낅젰 ?꾨뱶 異붽? */}
+              {/* 제목 입력 필드 추가 */}
               <div>
                 <label htmlFor="upload-title" className="block text-sm font-semibold text-[var(--text-secondary)] mb-2">제안서 제목</label>
                 <input
@@ -942,12 +942,12 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                   type="text"
                   value={uploadTitle}
                   onChange={(e) => setUploadTitle(e.target.value)}
-                  placeholder="?? 媛뺣궓??愿묎퀬 ?쒖븞??- XX?깊삎?멸낵"
+                  placeholder="예: 강남역 광고 제안서 - XX성형외과"
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--metro-line4)]"
                 />
               </div>
 
-              {/* ?쒕옒洹????쒕∼ ?곸뿭 */}
+              {/* 드래그 앤 드롭 영역 */}
               <div className={`relative text-center p-8 border-2 border-dashed rounded-2xl transition-colors group overflow-hidden focus-within:ring-2 focus-within:ring-[var(--metro-line4)] ${
                   dragActive ? 'border-[var(--metro-line4)] bg-[var(--bg-tertiary)]' : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)]'
                 }`}
@@ -977,16 +977,16 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                       <FileUp className="w-8 h-8 text-[var(--metro-line4)]" />
                     </div>
                     <p className="text-lg font-bold text-[var(--text-primary)] mb-1">
-                      ?쒖븞???뚯씪???ш린???쒕옒洹명븯?몄슂
+                      제안서 파일을 여기에 드래그하세요
                     </p>
                     <p className="text-sm text-[var(--text-muted)] mb-6">
-                      PDF, PPT, PPTX ?뚯씪 吏??(理쒕? 100MB)
+                      PDF, PPT, PPTX 파일 지원 (최대 100MB)
                     </p>
                     <label
                       htmlFor="file-upload"
                       className="px-6 py-2.5 rounded-xl bg-[var(--metro-line4)] text-white font-bold cursor-pointer hover:shadow-lg hover:shadow-[var(--metro-line4)]/20 transition-all active:scale-95"
                     >
-                      ?뚯씪 ?좏깮?섍린
+                      파일 선택하기
                     </label>
                   </div>
                 ) : (
@@ -1006,15 +1006,15 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                       className="relative pointer-events-auto text-sm text-red-400 hover:text-red-300 transition-colors font-medium flex items-center gap-1"
                     >
                       <XCircle className="w-4 h-4" />
-                      ?ㅻⅨ ?뚯씪 ?좏깮
+                      다른 파일 선택
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* ?낅줈?????곹깭 ?좏깮 */}
+              {/* 업로드 시 상태 선택 */}
               <div className="flex flex-col gap-3">
-                <p id="upload-status-heading" className="text-sm font-semibold text-[var(--text-secondary)]">?낅줈?????곹깭 ?ㅼ젙</p>
+                <span id="upload-status-heading" className="text-sm font-semibold text-[var(--text-secondary)]">업로드 후 상태 설정</span>
                 <div role="group" aria-labelledby="upload-status-heading" className="flex gap-2">
                   <button
                     type="button" aria-pressed={uploadStatus === 'SENT'} onClick={() => setUploadStatus('SENT')}
@@ -1024,8 +1024,8 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                         : 'border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-muted)]'
                     }`}
                   >
-                    <div className="font-bold mb-1">?낅줈??諛?諛쒖넚 泥섎━</div>
-                    <div className="text-xs opacity-70">?쒖뒪?쒖뿉???쒖븞??諛쒖넚 ?꾨즺濡?泥섎━?⑸땲??</div>
+                    <div className="font-bold mb-1">업로드 및 발송 처리</div>
+                    <div className="text-[10px] opacity-70">시스템에서 제안서 발송 완료로 처리됩니다.</div>
                   </button>
                   <button
                     type="button" aria-pressed={uploadStatus === 'DRAFT'} onClick={() => setUploadStatus('DRAFT')}
@@ -1036,7 +1036,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                     }`}
                   >
                     <div className="font-bold mb-1">임시 저장</div>
-                    <div className="text-xs opacity-70">?낅줈?쒕쭔 ?섍퀬 諛쒖넚 泥섎━???섏쨷???⑸땲??</div>
+                    <div className="text-[10px] opacity-70">업로드만 하고 발송 처리는 나중에 합니다.</div>
                   </button>
                 </div>
               </div>
@@ -1045,7 +1045,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                 <Info className="w-5 h-5 text-[var(--metro-line4)] flex-shrink-0 mt-0.5" />
                 <div className="text-sm text-[var(--text-muted)] leading-relaxed">
                   <p className="font-bold text-[var(--text-primary)] mb-1">직접 업로드 기능 고도화</p>
-                  ?낅줈?쒕맂 ?쒖븞?쒕뒗 ?대떦 由щ뱶? ?먮룞?쇰줈 ?곌껐?섎ŉ, 議곗쭅 ???ㅻⅨ 愿由ъ옄?ㅺ낵??蹂닿??⑥뿉??怨듭쑀?⑸땲??
+                  업로드된 제안서는 담당 리드와 자동으로 연결되며, 조직 내 다른 관리자들과도 보관함에서 공유됩니다.
                 </div>
               </div>
             </div>
@@ -1056,7 +1056,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
           className="sticky bottom-0 flex items-center justify-end gap-3 px-6 py-4 border-t bg-[var(--bg-primary)] border-[var(--border-subtle)]"
         >
           <button onClick={onClose} className="px-5 py-2.5 rounded-xl font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors">
-            痍⑥냼
+            취소
           </button>
           {proposalType === 'AUTO' ? (
             <>
@@ -1066,7 +1066,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50 hover:scale-105 bg-[var(--metro-line4)]"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                ???
+                저장
               </button>
               <button
                 onClick={handleSendClick}
@@ -1074,7 +1074,7 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50 hover:scale-105 bg-[var(--metro-line2)]"
               >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                ?대찓??諛쒖넚
+                이메일 발송
               </button>
             </>
           ) : proposalType === 'AI' ? (
@@ -1097,12 +1097,12 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
               {uploading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  ?뚯씪 泥섎━ 以?..
+                  파일 처리 중...
                 </>
               ) : (
                 <>
                   <FilePlus className="w-5 h-5" />
-                  ?쒖븞???낅줈???꾨즺
+                  제안서 업로드 완료
                 </>
               )}
             </button>
@@ -1115,12 +1115,12 @@ export default function ProposalForm({ lead, onClose, onSuccess }: ProposalFormP
           <button type="button" aria-label="발송 확인 닫기" className="absolute inset-0 bg-black/70" onClick={() => setShowConfirmSend(false)} />
           <div className="relative w-full max-w-md rounded-2xl border p-6 bg-[var(--bg-primary)] border-[var(--border-subtle)] animate-float">
             <div className="text-center mb-6">
-              <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">?대찓??諛쒖넚 ?뺤씤</h3>
-              <p className="text-[var(--text-secondary)]">?쒖븞?쒕? {recipientEmail}?섍퍡 諛쒖넚?좉퉴??</p>
+              <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">이메일 발송 확인</h3>
+              <p className="text-[var(--text-secondary)]">제안서를 {recipientEmail}님께 발송할까요?</p>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowConfirmSend(false)} className="flex-1 px-4 py-3 rounded-xl font-semibold text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">痍⑥냼</button>
-              <button onClick={handleSend} className="flex-1 px-4 py-3 rounded-xl font-semibold text-white bg-[var(--metro-line2)] hover:scale-105 transition-transform">諛쒖넚?섍린</button>
+              <button onClick={() => setShowConfirmSend(false)} className="flex-1 px-4 py-3 rounded-xl font-semibold text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">취소</button>
+              <button onClick={handleSend} className="flex-1 px-4 py-3 rounded-xl font-semibold text-white bg-[var(--metro-line2)] hover:scale-105 transition-transform">발송하기</button>
             </div>
           </div>
         </div>

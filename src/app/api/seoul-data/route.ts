@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const endIndex = parseInt(searchParams.get('end') || '100');
   const query = searchParams.get('query') || '';
   
-  // ?대씪?댁뼵?멸? ?꾨떖??而ㅼ뒪?� API ???뚯떛
+  // 클라이언트가 전달한 커스텀 API 키 파싱
   const customApiKey = request.headers.get('x-api-key') || searchParams.get('apiKey') || undefined;
 
   if (!service) {

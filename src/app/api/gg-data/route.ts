@@ -14,15 +14,15 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const pIndex = searchParams.get('pIndex') || '1';
   const pSize = searchParams.get('pSize') || '100';
-  const sigunNm = searchParams.get('sigunNm'); // ?쒓뎔紐??꾪꽣 (?듭뀡)
-  const sync = searchParams.get('sync') === 'true'; // DB ?숆린???щ?
+  const sigunNm = searchParams.get('sigunNm'); // 시군명 필터 (옵션)
+  const sync = searchParams.get('sync') === 'true'; // DB 동기화 여부
   const customApiKey = searchParams.get('apiKey');
 
   try {
     const activeApiKey = customApiKey || GG_DATA_API_KEY;
     if (!activeApiKey) {
       return NextResponse.json(
-        { success: false, error: 'API ?ㅺ? ?ㅼ젙?섏? ?딆븯?듬땲??' },
+        { success: false, error: 'API 키가 설정되지 않았습니다.' },
         { status: 500 }
       );
     }
@@ -37,19 +37,19 @@ export async function GET(request: NextRequest) {
       apiUrl.searchParams.set('SIGUN_NM', sigunNm);
     }
 
-    console.log(`[GG Data API] ?붿껌: pIndex=${pIndex}, pSize=${pSize}, sigunNm=${sigunNm || '?꾩껜'}, sync=${sync}`);
+    console.log(`[GG Data API] 요청: pIndex=${pIndex}, pSize=${pSize}, sigunNm=${sigunNm || '전체'}, sync=${sync}`);
 
     const response = await fetch(apiUrl.toString());
     
     if (!response.ok) {
-      throw new Error(`API ?묐떟 ?ㅻ쪟: ${response.status}`);
+      throw new Error(`API 응답 오류: ${response.status}`);
     }
 
     const data = await response.json();
 
     if (!data.TninsttInstutM) {
       const errorCode = data.RESULT?.CODE || 'UNKNOWN';
-      const errorMsg = data.RESULT?.MESSAGE || '?곗씠?곕? 李얠쓣 ???놁뒿?덈떎.';
+      const errorMsg = data.RESULT?.MESSAGE || '데이터를 찾을 수 없습니다.';
       
       return NextResponse.json({
         success: false,
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     const totalCount = head.find((h: any) => h.list_total_count)?.list_total_count || 0;
     const rows = data.TninsttInstutM[1].row || [];
 
-    // 由щ뱶 ?뺤떇?쇰줈 留ㅽ븨
+    // 리드 형식으로 매핑
     const leads = rows.map((row: any) => {
       const lat = parseFloat(row.REFINE_WGS84_LAT);
       const lng = parseFloat(row.REFINE_WGS84_LOGT);
@@ -93,14 +93,14 @@ export async function GET(request: NextRequest) {
       const { error: dbError } = await upsertLeadsByMgtNo(supabase, dbLeads);
 
       if (dbError) {
-        console.error('[GG Data API] DB ?�???ㅻ쪟:', dbError);
+        console.error('[GG Data API] DB 저장 오류:', dbError);
         return NextResponse.json({
           success: false,
-          error: `DB ?�???ㅽ뙣: ${dbError.message}`,
+          error: `DB 저장 실패: ${dbError.message}`,
         });
       }
       
-      console.log(`[GG Data API] ${leads.length}嫄??숆린???꾨즺`);
+      console.log(`[GG Data API] ${leads.length}건 동기화 완료`);
     }
 
     return NextResponse.json({
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       totalCount,
       leads: leads.map((l: any) => ({
         ...l,
-        bizName: l.biz_name, // ?섏쐞 ?명솚?깆쓣 ?꾪빐 camelCase ?꾨뱶 異붽?
+        bizName: l.biz_name, // 하위 호환성을 위해 camelCase 필드 추가
         roadAddress: l.road_address,
         nearestStation: l.nearest_station,
         stationDistance: l.station_distance,
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('[GG Data API] ?ㅻ쪟:', error);
+    console.error('[GG Data API] 오류:', error);
     return NextResponse.json(
       { success: false, error: (error as Error).message },
       { status: 500 }

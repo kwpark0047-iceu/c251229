@@ -13,6 +13,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createRateLimiter, getClientKey, isSameOrigin } from '@/lib/api-guard';
+
+// 남용 방지: 공개 위젯이므로 로그인 대신 IP당 1분 20회로 제한 (AI 호출 비용 보호)
+const isRateLimited = createRateLimiter({ windowMs: 60_000, maxRequests: 20 });
 
 interface ProposalRequest {
   name: string;
@@ -456,6 +460,12 @@ function getStationLine(stationName: string): string | null {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!isSameOrigin(request)) {
+      return NextResponse.json({ success: false, message: '다른 사이트에서 보낸 요청은 허용되지 않습니다.' }, { status: 403 });
+    }
+    if (isRateLimited(getClientKey(request))) {
+      return NextResponse.json({ success: false, message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429 });
+    }
     const body: ProposalRequest = await request.json();
     const supabase = await createClient();
 
