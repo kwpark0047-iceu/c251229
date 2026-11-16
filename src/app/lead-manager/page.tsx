@@ -725,7 +725,7 @@ function LeadManagerContent() {
                 <Train className="w-5 h-5 text-white" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-[var(--text-primary)] leading-tight">지하철 광고</h1>
+                <h1 className="text-lg font-bold text-[var(--text-primary)] leading-tight">로컬영업/마케팅</h1>
                 <p className="text-xs text-[var(--text-muted)] font-medium tracking-wider uppercase">리드 매니저</p>
               </div>
             </Link>
