@@ -35,6 +35,8 @@ interface GridViewProps {
   isFieldMode?: boolean;
   currentPage: number;
   totalCount: number;
+  countKnown?: boolean;
+  hasNext?: boolean;
   pageSize: number;
   onPageChange: (page: number) => void;
   onRefresh?: () => void;
@@ -51,6 +53,8 @@ export default function GridView({
   isFieldMode = false,
   currentPage,
   totalCount,
+  countKnown = true,
+  hasNext = false,
   pageSize,
   onPageChange,
   onRefresh,
@@ -91,7 +95,7 @@ export default function GridView({
         ))}
       </div>
 
-      {totalCount > pageSize && (
+      {(currentPage > 1 || hasNext || (countKnown && totalCount > pageSize)) && (
         <div className="mt-8 mb-4 flex items-center justify-center gap-2">
           <button type="button"
             onClick={() => onPageChange(currentPage - 1)}
@@ -103,7 +107,7 @@ export default function GridView({
           </button>
 
           <div className="flex items-center gap-2 px-4">
-            {Array.from({ length: Math.min(5, Math.ceil(totalCount / pageSize)) }, (_, i) => {
+            {!countKnown ? <span>{currentPage}페이지</span> : Array.from({ length: Math.min(5, Math.ceil(totalCount / pageSize)) }, (_, i) => {
               const totalPages = Math.ceil(totalCount / pageSize);
               let pageNum = i + 1;
               if (totalPages > 5 && currentPage > 3) {
@@ -130,7 +134,7 @@ export default function GridView({
 
           <button type="button"
             onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+            disabled={!hasNext && (!countKnown || currentPage >= Math.ceil(totalCount / pageSize))}
             title="다음 페이지"
             className="p-2.5 rounded-xl border border-[var(--glass-border)] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] bg-[var(--glass-bg)]"
           >

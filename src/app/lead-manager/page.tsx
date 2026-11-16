@@ -46,9 +46,10 @@ import { DEFAULT_SETTINGS, METRO_TAB_COLORS, SUBWAY_STATIONS } from './constants
 import { METRO_LINE_NAMES } from '@/lib/constants';
 import { formatDateDisplay, getPreviousMonth24th } from './utils';
 import { fetchAllLeads, testAPIConnection } from './api';
-import { getLeads, saveLeads, updateLeadStatus, getSettings, saveSettings, mergeDuplicateLeadsInDB, deleteLeadsByIds, restoreLeadsByIds } from './supabase-service';
+import { getLeads, getLeadCount, saveLeads, updateLeadStatus, getSettings, saveSettings, mergeDuplicateLeadsInDB, deleteLeadsByIds, restoreLeadsByIds } from './supabase-service';
 import { getCurrentUser, signOut, UserInfo, logActivity } from './auth-service';
 import { memberAccessFeedback } from './member-access-feedback';
+import { createLeadRequestTracker } from './lead-request-tracker';
 import { getProgressBatch, getLastContactDates } from './crm-service';
 import { SalesProgress } from './types';
 import { isAddressInRegions, RegionCode } from './region-utils';
@@ -153,6 +154,8 @@ function LeadManagerContent() {
 
       const removedCount = Math.max(0, leads.length - finalLeads.length);
       setLeads(finalLeads);
+      leadRequest.current.invalidate();
+      setCountState('unknown');
       setTotalCount(prev => Math.max(0, prev - removedCount));
       showNotification('success', mergedCount > 0 ? `중복 리드 ${mergedCount}그룹 병합 완료` : '병합할 중복 리드가 없습니다.');
     } catch (error) {
@@ -173,6 +176,8 @@ function LeadManagerContent() {
         return;
       }
       setLeads(prev => prev.filter(l => !duplicateIds.includes(l.id)));
+      leadRequest.current.invalidate();
+      setCountState('unknown');
       setTotalCount(prev => Math.max(0, prev - duplicateIds.length));
       showNotification('success', result.message);
     } catch (error) {
@@ -196,6 +201,8 @@ function LeadManagerContent() {
       
       // 로컬 상태에서 제거
       setLeads(prev => prev.filter(l => l.id !== leadId));
+      leadRequest.current.invalidate();
+      setCountState('unknown');
       setTotalCount(prev => Math.max(0, prev - 1));
       
       // Undo 토스트 표시 (sonner의 action 지원)
@@ -299,6 +306,13 @@ function LeadManagerContent() {
   // 페이지네이션 상태
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [countState, setCountState] = useState<'loading' | 'known' | 'unknown'>('unknown');
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const leadRequest = useRef(createLeadRequestTracker());
+  useEffect(() => {
+    const tracker = leadRequest.current;
+    return () => tracker.invalidate();
+  }, []);
   const PAGE_SIZE = 50;
 
   // 초기 로딩 상태
@@ -320,11 +334,16 @@ function LeadManagerContent() {
     search: string = '',
     user?: UserInfo | null
   ) => {
-    setIsLoading(true);
     const currentUser = user !== undefined ? user : userInfo;
-    
+    const key = JSON.stringify([category || categoryFilter, regions || selectedRegions, page, search || searchQuery,
+      statusFilter, dateRange, settings.searchType, currentUser, selectedServiceIds]);
+    const request = leadRequest.current.begin(key);
+    if (!request) return;
+    const { isCurrent } = request;
+    setIsLoading(true);
+    setCountState('loading');
     try {
-      const result = await getLeads({
+      const filters = {
         category: category || categoryFilter,
         regions: regions || selectedRegions,
         status: statusFilter === 'ALL' ? undefined : statusFilter,
@@ -336,29 +355,51 @@ function LeadManagerContent() {
         pageSize: PAGE_SIZE,
         userInfo: currentUser || undefined,
         serviceIds: selectedServiceIds.length > 0 ? selectedServiceIds : undefined
-      });
-
+      };
+      const result = await getLeads({ ...filters, countMode: 'none' });
+      if (!isCurrent()) return;
       if (result.success) {
         setLeads(result.leads);
-        setTotalCount(result.count || 0);
+        setIsLoading(false);
+        setHasNextPage(result.hasNext ?? false);
+        setTotalCount(0);
+        void getLeadCount(filters).then(countResult => {
+          if (!isCurrent()) return;
+          if (countResult.success && countResult.count !== null) {
+            setTotalCount(countResult.count);
+            setCountState('known');
+          } else {
+            setCountState('unknown');
+          }
+        }).catch(() => { if (isCurrent()) setCountState('unknown'); });
         setCurrentPage(page);
+        request.finish();
 
         if (result.leads.length > 0) {
           const leadIds = result.leads.map(l => l.id);
           const progressData = await getProgressBatch(leadIds);
+          if (!isCurrent()) return;
           setSalesProgressMap(progressData);
-          // 미접촉 판정용 마지막 통화 시각 조회
-          getLastContactDates(leadIds).then(setLastContactMap);
+          // 이전 필터의 비동기 결과가 현재 목록을 덮지 않도록 한다.
+          void getLastContactDates(leadIds).then(data => {
+            if (isCurrent()) setLastContactMap(data);
+          }).catch(() => {});
         }
       } else {
+        setCountState('unknown');
         console.error('[LoadLeads] API Error:', result.message);
         showNotification('error', result.message || '데이터를 불러오지 못했습니다.');
       }
     } catch (error) {
+      if (!isCurrent()) return;
+      setCountState('unknown');
       console.error('[LoadLeads] Exception:', error);
       showNotification('error', '데이터 로딩 중 오류가 발생했습니다.');
     } finally {
-      setIsLoading(false);
+      if (isCurrent()) {
+        request.finish();
+        setIsLoading(false);
+      }
     }
   }, [categoryFilter, selectedRegions, statusFilter, searchQuery, dateRange, settings.searchType, showNotification, userInfo, selectedServiceIds]);
 
@@ -954,7 +995,7 @@ function LeadManagerContent() {
                       <Calendar className="w-3.5 h-3.5 inline mr-1" />미접촉 {UNCONTACTED_DAYS}일
                     </button>
                   </div>
-                  <span className="text-sm font-semibold text-[var(--metro-line2)]">{totalCount.toLocaleString()}건 조회됨</span>
+                  <span className="text-sm font-semibold text-[var(--metro-line2)]">{countState === 'known' ? `${totalCount.toLocaleString()}건 조회됨` : countState === 'loading' ? '전체 건수 확인 중' : '전체 건수 미확인'}</span>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-[var(--text-muted)]">세부:</span>
@@ -1012,7 +1053,7 @@ function LeadManagerContent() {
                 {leads.length > 0 && (
                   <DuplicateManager leads={leads} onMergeDuplicates={handleMergeDuplicates} onRemoveDuplicates={handleRemoveDuplicates} />
                 )}
-{viewMode === 'grid' && <GridView leads={filteredLeads} onStatusChange={handleStatusChange} onDeleteLead={handleDeleteLead} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} isFieldMode={isFieldMode} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} onSopoClick={async (lead) => {
+{viewMode === 'grid' && <GridView leads={filteredLeads} onStatusChange={handleStatusChange} onDeleteLead={handleDeleteLead} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} isFieldMode={isFieldMode} currentPage={currentPage} totalCount={totalCount} countKnown={countState === 'known'} hasNext={hasNextPage} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} onSopoClick={async (lead) => {
     if (userInfo?.permissions?.can_export || userInfo?.isSuperAdmin) {
       setSelectedLead(lead);
       setSopoModalOpen(true);
@@ -1020,7 +1061,7 @@ function LeadManagerContent() {
       showNotification('error', 'SOPO 조회 권한이 없습니다.');
     }
   }} />}
-                  {viewMode === 'list' && <ListView leads={filteredLeads} onStatusChange={handleStatusChange} onDeleteLead={handleDeleteLead} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} currentPage={currentPage} totalCount={totalCount} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} onSopoClick={async (lead) => {
+                  {viewMode === 'list' && <ListView leads={filteredLeads} onStatusChange={handleStatusChange} onDeleteLead={handleDeleteLead} searchQuery={searchQuery} onMapView={(l) => { setMapFocusLead(l); setViewMode('map'); }} salesProgressMap={salesProgressMap} currentPage={currentPage} totalCount={totalCount} countKnown={countState === 'known'} hasNext={hasNextPage} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} onRefresh={() => loadLeadsFromDB(categoryFilter, selectedRegions, currentPage, searchQuery)} sortByScore={sortByScore} onSopoClick={async (lead) => {
     if (userInfo?.permissions?.can_export || userInfo?.isSuperAdmin) {
       setSelectedLead(lead);
       setSopoModalOpen(true);

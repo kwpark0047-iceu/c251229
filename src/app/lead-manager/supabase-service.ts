@@ -251,21 +251,32 @@ export async function saveLeads(
 /**
  * 리드 목록 조회
  */
-export async function getLeads(filters?: {
+export interface LeadQueryFilters {
   status?: LeadStatus;
   category?: BusinessCategory;
   nearestStation?: string;
   startDate?: string;
   endDate?: string;
   searchType?: 'license_date' | 'modified_date'; // 날짜 필터 기준 컬럼
-  countMode?: 'exact' | 'estimated'; // 건수 계산 방식 (타임아웃 시 estimated로 재시도)
+  countMode?: 'exact' | 'estimated' | 'none';
   regions?: string[];
   serviceIds?: string[];
   searchQuery?: string;
   page?: number;
   pageSize?: number;
   userInfo?: any;
-}): Promise<{ success: boolean; leads: Lead[]; count: number; message?: string }> {
+}
+
+export function getLeads(filters?: LeadQueryFilters) {
+  return executeLeadQuery(filters);
+}
+
+export async function getLeadCount(filters?: LeadQueryFilters): Promise<{ success: boolean; count: number | null }> {
+  const result = await executeLeadQuery(filters, true);
+  return { success: result.success, count: result.success ? result.count : null };
+}
+
+async function executeLeadQuery(filters?: LeadQueryFilters, countOnly = false): Promise<{ success: boolean; leads: Lead[]; count: number; hasNext?: boolean; message?: string }> {
   try {
     const supabase = getSupabase();
 
@@ -291,10 +302,13 @@ export async function getLeads(filters?: {
       page
     });
 
-    let query = supabase
-      .from('leads')
-      .select('*', { count: filters?.countMode ?? 'exact' })
-      .order(dateColumn, { ascending: false, nullsFirst: false })
+    const table = supabase.from('leads');
+    let query = countOnly
+      ? table.select('*', { count: 'exact', head: true })
+      : filters?.countMode === 'none'
+        ? table.select('*')
+        : table.select('*', { count: filters?.countMode ?? 'exact' });
+    if (!countOnly) query = query.order(dateColumn, { ascending: false, nullsFirst: false });
 
     // 아카이브된 리드 제외 (archived가 NULL인 기존 행도 포함)
     query = query.or('archived.is.null,archived.eq.false');
@@ -395,9 +409,11 @@ if (filters?.status) {
       query = query.or(`and(operating_status.eq.영업중,last_modified_date.gte.${cutoff}),last_modified_date.is.null`);
     }
 
-    const { data, count, error } = await query.range(from, to);
+    const { data, count, error } = countOnly
+      ? await query
+      : await query.range(from, to + (filters?.countMode === 'none' ? 1 : 0));
 
-    if (error && error.code === '57014' && !filters?.countMode) {
+    if (!countOnly && error && error.code === '57014' && !filters?.countMode) {
       // 정확한 건수 계산이 statement timeout에 걸린 경우 추정 건수로 한 번 더 조회한다.
       console.warn('[getLeads] 건수 계산 타임아웃 → estimated 건수로 재시도');
       return getLeads({ ...filters, countMode: 'estimated' });
@@ -407,7 +423,14 @@ if (filters?.status) {
       return { success: false, leads: [], count: 0, message: error.message };
     }
 
-    let leads: Lead[] = (data || []).map((row: any) => ({
+    if (countOnly) {
+      return { success: typeof count === 'number', leads: [], count: count ?? 0 };
+    }
+    const hasNext = filters?.countMode === 'none'
+      ? (data?.length ?? 0) > pageSize
+      : to + 1 < (count ?? 0);
+
+    let leads: Lead[] = (filters?.countMode === 'none' ? (data || []).slice(0, pageSize) : (data || [])).map((row: any) => ({
       id: row.id,
       bizName: row.biz_name,
       bizId: row.biz_id,
@@ -470,7 +493,8 @@ if (filters?.status) {
     return {
       success: true,
       leads: uniqueLeads,
-      count: count || 0
+      count: count || 0,
+      hasNext,
     };
   } catch (error) {
     console.error('리드 조회 중 오류:', error);

@@ -23,6 +23,8 @@ interface ListViewProps {
   salesProgressMap?: Map<string, SalesProgress[]>;
   currentPage: number;
   totalCount: number;
+  countKnown?: boolean;
+  hasNext?: boolean;
   pageSize: number;
   onPageChange: (page: number) => void;
   onRefresh?: () => void;
@@ -75,6 +77,8 @@ export default function ListView({
   salesProgressMap,
   currentPage,
   totalCount,
+  countKnown = true,
+  hasNext = false,
   pageSize,
   onPageChange,
   onRefresh,
@@ -347,9 +351,9 @@ export default function ListView({
           className="px-6 py-4 flex items-center justify-between border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]"
         >
           <div className="text-sm text-[var(--text-secondary)]">
-            전체 <span className="font-semibold text-[var(--text-primary)]">{totalCount.toLocaleString()}</span>건 중
+            {countKnown ? `전체 ${totalCount.toLocaleString()}건 중` : '전체 건수 미확인 ·'}
             <span className="mx-1 font-semibold text-[var(--text-primary)]">
-              {Math.min((currentPage - 1) * pageSize + 1, totalCount)} - {Math.min(currentPage * pageSize, totalCount)}
+              {leads.length ? (currentPage - 1) * pageSize + 1 : 0} - {leads.length ? (currentPage - 1) * pageSize + leads.length : 0}
             </span>
             표시
           </div>
@@ -365,7 +369,7 @@ export default function ListView({
             </button>
 
             <div className="flex gap-1.5 px-2">
-              {(() => {
+              {!countKnown ? <span>{currentPage}페이지</span> : (() => {
                 const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
                 const start = Math.max(1, currentPage - 2);
                 const end = Math.min(totalPages, start + 4);
@@ -391,7 +395,7 @@ export default function ListView({
 
             <button type="button"
               onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+              disabled={!hasNext && (!countKnown || currentPage >= Math.ceil(totalCount / pageSize))}
               title="다음 페이지"
               className="p-2 rounded-lg border transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-secondary)] border-[var(--glass-border)]"
             >

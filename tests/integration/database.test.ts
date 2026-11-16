@@ -31,6 +31,21 @@ describe.skipIf(!config)('격리 DB 계약 검증 (명시적 로컬 실행 설�
     expect((await owner(`select id from ${table('leads')} where id in ($1,$2)`, [a, b])).rows).toEqual([{ id: a }]);
     expect((await asUser(fixture.db, fixture.userB, `select id from ${table('leads')} where id in ($1,$2)`, [a, b])).rows).toEqual([{ id: b }]);
   });
+  it('분리된 목록과 건수 쿼리에 같은 조직 RLS가 적용된다', async () => {
+    const a = await lead(), b = await lead(fixture.orgB, fixture.userB);
+    const params = [a, b];
+    const rows = await owner(`select id from ${table('leads')} where id in ($1,$2) order by id limit 2`, params);
+    const count = await owner(`select count(*)::int as count from ${table('leads')} where id in ($1,$2)`, params);
+    expect(rows.rows).toEqual([{ id: a }]);
+    expect(count.rows).toEqual([{ count: 1 }]);
+  });
+  it('건수 계산 시간 초과 후에도 목록 데이터를 재조회할 수 있다', async () => {
+    const id = await lead();
+    expect((await owner(`select id from ${table('leads')} where id=$1`, [id])).rows).toEqual([{ id }]);
+    await expect(owner(`set local statement_timeout='30ms'; select count(*) from ${table('leads')}, pg_sleep(0.2)`))
+      .rejects.toMatchObject({ code: '57014' });
+    expect((await owner(`select id from ${table('leads')} where id=$1`, [id])).rows).toEqual([{ id }]);
+  });
   it('리드 상태 변경을 저장 후 재조회한다', async () => {
     const id = await lead();
     expect((await owner(`update ${table('leads')} set status='PROPOSAL_SENT' where id=$1 returning id`, [id])).rowCount).toBe(1);

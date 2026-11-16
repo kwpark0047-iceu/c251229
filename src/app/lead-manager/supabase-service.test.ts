@@ -74,10 +74,76 @@ describe('Supabase 서비스 (supabase-service.ts)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset to default behavior
-    mockSupabaseClient.from.mockReturnValue(defaultMockBuilder);
+    mockSupabaseClient.from.mockReset().mockReturnValue(defaultMockBuilder);
   });
 
   describe('getLeads', () => {
+    it.each([0, 1, 2])('count-free page boundary with %i rows', async size => {
+      const builder = createMockBuilder(Array.from({ length: size }, (_, i) => ({ ...mockLeadsData[0], id: String(i), biz_name: `Store ${i}` })), null);
+      mockSupabaseClient.from.mockReturnValue(builder);
+      const { getLeads } = await import('./supabase-service');
+      const result = await getLeads({ countMode: 'none', page: 2, pageSize: 1 });
+      expect(result.hasNext).toBe(size > 1);
+      expect(result.leads.length).toBe(Math.min(size, 1));
+      expect(builder.range).toHaveBeenCalledWith(1, 2);
+    });
+
+    it('applies identical filters to list and count, including archive and organization', async () => {
+      const rows = createMockBuilder(mockLeadsData, null);
+      const count = createMockBuilder(null, 87);
+      rows.in.mockReturnThis();
+      count.in.mockReturnThis();
+      mockSupabaseClient.from.mockReturnValueOnce(rows).mockReturnValueOnce(count);
+      const { getLeads, getLeadCount } = await import('./supabase-service');
+      const filters = { category: 'FOOD' as const, status: 'NEW' as const, serviceIds: ['service'], nearestStation: 'station',
+        regions: ['6410000'], searchQuery: 'shop', startDate: '2026-01-01', endDate: '2026-11-11',
+        searchType: 'modified_date' as const, userInfo: { organizationId: 'org-a' } };
+      await getLeads({ ...filters, countMode: 'none' });
+      expect(await getLeadCount(filters)).toEqual({ success: true, count: 87 });
+      for (const method of ['eq', 'or', 'in'] as const) expect(count[method].mock.calls).toEqual(rows[method].mock.calls);
+      expect(count.order).not.toHaveBeenCalled();
+    });
+
+    it('does not retry a count-free list timeout', async () => {
+      mockSupabaseClient.from.mockReturnValue(createMockBuilder(null, null, { code: '57014', message: 'timeout' }));
+      const { getLeads } = await import('./supabase-service');
+      expect((await getLeads({ countMode: 'none' })).success).toBe(false);
+      expect(mockSupabaseClient.from).toHaveBeenCalledTimes(1);
+    });
+    it('count-free pages request one extra row without a count and trim it', async () => {
+      const builder = createMockBuilder([
+        { ...mockLeadsData[0], id: 'a', biz_name: 'A' },
+        { ...mockLeadsData[0], id: 'b', biz_name: 'B' },
+      ], null);
+      mockSupabaseClient.from.mockReturnValue(builder);
+      const { getLeads } = await import('./supabase-service');
+      const result = await getLeads({ countMode: 'none', pageSize: 1 });
+      expect(builder.select).toHaveBeenCalledWith('*');
+      expect(builder.range).toHaveBeenCalledWith(0, 1);
+      expect(result.leads).toHaveLength(1);
+      expect(result.hasNext).toBe(true);
+    });
+
+    it('isolates count failure from a successful page without retrying', async () => {
+      const pageBuilder = createMockBuilder(mockLeadsData, null);
+      const countBuilder = createMockBuilder(null, null, { code: '57014', message: 'timeout' });
+      mockSupabaseClient.from.mockReturnValueOnce(pageBuilder).mockReturnValueOnce(countBuilder);
+      const { getLeads, getLeadCount } = await import('./supabase-service');
+      const filters = { startDate: '2026-07-01', userInfo: { organizationId: 'org-a' } };
+      const page = await getLeads({ ...filters, countMode: 'none' });
+      const count = await getLeadCount(filters);
+      expect(page.success).toBe(true);
+      expect(page.leads).toHaveLength(1);
+      expect(count.success).toBe(false);
+      expect(count.count).toBeNull();
+      expect(countBuilder.select).toHaveBeenCalledWith('*', { count: 'exact', head: true });
+      for (const builder of [pageBuilder, countBuilder]) {
+        expect(builder.eq).toHaveBeenCalledWith('organization_id', 'org-a');
+        expect(builder.or).toHaveBeenCalledWith('license_date.gte.2026-07-01,license_date.is.null');
+      }
+      expect(mockSupabaseClient.from).toHaveBeenCalledTimes(2);
+      expect(countBuilder.range).not.toHaveBeenCalled();
+    });
     it.each(['license_date', 'modified_date'] as const)('날짜가 없는 경기 리드를 %s 범위 조회에서 제외하지 않는다', async searchType => {
       const { getLeads } = await import('./supabase-service');
       const result = await getLeads({ startDate: '2026-07-23', endDate: '2026-10-23', searchType });
