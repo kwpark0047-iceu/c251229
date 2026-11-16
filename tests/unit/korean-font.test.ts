@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 describe('deterministic Korean font', () => {
@@ -16,6 +17,9 @@ describe('deterministic Korean font', () => {
     const font = readFileSync(resolve('src/app/fonts/NotoSansKR-Variable.woff2'));
     expect(font.subarray(0, 4).toString('ascii')).toBe('wOF2');
     expect(font.length).toBeGreaterThan(100_000);
+    expect(createHash('sha256').update(font).digest('hex')).toBe(
+      '33bfc9d4b7c8fe48d6c709218afac7982c6d463c683f162a72d9a82f4e423b32',
+    );
     const license = readFileSync(resolve('src/app/fonts/OFL-NotoSansKR.txt'), 'utf8');
     expect(license).toContain('SIL OPEN FONT LICENSE');
   });

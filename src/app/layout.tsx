@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Sans_KR } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import { Providers } from "@/components/Providers";
@@ -15,10 +16,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const notoSansKR = Noto_Sans_KR({
+const notoSansKR = localFont({
+  src: "./fonts/NotoSansKR-Variable.woff2",
   variable: "--font-noto-sans-kr",
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: "100 900",
   display: "swap",
   preload: true,
 });
