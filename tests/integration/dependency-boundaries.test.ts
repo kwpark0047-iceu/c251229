@@ -17,6 +17,7 @@ describe('development dependency security boundaries', () => {
     ['vitest', '>=4.1.12 <5'],
     ['@vitest/mocker', '>=4.1.12 <5'],
     ['zod', '>=4.6.6 <5'],
+    ['next', '>=16.4.5 <17'],
   ])('locks a patched %s release', (name, range) => {
     expect(satisfies(lock.packages[`node_modules/${name}`].version, range)).toBe(true);
   });
@@ -30,6 +31,13 @@ describe('development dependency security boundaries', () => {
     }
     expect(lock.packages['node_modules/minimatch'].version).toMatch(/^3\./);
     expect(lock.packages['node_modules/readdir-glob/node_modules/minimatch'].version).toMatch(/^5\./);
+  });
+
+  it('keeps the exact Vitest family and Vite bundler pair aligned', () => {
+    const vitestVersion = lock.packages['node_modules/vitest'].version;
+    expect(lock.packages['node_modules/@vitest/coverage-v8'].version).toBe(vitestVersion);
+    expect(lock.packages['node_modules/@vitest/mocker'].version).toBe(vitestVersion);
+    expect(lock.packages['node_modules/vite/node_modules/rolldown'].version).toBe('1.2.4');
   });
 
   it('rejects oversized constrained collections without validating every item', () => {
