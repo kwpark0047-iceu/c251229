@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { createRequire } from 'node:module';
+import { runInNewContext } from 'node:vm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import axios from 'axios';
 
@@ -46,6 +47,22 @@ function request(path: string, headers: Record<string, string> | string[], sensi
 }
 
 describe('리다이렉트 인증 헤더 경계 (합성 값·루프백 전용)', () => {
+  it.each(['object', 'array'] as const)('다른 realm의 민감 헤더 목록도 보호한다: %s', async form => {
+    const sensitiveHeaders: string[] = runInNewContext('["X-Custom-Token"]');
+    expect(Array.isArray(sensitiveHeaders)).toBe(true);
+    expect(sensitiveHeaders instanceof Array).toBe(false);
+    const headers = form === 'object'
+      ? { 'X-Custom-Token': 'synthetic-secret', 'X-Request-ID': 'synthetic-trace' }
+      : ['X-Custom-Token', 'synthetic-secret', 'X-Request-ID', 'synthetic-trace'];
+    const result = await request('/cross', headers, sensitiveHeaders);
+    expect(result['x-custom-token']).toBeUndefined();
+    expect(result['x-request-id']).toBe('synthetic-trace');
+  });
+  it('다른 realm의 민감 헤더도 같은 origin에서는 유지한다', async () => {
+    const sensitiveHeaders: string[] = runInNewContext('["X-Custom-Token"]');
+    const result = await request('/same', { 'X-Custom-Token': 'synthetic-secret' }, sensitiveHeaders);
+    expect(result['x-custom-token']).toBe('synthetic-secret');
+  });
   it('배열 형식 헤더도 다른 origin으로 전달하지 않는다', async () => {
     const result = await request('/cross', ['Authorization', 'synthetic-auth', 'Cookie', 'session=synthetic', 'Proxy-Authorization', 'synthetic-proxy']);
     expect(result.authorization).toBeUndefined();
