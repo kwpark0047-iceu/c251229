@@ -20,10 +20,8 @@ import {
   Map as MapIcon,
   Wifi,
   WifiOff,
-  Download,
   Package,
   Users,
-  Upload,
   Calendar,
   LogOut,
   Building2,
@@ -36,7 +34,6 @@ import {
   Search,
   X,
   Shield,
-  Database,
   Star,
   Handshake,
 } from 'lucide-react';
@@ -64,7 +61,7 @@ import SopoLookupModal from './components/crm/SopoLookupModal';
 
 // MapView를 dynamic 임포트 (SSR 방지)
 import dynamic from 'next/dynamic';
-const MapView = dynamic(() => import('./components/MapView'), { 
+const MapView = dynamic(() => import('./components/MapView'), {
   ssr: false,
   loading: () => (
     <div className="bg-[#0b0c10] rounded-2xl border border-slate-800 h-[calc(100vh-280px)] md:h-[calc(100vh-320px)] min-h-[450px] flex items-center justify-center">
@@ -75,10 +72,8 @@ const MapView = dynamic(() => import('./components/MapView'), {
     </div>
   )
 });
-import StatsDashboard from './components/StatsDashboard';
 import InventoryTable from './components/inventory/InventoryTable';
 import InventoryUploadModal from './components/inventory/InventoryUploadModal';
-import BackupButton from './components/BackupButton';
 import ThemeToggle from '@/components/ThemeToggle';
 import { ScheduleCalendar, TaskBoard, TaskFormModal } from './components/schedule';
 import ProposalsView from './components/ProposalsView';
@@ -91,7 +86,6 @@ import SavedFilters from './components/SavedFilters';
 import { filterStorageKey } from './saved-filters';
 import { TaskWithLead } from './types';
 import CallbackNotification from './components/CallbackNotification';
-import RoleGuard from '@/components/RoleGuard';
 import DataSyncModal from './components/DataSyncModal';
 import MobileNavBar from './components/MobileNavBar';
 import BackgroundEffect from './components/BackgroundEffect';
@@ -198,13 +192,13 @@ function LeadManagerContent() {
         showNotification('error', result.message);
         return;
       }
-      
+
       // 로컬 상태에서 제거
       setLeads(prev => prev.filter(l => l.id !== leadId));
       leadRequest.current.invalidate();
       setCountState('unknown');
       setTotalCount(prev => Math.max(0, prev - 1));
-      
+
       // Undo 토스트 표시 (sonner의 action 지원)
       const { toast } = await import('sonner');
       toast('리드가 아카이브되었습니다.', {
@@ -247,7 +241,6 @@ function LeadManagerContent() {
   const [salesProgressMap, setSalesProgressMap] = useState<Map<string, SalesProgress[]>>(new Map());
   const [stationSuggestions, setStationSuggestions] = useState<typeof SUBWAY_STATIONS>([]);
   const [showStationSuggestions, setShowStationSuggestions] = useState(false);
-  const [isDashboardExpanded, setIsDashboardExpanded] = useState(false);
   const [sortByScore, setSortByScore] = useState(false);
 
   // SOPO 모달 상태
@@ -439,7 +432,7 @@ function LeadManagerContent() {
         const user = await getCurrentUser();
         setUserInfo(user);
         await loadSettings();
-        
+
         // 복원된 값을 사용하여 즉시 로드 (사용자 정보 포함)
         await loadLeadsFromDB(restoredCategory, restoredRegions, 1, '', user);
       } catch (error) {
@@ -458,7 +451,7 @@ function LeadManagerContent() {
       // 1. 클라이언트 측 세션 정리 시도
       const supabase = createClient();
       await resetSupabaseBrowserSession(supabase);
-      
+
       // 2. 서버 측 세션 파기 및 리다이렉트를 위해 전용 API 호출
       // 이 방식은 미들웨어의 파라미터 감지에만 의존하지 않고 확실하게 서버 세션을 종료합니다.
       window.location.href = '/api/auth/logout?redirect=1';
@@ -558,7 +551,7 @@ function LeadManagerContent() {
       if (result.success) {
         setLoadingStatus('데이터베이스 업데이트 완료!');
         await loadLeadsFromDB(categoryFilter, selectedRegions, 1, searchQuery);
-        
+
         const regionNames = selectedRegions.map(code => REGION_OPTIONS.find(r => r.code === code)?.name || code).join('+');
         showNotification('success', `[${regionNames}/${CATEGORY_LABELS[categoryFilter]}] 신규 리드 ${result.leads.length}건이 동기화되었습니다.`);
       } else {
@@ -688,16 +681,16 @@ function LeadManagerContent() {
 
     setIsLoading(true);
     setLoadingStatus('파일 업로드 및 처리 중...');
-    
+
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch('/api/import-csv', {
         method: 'POST',
         body: formData,
       });
-      
+
       const result = await response.json();
       if (result.success) {
         showNotification('success', `성공적으로 ${result.count}건의 활성 리드가 추가되었습니다.`);
@@ -871,20 +864,6 @@ function LeadManagerContent() {
                   <button onClick={refreshData} disabled={isLoading} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 bg-[var(--metro-line2)]">
                     <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} /> {isLoading ? `${loadingProgress.current}/${loadingProgress.total}` : '새로고침'}
                   </button>
-                  <button
-                    onClick={() => setShowDataSync(true)}
-                    disabled={isLoading}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-white text-xs font-medium transition-all hover:opacity-90 disabled:opacity-50 bg-gradient-to-r from-[var(--metro-line3)] to-[var(--metro-line4)]"
-                    title="경기도·서울 공공데이터 동기화"
-                  >
-                    <Database className="w-3.5 h-3.5" /> 공공데이터
-                  </button>
-                  <button onClick={exportToCSV} className="p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--metro-line5)] hover:bg-[var(--bg-secondary)] transition-colors" title="CSV 내보내기"><Download className="w-4 h-4" /></button>
-                  <label className="cursor-pointer p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--metro-line2)] hover:bg-[var(--bg-secondary)] transition-colors" title="CSV 데이터 업로드">
-                    <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
-                    <Upload className="w-4 h-4" />
-                  </label>
-                  <RoleGuard allowedRoles={['owner', 'admin']}><BackupButton /></RoleGuard>
                 </div>
               </div>
             </div>
@@ -897,7 +876,6 @@ function LeadManagerContent() {
       {mainTab === 'leads' && (
         <>
           <div className="max-w-[1400px] mx-auto px-6 pt-6">
-            <StatsDashboard leads={leads} isExpanded={isDashboardExpanded} onToggle={() => setIsDashboardExpanded(!isDashboardExpanded)} onStatusFilter={setStatusFilter} currentStatusFilter={statusFilter} />
             {userInfo && <SavedFilters
               scope={filterStorageKey(userInfo.id, userInfo.organizationId)}
               value={{ category: categoryFilter, regions: selectedRegions, status: statusFilter, view: viewMode, uncontacted: showUncontactedOnly, score: sortByScore }}
@@ -1075,11 +1053,6 @@ function LeadManagerContent() {
           </>
         ) : mainTab === 'inventory' ? (
           <>
-            <div className="flex items-center justify-between mb-4">
-              <button onClick={() => setShowInventoryUpload(true)} className="flex items-center gap-2 px-4 py-2 bg-[var(--metro-line2)] text-white rounded-md hover:bg-[var(--metro-line2)]/80 transition-colors">
-                <Upload className="w-4 h-4" /> 엑셀 업로드
-              </button>
-            </div>
             <InventoryTable key={inventoryRefreshKey} onRefresh={() => setInventoryRefreshKey(k => k + 1)} />
           </>
         ) : mainTab === 'schedule' ? (
@@ -1119,7 +1092,18 @@ function LeadManagerContent() {
         ) : mainTab === 'contracts' ? (
           <ContractsView />
         ) : (
-          <SuperAdminDashboard user={userInfo} onlineAccounts={onlineAccounts} presenceConnection={presenceConnection} />
+          <SuperAdminDashboard
+            user={userInfo}
+            onlineAccounts={onlineAccounts}
+            presenceConnection={presenceConnection}
+            leads={leads}
+            onExportLeads={exportToCSV}
+            onImportLeads={handleFileUpload}
+            onOpenInventoryUpload={() => setShowInventoryUpload(true)}
+            onOpenDataSync={() => setShowDataSync(true)}
+            onLeadStatusFilter={setStatusFilter}
+            currentLeadStatusFilter={statusFilter}
+          />
         )}
       </main>
 
