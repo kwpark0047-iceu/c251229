@@ -7,7 +7,7 @@ import {
   Search, Filter, Activity,
   Settings, History, Download, FileText, Calendar,
   BarChart3, UserCheck, X, AlertCircle, Trash2, GraduationCap, Utensils,
-  Coffee, Truck, Plus, Edit
+  Coffee, Truck, Plus, Edit, Upload, Database
 } from 'lucide-react';
 import {
   getAllProfiles,
@@ -32,6 +32,9 @@ import { presenceLabels, type OnlineAccount, type PresenceConnection } from '../
 import MemberActionDialog, { type MemberAction } from './MemberActionDialog';
 import { getActionLabel, getRoleLabel, getSourceLabel } from './admin-labels';
 import { textSizeClass, colorClass } from '@/lib/ui';
+import type { Lead, LeadStatus } from '../../types';
+import BackupButton from '../BackupButton';
+import StatsDashboard from '../StatsDashboard';
 
 interface Profile {
   id: string;
@@ -56,6 +59,13 @@ interface Props {
   user?: UserInfo | null;
   onlineAccounts?: OnlineAccount[];
   presenceConnection?: PresenceConnection;
+  leads?: Lead[];
+  onExportLeads?: () => void;
+  onImportLeads?: React.ChangeEventHandler<HTMLInputElement>;
+  onOpenInventoryUpload?: () => void;
+  onOpenDataSync?: () => void;
+  onLeadStatusFilter?: (status: LeadStatus | 'ALL') => void;
+  currentLeadStatusFilter?: LeadStatus | 'ALL';
 }
 
 interface SyncCardProps {
@@ -151,7 +161,18 @@ function SyncCard({
   );
 }
 
-export default function SuperAdminDashboard({ user, onlineAccounts = [], presenceConnection = 'connecting' }: Props) {
+export default function SuperAdminDashboard({
+  user,
+  onlineAccounts = [],
+  presenceConnection = 'connecting',
+  leads = [],
+  onExportLeads,
+  onImportLeads,
+  onOpenInventoryUpload,
+  onOpenDataSync,
+  onLeadStatusFilter,
+  currentLeadStatusFilter = 'ALL',
+}: Props) {
   const [activeTab, setActiveTab] = useState<'users' | 'logs' | 'data'>('users');
 
   // Data States
@@ -1273,6 +1294,68 @@ useEffect(() => {
 
         {activeTab === 'data' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto">
+            {(onExportLeads || onImportLeads || onOpenInventoryUpload || onOpenDataSync) && (
+              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-labelledby="data-operations-heading">
+                <div className="lg:col-span-3">
+                  <h2 id="data-operations-heading" className="text-xl font-black text-white">데이터 입출력</h2>
+                  <p className="mt-1 text-sm text-slate-400">리드와 인벤토리 파일 작업을 한곳에서 안전하게 관리합니다.</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                  <h3 className="font-bold text-white">공공데이터</h3>
+                  <p className="mb-4 mt-1 text-xs text-slate-400">경기도·서울 데이터를 선택하여 조회하고 저장합니다.</p>
+                  {onOpenDataSync && (
+                    <button type="button" onClick={onOpenDataSync} className="flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-bold text-white hover:bg-cyan-500">
+                      <Database className="h-4 w-4" /> 공공데이터 동기화
+                    </button>
+                  )}
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                  <h3 className="font-bold text-white">리드 데이터</h3>
+                  <p className="mb-4 mt-1 text-xs text-slate-400">CSV로 내려받거나 검증된 CSV를 업로드합니다.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {onExportLeads && (
+                      <button type="button" onClick={onExportLeads} className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500">
+                        <Download className="h-4 w-4" /> 리드 CSV 다운로드
+                      </button>
+                    )}
+                    {onImportLeads && (
+                      <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-white/10">
+                        <Upload className="h-4 w-4" /> 리드 CSV 업로드
+                        <input aria-label="리드 CSV 업로드" type="file" accept=".csv" className="hidden" onChange={onImportLeads} />
+                      </label>
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                  <h3 className="font-bold text-white">인벤토리</h3>
+                  <p className="mb-4 mt-1 text-xs text-slate-400">광고 매체 엑셀 파일을 검토한 뒤 업로드합니다.</p>
+                  {onOpenInventoryUpload && (
+                    <button type="button" onClick={onOpenInventoryUpload} className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500">
+                      <Upload className="h-4 w-4" /> 인벤토리 엑셀 업로드
+                    </button>
+                  )}
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                  <h3 className="font-bold text-white">백업 및 복원</h3>
+                  <p className="mb-4 mt-1 text-xs text-slate-400">전체 백업을 내려받거나 확인 후 복원합니다.</p>
+                  <BackupButton />
+                </div>
+              </section>
+            )}
+
+            {onLeadStatusFilter && (
+              <section aria-labelledby="sales-analytics-heading" className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02]">
+                <h2 id="sales-analytics-heading" className="sr-only">상세 대시보드</h2>
+                <StatsDashboard
+                  leads={leads}
+                  isExpanded
+                  showCollapseButton={false}
+                  onStatusFilter={onLeadStatusFilter}
+                  currentStatusFilter={currentLeadStatusFilter}
+                />
+              </section>
+            )}
+
             {/* API Key Vault - 설정 관리 센터 */}
             <div className="bg-white/[0.02] backdrop-blur-xl p-8 rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group">
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>

@@ -50,6 +50,7 @@ interface StatsDashboardProps {
   leads: Lead[];
   isExpanded?: boolean;
   onToggle?: () => void;
+  showCollapseButton?: boolean;
   onStatusFilter?: (status: LeadStatus | 'ALL') => void;
   currentStatusFilter?: LeadStatus | 'ALL';
 }
@@ -92,8 +93,8 @@ function CustomTooltip({ active, payload, label }: any) {
     return (
       <div
         className="px-3 py-2 rounded-lg shadow-xl border backdrop-blur-md bg-[--glass-bg] border-[--glass-border]"
-         
-   
+
+
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -101,22 +102,22 @@ function CustomTooltip({ active, payload, label }: any) {
   style={{
           '--glass-bg': 'var(--glass-bg)',
           '--glass-border': 'var(--glass-border)',
-           
+
         } as React.CSSProperties}
       >
         <p className="text-xs font-bold text-[var(--text-primary)] mb-1">{label}</p>
         {payload.map((entry: any, index: number) => (
           <div key={index} className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[--entry-color]" 
-               
-   
+            <div className="w-2 h-2 rounded-full bg-[--entry-color]"
+
+
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
   // NOSONAR
-  style={{ 
+  style={{
                 '--entry-color': entry.color || entry.fill,
-                 
+
               } as React.CSSProperties} />
             <p className="text-xs text-[var(--text-secondary)]">
               {entry.name}: <span className="font-bold text-[var(--text-primary)]">
@@ -140,7 +141,7 @@ function CustomTooltip({ active, payload, label }: any) {
   return null;
 }
 
-export default function StatsDashboard({ leads, isExpanded = false, onToggle, onStatusFilter, currentStatusFilter }: StatsDashboardProps) {
+export default function StatsDashboard({ leads, isExpanded = false, onToggle, showCollapseButton = true, onStatusFilter, currentStatusFilter }: StatsDashboardProps) {
   const [activeChart, setActiveChart] = useState<'status' | 'trend' | 'line' | 'funnel' | 'category' | 'revenue' | 'rep' | 'goal'>('status');
   const [extendedStats, setExtendedStats] = useState<any>(null);
 
@@ -315,9 +316,11 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
               <p className="text-xs text-[var(--text-muted)]">Real-time Sales Performance & Lead Analytics</p>
             </div>
           </div>
-          <button onClick={onToggle} title="대시보드 접기" className="p-2 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all soft-ring lift-hover">
-            <ChevronUp className="w-5 h-5" />
-          </button>
+          {showCollapseButton && (
+            <button onClick={onToggle} title="대시보드 접기" className="p-2 rounded-xl bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all soft-ring lift-hover">
+              <ChevronUp className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Metrics Grid */}
@@ -533,9 +536,9 @@ export default function StatsDashboard({ leads, isExpanded = false, onToggle, on
                   <div className="h-1.5 w-full bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
                     <div
                       className="h-full transition-all duration-1000 bg-[--line-color] w-[--line-width]"
-                       
-                       
-   
+
+
+
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
@@ -580,19 +583,19 @@ function MetricCard({
       `}
     >
       <div className="flex items-center justify-between mb-4">
-        <div className="p-2.5 rounded-xl bg-[--bg-tint]" 
-           
-           
-   
+        <div className="p-2.5 rounded-xl bg-[--bg-tint]"
+
+
+
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle
   // NOSONAR
   style={{ '--bg-tint': `${color}15` } as React.CSSProperties}>
-          <Icon className="w-5 h-5 text-[--icon-color]" 
-             
-             
-   
+          <Icon className="w-5 h-5 text-[--icon-color]"
+
+
+
   /* stylelint-disable-next-line */
   // @ts-ignore
   // noinspection CssInlineStyle

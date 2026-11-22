@@ -13,6 +13,7 @@ vi.mock('@/lib/supabase/client', () => ({ createClient: () => ({
   removeChannel: vi.fn(),
 }) }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }));
+vi.mock('../StatsDashboard', () => ({ default: () => <div>영업 성과 분석 리포트</div> }));
 import { getAllProfiles, getAdminNotifications, markNotificationAsRead, updateProfileStatus, deleteUserProfile, updateUserTier } from '../../auth-service';
 import SuperAdminDashboard from './SuperAdminDashboard';
 import UserManagementView from './UserManagementView';
@@ -49,6 +50,33 @@ describe('최고관리자 대시보드 회원 관리', () => {
     for (const label of ['연동 설정 이름 *', '데이터 연동 유형 *', '공공데이터 인증 키 *', '시군명 (경기도 전용 / 선택)', '활성화 여부 *']) {
       expect(screen.getByLabelText(label)).toBeVisible();
     }
+  });
+  it('groups lead, inventory, backup, and analytics tools in data management', async () => {
+    const onExportLeads = vi.fn();
+    const onImportLeads = vi.fn();
+    const onOpenInventoryUpload = vi.fn();
+    const onOpenDataSync = vi.fn();
+    render(<SuperAdminDashboard
+      leads={[]}
+      onExportLeads={onExportLeads}
+      onImportLeads={onImportLeads}
+      onOpenInventoryUpload={onOpenInventoryUpload}
+      onOpenDataSync={onOpenDataSync}
+      onLeadStatusFilter={vi.fn()}
+    />);
+    await screen.findByText('신규회원');
+    await userEvent.click(screen.getByRole('button', { name: /데이터 관리/ }));
+
+    await userEvent.click(screen.getByRole('button', { name: '리드 CSV 다운로드' }));
+    await userEvent.click(screen.getByRole('button', { name: '인벤토리 엑셀 업로드' }));
+    await userEvent.click(screen.getByRole('button', { name: '공공데이터 동기화' }));
+
+    expect(onExportLeads).toHaveBeenCalledOnce();
+    expect(onOpenInventoryUpload).toHaveBeenCalledOnce();
+    expect(onOpenDataSync).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText('리드 CSV 업로드')).toHaveAttribute('accept', '.csv');
+    expect(screen.getByText('영업 성과 분석 리포트')).toBeVisible();
+    expect(screen.getByText('백업 및 복원')).toBeVisible();
   });
   it('marks notifications read with a native keyboard-operable button', async () => {
     vi.mocked(getAdminNotifications).mockResolvedValueOnce({ success: true, notifications: [
