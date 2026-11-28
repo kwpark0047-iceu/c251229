@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { origin } from "./seo";
 import { Geist, Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -25,8 +26,9 @@ const notoSansKR = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "위마켓 | 지하철 광고 플랫폼",
-  description: "서울 지하철 광고 플랫폼 - 위마켓",
+  metadataBase: new URL(origin),
+  title: "위마켓 광고",
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({
